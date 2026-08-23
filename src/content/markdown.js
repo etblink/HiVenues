@@ -357,14 +357,72 @@ function sanitizeRenderedContent(rendered) {
   });
 }
 
+function replaceMathTokens(value, replacements, replacementValue) {
+  let output = value;
+  for (const replacement of replacements) {
+    output = output.split(replacement.token).join(replacementValue(replacement));
+  }
+  return output;
+}
+
+function mapHtmlSegments(value, { text, tag }) {
+  let output = '';
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const tagStart = value.indexOf('<', cursor);
+    if (tagStart < 0) {
+      output += text(value.slice(cursor));
+      break;
+    }
+
+    output += text(value.slice(cursor, tagStart));
+    let tagEnd = tagStart + 1;
+    let quote = null;
+    while (tagEnd < value.length) {
+      const char = value[tagEnd];
+      if (quote) {
+        if (char === quote) quote = null;
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === '>') {
+        tagEnd += 1;
+        break;
+      }
+      tagEnd += 1;
+    }
+
+    output += tag(value.slice(tagStart, tagEnd));
+    cursor = tagEnd;
+  }
+
+  return output;
+}
+
+function neutralizeMathTokensInTags(rendered, replacements) {
+  if (replacements.length === 0) return rendered;
+  return mapHtmlSegments(rendered, {
+    text: (value) => value,
+    tag: (value) => replaceMathTokens(value, replacements, () => ''),
+  });
+}
+
+function restoreMathInTextNodes(rendered, replacements) {
+  if (replacements.length === 0) return rendered;
+  return mapHtmlSegments(rendered, {
+    text: (value) => replaceMathTokens(value, replacements, (replacement) => replacement.html),
+    tag: (value) => value,
+  });
+}
+
 function renderMarkdown(value) {
   const source = typeof value === 'string' ? value : '';
   const extracted = extractMath(source);
-  let rendered = sanitizeRenderedContent(markdown.render(extracted.source));
-  for (const replacement of extracted.replacements) {
-    rendered = rendered.split(replacement.token).join(replacement.html);
-  }
-  return rendered;
+  const renderedWithTokens = markdown.render(extracted.source);
+  const sanitized = sanitizeRenderedContent(
+    neutralizeMathTokensInTags(renderedWithTokens, extracted.replacements),
+  );
+  return restoreMathInTextNodes(sanitized, extracted.replacements);
 }
 
 function plainTextExcerpt(value, maxLength = 200) {
