@@ -201,7 +201,7 @@ async function prepare(page, id) {
     await composer.locator('[data-composer-dialog-trigger]').click();
     await composer.locator('[data-wall-privacy-toggle]').check();
     assert.equal(
-      await composer.locator('form[data-wall-privacy-form]').getAttribute('data-m4-action'),
+      await composer.locator("form[data-wall-privacy-form]").getAttribute('data-m4-action'),
       'inbox',
     );
   }
@@ -425,7 +425,7 @@ async function capture({ browser, baseUrl, scenario, token, width }) {
 
 async function main() {
   const current = createFixture();
-  assert.equal(current.config.hive.writeMode, 'controlled');
+  assert.equal(current.config.hive.writeMode, 'beta');
   assert.equal(current.config.hive.signerMode, 'keychain');
   assert.equal(current.config.payments.enabled, true);
 

@@ -13,7 +13,7 @@ const { PostingAuthorityVerifier } = require('./hive/posting-authority');
 const { HiveReadService } = require('./hive/read-service');
 const { HiveRpcPool } = require('./hive/rpc-pool');
 const { PaymentObserver } = require('./payments/payment-observer');
-const { ReceiptStore } = require('./payments/receipt-store');
+const { PAYMENT_SCHEMA_VERSION, ReceiptStore } = require('./payments/receipt-store');
 const { createLogger } = require('./lib/logger');
 const { errorHandler, notFoundHandler } = require('./middleware/errors');
 const { requestContext } = require('./middleware/request-context');
@@ -105,9 +105,24 @@ function createApp(options = {}) {
   const preflightStore =
     options.preflightStore ||
     new PreflightStore({ ttlMs: config.auth.preflightTtlMs, now: options.now });
-  const receiptStore =
-    options.receiptStore ||
-    new ReceiptStore({ filename: config.payments.receiptDbPath, now: options.now });
+
+  let receiptStore = options.receiptStore || null;
+  let receiptStoreError = null;
+  const shouldOpenReceiptStore =
+    !config.isProduction || config.payments.enabled || config.payments.receiptDbPath !== ':memory:';
+  if (shouldOpenReceiptStore && !receiptStore) {
+    try {
+      receiptStore = new ReceiptStore({
+        filename: config.payments.receiptDbPath,
+        now: options.now,
+        requireExisting: config.isProduction,
+      });
+    } catch (error) {
+      receiptStoreError = error;
+      logger.error({ err: error }, 'payment receipt store unavailable; Hive-Bar Pay will fail closed');
+    }
+  }
+
   const paymentObserver =
     options.paymentObserver ||
     (typeof rpcPool.callNode === 'function'
@@ -236,6 +251,7 @@ function createApp(options = {}) {
     preflightStore,
     paymentObserver,
     receiptStore,
+    receiptStoreError,
     rpcPool,
     sessionStore,
   };
@@ -281,6 +297,15 @@ function createApp(options = {}) {
   );
 
   const readinessChecks = [];
+  if (config.payments.enabled) {
+    readinessChecks.push(() => {
+      if (!receiptStore) throw receiptStoreError || new Error('Payment receipt store unavailable');
+      const health = receiptStore.health();
+      if (health.schemaVersion !== PAYMENT_SCHEMA_VERSION) {
+        throw new Error('Payment receipt schema version mismatch');
+      }
+    });
+  }
   if (onboardingConfig.enabled) {
     readinessChecks.push(() => {
       if (!onboardingStore) throw onboardingStoreError || new Error('Onboarding store unavailable');

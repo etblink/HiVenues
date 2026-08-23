@@ -14,8 +14,10 @@ const SESSION_SECRET = 'test-session-secret-that-is-at-least-32-bytes';
 
 function controlledApp({ payment = false } = {}) {
   const config = configFrom({
-    HIVE_WRITE_MODE: 'controlled',
-    HIVE_CONTROLLED_ACCOUNTS: 'etblink',
+    HIVE_WRITE_MODE: payment ? 'beta' : 'controlled',
+    HIVE_SIGNER_MODE: payment ? 'keychain' : 'disabled',
+    HIVE_CONTROLLED_ACCOUNTS: payment ? '' : 'etblink',
+    ...(payment ? { HIVE_CONTROLLED_ACTIONS: '', HIVE_PAYMENT_ENABLED: 'true' } : {}),
     SESSION_SECRET,
     RATE_LIMIT_MAX: '1000',
     ...(payment ? {
@@ -80,7 +82,7 @@ test('M15.4 Pay presents merchant identity and the no-duplicate-payment model be
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
 
-test('M15.4 controlled Pay keeps every existing payment hook and review boundary', async () => {
+test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and review boundary', async () => {
   const fixture = controlledApp({ payment: true });
   const response = await request(fixture.app)
     .get('/pay')
@@ -98,7 +100,7 @@ test('M15.4 controlled Pay keeps every existing payment hook and review boundary
   assert.match(response.text, /data-pay-recheck/);
   assert.match(response.text, /Check payment details/);
   assert.match(response.text, /Hive-Bar checks the payment and shows you exactly what will be sent/);
-  assert.match(response.text, /Rebates are not available through Hive-Bar right now/);
+  assert.doesNotMatch(response.text, /Continue to Distriator/);
   assert.doesNotMatch(response.text, /data-distriator-claim/);
   assert.match(response.text, /Maximum payment 1\.000 HBD/);
 });
@@ -109,7 +111,7 @@ test('M15.4 preserves the accepted browser payment state machine source', () => 
   assert.match(source, /authority: 'Active'/);
   assert.match(source, /receipt\.state === 'ChainConfirmed'/);
   assert.match(source, /'BroadcastAccepted', 'ConfirmationTimeout'/);
-  assert.match(source, /Do not retry automatically|do not retry automatically/);
+  assert.match(source, /Do not pay again or retry automatically|do not pay again or retry automatically/);
   assert.match(source, /Recheck Hive before considering any new payment/);
 });
 

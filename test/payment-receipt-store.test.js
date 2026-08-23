@@ -9,13 +9,13 @@ const hiveUri = require('hive-uri');
 const { decodeHivePaymentInvoice } = require('../src/payments/invoice-decoder');
 const { RECEIPT_STATES, ReceiptStore } = require('../src/payments/receipt-store');
 
-function envelope(memo = 'v4v-pos:tab-123', amount = '0.001 HBD') {
+function envelope(memo = 'v4v-pos:tab-123', amount = '0.001 HBD', account = 'etblink') {
   return decodeHivePaymentInvoice(
     hiveUri.encodeOp([
       'transfer',
       { from: '__signer', to: 'fourthstreetbar', amount, memo },
-    ], { signer: 'etblink', authority: 'active' }),
-    { account: 'etblink', merchantAccounts: ['fourthstreetbar'], maxHbd: '1.000 HBD' },
+    ], { signer: account, authority: 'active' }),
+    { account, merchantAccounts: ['fourthstreetbar'], maxHbd: '1.000 HBD' },
   );
 }
 
@@ -69,7 +69,7 @@ test('persists the strict payment lifecycle, restart recovery, and confirmed rec
   }
 });
 
-test('cancellation is pre-broadcast only and releases the invoice fingerprint', () => {
+test('cancellation is pre-broadcast only and permanently preserves the exact invoice fingerprint', () => {
   const store = new ReceiptStore({ random: (() => {
     let value = 0;
     return () => `receipt-${++value}`;
@@ -77,7 +77,11 @@ test('cancellation is pre-broadcast only and releases the invoice fingerprint', 
   try {
     const first = store.createValidated({ sessionId: 'session-1', envelope: envelope() });
     assert.equal(store.cancel(first.id, 'session-1').state, RECEIPT_STATES.CANCELLED);
-    const second = store.createValidated({ sessionId: 'session-1', envelope: envelope() });
+    assert.throws(
+      () => store.createValidated({ sessionId: 'session-1', envelope: envelope() }),
+      (error) => error.code === 'DUPLICATE_PAYMENT',
+    );
+    const second = store.createValidated({ sessionId: 'session-1', envelope: envelope('v4v-pos:tab-124') });
     store.markAwaitingSignature(second.id, 'session-1');
     store.markBroadcastAccepted(second.id, 'session-1', null);
     assert.throws(
@@ -90,7 +94,7 @@ test('cancellation is pre-broadcast only and releases the invoice fingerprint', 
   }
 });
 
-test('enforces transaction idempotency and legal compare-and-set transitions', () => {
+test('enforces transaction idempotency and legal compare-and-set transitions across payers', () => {
   const store = new ReceiptStore({ random: (() => {
     let value = 0;
     return () => `receipt-${++value}`;
@@ -104,14 +108,17 @@ test('enforces transaction idempotency and legal compare-and-set transitions', (
     store.markAwaitingSignature(first.id, 'session-1');
     store.markBroadcastAccepted(first.id, 'session-1', 'a'.repeat(40));
 
-    const second = store.createValidated({ sessionId: 'session-1', envelope: envelope('memo-2') });
-    store.markAwaitingSignature(second.id, 'session-1');
+    const second = store.createValidated({
+      sessionId: 'session-2',
+      envelope: envelope('memo-2', '0.001 HBD', 'barfriend'),
+    });
+    store.markAwaitingSignature(second.id, 'session-2');
     assert.throws(
-      () => store.markBroadcastAccepted(second.id, 'session-1', 'a'.repeat(40)),
+      () => store.markBroadcastAccepted(second.id, 'session-2', 'a'.repeat(40)),
       (error) => error.code === 'DUPLICATE_TRANSACTION',
     );
     assert.throws(
-      () => store.applyObservation(second.id, 'session-1', { status: 'pending' }),
+      () => store.applyObservation(second.id, 'session-2', { status: 'pending' }),
       (error) => error.code === 'BROADCAST_ACCEPTANCE_REQUIRED',
     );
   } finally {

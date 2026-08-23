@@ -61,18 +61,12 @@
         event.preventDefault();
         this.run(event.currentTarget);
       });
-      this.root.querySelector('[data-pay-camera-start]')?.addEventListener('click', () => {
-        this.startCamera();
-      });
-      this.root.querySelector('[data-pay-camera-stop]')?.addEventListener('click', () => {
-        this.stopCamera();
-      });
+      this.root.querySelector('[data-pay-camera-start]')?.addEventListener('click', () => this.startCamera());
+      this.root.querySelector('[data-pay-camera-stop]')?.addEventListener('click', () => this.stopCamera());
       this.root.querySelector('[data-pay-image]')?.addEventListener('change', (event) => {
         this.importImage(event.currentTarget.files?.[0]);
       });
-      this.root.querySelector('[data-pay-recheck]')?.addEventListener('click', () => {
-        this.recheck();
-      });
+      this.root.querySelector('[data-pay-recheck]')?.addEventListener('click', () => this.recheck());
       this.loadRecent();
     }
 
@@ -84,7 +78,7 @@
           this.render(receipt);
         }
       } catch {
-        // The page itself already communicates the sign-in and controlled-mode boundary.
+        // Receipt recovery is best effort; the page communicates the active availability boundary.
       }
     }
 
@@ -93,6 +87,7 @@
       const status = this.root.querySelector('[data-pay-status]');
       let session;
       let receipt;
+      let keychainAttempted = false;
       let broadcastAccepted = false;
       if (button) button.disabled = true;
       this.stopCamera();
@@ -100,7 +95,7 @@
         session = await this.request('/auth/session');
         if (!session?.authenticated) throw new Error('Sign in with Hive Keychain before paying a tab.');
         const uri = String(new FormData(form).get('uri') || '').trim();
-        setStatus(status, 'Validating the bounded invoice against the merchant allowlist.');
+        setStatus(status, 'Validating the invoice against the verified 4th Street Bar payment policy.');
         receipt = await this.request('/api/payments/preflight', {
           method: 'POST',
           csrfToken: session.csrfToken,
@@ -126,6 +121,7 @@
         this.current = receipt;
         this.render(receipt);
         setStatus(status, `Confirm the exact Active transfer in Hive Keychain for @${receipt.account}.`);
+        keychainAttempted = true;
         const result = await this.keychainFactory().broadcast({
           account: receipt.account,
           operations: receipt.operations,
@@ -147,23 +143,44 @@
           this.current = receipt;
           this.render(receipt);
           setStatus(status, receipt.message);
-          if (receipt.state === 'ChainConfirmed') return;
-          if (receipt.state === 'ConfirmationTimeout') return;
+          if (receipt.state === 'ChainConfirmed' || receipt.state === 'ConfirmationTimeout') return;
         }
         setStatus(status, 'Confirmation remains pending. Recheck Hive before considering any new payment.');
       } catch (error) {
-        if (receipt && !broadcastAccepted && session?.csrfToken) {
+        const explicitCancellation = error?.code === 'KEYCHAIN_CANCELLED';
+        if (receipt && session?.csrfToken && (!keychainAttempted || explicitCancellation)) {
           try {
             const cancelled = await this.cancel(receipt.id, session.csrfToken);
             this.current = cancelled;
             this.render(cancelled);
             this.lockInvoice(false);
           } catch {
-            // Preserve the original failure; a later receipt load will show durable state.
+            // Preserve the original failure; the durable receipt remains authoritative.
+          }
+        } else if (
+          receipt &&
+          session?.csrfToken &&
+          keychainAttempted &&
+          !broadcastAccepted &&
+          receipt.state === 'AwaitingSignature'
+        ) {
+          try {
+            // The Keychain outcome is uncertain. Record ambiguity without retransmitting anything.
+            receipt = await this.request(`/api/payments/${receipt.id}/accepted`, {
+              method: 'POST',
+              csrfToken: session.csrfToken,
+              body: { transactionId: null },
+            });
+            broadcastAccepted = true;
+            this.current = receipt;
+            this.render(receipt);
+          } catch {
+            // Never retry Keychain. A later same-account receipt recovery/manual reconciliation owns this state.
           }
         }
-        const prefix = broadcastAccepted
-          ? 'Keychain accepted the broadcast, but confirmation is incomplete. Do not retry automatically. '
+        const uncertain = keychainAttempted && !explicitCancellation;
+        const prefix = uncertain
+          ? 'The Keychain outcome may be ambiguous. Do not pay again or retry automatically. '
           : '';
         setStatus(status, `${prefix}${error.message || 'The payment failed.'}`, true);
       } finally {
@@ -259,10 +276,7 @@
         };
         const confirm = () => finish(true);
         const cancel = () => finish(false);
-        const escape = (event) => {
-          event.preventDefault();
-          finish(false);
-        };
+        const escape = (event) => { event.preventDefault(); finish(false); };
         confirmButton.addEventListener('click', confirm);
         cancelButton.addEventListener('click', cancel);
         dialog.addEventListener('cancel', escape);
@@ -301,10 +315,7 @@
               this.root.querySelector('[data-pay-camera-start]').hidden = false;
               this.root.querySelector('[data-pay-camera-stop]').hidden = true;
               this.setInvoice(result.getText(), 'QR decoded locally. Review the URI, then validate it.');
-            } else if (
-              error &&
-              !['NotFoundException', 'ChecksumException', 'FormatException'].includes(error.name)
-            ) {
+            } else if (error && !['NotFoundException', 'ChecksumException', 'FormatException'].includes(error.name)) {
               setStatus(status, 'The camera could not decode that image yet. Paste or import the invoice if needed.', true);
             }
           },

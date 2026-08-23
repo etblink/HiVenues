@@ -89,20 +89,20 @@ test('fails closed when production settings are only implicit defaults', () => {
   );
 });
 
-test('requires payment settings only for an explicitly payment-enabled controlled production mode', () => {
+test('requires payment settings only when the independent payment feature is explicitly enabled', () => {
   const production = {
     NODE_ENV: 'production', SITE_NAME: '4th Street Bar', BAR_ADDRESS: '1114 E. 4th Street, Reno, NV 89512',
     BAR_PHONE: '(775) 324-7827', BAR_HOURS: 'Daily, noon–2:00 a.m.', BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
     BAR_MAP_URL: 'https://www.google.com/maps/search/?api=1&query=4th+Street+Bar+Reno', HIVE_COMMUNITY_ID: 'hive-108590', HIVE_OFFICIAL_BAR_ACCOUNT: 'fourthstreetbar',
     THREADS_CONTAINER_ACCOUNT: 'fourthst.threads', HIVE_RPC_NODES: 'https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network',
-    HIVE_WRITE_MODE: 'controlled', HIVE_CONTROLLED_ACCOUNTS: 'fourthstreetbar', HIVE_CONTROLLED_ACTIONS: 'post',
-    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', DISTRIATOR_ENABLED: 'false', DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
+    HIVE_WRITE_MODE: 'beta', HIVE_SIGNER_MODE: 'keychain', HIVE_CONTROLLED_ACCOUNTS: '', HIVE_CONTROLLED_ACTIONS: '',
+    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', DISTRIATOR_ENABLED: 'false', DISTRIATOR_CLAIM_URL: 'https://distriator.com/',
     HIVE_APP_TAG: 'fourth-street-bar-app/0.1.0', BIND_HOST: '127.0.0.1', APP_ORIGIN: 'https://hive-bar.example',
     SESSION_SECRET: 'a-production-session-secret-with-32-bytes',
   };
-  assert.doesNotThrow(() => loadConfig(production, { loadDotenv: false }));
+  assert.doesNotThrow(() => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'false' }, { loadDotenv: false }));
   assert.throws(
-    () => loadConfig({ ...production, HIVE_CONTROLLED_ACTIONS: 'payment' }, { loadDotenv: false }),
+    () => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'true' }, { loadDotenv: false }),
     /production requires explicit HIVE_PAYMENT_MERCHANT_ACCOUNTS, HIVE_PAYMENT_MAX_HBD, HIVE_PAYMENT_RECEIPT_DB_PATH/,
   );
 });
@@ -193,10 +193,13 @@ test('binds a protocol-valid versioned application tag', () => {
   );
 });
 
-test('binds the controlled M5 merchant, amount, receipt, timeout, and Distriator settings', () => {
+test('binds explicit beta Pay merchant, amount, receipt, timeout, and Distriator settings', () => {
   const config = configFrom({
-    HIVE_WRITE_MODE: 'controlled',
-    HIVE_CONTROLLED_ACCOUNTS: 'etblink',
+    HIVE_WRITE_MODE: 'beta',
+    HIVE_SIGNER_MODE: 'keychain',
+    HIVE_CONTROLLED_ACCOUNTS: '',
+    HIVE_CONTROLLED_ACTIONS: '',
+    HIVE_PAYMENT_ENABLED: 'true',
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar, fourthstreetbar',
     HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
     HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/receipts.sqlite',
@@ -222,13 +225,16 @@ test('binds the controlled M5 merchant, amount, receipt, timeout, and Distriator
       loadConfig(
         {
           NODE_ENV: 'development',
-          HIVE_WRITE_MODE: 'controlled',
-          HIVE_CONTROLLED_ACCOUNTS: 'etblink',
+          HIVE_WRITE_MODE: 'beta',
+          HIVE_SIGNER_MODE: 'keychain',
+          HIVE_CONTROLLED_ACCOUNTS: '',
+          HIVE_CONTROLLED_ACTIONS: '',
+          HIVE_PAYMENT_ENABLED: 'true',
           HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
         },
         { loadDotenv: false },
       ),
-    /Controlled mode requires an explicit durable receipt database path/,
+    /Enabled payment requires an explicit durable receipt database path/,
   );
 });
 

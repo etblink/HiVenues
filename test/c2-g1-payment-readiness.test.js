@@ -1,0 +1,70 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const test = require('node:test');
+const request = require('supertest');
+const hiveUri = require('hive-uri');
+const { createApp } = require('../src/app');
+const { SessionStore } = require('../src/auth/session-store');
+const { loadConfig } = require('../src/config');
+const { assertPrivexControlledPayment } = require('../src/release/payment-readiness');
+const { logger } = require('./support/test-app');
+const { createFixtureRpc } = require('./support/fixture-rpc');
+
+const ORIGIN = 'https://fourthstreetbar.com';
+const SESSION_SECRET = 'm14-payment-test-secret-that-is-at-least-32-bytes';
+
+function legacyControlledSource(overrides = {}) {
+  return {
+    NODE_ENV: 'production', PORT: '3000', BIND_HOST: '127.0.0.1', HIVE_BAR_HOST: 'fourthstreetbar.com',
+    SITE_NAME: '4th Street Bar', BAR_ADDRESS: '1114 E. 4th Street, Reno, NV 89512', BAR_PHONE: '(775) 324-7827',
+    BAR_HOURS: 'Daily, 12:00 p.m.–2:00 a.m.', BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
+    BAR_MAP_URL: 'https://www.google.com/maps/search/?api=1&query=4th+Street+Bar+Reno', HIVE_COMMUNITY_ID: 'hive-108590',
+    HIVE_OFFICIAL_BAR_ACCOUNT: 'fourthstreetbar', THREADS_CONTAINER_ACCOUNT: 'fourthst.threads',
+    HIVE_RPC_NODES: 'https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network',
+    HIVE_WRITE_MODE: 'controlled', HIVE_CONTROLLED_ACCOUNTS: 'etblink', HIVE_CONTROLLED_ACTIONS: 'payment', HIVE_SIGNER_MODE: 'keychain',
+    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar', HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
+    HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/payments/receipts.sqlite3', DISTRIATOR_ENABLED: 'false',
+    DISTRIATOR_CLAIM_URL: 'https://distriator.com/', HIVE_APP_TAG: 'fourth-street-bar-app/0.1.0', APP_ORIGIN: ORIGIN,
+    SESSION_SECRET, TRUST_PROXY: 'loopback', LOG_LEVEL: 'info', ...overrides,
+  };
+}
+
+test('the historical controlled single-payer payment release profile is no longer an implicit Pay activation path', () => {
+  const source = legacyControlledSource();
+  const config = loadConfig(source, { loadDotenv: false });
+  assert.equal(config.payments.enabled, false);
+  assert.throws(() => assertPrivexControlledPayment(config, source), /payment configuration must be enabled/);
+  assert.throws(
+    () => loadConfig({ ...source, HIVE_PAYMENT_ENABLED: 'true' }, { loadDotenv: false }),
+    /Enabled payment requires exact beta write mode/,
+  );
+});
+
+function invoice(account = 'etblink') {
+  return hiveUri.encodeOp(['transfer', { from: '__signer', to: 'fourthstreetbar', amount: '0.100 HBD', memo: 'c2-g1-test' }], { signer: account, authority: 'active' });
+}
+
+function authorized(builder, fixture) {
+  return builder.set('origin', ORIGIN).set('cookie', `hive_bar_session=${fixture.token}`).set('x-csrf-token', fixture.session.csrfToken);
+}
+
+test('general beta payment preflight is independent of dormant M10/M12 Posting identity machinery', async () => {
+  const source = {
+    ...legacyControlledSource(), NODE_ENV: 'test', HIVE_WRITE_MODE: 'beta', HIVE_CONTROLLED_ACCOUNTS: '', HIVE_CONTROLLED_ACTIONS: '',
+    HIVE_PAYMENT_ENABLED: 'true', HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:', HIVE_M10_OPERATOR_ARMED_UNTIL: '2020-01-01T00:00:00Z',
+    HIVE_M10_OPERATOR_AUDIT_PATH: '/tmp/m10-operator-audit.ndjson', HIVE_M12_MERCHANT_AUTHOR: 'fourthstreetbar', HIVE_M12_AUTHORIZED_SIGNERS: 'etblink',
+  };
+  const config = loadConfig(source, { loadDotenv: false });
+  const sessionStore = new SessionStore({ secret: config.auth.sessionSecret, ttlMs: config.auth.sessionTtlMs });
+  const { session, token } = sessionStore.create('etblink');
+  const app = createApp({
+    config, logger, rpcPool: createFixtureRpc(), sessionStore,
+    authorityVerifier: { async isDirectAccountAuthorized() { throw new Error('payment must never inspect Posting delegation'); } },
+    paymentObserver: { async observe() { return { status: 'pending', diagnostic: 'not used' }; } },
+  });
+  const fixture = { app, session, token };
+  const response = await authorized(request(app).post('/api/payments/preflight'), fixture).send({ uri: invoice() }).expect(201);
+  assert.equal(response.body.authority, 'Active');
+  assert.equal(response.body.account, 'etblink');
+});

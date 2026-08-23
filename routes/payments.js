@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { AuthorizationError, FeatureUnavailableError } = require('../src/lib/errors');
+const { FeatureUnavailableError } = require('../src/lib/errors');
 const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
 const { decodeHivePaymentInvoice } = require('../src/payments/invoice-decoder');
 const { RECEIPT_STATES } = require('../src/payments/receipt-store');
@@ -21,27 +21,22 @@ function responseRecord(record, config, message) {
   };
 }
 
-function requireControlledPaymentMode(config) {
-  return (req, _res, next) => {
-    if (config.hive.writeMode !== 'controlled') {
+function requireBetaPaymentMode(config) {
+  return (_req, _res, next) => {
+    if (!config.payments.enabled) {
+      const legacyControlledRequest = config.hive.writeMode === 'controlled';
+      return next(
+        new FeatureUnavailableError('Hive-Bar Pay is currently disabled.', {
+          code: legacyControlledRequest ? 'CONTROLLED_ACTION_NOT_ALLOWED' : 'PAYMENT_DISABLED',
+        }),
+      );
+    }
+    if (config.hive.writeMode !== 'beta' || config.hive.signerMode !== 'keychain') {
       return next(
         new FeatureUnavailableError(
-          'Hive payments are disabled. An individually authorized controlled-payment run is required.',
+          'Hive-Bar Pay requires the accepted beta + Hive Keychain self-signing runtime.',
+          { code: 'PAYMENT_RUNTIME_UNAVAILABLE' },
         ),
-      );
-    }
-    if (!config.hive.controlledActions.includes('payment')) {
-      return next(
-        new FeatureUnavailableError('The payment action is disabled for this controlled run.', {
-          code: 'CONTROLLED_ACTION_NOT_ALLOWED',
-        }),
-      );
-    }
-    if (!config.hive.controlledAccounts.includes(req.hiveSession.account)) {
-      return next(
-        new AuthorizationError('This Hive account is not allowlisted for the controlled-payment run', {
-          code: 'CONTROLLED_PAYMENT_ACCOUNT_NOT_ALLOWED',
-        }),
       );
     }
     return next();
@@ -50,15 +45,26 @@ function requireControlledPaymentMode(config) {
 
 function requireMerchantBinding(config) {
   return (_req, _res, next) => {
-    if (!config.payments.enabled || config.payments.merchantAccounts.length === 0) {
+    if (config.payments.merchantAccounts.length === 0) {
       return next(
-        new FeatureUnavailableError(
-          'Pay Tab is disabled until controlled mode and the merchant allowlist are configured',
-        ),
+        new FeatureUnavailableError('Hive-Bar Pay has no approved merchant destination.', {
+          code: 'PAYMENT_MERCHANT_UNAVAILABLE',
+        }),
       );
     }
     return next();
   };
+}
+
+function receiptStore(req) {
+  const store = req.app.locals.services.receiptStore;
+  if (!store) {
+    throw new FeatureUnavailableError(
+      'Hive-Bar Pay receipt storage is unavailable. Do not start or repeat a payment.',
+      { code: 'PAYMENT_STORE_UNAVAILABLE' },
+    );
+  }
+  return store;
 }
 
 function createPaymentRouter({ config, now = Date.now }) {
@@ -66,7 +72,7 @@ function createPaymentRouter({ config, now = Date.now }) {
   const protectedReceipt = [requireAppOrigin(config), requireSession, requireCsrf];
   const protectedPayment = [
     ...protectedReceipt,
-    requireControlledPaymentMode(config),
+    requireBetaPaymentMode(config),
     requireMerchantBinding(config),
   ];
 
@@ -77,7 +83,7 @@ function createPaymentRouter({ config, now = Date.now }) {
 
   router.get('/recent', requireSession, (req, res, next) => {
     try {
-      const record = req.app.locals.services.receiptStore.latest(
+      const record = receiptStore(req).latest(
         req.hiveSession.id,
         req.hiveSession.account,
       );
@@ -89,7 +95,7 @@ function createPaymentRouter({ config, now = Date.now }) {
 
   router.get('/:id', requireSession, (req, res, next) => {
     try {
-      const record = req.app.locals.services.receiptStore.get(
+      const record = receiptStore(req).get(
         req.params.id,
         req.hiveSession.id,
         req.hiveSession.account,
@@ -107,7 +113,7 @@ function createPaymentRouter({ config, now = Date.now }) {
         merchantAccounts: config.payments.merchantAccounts,
         maxHbd: config.payments.maxHbd,
       });
-      const record = req.app.locals.services.receiptStore.createValidated({
+      const record = receiptStore(req).createValidated({
         sessionId: req.hiveSession.id,
         envelope,
       });
@@ -125,7 +131,7 @@ function createPaymentRouter({ config, now = Date.now }) {
 
   router.post('/:id/awaiting-signature', ...protectedPayment, (req, res, next) => {
     try {
-      const record = req.app.locals.services.receiptStore.markAwaitingSignature(
+      const record = receiptStore(req).markAwaitingSignature(
         req.params.id,
         req.hiveSession.id,
         req.hiveSession.account,
@@ -138,20 +144,20 @@ function createPaymentRouter({ config, now = Date.now }) {
 
   router.post('/:id/cancel', ...protectedReceipt, (req, res, next) => {
     try {
-      const record = req.app.locals.services.receiptStore.cancel(
+      const record = receiptStore(req).cancel(
         req.params.id,
         req.hiveSession.id,
         req.hiveSession.account,
       );
-      res.json(responseRecord(record, config, 'Cancelled before broadcast. Nothing was paid.'));
+      res.json(responseRecord(record, config, 'Cancelled before broadcast acceptance. No second payment was created.'));
     } catch (error) {
       next(error);
     }
   });
 
-  router.post('/:id/accepted', ...protectedPayment, (req, res, next) => {
+  router.post('/:id/accepted', ...protectedReceipt, (req, res, next) => {
     try {
-      const record = req.app.locals.services.receiptStore.markBroadcastAccepted(
+      const record = receiptStore(req).markBroadcastAccepted(
         req.params.id,
         req.hiveSession.id,
         req.body?.transactionId,
@@ -165,7 +171,7 @@ function createPaymentRouter({ config, now = Date.now }) {
           fingerprint: record.fingerprint,
           transactionId: record.transactionId,
         },
-        'controlled Pay Tab broadcast accepted by Keychain',
+        'Hive-Bar Pay broadcast accepted by Keychain',
       );
       res.json(
         responseRecord(
@@ -183,7 +189,7 @@ function createPaymentRouter({ config, now = Date.now }) {
 
   router.post('/:id/observe', ...protectedReceipt, async (req, res, next) => {
     try {
-      let record = req.app.locals.services.receiptStore.get(
+      let record = receiptStore(req).get(
         req.params.id,
         req.hiveSession.id,
         req.hiveSession.account,
@@ -194,7 +200,7 @@ function createPaymentRouter({ config, now = Date.now }) {
             status: 'pending',
             diagnostic: 'No transaction id was returned; do not retry and reconcile this pending receipt manually',
           };
-      record = req.app.locals.services.receiptStore.applyObservation(
+      record = receiptStore(req).applyObservation(
         req.params.id,
         req.hiveSession.id,
         observation,
@@ -206,7 +212,7 @@ function createPaymentRouter({ config, now = Date.now }) {
         Number.isFinite(broadcastAtMs) &&
         now() - broadcastAtMs >= config.payments.confirmationTimeoutMs
       ) {
-        record = req.app.locals.services.receiptStore.markConfirmationTimeout(
+        record = receiptStore(req).markConfirmationTimeout(
           req.params.id,
           req.hiveSession.id,
           undefined,
@@ -226,7 +232,7 @@ function createPaymentRouter({ config, now = Date.now }) {
             transactionId: record.transactionId,
             blockNumber: record.blockNumber,
           },
-          'controlled Pay Tab transfer irreversibly confirmed on two Hive nodes',
+          'Hive-Bar Pay transfer irreversibly confirmed on two Hive nodes',
         );
       } else if (record.state === RECEIPT_STATES.CONFIRMATION_TIMEOUT) {
         message = 'Confirmation timed out. The receipt is still pending; recheck the chain and do not pay again.';
@@ -242,7 +248,8 @@ function createPaymentRouter({ config, now = Date.now }) {
 
 module.exports = {
   createPaymentRouter,
-  requireControlledPaymentMode,
+  receiptStore,
+  requireBetaPaymentMode,
   requireMerchantBinding,
   responseRecord,
 };

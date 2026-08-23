@@ -4,6 +4,7 @@
   const shellThreadsActive = shellPath === '/community/threads';
   const shellCommunityActive =
     !shellThreadsActive && (shellPath.startsWith('/community') || shellPath.startsWith('/post/'));
+  const shellPayActive = shellPath === '/pay';
   const shellYouPath = hiveSession ? `/profile/${hiveSession.account}` : '';
   const shellYouActive =
     Boolean(shellYouPath) && (shellPath === shellYouPath || shellPath.startsWith(`${shellYouPath}/`));
@@ -26,7 +27,7 @@
   </a>
 
   <nav class="app-primary-nav" aria-label="Primary navigation">
-    <ul class="app-nav-list flex-wrap">
+    <ul class="app-nav-list flex-wrap <%= paymentsEnabled ? 'grid-cols-5' : '' %>">
       <li class="app-nav-item">
         <a href="/" class="app-nav-link <%= shellHomeActive ? 'app-nav-link--active' : '' %>" <% if (shellHomeActive) { %>aria-current="page"<% } %>>
           <%- include('icon', { name: 'home' }) %>
@@ -45,6 +46,14 @@
           <span class="app-nav-label">Threads</span>
         </a>
       </li>
+      <% if (paymentsEnabled) { %>
+        <li class="app-nav-item">
+          <a href="/pay" class="app-nav-link <%= shellPayActive ? 'app-nav-link--active' : '' %>" <% if (shellPayActive) { %>aria-current="page"<% } %>>
+            <%- include('icon', { name: 'pay' }) %>
+            <span class="app-nav-label">Pay</span>
+          </a>
+        </li>
+      <% } %>
       <li class="app-nav-item">
         <% if (hiveSession) { %>
           <a href="/profile/<%= hiveSession.account %>" class="app-nav-link <%= shellYouActive ? 'app-nav-link--active' : '' %>" <% if (shellYouActive) { %>aria-current="page"<% } %>>

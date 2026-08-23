@@ -49,13 +49,8 @@ const PRODUCTION_PAYMENT_REQUIRED_SETTINGS = [
   'HIVE_PAYMENT_RECEIPT_DB_PATH',
 ];
 
-function hasControlledPaymentAction(source) {
-  return (
-    String(source.HIVE_WRITE_MODE || '').trim() === 'controlled' &&
-    String(source.HIVE_CONTROLLED_ACTIONS || '')
-      .split(',')
-      .some((action) => action.trim().toLowerCase() === 'payment')
-  );
+function hasEnabledPayment(source) {
+  return ['true', '1'].includes(String(source.HIVE_PAYMENT_ENABLED || '').trim().toLowerCase());
 }
 
 function parseRpcNodes(value, context) {
@@ -265,6 +260,7 @@ const envSchema = z
     HIVE_MODERATION_ENABLED: z.string().default('false').transform(parseBoolean),
     HIVE_MODERATION_OPERATOR_ACCOUNTS: z.string().default('').transform(parseAccountList),
     HIVE_MODERATION_DB_PATH: z.string().default(':memory:').transform(parseReceiptPath),
+    HIVE_PAYMENT_ENABLED: z.string().default('false').transform(parseBoolean),
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: z
       .string()
       .default('fourthstreetbar')
@@ -357,6 +353,38 @@ const envSchema = z
         message: 'V1 self-signing production mode requires Hive Keychain',
       });
     }
+    if (env.HIVE_PAYMENT_ENABLED && env.HIVE_WRITE_MODE !== 'beta') {
+      context.addIssue({
+        code: 'custom',
+        path: ['HIVE_PAYMENT_ENABLED'],
+        message: 'Enabled payment requires exact beta write mode',
+      });
+    }
+    if (env.HIVE_PAYMENT_ENABLED && env.HIVE_SIGNER_MODE !== 'keychain') {
+      context.addIssue({
+        code: 'custom',
+        path: ['HIVE_SIGNER_MODE'],
+        message: 'Enabled payment requires Hive Keychain',
+      });
+    }
+    if (env.HIVE_PAYMENT_ENABLED && env.HIVE_PAYMENT_MERCHANT_ACCOUNTS.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HIVE_PAYMENT_MERCHANT_ACCOUNTS'],
+        message: 'Enabled payment requires at least one approved merchant',
+      });
+    }
+    if (
+      env.HIVE_PAYMENT_ENABLED &&
+      env.NODE_ENV !== 'test' &&
+      env.HIVE_PAYMENT_RECEIPT_DB_PATH === ':memory:'
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HIVE_PAYMENT_RECEIPT_DB_PATH'],
+        message: 'Enabled payment requires an explicit durable receipt database path',
+      });
+    }
     const m12Configured = Boolean(env.HIVE_M12_MERCHANT_AUTHOR || env.HIVE_M12_AUTHORIZED_SIGNERS.length);
     if (m12Configured && (!env.HIVE_M12_MERCHANT_AUTHOR || env.HIVE_M12_AUTHORIZED_SIGNERS.length === 0)) {
       context.addIssue({
@@ -386,18 +414,6 @@ const envSchema = z
         message: 'Enabled moderation requires an explicit durable database path',
       });
     }
-    if (
-      env.NODE_ENV !== 'test' &&
-      env.HIVE_WRITE_MODE === 'controlled' &&
-      env.HIVE_CONTROLLED_ACTIONS.includes('payment') &&
-      env.HIVE_PAYMENT_RECEIPT_DB_PATH === ':memory:'
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['HIVE_PAYMENT_RECEIPT_DB_PATH'],
-        message: 'Controlled mode requires an explicit durable receipt database path',
-      });
-    }
   });
 
 function loadConfig(
@@ -407,7 +423,7 @@ function loadConfig(
   if (loadDotenv) dotenv.config({ quiet: true });
 
   if (String(source.NODE_ENV || '').trim() === 'production') {
-    const requiredSettings = hasControlledPaymentAction(source)
+    const requiredSettings = hasEnabledPayment(source)
       ? [...PRODUCTION_REQUIRED_SETTINGS, ...PRODUCTION_PAYMENT_REQUIRED_SETTINGS]
       : PRODUCTION_REQUIRED_SETTINGS;
     const missing = requiredSettings.filter(
@@ -502,10 +518,7 @@ function loadConfig(
       maxHbd: result.data.HIVE_PAYMENT_MAX_HBD,
       receiptDbPath: result.data.HIVE_PAYMENT_RECEIPT_DB_PATH,
       confirmationTimeoutMs: result.data.HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS,
-      enabled:
-        result.data.HIVE_WRITE_MODE === 'controlled' &&
-        result.data.HIVE_CONTROLLED_ACTIONS.includes('payment') &&
-        result.data.HIVE_PAYMENT_MERCHANT_ACCOUNTS.length > 0,
+      enabled: result.data.HIVE_PAYMENT_ENABLED,
     },
     distriator: {
       enabled: result.data.DISTRIATOR_ENABLED,
@@ -538,6 +551,8 @@ module.exports = {
   CONTROLLED_ACTIONS,
   HIVE_ACCOUNT_PATTERN,
   PRODUCTION_REQUIRED_SETTINGS,
+  PRODUCTION_PAYMENT_REQUIRED_SETTINGS,
+  hasEnabledPayment,
   parseAccountList,
   parseControlledActions,
   parseBoolean,

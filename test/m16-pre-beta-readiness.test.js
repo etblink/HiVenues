@@ -44,6 +44,7 @@ function productionBetaSource(overrides = {}) {
     HIVE_WALL_DEFAULT_FEE: '1.000 HBD',
     HIVE_GLOBAL_WALL_EXCLUSIONS: '',
     HIVE_MESSAGE_HISTORY_PAGE_SIZE: '25',
+    HIVE_PAYMENT_ENABLED: 'false',
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
     HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
     HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
@@ -153,7 +154,7 @@ test('Privex beta release gate refuses controlled residue, payment-adjacent acti
   for (const [overrides, pattern] of [
     [{ HIVE_CONTROLLED_ACCOUNTS: 'etblink' }, /HIVE_CONTROLLED_ACCOUNTS must be explicitly empty/],
     [{ HIVE_CONTROLLED_ACTIONS: 'post' }, /HIVE_CONTROLLED_ACTIONS must be explicitly empty/],
-    [{ DISTRIATOR_ENABLED: 'true' }, /DISTRIATOR_ENABLED must be false/],
+    [{ DISTRIATOR_ENABLED: 'true' }, /Distriator handoff requires enabled Pay/],
     [{ HIVE_BAR_HOST: 'www.fourthstreetbar.com', APP_ORIGIN: 'https://www.fourthstreetbar.com' }, /must be exactly fourthstreetbar\.com/],
     [{ TRUST_PROXY: 'false' }, /TRUST_PROXY must be exactly loopback/],
     [{ BIND_HOST: '0.0.0.0' }, /BIND_HOST must be 127\.0\.0\.1/],

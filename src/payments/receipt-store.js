@@ -1,6 +1,8 @@
 'use strict';
 
 const { randomBytes } = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const {
   AuthorizationError,
@@ -10,6 +12,7 @@ const {
 } = require('../lib/errors');
 const { parseAsset } = require('../hive/assets');
 
+const PAYMENT_SCHEMA_VERSION = 2;
 const TRANSACTION_ID_PATTERN = /^[0-9a-f]{40}$/;
 const RECEIPT_STATES = Object.freeze({
   VALIDATED: 'Validated',
@@ -19,25 +22,81 @@ const RECEIPT_STATES = Object.freeze({
   CONFIRMATION_TIMEOUT: 'ConfirmationTimeout',
   CANCELLED: 'Cancelled',
 });
+const UNRESOLVED_STATES = Object.freeze([
+  RECEIPT_STATES.VALIDATED,
+  RECEIPT_STATES.AWAITING_SIGNATURE,
+  RECEIPT_STATES.BROADCAST_ACCEPTED,
+  RECEIPT_STATES.CONFIRMATION_TIMEOUT,
+]);
 
 function receiptId() {
   return randomBytes(24).toString('base64url');
 }
 
-function sqliteConflict(error, message, code) {
-  if (
+function assertSafeDatabaseTarget(filename, { requireExisting = false } = {}) {
+  if (filename === ':memory:') return;
+  const directory = path.dirname(filename);
+  let directoryStat;
+  try {
+    directoryStat = fs.lstatSync(directory);
+  } catch (error) {
+    throw new Error('Payment database directory is unavailable', { cause: error });
+  }
+  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+    throw new Error('Payment database directory is unsafe');
+  }
+  if (!fs.existsSync(filename)) {
+    if (requireExisting) throw new Error('Payment database must already exist');
+    return;
+  }
+  const fileStat = fs.lstatSync(filename);
+  if (!fileStat.isFile() || fileStat.isSymbolicLink()) {
+    throw new Error('Payment database target is unsafe');
+  }
+}
+
+function inspectReceiptStore(filename) {
+  assertSafeDatabaseTarget(filename, { requireExisting: true });
+  const db = new DatabaseSync(filename, { readOnly: true });
+  try {
+    db.enableDefensive?.(true);
+    db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+    const integrity = db.prepare('PRAGMA quick_check').get();
+    const integrityValue = integrity && Object.values(integrity)[0];
+    if (integrityValue !== 'ok') throw new Error('Payment database integrity check failed');
+    const foreignKeys = db.prepare('PRAGMA foreign_key_check').all();
+    if (foreignKeys.length > 0) throw new Error('Payment database foreign-key check failed');
+    const version = db
+      .prepare("SELECT version FROM hive_bar_schema WHERE name = 'receipts'")
+      .get()?.version;
+    if (version !== PAYMENT_SCHEMA_VERSION) {
+      throw new Error('Unsupported Hive-Bar receipt schema version');
+    }
+    return Object.freeze({ schemaVersion: version, integrity: 'ok' });
+  } finally {
+    db.close();
+  }
+}
+
+function sqliteConstraint(error) {
+  return (
     String(error?.code || '').startsWith('ERR_SQLITE_CONSTRAINT') ||
     /(?:UNIQUE|PRIMARY KEY) constraint failed/i.test(String(error?.message || ''))
-  ) {
-    throw new ConflictError(message, { code });
-  }
-  throw error;
+  );
 }
 
 class ReceiptStore {
-  constructor({ filename = ':memory:', now = Date.now, random = receiptId, database } = {}) {
+  constructor({
+    filename = ':memory:',
+    now = Date.now,
+    random = receiptId,
+    database,
+    requireExisting = false,
+  } = {}) {
+    this.filename = filename;
     this.now = now;
     this.random = random;
+    if (!database) assertSafeDatabaseTarget(filename, { requireExisting });
     this.db = database || new DatabaseSync(filename);
     this.db.enableDefensive?.(true);
     this.db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
@@ -53,7 +112,6 @@ class ReceiptStore {
         name TEXT PRIMARY KEY,
         version INTEGER NOT NULL
       ) STRICT;
-      INSERT OR IGNORE INTO hive_bar_schema (name, version) VALUES ('receipts', 1);
       CREATE TABLE IF NOT EXISTS payment_receipts (
         id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -83,13 +141,56 @@ class ReceiptStore {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS payment_receipts_session_idx
         ON payment_receipts (session_id, updated_at DESC);
-      CREATE UNIQUE INDEX IF NOT EXISTS payment_receipts_fingerprint_active_idx
-        ON payment_receipts (fingerprint) WHERE state != 'Cancelled';
     `);
+
+    const existingVersion = this.db
+      .prepare("SELECT version FROM hive_bar_schema WHERE name = 'receipts'")
+      .get()?.version;
+
+    if (existingVersion === undefined) {
+      this.db
+        .prepare('INSERT INTO hive_bar_schema (name, version) VALUES (?, ?)')
+        .run('receipts', PAYMENT_SCHEMA_VERSION);
+    } else if (![1, PAYMENT_SCHEMA_VERSION].includes(existingVersion)) {
+      throw new Error('Unsupported Hive-Bar receipt schema version');
+    }
+
+    this.db.exec(`
+      DROP INDEX IF EXISTS payment_receipts_fingerprint_active_idx;
+      CREATE UNIQUE INDEX IF NOT EXISTS payment_receipts_fingerprint_idx
+        ON payment_receipts (fingerprint);
+      CREATE UNIQUE INDEX IF NOT EXISTS payment_receipts_unresolved_payer_idx
+        ON payment_receipts (account)
+        WHERE state IN ('Validated', 'AwaitingSignature', 'BroadcastAccepted', 'ConfirmationTimeout');
+    `);
+
+    if (existingVersion === 1) {
+      this.db
+        .prepare("UPDATE hive_bar_schema SET version = ? WHERE name = 'receipts' AND version = 1")
+        .run(PAYMENT_SCHEMA_VERSION);
+    }
+
     const version = this.db
       .prepare("SELECT version FROM hive_bar_schema WHERE name = 'receipts'")
       .get()?.version;
-    if (version !== 1) throw new Error('Unsupported Hive-Bar receipt schema version');
+    if (version !== PAYMENT_SCHEMA_VERSION) {
+      throw new Error('Unsupported Hive-Bar receipt schema version');
+    }
+  }
+
+  health() {
+    const integrity = this.db.prepare('PRAGMA quick_check').get();
+    const integrityValue = integrity && Object.values(integrity)[0];
+    if (integrityValue !== 'ok') throw new Error('Payment database integrity check failed');
+    const foreignKeys = this.db.prepare('PRAGMA foreign_key_check').all();
+    if (foreignKeys.length > 0) throw new Error('Payment database foreign-key check failed');
+    const schemaVersion = this.db
+      .prepare("SELECT version FROM hive_bar_schema WHERE name = 'receipts'")
+      .get()?.version;
+    if (schemaVersion !== PAYMENT_SCHEMA_VERSION) {
+      throw new Error('Unsupported Hive-Bar receipt schema version');
+    }
+    return Object.freeze({ schemaVersion, integrity: 'ok' });
   }
 
   createValidated({ sessionId, envelope }) {
@@ -128,7 +229,28 @@ class ReceiptStore {
         now,
       );
     } catch (error) {
-      sqliteConflict(error, 'This exact payment is already prepared or recorded', 'DUPLICATE_PAYMENT');
+      if (!sqliteConstraint(error)) throw error;
+      const duplicate = this.db
+        .prepare('SELECT id FROM payment_receipts WHERE fingerprint = ? LIMIT 1')
+        .get(envelope.fingerprint);
+      if (duplicate) {
+        throw new ConflictError('This exact payment is already prepared or recorded', {
+          code: 'DUPLICATE_PAYMENT',
+        });
+      }
+      const unresolved = this.db.prepare(`
+        SELECT id FROM payment_receipts
+        WHERE account = ?
+          AND state IN ('Validated', 'AwaitingSignature', 'BroadcastAccepted', 'ConfirmationTimeout')
+        LIMIT 1
+      `).get(envelope.account);
+      if (unresolved) {
+        throw new ConflictError(
+          'This account already has an unresolved payment. Recheck or cancel that receipt before starting another.',
+          { code: 'PAYMENT_UNRESOLVED' },
+        );
+      }
+      throw error;
     }
     return this.publicRecord(this.#record(this.#row(id)));
   }
@@ -212,7 +334,12 @@ class ReceiptStore {
       `).run(transactionId, now, now, id);
       if (result.changes !== 1) throw new ConflictError('The payment state changed concurrently');
     } catch (error) {
-      sqliteConflict(error, 'This transaction id is already attached to another receipt', 'DUPLICATE_TRANSACTION');
+      if (sqliteConstraint(error)) {
+        throw new ConflictError('This transaction id is already attached to another receipt', {
+          code: 'DUPLICATE_TRANSACTION',
+        });
+      }
+      throw error;
     }
     return this.publicRecord(this.get(id, sessionId, account));
   }
@@ -345,4 +472,12 @@ class ReceiptStore {
   }
 }
 
-module.exports = { RECEIPT_STATES, ReceiptStore, TRANSACTION_ID_PATTERN };
+module.exports = {
+  PAYMENT_SCHEMA_VERSION,
+  RECEIPT_STATES,
+  ReceiptStore,
+  TRANSACTION_ID_PATTERN,
+  UNRESOLVED_STATES,
+  assertSafeDatabaseTarget,
+  inspectReceiptStore,
+};

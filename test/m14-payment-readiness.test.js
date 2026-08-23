@@ -71,22 +71,14 @@ function authorized(builder, fixture) {
     .set('x-csrf-token', fixture.session.csrfToken);
 }
 
-test('accepts only the exact M14 controlled payment release profile', () => {
+test('keeps the exact M14 controlled payment release profile archived and inert', () => {
   const source = productionSource();
-  const summary = assertPrivexControlledPayment(configFrom(source), source);
-  assert.deepEqual(summary, {
-    profile: 'm14-controlled-payment',
-    payer: 'etblink',
-    merchant: 'fourthstreetbar',
-    action: 'payment',
-    authority: 'Active',
-    signer: 'keychain',
-    maxHbd: '1.000 HBD',
-    receiptDatabase: PAYMENT_DB_PATH,
-    irreversibleConfirmation: true,
-    distriatorEnabled: false,
-    rpcNodeCount: 3,
-  });
+  const config = configFrom(source);
+  assert.equal(config.payments.enabled, false);
+  assert.throws(
+    () => assertPrivexControlledPayment(config, source),
+    /payment configuration must be enabled/,
+  );
   assert.equal(isSafePaymentDatabasePath(PAYMENT_DB_PATH), true);
 });
 
@@ -112,6 +104,11 @@ test('rejects mixed posting/payment state, unsafe storage, extra actions, and Di
 test('payment preflight is independent of expired M10 and M12 Posting identity machinery', async () => {
   const source = productionSource({
     NODE_ENV: 'test',
+    HIVE_WRITE_MODE: 'beta',
+    HIVE_SIGNER_MODE: 'keychain',
+    HIVE_CONTROLLED_ACCOUNTS: '',
+    HIVE_CONTROLLED_ACTIONS: '',
+    HIVE_PAYMENT_ENABLED: 'true',
     HIVE_M10_OPERATOR_ARMED_UNTIL: '2020-01-01T00:00:00Z',
     HIVE_M10_OPERATOR_AUDIT_PATH: '/tmp/m10-operator-audit.ndjson',
     HIVE_M12_MERCHANT_AUTHOR: 'fourthstreetbar',

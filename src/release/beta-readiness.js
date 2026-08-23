@@ -3,6 +3,7 @@
 const { BETA_ACTIONS } = require('../beta/actions');
 const { DEFAULT_ONBOARDING_DB_PATH, parseOnboardingConfig } = require('../onboarding/config');
 const { inspectOnboardingStore } = require('../onboarding/request-store');
+const { inspectReceiptStore } = require('../payments/receipt-store');
 const { RELEASE_APP_TAG } = require('./read-only-readiness');
 const { PAYMENT_DB_PATH, isSafePaymentDatabasePath } = require('./payment-storage');
 const { RELEASE_PUBLIC_HOST, normalizePublicHost } = require('./privex-readiness');
@@ -16,11 +17,18 @@ const BETA_EXPLICIT_SETTINGS = Object.freeze([
   'HIVE_SIGNER_MODE',
   'HIVE_CONTROLLED_ACCOUNTS',
   'HIVE_CONTROLLED_ACTIONS',
+  'HIVE_PAYMENT_ENABLED',
   'HIVE_PAYMENT_RECEIPT_DB_PATH',
   'HIVE_APP_TAG',
   'DISTRIATOR_ENABLED',
   'TRUST_PROXY',
   'LOG_LEVEL',
+]);
+
+const PAYMENT_ACTIVATION_SETTINGS = Object.freeze([
+  'HIVE_PAYMENT_MERCHANT_ACCOUNTS',
+  'HIVE_PAYMENT_MAX_HBD',
+  'HIVE_PAYMENT_RECEIPT_DB_PATH',
 ]);
 
 const ONBOARDING_ACTIVATION_SETTINGS = Object.freeze([
@@ -49,6 +57,7 @@ function assertPrivexBetaRelease(config, source = {}) {
   const publicHost = normalizePublicHost(suppliedHost);
   const onboarding = parseOnboardingConfig(source, config.hive);
   let onboardingStore = null;
+  let paymentStore = null;
 
   if (missing.length > 0) {
     issues.push(`explicit beta decisions are required for ${missing.join(', ')}`);
@@ -67,8 +76,6 @@ function assertPrivexBetaRelease(config, source = {}) {
   if (config.hive.appTag !== RELEASE_APP_TAG) {
     issues.push(`HIVE_APP_TAG must be exactly ${RELEASE_APP_TAG}`);
   }
-  if (config.payments.enabled) issues.push('the Pay broadcast lane must remain disabled');
-  if (config.distriator.enabled) issues.push('DISTRIATOR_ENABLED must be false');
   if (!publicHost || suppliedHost !== publicHost) {
     issues.push('HIVE_BAR_HOST must be a canonical DNS hostname without a scheme, port, or path');
   }
@@ -105,6 +112,35 @@ function assertPrivexBetaRelease(config, source = {}) {
   }
   if (/replace_with|change_me|example_secret/i.test(String(source.SESSION_SECRET || ''))) {
     issues.push('SESSION_SECRET must not contain an example placeholder');
+  }
+
+  if (config.payments.enabled) {
+    const paymentMissing = PAYMENT_ACTIVATION_SETTINGS.filter((name) => !hasOwn(source, name));
+    if (paymentMissing.length > 0) {
+      issues.push(`payment activation requires explicit ${paymentMissing.join(', ')}`);
+    }
+    if (config.payments.merchantAccounts.length !== 1 || config.payments.merchantAccounts[0] !== 'fourthstreetbar') {
+      issues.push('enabled Pay requires @fourthstreetbar as the sole merchant recipient');
+    }
+    if (config.payments.maxHbd !== '1.000 HBD') {
+      issues.push('enabled Pay requires HIVE_PAYMENT_MAX_HBD exactly 1.000 HBD');
+    }
+    if (!isSafePaymentDatabasePath(config.payments.receiptDbPath, { requireExisting: true })) {
+      issues.push(`enabled Pay requires existing durable storage exactly at ${PAYMENT_DB_PATH}`);
+    } else {
+      try {
+        paymentStore = inspectReceiptStore(config.payments.receiptDbPath);
+      } catch (error) {
+        issues.push(`payment durable store is not ready: ${error.message}`);
+      }
+    }
+  }
+
+  if (config.distriator.enabled && !config.payments.enabled) {
+    issues.push('Distriator handoff requires enabled Pay');
+  }
+  if (config.distriator.enabled && config.distriator.claimUrl !== 'https://distriator.com/') {
+    issues.push('enabled Distriator handoff must use exactly https://distriator.com/');
   }
 
   if (onboarding.enabled) {
@@ -146,6 +182,7 @@ function assertPrivexBetaRelease(config, source = {}) {
     controlledAccountCount: config.hive.controlledAccounts.length,
     controlledActionCount: config.hive.controlledActions.length,
     paymentsEnabled: config.payments.enabled,
+    paymentStoreSchemaVersion: paymentStore?.schemaVersion || null,
     distriatorEnabled: config.distriator.enabled,
     rpcNodeCount: config.hive.rpcNodes.length,
     appTag: config.hive.appTag,
@@ -168,5 +205,6 @@ function assertPrivexBetaRelease(config, source = {}) {
 module.exports = {
   BETA_EXPLICIT_SETTINGS,
   ONBOARDING_ACTIVATION_SETTINGS,
+  PAYMENT_ACTIVATION_SETTINGS,
   assertPrivexBetaRelease,
 };

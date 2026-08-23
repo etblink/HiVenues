@@ -86,15 +86,27 @@ test('requires every release-specific safety decision to be explicit', () => {
   }
 });
 
-test('rejects controlled writes, latent account scope, payments, and Distriator', () => {
+test('rejects controlled writes, latent account scope, explicit payments, and Distriator', () => {
   const controlledSource = productionSource({
     HIVE_WRITE_MODE: 'controlled',
     HIVE_CONTROLLED_ACCOUNTS: 'etblink',
-    HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/receipts.sqlite',
   });
   assert.throws(
     () => assertReadOnlyRelease(configFrom(controlledSource), controlledSource),
-    /HIVE_WRITE_MODE must be disabled.*HIVE_CONTROLLED_ACCOUNTS.*payment preparation must be disabled/,
+    /HIVE_WRITE_MODE must be disabled.*HIVE_CONTROLLED_ACCOUNTS/,
+  );
+
+  const paymentSource = productionSource({
+    HIVE_WRITE_MODE: 'beta',
+    HIVE_SIGNER_MODE: 'keychain',
+    HIVE_CONTROLLED_ACCOUNTS: '',
+    HIVE_CONTROLLED_ACTIONS: '',
+    HIVE_PAYMENT_ENABLED: 'true',
+    HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/payments/receipts.sqlite3',
+  });
+  assert.throws(
+    () => assertReadOnlyRelease(configFrom(paymentSource), paymentSource),
+    /HIVE_WRITE_MODE must be disabled.*payment preparation must be disabled/,
   );
 
   const latentAccountSource = productionSource({ HIVE_CONTROLLED_ACCOUNTS: 'etblink' });

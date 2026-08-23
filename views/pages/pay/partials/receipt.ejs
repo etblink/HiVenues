@@ -1,14 +1,9 @@
 <section class="pay-receipt <%= receiptClass %>" aria-labelledby="receipt-heading" data-pay-receipt hidden>
   <div class="pay-step-heading">
     <span aria-hidden="true">2</span>
-    <div>
-      <p class="app-kicker">Review &amp; receipt</p>
-      <h2 id="receipt-heading">Payment status</h2>
-    </div>
+    <div><p class="app-kicker">Review &amp; receipt</p><h2 id="receipt-heading">Payment status</h2></div>
   </div>
-
   <p class="pay-receipt__state" aria-live="polite" data-pay-receipt-state></p>
-
   <dl class="pay-receipt__evidence m18-pay-receipt__primary grid grid-cols-1 gap-4 sm:grid-cols-2">
     <div><dt>Amount</dt><dd class="m18-pay-receipt__amount" data-pay-receipt-amount></dd></div>
     <div><dt>Merchant</dt><dd data-pay-receipt-merchant></dd></div>
@@ -16,14 +11,7 @@
     <div><dt>Block</dt><dd data-pay-receipt-block>Pending</dd></div>
     <div class="sm:col-span-2"><dt>Transaction ID</dt><dd class="pay-proof" data-pay-receipt-transaction>Pending</dd></div>
   </dl>
-
-  <details class="mt-4 text-sm text-gray-400">
-    <summary class="cursor-pointer">Technical details</summary>
-    <dl class="pay-receipt__evidence">
-      <div><dt>Operation fingerprint</dt><dd class="pay-proof" data-pay-receipt-fingerprint></dd></div>
-    </dl>
-  </details>
-
+  <details class="mt-4 text-sm text-gray-400"><summary class="cursor-pointer">Technical details</summary><dl class="pay-receipt__evidence"><div><dt>Operation fingerprint</dt><dd class="pay-proof" data-pay-receipt-fingerprint></dd></div></dl></details>
   <p class="pay-receipt__message" data-pay-receipt-message></p>
   <p class="pay-receipt__caution"><strong>Don’t pay again while this receipt is pending or unclear.</strong> Rechecking looks for the payment you already approved; it does not create a new transfer.</p>
   <button type="button" class="button-secondary pay-recheck" data-pay-recheck hidden>Recheck payment status</button>
@@ -31,12 +19,10 @@
   <% if (distriator.enabled) { %>
     <div class="pay-external-claim" data-pay-rebate hidden>
       <p class="app-kicker">Separate service</p>
-      <h3>Rebate claim</h3>
-      <p>Distriator has its own eligibility and payout rules. Hive-Bar does not promise a rebate amount or track the claim after you leave this site.</p>
-      <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-claim>Open Distriator</a>
+      <h3>Continue to Distriator</h3>
+      <p>After Hive-Bar confirms this payment, you can sign in to Distriator with the Hive account used for the purchase to handle any available claim there. Hive-Bar does not control Distriator recognition, eligibility, claim processing, or payout.</p>
+      <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-claim>Continue to Distriator</a>
     </div>
-  <% } else { %>
-    <p class="pay-external-disabled">Rebates are not available through Hive-Bar right now.</p>
   <% } %>
 
   <p class="pay-receipt__merchant-note">This receipt helps you confirm the Hive payment. The bar’s point-of-sale system remains the final record for your tab.</p>

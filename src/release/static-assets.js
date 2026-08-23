@@ -30,10 +30,19 @@ const FIRST_PARTY_ASSETS = Object.freeze([
   '/js/main.js',
 ]);
 
+const PAGE_SCOPED_ASSETS = Object.freeze([
+  '/js/pay-tab.js',
+]);
+
+const VERSIONED_ASSETS = Object.freeze([
+  ...FIRST_PARTY_ASSETS,
+  ...PAGE_SCOPED_ASSETS,
+]);
+
 function createStaticAssetUrl(publicRoot) {
   const root = path.resolve(publicRoot);
   const revisions = new Map(
-    FIRST_PARTY_ASSETS.map((publicPath) => {
+    VERSIONED_ASSETS.map((publicPath) => {
       const filename = path.resolve(root, publicPath.slice(1));
       const relative = path.relative(root, filename);
       if (relative.startsWith('..') || path.isAbsolute(relative)) {
@@ -51,4 +60,8 @@ function createStaticAssetUrl(publicRoot) {
   };
 }
 
-module.exports = { FIRST_PARTY_ASSETS, createStaticAssetUrl };
+module.exports = {
+  FIRST_PARTY_ASSETS,
+  PAGE_SCOPED_ASSETS,
+  createStaticAssetUrl,
+};
