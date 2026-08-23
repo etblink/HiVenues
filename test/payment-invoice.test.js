@@ -13,7 +13,6 @@ const {
 const options = {
   account: 'etblink',
   merchantAccounts: ['fourthstreetbar'],
-  maxHbd: '1.000 HBD',
 };
 const v4vBlankPayerInvoice = fs.readFileSync(
   path.join(__dirname, 'fixtures', 'payments', 'v4v-hbd-blank-payer.txt'),
@@ -90,6 +89,13 @@ test('binds the current V4V empty payer placeholder only to the verified session
   assert.equal(Object.isFrozen(envelope.operations[0][1]), true);
 });
 
+test('accepts positive canonical HBD without an application-level maximum', () => {
+  const uri = hiveUri.encodeOp(transfer({ amount: '123456.789 HBD', memo: 'large legitimate tab' }));
+  const envelope = decodeHivePaymentInvoice(uri, options);
+  assert.equal(envelope.operations[0][1].amount, '123456.789 HBD');
+  assert.equal(envelope.summary.amount, '123456.789 HBD');
+});
+
 test('rejects the deterministic negative invoice corpus closed', () => {
   const polluted = JSON.parse(
     '{"from":"__signer","to":"fourthstreetbar","amount":"0.001 HBD","memo":"memo","__proto__":{"polluted":true}}',
@@ -110,7 +116,6 @@ test('rejects the deterministic negative invoice corpus closed', () => {
     [hiveUri.encodeOp(transfer({ amount: '0.000 HBD' })), /positive HBD/],
     [hiveUri.encodeOp(transfer({ amount: '-0.001 HBD' })), /positive HBD/],
     [hiveUri.encodeOp(transfer({ amount: '0.0001 HBD' })), /positive HBD/],
-    [hiveUri.encodeOp(transfer({ amount: '1.001 HBD' })), /exceeds/],
     [hiveUri.encodeOp(transfer({ memo: '' })), /memo is required/],
     [hiveUri.encodeOp(['transfer', { ...transfer()[1], unexpected: true }]), /unsupported fields/],
     [hiveUri.encodeOp(['transfer', polluted]), /transfer payload is invalid/],

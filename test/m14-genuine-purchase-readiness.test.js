@@ -189,10 +189,14 @@ test('M14.4 permits only the exact durable receipt path in a write-disabled Priv
   assert.equal(summary.receiptDatabase, PAYMENT_DB_PATH);
   assert.equal(summary.receiptObservation, true);
 
+  const legacyMaximumSource = productionReadOnlySource({ HIVE_PAYMENT_MAX_HBD: '0.999 HBD' });
+  const legacyMaximumConfig = loadConfig(legacyMaximumSource, { loadDotenv: false });
+  assert.equal(Object.hasOwn(legacyMaximumConfig.payments, 'maxHbd'), false);
+  assert.doesNotThrow(() => assertPrivexReadOnlyRelease(legacyMaximumConfig, legacyMaximumSource));
+
   for (const [overrides, expected] of [
     [{ HIVE_SIGNER_MODE: 'keychain' }, /HIVE_SIGNER_MODE must be disabled/],
     [{ HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'othermerchant' }, /must remain bound to @fourthstreetbar/],
-    [{ HIVE_PAYMENT_MAX_HBD: '0.999 HBD' }, /must retain the 1\.000 HBD ceiling/],
     [{ HIVE_M10_OPERATOR_ARMED_UNTIL: '2099-01-01T00:00:00.000Z' }, /no M9\/M10\/M12 posting-control state/],
     [{ HIVE_PAYMENT_RECEIPT_DB_PATH: '/tmp/receipts.sqlite3' }, /must be :memory: or exactly/],
   ]) {

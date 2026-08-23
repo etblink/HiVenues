@@ -36,7 +36,7 @@ test('loads the accepted identifiers, secure session settings, and write-disable
   assert.equal(config.hive.messageHistoryPageSize, 25);
   assert.equal(config.hive.appTag, 'fourth-street-bar-app/0.1.0');
   assert.deepEqual(config.payments.merchantAccounts, ['fourthstreetbar']);
-  assert.equal(config.payments.maxHbd, '1.000 HBD');
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
   assert.equal(config.payments.receiptDbPath, ':memory:');
   assert.equal(config.payments.confirmationTimeoutMs, 120000);
   assert.equal(config.payments.enabled, false);
@@ -69,7 +69,6 @@ test('rejects a production configuration with fewer than three RPC nodes', () =>
         HIVE_RPC_NODES: 'https://api.hive.blog',
         HIVE_WALL_DEFAULT_FEE: '1.000 HBD',
         HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
-        HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
         HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
         DISTRIATOR_ENABLED: 'false',
         DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
@@ -89,7 +88,7 @@ test('fails closed when production settings are only implicit defaults', () => {
   );
 });
 
-test('requires payment settings only when the independent payment feature is explicitly enabled', () => {
+test('requires only merchant and durable receipt settings when the independent payment feature is explicitly enabled', () => {
   const production = {
     NODE_ENV: 'production', SITE_NAME: '4th Street Bar', BAR_ADDRESS: '1114 E. 4th Street, Reno, NV 89512',
     BAR_PHONE: '(775) 324-7827', BAR_HOURS: 'Daily, noon–2:00 a.m.', BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
@@ -103,7 +102,7 @@ test('requires payment settings only when the independent payment feature is exp
   assert.doesNotThrow(() => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'false' }, { loadDotenv: false }));
   assert.throws(
     () => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'true' }, { loadDotenv: false }),
-    /production requires explicit HIVE_PAYMENT_MERCHANT_ACCOUNTS, HIVE_PAYMENT_MAX_HBD, HIVE_PAYMENT_RECEIPT_DB_PATH/,
+    /production requires explicit HIVE_PAYMENT_MERCHANT_ACCOUNTS, HIVE_PAYMENT_RECEIPT_DB_PATH/,
   );
 });
 
@@ -159,6 +158,11 @@ test('allows only explicitly account-scoped controlled mode and still rejects pr
   );
 });
 
+test('legacy HIVE_PAYMENT_MAX_HBD input is ignored and cannot impose a payment ceiling', () => {
+  const config = configFrom({ HIVE_PAYMENT_MAX_HBD: '0.001 HBD' });
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
+});
+
 test('requires complete explicit M12 delegated-posting configuration', () => {
   assert.throws(
     () => configFrom({ HIVE_M12_MERCHANT_AUTHOR: 'fourthstreetbar' }),
@@ -193,7 +197,7 @@ test('binds a protocol-valid versioned application tag', () => {
   );
 });
 
-test('binds explicit beta Pay merchant, amount, receipt, timeout, and Distriator settings', () => {
+test('binds explicit beta Pay merchant, receipt, timeout, and Distriator settings without an amount ceiling', () => {
   const config = configFrom({
     HIVE_WRITE_MODE: 'beta',
     HIVE_SIGNER_MODE: 'keychain',
@@ -201,7 +205,6 @@ test('binds explicit beta Pay merchant, amount, receipt, timeout, and Distriator
     HIVE_CONTROLLED_ACTIONS: '',
     HIVE_PAYMENT_ENABLED: 'true',
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar, fourthstreetbar',
-    HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
     HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/receipts.sqlite',
     HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS: '90000',
     DISTRIATOR_ENABLED: 'true',
@@ -209,12 +212,11 @@ test('binds explicit beta Pay merchant, amount, receipt, timeout, and Distriator
   });
   assert.deepEqual(config.payments.merchantAccounts, ['fourthstreetbar']);
   assert.equal(config.payments.enabled, true);
-  assert.equal(config.payments.maxHbd, '1.000 HBD');
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
   assert.equal(config.payments.receiptDbPath, '/var/lib/hive-bar/receipts.sqlite');
   assert.equal(config.payments.confirmationTimeoutMs, 90000);
   assert.equal(config.distriator.enabled, true);
   assert.equal(config.distriator.claimUrl, 'https://distriator.com/#/claim');
-  assert.throws(() => configFrom({ HIVE_PAYMENT_MAX_HBD: '1.00 HBD' }), /three decimals/);
   assert.throws(() => configFrom({ DISTRIATOR_ENABLED: 'maybe' }), /true or false/);
   assert.throws(
     () => configFrom({ DISTRIATOR_CLAIM_URL: 'javascript:alert(1)' }),

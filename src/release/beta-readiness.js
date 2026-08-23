@@ -27,7 +27,6 @@ const BETA_EXPLICIT_SETTINGS = Object.freeze([
 
 const PAYMENT_ACTIVATION_SETTINGS = Object.freeze([
   'HIVE_PAYMENT_MERCHANT_ACCOUNTS',
-  'HIVE_PAYMENT_MAX_HBD',
   'HIVE_PAYMENT_RECEIPT_DB_PATH',
 ]);
 
@@ -121,9 +120,6 @@ function assertPrivexBetaRelease(config, source = {}) {
     }
     if (config.payments.merchantAccounts.length !== 1 || config.payments.merchantAccounts[0] !== 'fourthstreetbar') {
       issues.push('enabled Pay requires @fourthstreetbar as the sole merchant recipient');
-    }
-    if (config.payments.maxHbd !== '1.000 HBD') {
-      issues.push('enabled Pay requires HIVE_PAYMENT_MAX_HBD exactly 1.000 HBD');
     }
     if (!isSafePaymentDatabasePath(config.payments.receiptDbPath, { requireExisting: true })) {
       issues.push(`enabled Pay requires existing durable storage exactly at ${PAYMENT_DB_PATH}`);

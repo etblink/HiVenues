@@ -49,7 +49,6 @@ function controlledApp({ payment = false } = {}) {
     ...(payment
       ? {
           HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
-          HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
           HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
         }
       : {}),
@@ -163,7 +162,7 @@ test('M18.3 authenticated Wall uses one public-first composer with an explicit p
   assert.ok(wall.textContent.includes('Transaction details'));
 });
 
-test('M18.3 Pay is task-first without changing payment hooks or no-retry semantics', async () => {
+test('M18.3 Pay is task-first without changing payment hooks or no-retry semantics and has no amount ceiling', async () => {
   const fixture = controlledApp({ payment: true });
   const response = await request(fixture.app)
     .get('/pay')
@@ -175,7 +174,7 @@ test('M18.3 Pay is task-first without changing payment hooks or no-retry semanti
   assert.ok(pay);
   assert.match(pay.querySelector('h1')?.textContent || '', /Pay your tab with HBD/);
   assert.equal(pay.querySelector('.pay-merchant-logo')?.getAttribute('src'), '/images/fourth-street-bar-logo.jpg');
-  assert.match(pay.textContent, /Maximum payment 1\.000 HBD/);
+  assert.doesNotMatch(pay.textContent, /Maximum payment/i);
 
   const task = pay.querySelector('.m18-pay-task');
   for (const selector of [
@@ -203,7 +202,6 @@ test('M18.3 signed-out Pay remains a sign-in gate with no payment form', async (
   const { app } = createFixtureApp({
     configOverrides: {
       HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
-      HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
     },
   });
   const response = await request(app).get('/pay').expect(200);

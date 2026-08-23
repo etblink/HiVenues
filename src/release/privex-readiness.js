@@ -68,9 +68,6 @@ function assertPrivexReadOnlyRelease(config, source = {}) {
     ) {
       issues.push('durable read-only receipt observation must remain bound to @fourthstreetbar');
     }
-    if (config.payments.maxHbd !== '1.000 HBD') {
-      issues.push('durable read-only receipt observation must retain the 1.000 HBD ceiling');
-    }
     if (
       config.hive.m9PilotControlPath ||
       config.hive.m10OperatorArmedUntil ||

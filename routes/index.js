@@ -42,7 +42,6 @@ router.get('/pay', (req, res) => {
     payment: {
       enabled: req.app.locals.config.payments.enabled,
       merchants: req.app.locals.config.payments.merchantAccounts,
-      maxHbd: req.app.locals.config.payments.maxHbd,
     },
     distriator: req.app.locals.config.distriator,
   });

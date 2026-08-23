@@ -40,7 +40,6 @@ function productionSource(overrides = {}) {
     HIVE_SIGNER_MODE: 'keychain',
     HIVE_WALL_DEFAULT_FEE: '1.000 HBD',
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
-    HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
     HIVE_PAYMENT_RECEIPT_DB_PATH: PAYMENT_DB_PATH,
     DISTRIATOR_ENABLED: 'false',
     DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
@@ -88,7 +87,6 @@ test('rejects mixed posting/payment state, unsafe storage, extra actions, and Di
     [{ HIVE_CONTROLLED_ACTIONS: 'payment,post' }, /only the payment action/],
     [{ HIVE_SIGNER_MODE: 'disabled' }, /HIVE_SIGNER_MODE must be keychain/],
     [{ HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar,otherbar' }, /only payment merchant/],
-    [{ HIVE_PAYMENT_MAX_HBD: '2.000 HBD' }, /exactly 1\.000 HBD/],
     [{ HIVE_PAYMENT_RECEIPT_DB_PATH: '/tmp/receipts.sqlite3' }, /receipts\.sqlite3/],
     [{ DISTRIATOR_ENABLED: 'true' }, /Distriator must remain disabled/],
     [{ HIVE_M9_PILOT_CONTROL_PATH: '/tmp/pilot' }, /M9\/M10 posting-control state/],
@@ -99,6 +97,12 @@ test('rejects mixed posting/payment state, unsafe storage, extra actions, and Di
     const source = productionSource(overrides);
     assert.throws(() => assertPrivexControlledPayment(configFrom(source), source), expected);
   }
+});
+
+test('legacy HIVE_PAYMENT_MAX_HBD input is ignored by the archived M14 profile', () => {
+  const source = productionSource({ HIVE_PAYMENT_MAX_HBD: '0.001 HBD' });
+  const config = configFrom(source);
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
 });
 
 test('payment preflight is independent of expired M10 and M12 Posting identity machinery', async () => {

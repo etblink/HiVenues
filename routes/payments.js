@@ -111,7 +111,6 @@ function createPaymentRouter({ config, now = Date.now }) {
       const envelope = decodeHivePaymentInvoice(req.body?.uri, {
         account: req.hiveSession.account,
         merchantAccounts: config.payments.merchantAccounts,
-        maxHbd: config.payments.maxHbd,
       });
       const record = receiptStore(req).createValidated({
         sessionId: req.hiveSession.id,

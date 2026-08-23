@@ -15,8 +15,6 @@
         <p class="pay-hero__lede">Pay a verified 4th Street Bar request with Hive Keychain.</p>
         <div class="pay-merchant-meta">
           <span>Verified destination<%= payment.merchants.length === 1 ? '' : 's' %>: <% payment.merchants.forEach((merchant, index) => { %><%= index ? ', ' : '' %>@<%= merchant %><% }) %></span>
-          <span aria-hidden="true">·</span>
-          <span>Maximum payment <%= payment.maxHbd %></span>
         </div>
       </div>
     </header>

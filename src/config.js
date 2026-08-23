@@ -45,7 +45,6 @@ const PRODUCTION_REQUIRED_SETTINGS = [
 
 const PRODUCTION_PAYMENT_REQUIRED_SETTINGS = [
   'HIVE_PAYMENT_MERCHANT_ACCOUNTS',
-  'HIVE_PAYMENT_MAX_HBD',
   'HIVE_PAYMENT_RECEIPT_DB_PATH',
 ];
 
@@ -265,7 +264,6 @@ const envSchema = z
       .string()
       .default('fourthstreetbar')
       .transform(parseAccountList),
-    HIVE_PAYMENT_MAX_HBD: z.string().default('1.000 HBD').transform(parseWallFee),
     HIVE_PAYMENT_RECEIPT_DB_PATH: z.string().default(':memory:').transform(parseReceiptPath),
     HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS: z.coerce
       .number()
@@ -515,7 +513,6 @@ function loadConfig(
     },
     payments: {
       merchantAccounts: result.data.HIVE_PAYMENT_MERCHANT_ACCOUNTS,
-      maxHbd: result.data.HIVE_PAYMENT_MAX_HBD,
       receiptDbPath: result.data.HIVE_PAYMENT_RECEIPT_DB_PATH,
       confirmationTimeoutMs: result.data.HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS,
       enabled: result.data.HIVE_PAYMENT_ENABLED,

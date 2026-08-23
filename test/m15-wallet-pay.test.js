@@ -22,7 +22,6 @@ function controlledApp({ payment = false } = {}) {
     RATE_LIMIT_MAX: '1000',
     ...(payment ? {
       HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
-      HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
       HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
     } : {}),
   });
@@ -82,7 +81,7 @@ test('M15.4 Pay presents merchant identity and the no-duplicate-payment model be
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
 
-test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and review boundary', async () => {
+test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and review boundary without an amount ceiling', async () => {
   const fixture = controlledApp({ payment: true });
   const response = await request(fixture.app)
     .get('/pay')
@@ -102,7 +101,7 @@ test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and re
   assert.match(response.text, /Hive-Bar checks the payment and shows you exactly what will be sent/);
   assert.doesNotMatch(response.text, /Continue to Distriator/);
   assert.doesNotMatch(response.text, /data-distriator-claim/);
-  assert.match(response.text, /Maximum payment 1\.000 HBD/);
+  assert.doesNotMatch(response.text, /Maximum payment/i);
 });
 
 test('M15.4 preserves the accepted browser payment state machine source', () => {

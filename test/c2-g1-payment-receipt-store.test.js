@@ -20,7 +20,7 @@ function envelope(memo = 'v4v-pos:tab-123', amount = '0.001 HBD', account = 'etb
       'transfer',
       { from: '__signer', to: 'fourthstreetbar', amount, memo },
     ], { signer: account, authority: 'active' }),
-    { account, merchantAccounts: ['fourthstreetbar'], maxHbd: '1.000 HBD' },
+    { account, merchantAccounts: ['fourthstreetbar'] },
   );
 }
 

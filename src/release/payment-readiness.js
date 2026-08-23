@@ -16,7 +16,6 @@ function assertPrivexControlledPayment(config, source = {}) {
   if (config.hive.signerMode !== 'keychain') issues.push('HIVE_SIGNER_MODE must be keychain');
   if (!config.payments.enabled) issues.push('the payment configuration must be enabled by the exact controlled-payment settings');
   if (config.payments.merchantAccounts.length !== 1 || config.payments.merchantAccounts[0] !== 'fourthstreetbar') issues.push('the only payment merchant must be @fourthstreetbar');
-  if (config.payments.maxHbd !== '1.000 HBD') issues.push('HIVE_PAYMENT_MAX_HBD must be exactly 1.000 HBD');
   if (!isSafePaymentDatabasePath(config.payments.receiptDbPath)) issues.push(`HIVE_PAYMENT_RECEIPT_DB_PATH must be exactly ${PAYMENT_DB_PATH} with no symlink target`);
   if (config.distriator.enabled) issues.push('Distriator must remain disabled for the initial M14 payment profile');
   if (config.hive.m9PilotControlPath || config.hive.m10OperatorArmedUntil || config.hive.m10OperatorAuditPath) issues.push('M9/M10 posting-control state must be absent');
@@ -30,7 +29,6 @@ function assertPrivexControlledPayment(config, source = {}) {
     action: 'payment',
     authority: 'Active',
     signer: 'keychain',
-    maxHbd: config.payments.maxHbd,
     receiptDatabase: config.payments.receiptDbPath,
     irreversibleConfirmation: true,
     distriatorEnabled: false,

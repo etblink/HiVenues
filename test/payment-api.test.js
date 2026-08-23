@@ -293,7 +293,7 @@ test('renders the configured Pay Tab and hides the claim link until eligibility 
     .set('cookie', `hive_bar_session=${fixtureApp.token}`)
     .expect(200);
   assert.match(page.text, /@fourthstreetbar/);
-  assert.match(page.text, /1\.000 HBD/);
+  assert.doesNotMatch(page.text, /Maximum payment/);
   assert.match(page.text, /Use the HBD payment QR provided by the bar; Lightning and LNURL invoices are not supported here/);
   assert.doesNotMatch(page.text, /data-distriator-claim/);
 

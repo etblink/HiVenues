@@ -23,7 +23,7 @@ function legacyControlledSource(overrides = {}) {
     HIVE_OFFICIAL_BAR_ACCOUNT: 'fourthstreetbar', THREADS_CONTAINER_ACCOUNT: 'fourthst.threads',
     HIVE_RPC_NODES: 'https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network',
     HIVE_WRITE_MODE: 'controlled', HIVE_CONTROLLED_ACCOUNTS: 'etblink', HIVE_CONTROLLED_ACTIONS: 'payment', HIVE_SIGNER_MODE: 'keychain',
-    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar', HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
+    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
     HIVE_PAYMENT_RECEIPT_DB_PATH: '/var/lib/hive-bar/payments/receipts.sqlite3', DISTRIATOR_ENABLED: 'false',
     DISTRIATOR_CLAIM_URL: 'https://distriator.com/', HIVE_APP_TAG: 'fourth-street-bar-app/0.1.0', APP_ORIGIN: ORIGIN,
     SESSION_SECRET, TRUST_PROXY: 'loopback', LOG_LEVEL: 'info', ...overrides,

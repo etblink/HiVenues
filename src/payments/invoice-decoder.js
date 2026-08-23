@@ -101,7 +101,7 @@ function resolveTransferSender(value, account) {
   return sender;
 }
 
-function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts, maxHbd }) {
+function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts }) {
   const account = requireHiveAccount(accountValue, 'Verified payer account');
   const merchants = new Set(
     (Array.isArray(merchantAccounts) ? merchantAccounts : []).map((merchant) =>
@@ -110,10 +110,6 @@ function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts
   );
   if (merchants.size === 0) {
     throw new ValidationError('The Pay Tab merchant allowlist is not configured');
-  }
-  const maximum = parseAsset(maxHbd, 'HBD');
-  if (!maximum || maximum.canonical !== maxHbd || maximum.units <= 0n) {
-    throw new TypeError('M5 requires a canonical positive HBD maximum');
   }
 
   const invoice = requireInvoiceText(uri);
@@ -139,9 +135,6 @@ function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts
   const amount = parseAsset(amountText, 'HBD');
   if (!amount || amount.canonical !== amountText || amount.units <= 0n) {
     throw new ValidationError('The transfer amount must be positive HBD with exactly three decimals');
-  }
-  if (amount.units > maximum.units) {
-    throw new ValidationError(`The transfer amount exceeds the controlled maximum of ${maximum.canonical}`);
   }
 
   if (typeof transfer.memo !== 'string' || !transfer.memo) {

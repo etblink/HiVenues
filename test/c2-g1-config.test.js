@@ -23,7 +23,7 @@ test('loads the accepted identifiers, secure session settings, and write-disable
   assert.equal(config.hive.signerMode, 'disabled');
   assert.equal(config.hive.defaultWallFee, '1.000 HBD');
   assert.deepEqual(config.payments.merchantAccounts, ['fourthstreetbar']);
-  assert.equal(config.payments.maxHbd, '1.000 HBD');
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
   assert.equal(config.payments.receiptDbPath, ':memory:');
   assert.equal(config.payments.confirmationTimeoutMs, 120000);
   assert.equal(config.payments.enabled, false);
@@ -42,7 +42,7 @@ test('rejects a production configuration with fewer than three RPC nodes', () =>
     BAR_PHONE: '(775) 324-7827', BAR_HOURS: 'Daily, noon–2:00 a.m.', BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
     BAR_MAP_URL: 'https://www.google.com/maps/search/?api=1&query=4th+Street+Bar+Reno', HIVE_COMMUNITY_ID: 'hive-108590',
     HIVE_OFFICIAL_BAR_ACCOUNT: 'fourthstreetbar', THREADS_CONTAINER_ACCOUNT: 'fourthst.threads', HIVE_RPC_NODES: 'https://api.hive.blog',
-    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar', HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
+    HIVE_WALL_DEFAULT_FEE: '1.000 HBD', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
     HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:', DISTRIATOR_ENABLED: 'false', DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
     HIVE_APP_TAG: 'fourth-street-bar-app/0.1.0', BIND_HOST: '127.0.0.1', APP_ORIGIN: 'https://hive-bar.example',
     SESSION_SECRET: 'a-production-session-secret-with-32-bytes',
@@ -56,7 +56,7 @@ test('fails closed when production settings are only implicit defaults', () => {
   );
 });
 
-test('requires payment settings only when the independent payment feature is explicitly enabled', () => {
+test('requires only merchant and durable receipt settings when the independent payment feature is explicitly enabled', () => {
   const production = {
     NODE_ENV: 'production', SITE_NAME: '4th Street Bar', BAR_ADDRESS: '1114 E. 4th Street, Reno, NV 89512',
     BAR_PHONE: '(775) 324-7827', BAR_HOURS: 'Daily, noon–2:00 a.m.', BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
@@ -70,7 +70,7 @@ test('requires payment settings only when the independent payment feature is exp
   assert.doesNotThrow(() => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'false' }, { loadDotenv: false }));
   assert.throws(
     () => loadConfig({ ...production, HIVE_PAYMENT_ENABLED: 'true' }, { loadDotenv: false }),
-    /production requires explicit HIVE_PAYMENT_MERCHANT_ACCOUNTS, HIVE_PAYMENT_MAX_HBD, HIVE_PAYMENT_RECEIPT_DB_PATH/,
+    /production requires explicit HIVE_PAYMENT_MERCHANT_ACCOUNTS, HIVE_PAYMENT_RECEIPT_DB_PATH/,
   );
 });
 
@@ -98,6 +98,11 @@ test('explicit Pay is beta + Keychain only and does not require controlled payer
   assert.throws(() => configFrom({ HIVE_WRITE_MODE: 'beta', HIVE_SIGNER_MODE: 'disabled', HIVE_PAYMENT_ENABLED: 'true' }), /Beta self-signing mode requires Hive Keychain|Enabled payment requires Hive Keychain/);
 });
 
+test('legacy HIVE_PAYMENT_MAX_HBD input is ignored and cannot impose a payment ceiling', () => {
+  const config = configFrom({ HIVE_PAYMENT_MAX_HBD: '0.001 HBD' });
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
+});
+
 test('requires complete explicit M12 delegated-posting configuration', () => {
   assert.throws(() => configFrom({ HIVE_M12_MERCHANT_AUTHOR: 'fourthstreetbar' }), /M12 delegated posting requires both a merchant author and at least one explicit signer/);
   const config = configFrom({ HIVE_M12_MERCHANT_AUTHOR: 'fourthstreetbar', HIVE_M12_AUTHORIZED_SIGNERS: 'fartman69, fartman69' });
@@ -119,19 +124,18 @@ test('binds a protocol-valid versioned application tag', () => {
   assert.throws(() => configFrom({ HIVE_APP_TAG: 'fourth-street-bar-app-v#' }), /Invalid Hive-Bar configuration: HIVE_APP_TAG/);
 });
 
-test('binds explicit beta Pay merchant, amount, receipt, timeout, and stable Distriator handoff settings', () => {
+test('binds explicit beta Pay merchant, receipt, timeout, and stable Distriator handoff settings', () => {
   const config = configFrom({
     HIVE_WRITE_MODE: 'beta', HIVE_SIGNER_MODE: 'keychain', HIVE_CONTROLLED_ACCOUNTS: '', HIVE_CONTROLLED_ACTIONS: '',
-    HIVE_PAYMENT_ENABLED: 'true', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar, fourthstreetbar', HIVE_PAYMENT_MAX_HBD: '1.000 HBD',
+    HIVE_PAYMENT_ENABLED: 'true', HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar, fourthstreetbar',
     HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:', HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS: '90000', DISTRIATOR_ENABLED: 'true', DISTRIATOR_CLAIM_URL: 'https://distriator.com/',
   });
   assert.deepEqual(config.payments.merchantAccounts, ['fourthstreetbar']);
   assert.equal(config.payments.enabled, true);
-  assert.equal(config.payments.maxHbd, '1.000 HBD');
+  assert.equal(Object.hasOwn(config.payments, 'maxHbd'), false);
   assert.equal(config.payments.confirmationTimeoutMs, 90000);
   assert.equal(config.distriator.enabled, true);
   assert.equal(config.distriator.claimUrl, 'https://distriator.com/');
-  assert.throws(() => configFrom({ HIVE_PAYMENT_MAX_HBD: '1.00 HBD' }), /three decimals/);
   assert.throws(() => configFrom({ DISTRIATOR_ENABLED: 'maybe' }), /true or false/);
   assert.throws(() => configFrom({ DISTRIATOR_CLAIM_URL: 'javascript:alert(1)' }), /credential-free HTTPS URL/);
 });
