@@ -237,8 +237,11 @@
       container.querySelector('[data-pay-receipt-message]').textContent = receipt.message || receipt.diagnostic || '';
       const recheck = container.querySelector('[data-pay-recheck]');
       if (recheck) recheck.hidden = !['BroadcastAccepted', 'ConfirmationTimeout'].includes(receipt.state);
-      const rebate = container.querySelector('[data-pay-rebate]');
-      if (rebate) rebate.hidden = !(receipt.state === 'ChainConfirmed' && receipt.rebate?.available);
+      const handoff = container.querySelector('[data-distriator-handoff]') || container.querySelector('[data-pay-rebate]');
+      if (handoff) {
+        const available = receipt.distriatorHandoff?.available ?? receipt.rebate?.available;
+        handoff.hidden = !(receipt.state === 'ChainConfirmed' && available);
+      }
       this.lockInvoice(ACTIVE_RECEIPT_STATES.has(receipt.state));
     }
 

@@ -47,14 +47,14 @@ test('general beta patron preflights one exact merchant HBD transfer and reaches
   assert.equal(preflight.body.account, 'etblink');
   assert.equal(preflight.body.authority, 'Active');
   assert.deepEqual(preflight.body.operations, [['transfer', { from: 'etblink', to: 'fourthstreetbar', amount: '0.001 HBD', memo: 'v4v-pos:tab-123' }]]);
-  assert.equal(preflight.body.rebate.available, false);
+  assert.equal(preflight.body.distriatorHandoff.available, false);
   await authorized(request(fixture.app).post(`/api/payments/${preflight.body.id}/awaiting-signature`), fixture).expect(200);
   await authorized(request(fixture.app).post(`/api/payments/${preflight.body.id}/accepted`), fixture).send({ transactionId: 'a'.repeat(40) }).expect(200);
   const confirmed = await authorized(request(fixture.app).post(`/api/payments/${preflight.body.id}/observe`), fixture).expect(200);
   assert.equal(confirmed.body.state, 'ChainConfirmed');
   assert.equal(confirmed.body.paid, true);
-  assert.equal(confirmed.body.rebate.available, true);
-  assert.equal(confirmed.body.rebate.url, 'https://distriator.com/');
+  assert.equal(confirmed.body.distriatorHandoff.available, true);
+  assert.equal(confirmed.body.distriatorHandoff.url, 'https://distriator.com/');
 });
 
 test('binds a current V4V blank-payer invoice only to the verified session account', async () => {
@@ -110,14 +110,16 @@ test('Pay fails closed when its durable store is unavailable without taking unre
   await request(fixture.app).get('/healthz').expect(200);
 });
 
-test('Pay navigation and hashed client asset are exposed only when the explicit financial gate is enabled', async () => {
-  const enabled = betaPayApp({ configOverrides: { DISTRIATOR_ENABLED: 'true' } });
+test('Pay navigation, versioned client, and neutral Distriator handoff are present whenever Pay is enabled', async () => {
+  const enabled = betaPayApp({ configOverrides: { DISTRIATOR_ENABLED: 'false' } });
   const page = await request(enabled.app).get('/pay').set('cookie', `hive_bar_session=${enabled.token}`).expect(200);
   assert.match(page.text, /href="\/pay"/);
   assert.match(page.text, /src="\/js\/pay-tab\.js\?v=[0-9a-f]{64}"/);
   assert.match(page.text, /href="https:\/\/distriator\.com\/"/);
-  assert.match(page.text, /Continue to Distriator/);
-  assert.match(page.text, /data-pay-rebate hidden/);
+  assert.match(page.text, /Distriator is a separate service that may recognize qualifying purchases/);
+  assert.match(page.text, /data-distriator-handoff hidden/);
+  assert.match(page.text, /data-distriator-handoff-link/);
+  assert.doesNotMatch(page.text, /data-distriator-claim/);
 
   const disabled = betaPayApp({ configOverrides: { HIVE_PAYMENT_ENABLED: 'false', DISTRIATOR_ENABLED: 'false' } });
   const home = await request(disabled.app).get('/').set('cookie', `hive_bar_session=${disabled.token}`).expect(200);

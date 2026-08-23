@@ -23,6 +23,8 @@ function controlledApp({ payment = false } = {}) {
     ...(payment ? {
       HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
       HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
+      DISTRIATOR_ENABLED: 'false',
+      DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
     } : {}),
   });
   const sessionStore = new SessionStore({
@@ -81,7 +83,7 @@ test('M15.4 Pay presents merchant identity and the no-duplicate-payment model be
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
 
-test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and review boundary without an amount ceiling', async () => {
+test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundary, and neutral Distriator handoff without an amount ceiling', async () => {
   const fixture = controlledApp({ payment: true });
   const response = await request(fixture.app)
     .get('/pay')
@@ -99,7 +101,11 @@ test('M15.4 explicitly enabled beta Pay keeps every existing payment hook and re
   assert.match(response.text, /data-pay-recheck/);
   assert.match(response.text, /Check payment details/);
   assert.match(response.text, /Hive-Bar checks the payment and shows you exactly what will be sent/);
-  assert.doesNotMatch(response.text, /Continue to Distriator/);
+  assert.match(response.text, /data-distriator-handoff hidden/);
+  assert.match(response.text, /data-distriator-handoff-link/);
+  assert.match(response.text, /href="https:\/\/distriator\.com\/#\/claim"/);
+  assert.match(response.text, /Distriator is a separate service that may recognize qualifying purchases/);
+  assert.match(response.text, /does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
   assert.doesNotMatch(response.text, /data-distriator-claim/);
   assert.doesNotMatch(response.text, /Maximum payment/i);
 });

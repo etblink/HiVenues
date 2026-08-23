@@ -16,14 +16,12 @@
   <p class="pay-receipt__caution"><strong>Don’t pay again while this receipt is pending or unclear.</strong> Rechecking looks for the payment you already approved; it does not create a new transfer.</p>
   <button type="button" class="button-secondary pay-recheck" data-pay-recheck hidden>Recheck payment status</button>
 
-  <% if (distriator.enabled) { %>
-    <div class="pay-external-claim" data-pay-rebate hidden>
-      <p class="app-kicker">Separate service</p>
-      <h3>Continue to Distriator</h3>
-      <p>After Hive-Bar confirms this payment, you can sign in to Distriator with the Hive account used for the purchase to handle any available claim there. Hive-Bar does not control Distriator recognition, eligibility, claim processing, or payout.</p>
-      <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-claim>Continue to Distriator</a>
-    </div>
-  <% } %>
+  <div class="pay-external-claim" data-pay-rebate data-distriator-handoff hidden>
+    <p class="app-kicker">Separate service</p>
+    <h3>Continue to Distriator</h3>
+    <p>Your HBD payment is confirmed. Distriator is a separate service that may recognize qualifying purchases. Open Distriator and sign in with the Hive account you used to pay. Hive-Bar does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout.</p>
+    <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-handoff-link <% if (distriator.enabled) { %>data-distriator-claim<% } %>>Open Distriator</a>
+  </div>
 
   <p class="pay-receipt__merchant-note">This receipt helps you confirm the Hive payment. The bar’s point-of-sale system remains the final record for your tab.</p>
 </section>

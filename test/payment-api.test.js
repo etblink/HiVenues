@@ -98,7 +98,7 @@ test('preflights, reviews, records acceptance, and confirms one exact merchant p
       memo: 'v4v-pos:tab-123',
     },
   ]]);
-  assert.equal(preflight.body.rebate.available, false);
+  assert.equal(preflight.body.distriatorHandoff.available, false);
 
   await authorized(
     request(fixtureApp.app).post(`/api/payments/${preflight.body.id}/awaiting-signature`),
@@ -111,6 +111,7 @@ test('preflights, reviews, records acceptance, and confirms one exact merchant p
   ).send({ transactionId: 'a'.repeat(40) }).expect(200).expect(({ body }) => {
     assert.equal(body.state, 'BroadcastAccepted');
     assert.equal(body.paid, false);
+    assert.equal(body.distriatorHandoff.available, false);
     assert.match(body.message, /pending exact confirmation/);
   });
 
@@ -121,8 +122,8 @@ test('preflights, reviews, records acceptance, and confirms one exact merchant p
   assert.equal(confirmed.body.state, 'ChainConfirmed');
   assert.equal(confirmed.body.paid, true);
   assert.equal(confirmed.body.blockNumber, 109000000);
-  assert.equal(confirmed.body.rebate.available, true);
-  assert.equal(confirmed.body.rebate.url, 'https://distriator.com/#/claim');
+  assert.equal(confirmed.body.distriatorHandoff.available, true);
+  assert.equal(confirmed.body.distriatorHandoff.url, 'https://distriator.com/#/claim');
 
   const recent = await request(fixtureApp.app)
     .get('/api/payments/recent')
@@ -196,6 +197,7 @@ test('keeps ambiguous or uncorrelated broadcasts pending and times out without a
   ).expect(200);
   assert.equal(timedOut.body.state, 'ConfirmationTimeout');
   assert.equal(timedOut.body.paid, false);
+  assert.equal(timedOut.body.distriatorHandoff.available, false);
   assert.equal(observerCalls, 0);
   assert.match(timedOut.body.message, /do not pay again/);
 });
@@ -252,6 +254,7 @@ test('allows a same-account pending receipt to be safely rechecked after write m
   ).expect(200);
   assert.equal(result.body.state, 'ChainConfirmed');
   assert.equal(result.body.paid, true);
+  assert.equal(result.body.distriatorHandoff.available, true);
 
   const page = await request(recovered.app)
     .get('/pay')
@@ -286,23 +289,28 @@ test('enforces session, origin, CSRF, controlled-account, and merchant boundarie
     .expect(503);
 });
 
-test('renders the configured Pay Tab and hides the claim link until eligibility is enabled', async () => {
-  const fixtureApp = controlledApp();
-  const page = await request(fixtureApp.app)
-    .get('/pay')
-    .set('cookie', `hive_bar_session=${fixtureApp.token}`)
-    .expect(200);
-  assert.match(page.text, /@fourthstreetbar/);
-  assert.doesNotMatch(page.text, /Maximum payment/);
-  assert.match(page.text, /Use the HBD payment QR provided by the bar; Lightning and LNURL invoices are not supported here/);
-  assert.doesNotMatch(page.text, /data-distriator-claim/);
-
-  const enabled = controlledApp({ configOverrides: { DISTRIATOR_ENABLED: 'true' } });
-  const enabledPage = await request(enabled.app)
-    .get('/pay')
-    .set('cookie', `hive_bar_session=${enabled.token}`)
-    .expect(200);
-  assert.match(enabledPage.text, /href="https:\/\/distriator\.com\/#\/claim"/);
-  assert.match(enabledPage.text, /target="_blank" rel="noopener noreferrer"/);
-  assert.match(enabledPage.text, /data-pay-rebate hidden/);
+test('renders the neutral post-confirmation Distriator handoff independent of the historical presentation flag', async () => {
+  for (const historicalFlag of ['false', 'true']) {
+    const fixtureApp = controlledApp({
+      configOverrides: {
+        DISTRIATOR_ENABLED: historicalFlag,
+        DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
+      },
+    });
+    const page = await request(fixtureApp.app)
+      .get('/pay')
+      .set('cookie', `hive_bar_session=${fixtureApp.token}`)
+      .expect(200);
+    assert.match(page.text, /@fourthstreetbar/);
+    assert.doesNotMatch(page.text, /Maximum payment/);
+    assert.match(page.text, /Use the HBD payment QR provided by the bar; Lightning and LNURL invoices are not supported here/);
+    assert.match(page.text, /data-distriator-handoff hidden/);
+    assert.match(page.text, /data-distriator-handoff-link/);
+    assert.match(page.text, /href="https:\/\/distriator\.com\/#\/claim"/);
+    assert.match(page.text, /target="_blank" rel="noopener noreferrer"/);
+    assert.match(page.text, /Distriator is a separate service that may recognize qualifying purchases/);
+    assert.match(page.text, /does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+    if (historicalFlag === 'true') assert.match(page.text, /data-distriator-claim/);
+    else assert.doesNotMatch(page.text, /data-distriator-claim/);
+  }
 });

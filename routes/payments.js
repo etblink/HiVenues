@@ -8,15 +8,18 @@ const { RECEIPT_STATES } = require('../src/payments/receipt-store');
 
 function responseRecord(record, config, message) {
   const confirmed = record.state === RECEIPT_STATES.CHAIN_CONFIRMED;
-  const rebateAvailable = confirmed && config.distriator.enabled;
+  const distriatorHandoff = Object.freeze({
+    available: confirmed,
+    url: confirmed ? config.distriator.claimUrl : null,
+    external: true,
+  });
   return {
     ...record,
     paid: confirmed,
-    rebate: {
-      available: rebateAvailable,
-      url: rebateAvailable ? config.distriator.claimUrl : null,
-      external: true,
-    },
+    distriatorHandoff,
+    // Compatibility alias for already-qualified clients. Active product semantics use
+    // distriatorHandoff; Hive-Bar does not determine Distriator eligibility or payout.
+    rebate: distriatorHandoff,
     message,
   };
 }
