@@ -129,7 +129,6 @@ process.stdin.on("end", () => {
     if (v.writeMode!=="beta" || v.signerMode!=="keychain") process.exit(11);
     if (!Array.isArray(v.betaActions) || JSON.stringify(v.betaActions)!==JSON.stringify(expected)) process.exit(12);
     if (v.controlledAccountCount!==0 || v.controlledActionCount!==0) process.exit(13);
-    if (v.paymentsEnabled!==false || v.distriatorEnabled!==false) process.exit(14);
     process.exit(0);
   } catch { process.exit(20); }
 });' "$expected_actions_csv"

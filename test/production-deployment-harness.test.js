@@ -60,6 +60,23 @@ test('beta gate occurs only in beta-qualified branches, never in the Deploy read
   assert.ok(betaGateIndex > restoreIndex, 'beta gate must follow beta restoration');
 });
 
+test('outer beta manifest verifier validates runtime identity but defers Pay and Distriator policy to the application beta gate', () => {
+  const remote = read(remoteTemplatePath);
+  const verifier = remote.match(/verify_beta_gate\(\) \{([\s\S]*?)\n\}/);
+  assert.ok(verifier, 'verify_beta_gate must exist');
+  const body = verifier[1];
+
+  assert.match(body, /v\.profile!=="privex-beta-self-signing"/);
+  assert.match(body, /v\.writeMode!=="beta" \|\| v\.signerMode!=="keychain"/);
+  assert.match(body, /v\.betaActions/);
+  assert.match(body, /v\.controlledAccountCount!==0 \|\| v\.controlledActionCount!==0/);
+  assert.doesNotMatch(body, /paymentsEnabled/);
+  assert.doesNotMatch(body, /distriatorEnabled/);
+
+  assert.match(remote, /beta_summary="\$\(run_gate "\$beta_gate"\)"/);
+  assert.match(remote, /verify_beta_gate "\$beta_summary"/);
+});
+
 test('Observe does not mutate and remote payload is streamed over stdin', () => {
   const source = engineSource();
   const observeCase = source.match(/Observe\)\s*([\s\S]*?)\n\s*;;/);
