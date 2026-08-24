@@ -9,6 +9,11 @@
     'BroadcastAccepted',
     'ConfirmationTimeout',
   ]);
+  const QR_DECODE_MISS_NAMES = new Set([
+    'NotFoundException',
+    'ChecksumException',
+    'FormatException',
+  ]);
 
   function setStatus(element, message, isError = false) {
     if (!element) return;
@@ -17,12 +22,64 @@
     element.classList.toggle('text-gray-300', !isError);
   }
 
+  function isExpectedQrDecodeMiss(error) {
+    const kind = typeof error?.getKind === 'function' ? error.getKind() : null;
+    return QR_DECODE_MISS_NAMES.has(kind) || QR_DECODE_MISS_NAMES.has(error?.name);
+  }
+
+  function createInvertedCanvas(canvas) {
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      throw new TypeError('The QR snapshot canvas is unavailable.');
+    }
+    const width = Number(canvas.width);
+    const height = Number(canvas.height);
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+      throw new TypeError('The QR snapshot canvas dimensions are invalid.');
+    }
+    const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
+    if (!sourceContext) throw new Error('The QR snapshot canvas could not be read.');
+    const imageData = sourceContext.getImageData(0, 0, width, height);
+    const pixels = imageData.data;
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      pixels[offset] = 255 - pixels[offset];
+      pixels[offset + 1] = 255 - pixels[offset + 1];
+      pixels[offset + 2] = 255 - pixels[offset + 2];
+    }
+
+    const documentRef = canvas.ownerDocument || global.document;
+    if (!documentRef?.createElement) throw new Error('The QR snapshot canvas cannot be created.');
+    const inverted = documentRef.createElement('canvas');
+    inverted.width = width;
+    inverted.height = height;
+    const invertedContext = inverted.getContext('2d');
+    if (!invertedContext) throw new Error('The inverted QR snapshot canvas could not be created.');
+    invertedContext.putImageData(imageData, 0, 0);
+    return inverted;
+  }
+
+  function createPolarityTolerantQrReader() {
+    const BaseReader = global.ZXingBrowser?.BrowserQRCodeReader;
+    if (typeof BaseReader !== 'function') {
+      throw new Error('The local QR reader is unavailable. Paste the invoice URI instead.');
+    }
+    return new (class PolarityTolerantQRCodeReader extends BaseReader {
+      decodeFromCanvas(canvas) {
+        try {
+          return super.decodeFromCanvas(canvas);
+        } catch (error) {
+          if (!isExpectedQrDecodeMiss(error)) throw error;
+          return super.decodeFromCanvas(createInvertedCanvas(canvas));
+        }
+      }
+    })();
+  }
+
   class PayTabController {
     constructor({
       documentRef = global.document,
       fetchImpl = global.fetch?.bind(global),
       keychainFactory = () => new global.HiveBarKeychain.KeychainAdapter(),
-      qrReaderFactory = () => new global.ZXingBrowser.BrowserQRCodeReader(),
+      qrReaderFactory = () => createPolarityTolerantQrReader(),
       review,
       waitImpl = (milliseconds) => new Promise((resolve) => global.setTimeout(resolve, milliseconds)),
     } = {}) {
@@ -318,7 +375,7 @@
               this.root.querySelector('[data-pay-camera-start]').hidden = false;
               this.root.querySelector('[data-pay-camera-stop]').hidden = true;
               this.setInvoice(result.getText(), 'QR decoded locally. Review the URI, then validate it.');
-            } else if (error && !['NotFoundException', 'ChecksumException', 'FormatException'].includes(error.name)) {
+            } else if (error && !isExpectedQrDecodeMiss(error)) {
               setStatus(status, 'The camera could not decode that image yet. Paste or import the invoice if needed.', true);
             }
           },
@@ -351,15 +408,22 @@
       try {
         const result = await this.qrReaderFactory().decodeFromImageUrl(objectUrl);
         this.setInvoice(result.getText(), 'QR image decoded locally. Review the URI, then validate it.');
-      } catch {
-        setStatus(status, 'No readable Hive payment QR code was found in that image.', true);
+      } catch (error) {
+        const message = isExpectedQrDecodeMiss(error)
+          ? "This browser couldn't read the payment QR. Try another image or paste the Hive payment request."
+          : error?.message || 'The local QR reader failed. Paste the Hive payment request instead.';
+        setStatus(status, message, true);
       } finally {
         global.URL.revokeObjectURL(objectUrl);
       }
     }
   }
 
-  global.HiveBarPay = Object.freeze({ PayTabController });
+  global.HiveBarPay = Object.freeze({
+    PayTabController,
+    createPolarityTolerantQrReader,
+    isExpectedQrDecodeMiss,
+  });
   const controller = new PayTabController();
   controller.bind();
 })(window);

@@ -1,0 +1,56 @@
+name: C2-G.1c R5.2 Payment QR Polarity
+
+on:
+  pull_request:
+    paths:
+      - public/js/pay-tab.js
+      - scripts/check-r5-2-pay-qr-polarity.js
+      - test/r5-2-pay-qr-polarity.test.js
+      - test/fixtures/payments/r5-2-*.png
+      - .github/workflows/r5-2-pay-qr-polarity.yml
+  push:
+    branches:
+      - main
+    paths:
+      - public/js/pay-tab.js
+      - scripts/check-r5-2-pay-qr-polarity.js
+      - test/r5-2-pay-qr-polarity.test.js
+      - test/fixtures/payments/r5-2-*.png
+      - .github/workflows/r5-2-pay-qr-polarity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r5-2-pay-qr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Deterministic + real decoder Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Apply pinned dependency patch
+        run: npx --no-install patch-package
+      - name: Run bounded R5.2 deterministic regression
+        run: node --test --test-concurrency=1 test/r5-2-pay-qr-polarity.test.js
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run real ZXing normal/inverted QR qualification
+        run: node scripts/check-r5-2-pay-qr-polarity.js
