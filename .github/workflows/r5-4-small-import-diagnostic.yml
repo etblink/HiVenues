@@ -1,0 +1,60 @@
+name: C2-G.1c R5.4 Small Import Diagnostic
+
+on:
+  push:
+    branches:
+      - codex/c2-g1c-r5-4-import-diagnostic
+    paths:
+      - scripts/check-r5-4-small-import-diagnostic.js
+      - test/fixtures/payments/r5-4-v4v-small-screenshot-inverted.png
+      - .github/workflows/r5-4-small-import-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r5-4-small-import-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Unmodified R5.3 + bounded small-raster normalization
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact diagnostic head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+
+      - name: Apply pinned dependency patch
+        run: npx --no-install patch-package
+
+      - name: Preserve R5.2 and R5.3 deterministic tests
+        run: node --test --test-concurrency=1 test/r5-2-pay-qr-polarity.test.js test/r5-3-pay-qr-import.test.js
+
+      - name: Install Chromium and WebKit
+        run: npx --no-install playwright install --with-deps chromium webkit
+
+      - name: Preserve proven R5.2 camera path
+        run: node scripts/check-r5-2-pay-qr-polarity.js
+
+      - name: Preserve accepted R5.3 large-image import behavior
+        run: node scripts/check-r5-3-pay-qr-import.js
+
+      - name: Diagnose exact R5.4 small screenshot
+        run: node scripts/check-r5-4-small-import-diagnostic.js
