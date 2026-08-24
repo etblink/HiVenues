@@ -57,12 +57,81 @@
     return inverted;
   }
 
+  function loadQrImportImage(imageUrl) {
+    const documentRef = global.document;
+    if (!documentRef?.createElement) {
+      return Promise.reject(new Error('The selected QR image cannot be loaded locally.'));
+    }
+
+    return new Promise((resolve, reject) => {
+      const image = documentRef.createElement('img');
+      let settled = false;
+
+      const cleanup = () => {
+        image.removeEventListener?.('load', loaded);
+        image.removeEventListener?.('error', failed);
+      };
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        callback(value);
+      };
+      const loaded = () => {
+        const width = Number(image.naturalWidth);
+        const height = Number(image.naturalHeight);
+        if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+          finish(reject, new Error('The selected QR image dimensions are invalid.'));
+          return;
+        }
+        finish(resolve, image);
+      };
+      const failed = () => finish(reject, new Error('The selected QR image could not be loaded locally.'));
+
+      image.addEventListener('load', loaded, { once: true });
+      image.addEventListener('error', failed, { once: true });
+      try {
+        image.src = imageUrl;
+      } catch (error) {
+        finish(reject, error);
+      }
+    });
+  }
+
+  async function createHalfScaleQrImportCanvas(imageUrl) {
+    const image = await loadQrImportImage(imageUrl);
+    const documentRef = image.ownerDocument || global.document;
+    if (!documentRef?.createElement) throw new Error('The QR import canvas cannot be created.');
+
+    const width = Math.max(1, Math.round(Number(image.naturalWidth) * 0.5));
+    const height = Math.max(1, Math.round(Number(image.naturalHeight) * 0.5));
+    const canvas = documentRef.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('The QR import canvas could not be created.');
+    context.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in context) context.imageSmoothingQuality = 'high';
+    context.drawImage(image, 0, 0, width, height);
+    return canvas;
+  }
+
   function createPolarityTolerantQrReader() {
     const BaseReader = global.ZXingBrowser?.BrowserQRCodeReader;
     if (typeof BaseReader !== 'function') {
       throw new Error('The local QR reader is unavailable. Paste the invoice URI instead.');
     }
     return new (class PolarityTolerantQRCodeReader extends BaseReader {
+      async decodeFromImageUrl(imageUrl) {
+        try {
+          return await super.decodeFromImageUrl(imageUrl);
+        } catch (error) {
+          if (!isExpectedQrDecodeMiss(error)) throw error;
+          return this.decodeFromCanvas(await createHalfScaleQrImportCanvas(imageUrl));
+        }
+      }
+
       decodeFromCanvas(canvas) {
         try {
           return super.decodeFromCanvas(canvas);
