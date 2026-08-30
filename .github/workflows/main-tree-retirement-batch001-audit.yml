@@ -1,0 +1,97 @@
+name: Main-tree retirement Batch-001 consumer audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/main-tree-retirement-batch001-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact canonical audit baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: d069e76b971f64f7bea2434163e769bc9b1e678c
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact baseline and candidate custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit='d069e76b971f64f7bea2434163e769bc9b1e678c'
+          expected_tree='609f8e1a6591742627990909fbc8fb2bf2c100bc'
+
+          actual_commit="$(git rev-parse HEAD)"
+          actual_tree="$(git rev-parse HEAD^{tree})"
+          [[ "$actual_commit" == "$expected_commit" ]]
+          [[ "$actual_tree" == "$expected_tree" ]]
+
+          candidates=(
+            'docs/C2_C_1_WALLET_PRODUCT_IDENTITY_SPATIAL_REDESIGN.md|2ea7578d2832e82601de2c53787375d404fb3f99'
+            'docs/C2_C_WALLET_SEMANTIC_REDESIGN.md|458149dbfcc2dfc4bb0c76ebdf6ee00c1a120953'
+            'docs/C2_D_1_BETA_IMAGE_PIPELINE.md|8116d6b6bda99d5c8b2d15a23478cb80a696ff08'
+            'docs/C2_E_MERCHANT_LOCAL_MODERATION.md|87a87ac5066d1a61aeea12cfa3faeb9a7ae4cc73'
+            'docs/C2_F_ONBOARDING_DURABILITY_RECOVERY.md|9a0f92a4888fd7d7d2817d65b513d46874f7cae8'
+            'docs/C2_G_1_PAYMENT_BACKUP_RESTORE.md|39a4fda4220cc0a0877b0d55df30184becf4ad53'
+            'docs/HIVE_BAR_M15_UI_UX_MODERNIZATION_SPECIFICATION_0_1_0.md|6a9ee7b6fb31542cafc499ff3e265ec7e2ba24f0'
+          )
+
+          printf 'AUDIT_BASE_COMMIT=%s\n' "$actual_commit"
+          printf 'AUDIT_BASE_TREE=%s\n' "$actual_tree"
+
+          for entry in "${candidates[@]}"; do
+            path="${entry%%|*}"
+            expected_blob="${entry##*|}"
+            actual_blob="$(git rev-parse "HEAD:$path")"
+            [[ "$actual_blob" == "$expected_blob" ]]
+            printf 'CANDIDATE path=%s blob=%s custody=PASS\n' "$path" "$actual_blob"
+          done
+
+      - name: Fail on any exact external path or filename consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          candidates=(
+            'docs/C2_C_1_WALLET_PRODUCT_IDENTITY_SPATIAL_REDESIGN.md'
+            'docs/C2_C_WALLET_SEMANTIC_REDESIGN.md'
+            'docs/C2_D_1_BETA_IMAGE_PIPELINE.md'
+            'docs/C2_E_MERCHANT_LOCAL_MODERATION.md'
+            'docs/C2_F_ONBOARDING_DURABILITY_RECOVERY.md'
+            'docs/C2_G_1_PAYMENT_BACKUP_RESTORE.md'
+            'docs/HIVE_BAR_M15_UI_UX_MODERNIZATION_SPECIFICATION_0_1_0.md'
+          )
+
+          failed=0
+          for path in "${candidates[@]}"; do
+            name="${path##*/}"
+            path_hits="$(git grep -n -F "$path" -- . ":(exclude)$path" || true)"
+            name_hits="$(git grep -n -F "$name" -- . ":(exclude)$path" || true)"
+
+            if [[ -n "$path_hits" || -n "$name_hits" ]]; then
+              printf 'EXTERNAL_CONSUMER_FOUND path=%s\n' "$path" >&2
+              [[ -n "$path_hits" ]] && printf '%s\n' "$path_hits" >&2
+              [[ -n "$name_hits" ]] && printf '%s\n' "$name_hits" >&2
+              failed=1
+            else
+              printf 'NO_EXACT_EXTERNAL_CONSUMER path=%s\n' "$path"
+            fi
+          done
+
+          if [[ "$failed" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Report generic documentation enumeration surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'GENERIC_DOC_ENUMERATION_SCAN_BEGIN'
+          git grep -n -E '(readdir|readdirSync|glob|walk|walkSync).*(docs|\.md)|(docs|\.md).*(readdir|readdirSync|glob|walk|walkSync)' -- scripts test .github 2>/dev/null || true
+          echo 'GENERIC_DOC_ENUMERATION_SCAN_END'
+          echo 'AUDIT_RESULT=PASS_NO_EXACT_EXTERNAL_CONSUMERS'
