@@ -50,7 +50,11 @@ function requireHostname(value, label) {
 
 function requirePosixAbsolutePath(value, label) {
   const filename = requireString(value, label);
-  if (!path.posix.isAbsolute(filename) || path.posix.normalize(filename) !== filename) {
+  if (
+    filename.includes('\\') ||
+    !path.posix.isAbsolute(filename) ||
+    path.posix.normalize(filename) !== filename
+  ) {
     throw new DeploymentProfileError(`${label} must be a normalized absolute POSIX path`);
   }
   return filename;
@@ -58,7 +62,13 @@ function requirePosixAbsolutePath(value, label) {
 
 function requireRoutePath(value, label) {
   const route = requireString(value, label);
-  if (!route.startsWith('/') || route.startsWith('//') || route.includes('?') || route.includes('#')) {
+  if (
+    !route.startsWith('/') ||
+    route.startsWith('//') ||
+    route.includes('\\') ||
+    route.includes('?') ||
+    route.includes('#')
+  ) {
     throw new DeploymentProfileError(`${label} must be an absolute application path without query or fragment`);
   }
   return route;
@@ -66,7 +76,7 @@ function requireRoutePath(value, label) {
 
 function requireFilename(value, label) {
   const filename = requireString(value, label);
-  if (filename !== path.posix.basename(filename) || filename === '.' || filename === '..') {
+  if (filename.includes('/') || filename.includes('\\') || filename === '.' || filename === '..') {
     throw new DeploymentProfileError(`${label} must be a filename without path separators`);
   }
   return filename;
@@ -83,6 +93,21 @@ function parseApplicationAddress(value) {
     throw new DeploymentProfileError('topology.applicationAddress port must be between 1 and 65535');
   }
   return Object.freeze({ address, bindHost: match[1], port });
+}
+
+function resolveTlsMode(topology) {
+  const generic = topology.tlsMode;
+  const cloudflareCompatibility = topology.cloudflareTlsMode;
+  if (
+    generic !== undefined &&
+    cloudflareCompatibility !== undefined &&
+    generic !== cloudflareCompatibility
+  ) {
+    throw new DeploymentProfileError(
+      'topology.tlsMode and topology.cloudflareTlsMode must agree when both are present',
+    );
+  }
+  return requireString(generic ?? cloudflareCompatibility, 'topology.tlsMode');
 }
 
 function deriveTopologyLabel({ instances, edgeProxy, reverseProxy }) {
@@ -152,7 +177,7 @@ function compileDeploymentProfile(rawManifest) {
       },
       visitorIpHeader: requireString(topology.visitorIpHeader, 'topology.visitorIpHeader'),
       originIngress: requireString(topology.originIngress, 'topology.originIngress'),
-      tlsMode: requireString(topology.cloudflareTlsMode, 'topology.cloudflareTlsMode'),
+      tlsMode: resolveTlsMode(topology),
     },
     release: {
       root: requirePosixAbsolutePath(release.root, 'release.root'),
