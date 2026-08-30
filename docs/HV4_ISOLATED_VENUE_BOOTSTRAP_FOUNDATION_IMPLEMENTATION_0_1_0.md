@@ -66,7 +66,7 @@ Do not put any of the following into a bootstrap document:
 - DNS or Cloudflare credentials;
 - private-key PEM material;
 - credentials embedded in URL username/password fields;
-- token-, credential-, authorization-, signature-, password-, key-, or secret-bearing URL query parameters;
+- token-, credential-, authorization-, signature-, password-, API-key-, private-key-, or SSH-key-bearing URL query parameters;
 - any other credential-bearing field.
 
 The bootstrap layer rejects secret-bearing field names, recognizable private-key material, URL userinfo credentials, and sensitive URL query-parameter names before it constructs review output. Rejection errors identify the field or location but do not echo the rejected value. These checks are defense in depth; bootstrap authors remain responsible for supplying only public, non-secret configuration data.
