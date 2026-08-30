@@ -6,7 +6,9 @@ Hive-Venues is a successor platform for building venue-native community and soci
 
 ## Current successor state
 
-HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones. HV-1 established an explicit validated venue context; HV-2 establishes an explicit validated deployment profile compiled from the reviewed Fourth Street/Privex manifest while preserving the exact reference deployment behavior and making no live production change.
+HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones. HV-1 established an explicit validated venue context; HV-2 established an explicit validated deployment profile compiled from the reviewed Fourth Street/Privex manifest while preserving the exact reference deployment behavior and making no live production change.
+
+The accepted Post-HV-2 Sequencing Decision selects **venue packaging** as the next architecture lane and proposes HV-3, Reference Venue Package Extraction. The decision authorizes only the prospective HV-3 preregistration operation; HV-3 implementation, a second real venue, live production mutation, and shared-runtime tenancy remain unauthorized.
 
 The current architecture decision is documented in `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. The default near-term model is:
 
@@ -24,7 +26,7 @@ ONE_ISOLATED_VENUE_RUNTIME
 
 Hive-Venues does **not** currently claim request-time shared multi-tenancy. The inherited durable payment, moderation, and onboarding stores are intentionally treated as venue-local until a future operation explicitly proves safe tenant scoping. Multiple venues can instead run isolated instances from the same platform lineage.
 
-The next bounded governance operation is **Post-HV-2 Sequencing Decision**. No substantive successor implementation lane is authorized merely by completing HV-2; the accepted architecture requires a fresh evidence-driven sequencing decision first.
+The next bounded operation is **HV-3 Reference Venue Package Extraction Preregistration**. No substantive HV-3 implementation is authorized until that prospective contract is separately frozen and qualified.
 
 See `docs/ROADMAP.md` for current sequencing and `docs/README.md` for the documentation index.
 
@@ -130,7 +132,7 @@ HV-1 retains the inherited environment-variable contract for compatibility, but 
 
 HV-2 retains the reviewed `ops/privex/manifest.json` as the Fourth Street reference-deployment source and compiles its deployment-owned facts into a validated, deeply immutable deployment profile. Reference release/readiness/storage consumers now resolve those facts through the profile where safe. The exact Fourth Street compatibility namespace, topology, app tag, storage paths, and release-policy behavior remain unchanged.
 
-These seams support isolated venue runtimes; they do not establish shared-runtime multi-tenancy. The next bounded operation is the **Post-HV-2 Sequencing Decision**, not an automatically selected implementation lane.
+The accepted post-HV-2 sequencing decision now routes the project to **HV-3 Reference Venue Package Extraction Preregistration**. That prospective operation must define how venue-owned content, authentic media, brand expression, and policy defaults become an explicit package while preserving the existing venue-context and deployment-profile boundaries. It does not authorize implementation, a real second venue, or shared-runtime tenancy.
 
 ## Documentation policy
 
@@ -140,6 +142,7 @@ Living successor documents:
 - `docs/ROADMAP.md` — current and next project sequencing;
 - `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted successor architecture;
 - `docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-2 implementation and qualification record;
+- `docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md` — accepted post-HV-2 lane selection and HV-3 preregistration routing;
 - `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded;
 - `docs/README.md` — living-vs-historical documentation index.
 
