@@ -6,7 +6,7 @@ Hive-Venues is a successor platform for building venue-native community and soci
 
 ## Current successor state
 
-HV-1, the Venue Context Foundation, is accepted and canonical. The application can now be constructed with an explicit validated venue context while the default/reference construction preserves the established Fourth Street values and behavior.
+HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones. HV-1 established an explicit validated venue context; HV-2 establishes an explicit validated deployment profile compiled from the reviewed Fourth Street/Privex manifest while preserving the exact reference deployment behavior and making no live production change.
 
 The current architecture decision is documented in `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. The default near-term model is:
 
@@ -23,6 +23,8 @@ ONE_ISOLATED_VENUE_RUNTIME
 ```
 
 Hive-Venues does **not** currently claim request-time shared multi-tenancy. The inherited durable payment, moderation, and onboarding stores are intentionally treated as venue-local until a future operation explicitly proves safe tenant scoping. Multiple venues can instead run isolated instances from the same platform lineage.
+
+The next bounded governance operation is **Post-HV-2 Sequencing Decision**. No substantive successor implementation lane is authorized merely by completing HV-2; the accepted architecture requires a fresh evidence-driven sequencing decision first.
 
 See `docs/ROADMAP.md` for current sequencing and `docs/README.md` for the documentation index.
 
@@ -124,9 +126,11 @@ The main CI verifies the pinned runtime and deterministic gate on both Ubuntu an
 
 ## Configuration model
 
-HV-1 retains the inherited environment-variable contract for compatibility, but application construction now compiles venue-scoped values through an explicit validated venue context. This is an intermediate compatibility boundary, not the final deployment architecture.
+HV-1 retains the inherited environment-variable contract for compatibility, but application construction compiles venue-scoped values through an explicit validated venue context.
 
-The next bounded implementation operation is **HV-2: Reference Deployment Profile Extraction**. It will move the Fourth Street/Privex host, topology, service namespace, release root, storage paths, app tag, and release-policy assumptions behind a validated deployment profile while preserving their exact current reference values and making no live production change.
+HV-2 retains the reviewed `ops/privex/manifest.json` as the Fourth Street reference-deployment source and compiles its deployment-owned facts into a validated, deeply immutable deployment profile. Reference release/readiness/storage consumers now resolve those facts through the profile where safe. The exact Fourth Street compatibility namespace, topology, app tag, storage paths, and release-policy behavior remain unchanged.
+
+These seams support isolated venue runtimes; they do not establish shared-runtime multi-tenancy. The next bounded operation is the **Post-HV-2 Sequencing Decision**, not an automatically selected implementation lane.
 
 ## Documentation policy
 
@@ -135,6 +139,7 @@ Living successor documents:
 - `README.md` — product/developer entry point;
 - `docs/ROADMAP.md` — current and next project sequencing;
 - `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted successor architecture;
+- `docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-2 implementation and qualification record;
 - `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded;
 - `docs/README.md` — living-vs-historical documentation index.
 
