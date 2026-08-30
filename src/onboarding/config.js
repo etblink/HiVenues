@@ -1,11 +1,12 @@
 'use strict';
 
 const path = require('node:path');
+const { REFERENCE_DEPLOYMENT_PROFILE } = require('../deployment/reference/fourth-street-privex');
 const { ValidationError } = require('../lib/errors');
 const { requireHiveAccount } = require('../http/validation');
 
 const DEFAULT_CASH_FEE_USD = '5.00';
-const DEFAULT_ONBOARDING_DB_PATH = '/var/lib/hive-bar/onboarding/onboarding.sqlite3';
+const DEFAULT_ONBOARDING_DB_PATH = REFERENCE_DEPLOYMENT_PROFILE.storage.onboardingDatabase;
 const MIN_ONBOARDING_REMAINING_HP = '10.000';
 const MIN_ONBOARDING_REMAINING_HP_UNITS = 10000n;
 const DEFAULT_LOW_ACT_THRESHOLD = 3;
