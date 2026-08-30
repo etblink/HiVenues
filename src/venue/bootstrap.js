@@ -4,13 +4,12 @@ const { z } = require('zod');
 const { compileDeploymentProfile } = require('../deployment/profile');
 const { createVenueContext } = require('./context');
 const { createVenuePackage } = require('./package');
+const {
+  assertNoSecretMaterial,
+  serializeCanonicalJson,
+} = require('./safe-document');
 
 const BOOTSTRAP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SECRET_FIELD_PATTERN = /(?:secret|password|privatekey|apikey|token|credential|authorization|sshkey|signature)$/i;
-const PRIVATE_MATERIAL_PATTERNS = [
-  /-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----/i,
-  /\b5[HJK][1-9A-HJ-NP-Za-km-z]{48,50}\b/,
-];
 const BINDING_ID = z.string().trim().min(1).max(120);
 
 class VenueBootstrapError extends Error {
@@ -43,61 +42,15 @@ const bootstrapEnvelopeSchema = z
   })
   .strict();
 
-function normalizedKey(value) {
-  return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
-}
-
-function assertUrlHasNoCredentialMaterial(value, location) {
-  if (!/^https?:\/\//i.test(value)) return;
-
-  let url;
-  try {
-    url = new URL(value);
-  } catch {
-    return;
-  }
-
-  if (url.username || url.password) {
-    throw new VenueBootstrapError(`${location} contains URL userinfo credentials`);
-  }
-
-  for (const key of url.searchParams.keys()) {
-    if (SECRET_FIELD_PATTERN.test(normalizedKey(key))) {
-      throw new VenueBootstrapError(`${location} contains a secret-bearing URL query parameter`);
-    }
-  }
-}
-
-function assertNoSecretMaterial(value, location = 'bootstrap', seen = new WeakSet()) {
-  if (typeof value === 'string') {
-    if (PRIVATE_MATERIAL_PATTERNS.some((pattern) => pattern.test(value))) {
-      throw new VenueBootstrapError(`${location} contains private key material`);
-    }
-    assertUrlHasNoCredentialMaterial(value, location);
-    return;
-  }
-
-  if (!value || typeof value !== 'object') return;
-  if (seen.has(value)) {
-    throw new VenueBootstrapError(`${location} contains a circular reference`);
-  }
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    value.forEach((child, index) => assertNoSecretMaterial(child, `${location}[${index}]`, seen));
-    return;
-  }
-
-  for (const [key, child] of Object.entries(value)) {
-    if (SECRET_FIELD_PATTERN.test(normalizedKey(key))) {
-      throw new VenueBootstrapError(`${location}.${key} is a secret-bearing field and is not allowed`);
-    }
-    assertNoSecretMaterial(child, `${location}.${key}`, seen);
-  }
+function bootstrapErrorFactory(message) {
+  return new VenueBootstrapError(message);
 }
 
 function parseEnvelope(input) {
-  assertNoSecretMaterial(input);
+  assertNoSecretMaterial(input, {
+    location: 'bootstrap',
+    errorFactory: bootstrapErrorFactory,
+  });
   const result = bootstrapEnvelopeSchema.safeParse(input);
   if (!result.success) {
     const details = result.error.issues
@@ -145,20 +98,12 @@ function composeVenueBootstrap(input) {
   });
 }
 
-function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (!value || typeof value !== 'object') return value;
-  return Object.keys(value)
-    .sort()
-    .reduce((result, key) => {
-      result[key] = canonicalize(value[key]);
-      return result;
-    }, {});
-}
-
 function serializeVenueBootstrapReview(composition) {
-  assertNoSecretMaterial(composition, 'composition');
-  return `${JSON.stringify(canonicalize(composition), null, 2)}\n`;
+  assertNoSecretMaterial(composition, {
+    location: 'composition',
+    errorFactory: bootstrapErrorFactory,
+  });
+  return serializeCanonicalJson(composition);
 }
 
 module.exports = {
