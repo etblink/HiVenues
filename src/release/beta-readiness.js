@@ -87,13 +87,13 @@ function assertPrivexBetaRelease(config, source = {}) {
     issues.push('APP_ORIGIN must exactly match https://HIVE_BAR_HOST');
   }
   if (config.server.bindHost !== deployment.topology.application.bindHost) {
-    issues.push(`BIND_HOST must be ${deployment.topology.application.bindHost} behind the local Caddy proxy`);
+    issues.push(`BIND_HOST must be ${deployment.topology.application.bindHost} behind the local ${deployment.topology.reverseProxy} proxy`);
   }
   if (config.server.port !== deployment.topology.application.port) {
-    issues.push(`PORT must be ${deployment.topology.application.port} to match the reviewed Caddy and health-check assets`);
+    issues.push(`PORT must be ${deployment.topology.application.port} to match the reviewed ${deployment.topology.reverseProxy} and health-check assets`);
   }
   if (config.server.trustProxy !== deployment.topology.application.trustProxy) {
-    issues.push(`TRUST_PROXY must be exactly ${deployment.topology.application.trustProxy} so only the local Caddy peer is trusted`);
+    issues.push(`TRUST_PROXY must be exactly ${deployment.topology.application.trustProxy} so only the local ${deployment.topology.reverseProxy} peer is trusted`);
   }
   if (config.hive.rpcNodes.length < 3) issues.push('at least three distinct Hive RPC nodes are required');
   if (
