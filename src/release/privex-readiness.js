@@ -1,9 +1,10 @@
 'use strict';
 
+const { REFERENCE_DEPLOYMENT_PROFILE } = require('../deployment/reference/fourth-street-privex');
 const { assertReadOnlyRelease } = require('./read-only-readiness');
 const { PAYMENT_DB_PATH, isSafePaymentDatabasePath } = require('./payment-storage');
 
-const RELEASE_PUBLIC_HOST = 'fourthstreetbar.com';
+const RELEASE_PUBLIC_HOST = REFERENCE_DEPLOYMENT_PROFILE.release.publicHost;
 
 const PRIVEX_EXPLICIT_SETTINGS = Object.freeze([
   'HIVE_BAR_HOST',
@@ -24,6 +25,7 @@ function normalizePublicHost(value) {
 }
 
 function assertPrivexReadOnlyRelease(config, source = {}) {
+  const deployment = REFERENCE_DEPLOYMENT_PROFILE;
   const base = assertReadOnlyRelease(config, source);
   const issues = [];
   const missing = PRIVEX_EXPLICIT_SETTINGS.filter((name) => !hasOwn(source, name));
@@ -37,20 +39,20 @@ function assertPrivexReadOnlyRelease(config, source = {}) {
   if (!publicHost || suppliedHost !== publicHost) {
     issues.push('HIVE_BAR_HOST must be a canonical DNS hostname without a scheme, port, or path');
   }
-  if (publicHost && publicHost !== RELEASE_PUBLIC_HOST) {
-    issues.push(`HIVE_BAR_HOST must be exactly ${RELEASE_PUBLIC_HOST}`);
+  if (publicHost && publicHost !== deployment.release.publicHost) {
+    issues.push(`HIVE_BAR_HOST must be exactly ${deployment.release.publicHost}`);
   }
   if (config.auth.appOrigin !== `https://${publicHost}`) {
     issues.push('APP_ORIGIN must exactly match https://HIVE_BAR_HOST');
   }
-  if (config.server.bindHost !== '127.0.0.1') {
-    issues.push('BIND_HOST must be 127.0.0.1 behind the local Caddy proxy');
+  if (config.server.bindHost !== deployment.topology.application.bindHost) {
+    issues.push(`BIND_HOST must be ${deployment.topology.application.bindHost} behind the local ${deployment.topology.reverseProxy} proxy`);
   }
-  if (config.server.port !== 3000) {
-    issues.push('PORT must be 3000 to match the reviewed Caddy and health-check assets');
+  if (config.server.port !== deployment.topology.application.port) {
+    issues.push(`PORT must be ${deployment.topology.application.port} to match the reviewed ${deployment.topology.reverseProxy} and health-check assets`);
   }
-  if (config.server.trustProxy !== 'loopback') {
-    issues.push('TRUST_PROXY must be exactly loopback so only the local Caddy peer is trusted');
+  if (config.server.trustProxy !== deployment.topology.application.trustProxy) {
+    issues.push(`TRUST_PROXY must be exactly ${deployment.topology.application.trustProxy} so only the local ${deployment.topology.reverseProxy} peer is trusted`);
   }
   if (
     config.payments.receiptDbPath !== ':memory:' &&
@@ -90,15 +92,15 @@ function assertPrivexReadOnlyRelease(config, source = {}) {
     ...base,
     profile: durableReceiptObservation
       ? 'privex-public-read-only-durable-receipts'
-      : 'privex-public-read-only',
-    provider: 'Privex',
-    package: 'V1-US-NVME',
-    region: 'US West',
-    operatingSystem: 'Debian 13',
-    topology: 'single-instance-cloudflare-caddy',
-    edgeProxy: 'Cloudflare',
-    tlsMode: 'full-strict',
-    visitorIpHeader: 'CF-Connecting-IP',
+      : deployment.runtimeProfiles.deploymentBaseline,
+    provider: deployment.provider.name,
+    package: deployment.provider.package,
+    region: deployment.provider.region,
+    operatingSystem: deployment.provider.operatingSystem,
+    topology: deployment.topology.label,
+    edgeProxy: deployment.topology.edgeProxy,
+    tlsMode: deployment.topology.tlsMode,
+    visitorIpHeader: deployment.topology.visitorIpHeader,
     publicHost,
     port: config.server.port,
   };

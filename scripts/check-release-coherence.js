@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { REFERENCE_DEPLOYMENT_PROFILE } = require('../src/deployment/reference/fourth-street-privex');
 const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../src/release/release-version');
 const { V1_ACTIONS } = require('../src/v1/actions');
 
@@ -15,10 +16,63 @@ function requireMatch(source, pattern, message) {
   if (!pattern.test(source)) throw new Error(message);
 }
 
+function assertReferenceDeploymentProfile() {
+  const deployment = REFERENCE_DEPLOYMENT_PROFILE;
+  const expected = [
+    [deployment.id, 'fourth-street-privex', 'deployment id'],
+    [deployment.provider.name, 'Privex', 'provider'],
+    [deployment.provider.package, 'V1-US-NVME', 'package'],
+    [deployment.provider.region, 'US West', 'region'],
+    [deployment.provider.operatingSystem, 'Debian 13', 'operating system'],
+    [deployment.runtime.nodeVersion, '24.19.0', 'Node runtime'],
+    [deployment.runtime.npmVersion, '11.17.0', 'npm runtime'],
+    [deployment.runtime.platform, 'linux-x64', 'runtime platform'],
+    [deployment.topology.instances, 1, 'instance count'],
+    [deployment.topology.edgeProxy, 'Cloudflare', 'edge proxy'],
+    [deployment.topology.edgeDnsMode, 'proxied', 'edge DNS mode'],
+    [deployment.topology.reverseProxy, 'Caddy', 'reverse proxy'],
+    [deployment.topology.application.address, '127.0.0.1:3000', 'application address'],
+    [deployment.topology.application.bindHost, '127.0.0.1', 'application bind host'],
+    [deployment.topology.application.port, 3000, 'application port'],
+    [deployment.topology.application.trustProxy, 'loopback', 'trust proxy'],
+    [deployment.topology.visitorIpHeader, 'CF-Connecting-IP', 'visitor IP header'],
+    [deployment.topology.originIngress, 'cloudflare-only', 'origin ingress'],
+    [deployment.topology.tlsMode, 'full-strict', 'TLS mode'],
+    [deployment.release.publicHost, 'fourthstreetbar.com', 'public host'],
+    [deployment.release.redirectHost, 'www.fourthstreetbar.com', 'redirect host'],
+    [deployment.release.root, '/opt/hive-bar', 'release root'],
+    [deployment.release.service, 'hive-bar.service', 'service name'],
+    [deployment.release.healthPath, '/healthz', 'health path'],
+    [deployment.release.readinessPath, '/readyz', 'readiness path'],
+    [deployment.release.automaticDeploys, false, 'automatic deploy policy'],
+    [deployment.release.exactCommitRequired, true, 'exact commit policy'],
+    [deployment.release.lastGoodPath, '/opt/hive-bar/last-good', 'last-good path'],
+    [deployment.release.lastGoodPolicy, 'previous-validated-current-before-switch', 'last-good policy'],
+    [deployment.storage.paymentDatabase, '/var/lib/hive-bar/payments/receipts.sqlite3', 'payment database'],
+    [deployment.storage.onboardingDatabase, '/var/lib/hive-bar/onboarding/onboarding.sqlite3', 'onboarding database'],
+    [deployment.provenance.commitFilename, '.hive-bar-commit', 'commit provenance filename'],
+    [deployment.provenance.treeFilename, '.hive-bar-tree', 'tree provenance filename'],
+    [deployment.runtimeProfiles.deploymentBaseline, 'privex-public-read-only', 'deployment baseline profile'],
+    [deployment.runtimeProfiles.acceptedBeta, 'privex-beta-self-signing', 'accepted beta profile'],
+    [deployment.runtimeProfiles.wiredV1, 'privex-v1-self-signing', 'wired V1 profile'],
+  ];
+  for (const [actual, frozen, label] of expected) {
+    if (actual !== frozen) throw new Error(`reference deployment ${label} drifted`);
+  }
+  if (deployment.release.hiveAppTag !== `fourth-street-bar-app/${PACKAGE_VERSION}`) {
+    throw new Error('reference deployment app tag must remain derived from the package version');
+  }
+  if (!Object.isFrozen(deployment) || !Object.isFrozen(deployment.release) || !Object.isFrozen(deployment.storage)) {
+    throw new Error('reference deployment profile must be deeply immutable');
+  }
+  return deployment;
+}
+
 function assertReleaseCoherence() {
   const pkg = JSON.parse(read('package.json'));
   const lock = JSON.parse(read('package-lock.json'));
   const manifest = JSON.parse(read('ops/privex/manifest.json'));
+  const deployment = assertReferenceDeploymentProfile();
   const envExample = read('.env.example');
   const privexEnv = read('ops/privex/hive-bar.env.example');
   const workflow = read('.github/workflows/ci.yml');
@@ -33,8 +87,18 @@ function assertReleaseCoherence() {
   if (lock.packages?.['']?.version !== PACKAGE_VERSION) {
     throw new Error('package-lock root version must match package.json');
   }
-  if (manifest.release?.hiveAppTag !== RELEASE_APP_TAG) {
-    throw new Error('Privex manifest app tag must match the derived release app tag');
+  if (manifest.release?.hiveAppTag !== RELEASE_APP_TAG || deployment.release.hiveAppTag !== RELEASE_APP_TAG) {
+    throw new Error('Privex manifest, deployment profile, and release app tag must agree');
+  }
+  if (manifest.storage?.paymentDatabase !== deployment.storage.paymentDatabase) {
+    throw new Error('Privex manifest payment database must match the deployment profile');
+  }
+  if (manifest.storage?.onboardingDatabase !== deployment.storage.onboardingDatabase) {
+    throw new Error('Privex manifest onboarding database must match the deployment profile');
+  }
+  if (manifest.provenance?.commitFilename !== deployment.provenance.commitFilename ||
+      manifest.provenance?.treeFilename !== deployment.provenance.treeFilename) {
+    throw new Error('Privex manifest provenance filenames must match the deployment profile');
   }
   for (const [name, source] of [['.env.example', envExample], ['ops/privex/hive-bar.env.example', privexEnv]]) {
     requireMatch(
@@ -47,8 +111,6 @@ function assertReleaseCoherence() {
   requireMatch(workflow, /uses:\s+actions\/checkout@[0-9a-f]{40}(?:\s+#.*)?$/m, 'checkout must be pinned by full commit SHA');
   requireMatch(workflow, /uses:\s+actions\/setup-node@[0-9a-f]{40}(?:\s+#.*)?$/m, 'setup-node must be pinned by full commit SHA');
 
-  // Living successor documents must describe the moving source and current routing,
-  // without pretending historical Fourth Street production evidence is current source identity.
   requireMatch(readme, /^# Hive-Venues$/m, 'README must identify the successor product as Hive-Venues');
   requireMatch(readme, /Node\.js\s+24\.19\.0/, 'README must state the pinned Node runtime');
   requireMatch(readme, /npm\s+11\.17\.0/, 'README must state the pinned npm runtime');
@@ -128,7 +190,7 @@ function assertReleaseCoherence() {
   requireMatch(
     hv2Preregistration,
     /^STATUS = FROZEN_PREREGISTRATION__IMPLEMENTATION_NOT_STARTED$/m,
-    'HV-2 preregistration must remain frozen before implementation acceptance',
+    'HV-2 preregistration must remain the frozen prospective contract',
   );
   requireMatch(
     hv2Preregistration,

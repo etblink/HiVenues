@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { REFERENCE_DEPLOYMENT_PROFILE } = require('../deployment/reference/fourth-street-privex');
 const {
   PAYMENT_SCHEMA_VERSION,
   ReceiptStore,
@@ -9,7 +10,7 @@ const {
   inspectReceiptStore,
 } = require('../payments/receipt-store');
 
-const PAYMENT_DB_PATH = '/var/lib/hive-bar/payments/receipts.sqlite3';
+const PAYMENT_DB_PATH = REFERENCE_DEPLOYMENT_PROFILE.storage.paymentDatabase;
 
 function isSafePaymentDatabasePath(filename, { requireExisting = false } = {}) {
   if (filename !== PAYMENT_DB_PATH || path.basename(filename) !== 'receipts.sqlite3') return false;
