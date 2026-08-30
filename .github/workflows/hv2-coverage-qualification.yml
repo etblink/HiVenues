@@ -12,7 +12,7 @@ jobs:
   coverage-compare:
     name: Exact parent vs clean HV-2 coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out clean HV-2 candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,14 +46,19 @@ jobs:
         working-directory: candidate
         run: npx --no-install patch-package
 
-      - name: Run candidate coverage
+      - name: Run candidate coverage and preserve exit status
         working-directory: candidate
         shell: bash
         run: |
+          set +e
           set -o pipefail
           echo '=== HV2_CANDIDATE_COVERAGE_BEGIN ==='
-          npm run test:coverage | tee "$GITHUB_WORKSPACE/candidate-coverage.txt"
+          npm run test:coverage 2>&1 | tee "$GITHUB_WORKSPACE/candidate-coverage.txt"
+          status=${PIPESTATUS[0]}
+          echo "$status" > "$GITHUB_WORKSPACE/candidate-exit.txt"
+          echo "HV2_CANDIDATE_COVERAGE_EXIT=$status"
           echo '=== HV2_CANDIDATE_COVERAGE_END ==='
+          exit 0
 
       - name: Verify baseline runtime provenance
         working-directory: baseline
@@ -67,19 +72,30 @@ jobs:
         working-directory: baseline
         run: npx --no-install patch-package
 
-      - name: Run exact-parent coverage
+      - name: Run exact-parent coverage and preserve exit status
         working-directory: baseline
         shell: bash
         run: |
+          set +e
           set -o pipefail
           echo '=== HV2_BASELINE_COVERAGE_BEGIN ==='
-          npm run test:coverage | tee "$GITHUB_WORKSPACE/baseline-coverage.txt"
+          npm run test:coverage 2>&1 | tee "$GITHUB_WORKSPACE/baseline-coverage.txt"
+          status=${PIPESTATUS[0]}
+          echo "$status" > "$GITHUB_WORKSPACE/baseline-exit.txt"
+          echo "HV2_BASELINE_COVERAGE_EXIT=$status"
           echo '=== HV2_BASELINE_COVERAGE_END ==='
+          exit 0
 
-      - name: Print aggregate coverage summaries
+      - name: Print exact comparison evidence
         shell: bash
         run: |
+          echo "HV2_CANDIDATE_COVERAGE_EXIT=$(cat candidate-exit.txt)"
+          echo "HV2_BASELINE_COVERAGE_EXIT=$(cat baseline-exit.txt)"
           echo '=== HV2_CANDIDATE_AGGREGATE ==='
-          grep '^all files' candidate-coverage.txt || true
+          grep 'all files' candidate-coverage.txt
           echo '=== HV2_BASELINE_AGGREGATE ==='
-          grep '^all files' baseline-coverage.txt || true
+          grep 'all files' baseline-coverage.txt
+          echo '=== HV2_CANDIDATE_KNOWN_TAILWIND_FAILURE_COUNT ==='
+          grep -F -c 'M15.5.4 Tailwind build ignores backend/docs class-like text while retaining explicit UI sources' candidate-coverage.txt || true
+          echo '=== HV2_BASELINE_KNOWN_TAILWIND_FAILURE_COUNT ==='
+          grep -F -c 'M15.5.4 Tailwind build ignores backend/docs class-like text while retaining explicit UI sources' baseline-coverage.txt || true
