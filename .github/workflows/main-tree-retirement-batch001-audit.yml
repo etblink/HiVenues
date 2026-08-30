@@ -38,7 +38,6 @@ jobs:
             'docs/C2_E_MERCHANT_LOCAL_MODERATION.md|87a87ac5066d1a61aeea12cfa3faeb9a7ae4cc73'
             'docs/C2_F_ONBOARDING_DURABILITY_RECOVERY.md|9a0f92a4888fd7d7d2817d65b513d46874f7cae8'
             'docs/C2_G_1_PAYMENT_BACKUP_RESTORE.md|39a4fda4220cc0a0877b0d55df30184becf4ad53'
-            'docs/HIVE_BAR_M15_UI_UX_MODERNIZATION_SPECIFICATION_0_1_0.md|6a9ee7b6fb31542cafc499ff3e265ec7e2ba24f0'
           )
 
           printf 'AUDIT_BASE_COMMIT=%s\n' "$actual_commit"
@@ -64,7 +63,6 @@ jobs:
             'docs/C2_E_MERCHANT_LOCAL_MODERATION.md'
             'docs/C2_F_ONBOARDING_DURABILITY_RECOVERY.md'
             'docs/C2_G_1_PAYMENT_BACKUP_RESTORE.md'
-            'docs/HIVE_BAR_M15_UI_UX_MODERNIZATION_SPECIFICATION_0_1_0.md'
           )
 
           failed=0
