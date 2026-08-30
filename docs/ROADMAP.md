@@ -11,16 +11,23 @@ REFERENCE_VENUE = Fourth Street Bar, Reno
 SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
 HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
+POST_HV2_SEQUENCING_DECISION = ACCEPTED
+SELECTED_NEXT_LANE = VENUE_PACKAGING
+PROPOSED_MILESTONE = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
-NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION
+NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
+HV3_IMPLEMENTATION_STARTED = NO
+SECOND_REAL_VENUE_AUTHORIZED = NO
 ```
 
 HV-1 is canonical at commit `ca553af0215d5d4165791a4af695b9cd70ff138c`, tree `15ff602871723a15557376cb59dabb151a658b47`.
 
 The accepted clean HV-2 implementation is commit `1b7549b31bd8692497061eaacfdcbc39a91b8a20`, tree `64bc51e164b7fdc4218d8928897627dfc7602028`, a direct child of the exact pre-HV-2 canonical parent `0bfa6753f08c87242ffbf9c9cc7a059c7e71a497`. Its acceptance and qualification evidence is recorded in `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
+
+The accepted post-HV-2 sequencing decision is commit `da9a150c451603c6a42ac71396a21e931f7e97ab`, tree `c7e8c78988ec2dd734edcc50f838bc55be388f65`. It selects venue packaging and authorizes only the HV-3 preregistration operation. Its exact reasoning and non-effects are recorded in `POST_HV2_SEQUENCING_DECISION_0_1_0.md`.
 
 The successor architecture is frozen in `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. It adopts a hybrid preservation/reconstruction strategy: retain proven protocol/security/payment/operational machinery, reconstruct platform and deployment boundaries where needed, and preserve or improve strong venue-specific product work.
 
@@ -128,62 +135,86 @@ The detailed acceptance record is `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_A
 
 HV-2 establishes a deployment seam. It does not establish shared-runtime multi-tenancy or authorize any production deployment.
 
-## Post-HV-2 sequencing decision — NEXT
+## Post-HV-2 Sequencing Decision — COMPLETE
 
-The accepted architecture requires a fresh sequencing decision after HV-2. Completing HV-2 does not silently authorize the next substantive implementation lane.
+The required fresh evidence-driven sequencing decision has been performed and accepted. It did not treat prior listing order, momentum, or architectural neatness as authorization.
 
-The next operation is therefore:
+Accepted result:
 
 ```text
-NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION
+SELECTED_NEXT_LANE = VENUE_PACKAGING
+PROPOSED_MILESTONE = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION
+NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-That decision must re-evaluate the current evidence and choose among candidate lanes only if a lane is actually justified. Momentum, prior listing order, or architectural neatness is not sufficient authorization.
+Why venue packaging was selected:
 
-## Post-HV-2 candidate lanes — NOT YET SEQUENCED
+- the accepted architecture explicitly names `VENUE_PACKAGE` as a first-class layer;
+- HV-1 already makes business/Hive identity an explicit venue context;
+- HV-2 already makes installation/deployment identity an explicit deployment profile;
+- strong Fourth Street venue expression—editorial copy, authentic media, local framing, shell identity, and venue-facing policy language—remains comparatively distributed through presentation/application surfaces;
+- an offline synthetic alternate package can test this boundary without admitting a real second venue or sharing runtime state.
 
-Candidate work includes, without priority order:
+The accepted decision is `POST_HV2_SEQUENCING_DECISION_0_1_0.md`.
 
-### Successor identity and developer experience
+## HV-3 — Reference Venue Package Extraction — PREREGISTRATION NEXT
 
-- reconcile package metadata and runtime logging from Hive-Bar lineage to Hive-Venues where doing so does not alter the Fourth Street protocol/deployment identity;
-- create a clean new-venue bootstrap/development experience;
-- distinguish platform names, venue names, deployment names, and protocol application tags explicitly.
+No HV-3 implementation has started.
 
-### Venue packaging
+The next bounded operation is only:
 
-- move venue-local editorial content, photography/assets, branding, and policy defaults behind a coherent venue-package boundary;
-- preserve the strong Fourth Street homepage and other evidence-supported venue work as the reference package;
-- prevent genericization from producing low-character template sites.
+```text
+HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+```
 
-### Shared product quality
+The prospective contract must be frozen before implementation. It must define, at minimum:
 
-- improve shared navigation/shell identity so venue identity does not compete with implementation lineage;
-- improve desktop profile/social information density where human review supports it;
-- preserve strong accessibility, responsive behavior, operation review, payment safety communication, and failure-state semantics;
-- use human rendered-evidence review as well as automated visual gates for meaningful presentation work.
+- the exact canonical source base;
+- an explicit ownership taxonomy separating venue context, venue package, deployment profile, and reusable platform/security mechanisms;
+- the Fourth Street reference package boundary for authentic content, media, brand expression, and venue-owned policy defaults;
+- the boundary against deployment-owned HV-2 facts;
+- the boundary against protocol/security and transaction/payment invariants;
+- an offline synthetic alternate-venue fixture proving meaningful distinctness without a source fork;
+- an anti-genericization criterion preserving or improving Fourth Street's accepted character;
+- human rendered-evidence review for meaningful presentation changes;
+- exact non-effects forbidding live production mutation, a second real venue, shared-runtime tenant selection, durable-schema migrations, protocol/payment semantic changes, package/runtime convenience upgrades, application-tag changes, and production namespace renaming.
 
-### New venue readiness
+The preregistration itself does not authorize implementation.
 
-- construct a complete synthetic/offline second venue package and isolated deployment profile;
-- only then select a real second-venue pilot, with explicit custody/identity/configuration evidence;
-- prove that a second venue requires configuration/content/policy work rather than a source fork.
+## Post-HV-2 candidate-lane disposition
 
-### Fleet operations
+The sequencing decision considered the prior candidate lanes and records the following current dispositions.
 
-- investigate safe repeatable provisioning, release, health, rollback, and upgrade management for multiple isolated venue instances;
-- keep secrets, durable stores, domains, and failure domains isolated per venue by default.
+### Successor identity and developer experience — DEFERRED
+
+Package/repository/runtime naming and new-venue bootstrap remain useful work, but broad identity cleanup should follow clearer venue-package ownership so platform, venue, deployment, and protocol identities are not conflated. Production Hive-Bar-era namespace compatibility remains provenance-bearing.
+
+### Venue packaging — SELECTED
+
+The next prospective milestone is HV-3 Reference Venue Package Extraction, beginning with preregistration only.
+
+### Shared product quality — PERSISTENT QUALITY TRACK
+
+Shared navigation/shell identity, desktop profile/social density, accessibility, responsive behavior, operation review, payment safety communication, and failure-state semantics remain valid quality concerns. They are not independently selected as the next architecture milestone and may not be used to smuggle unrelated redesign into HV-3.
+
+### New venue readiness — REAL PILOT DEFERRED
+
+HV-3 may require an offline synthetic alternate venue package as a proof fixture. A real second-venue pilot remains unauthorized until the package and isolated deployment contracts are proven and a later sequencing decision justifies real-world custody/configuration work.
+
+### Fleet operations — DEFERRED
+
+Repeatable provisioning, release, health, rollback, and upgrade management for multiple isolated venue instances remains valuable downstream work. It is more meaningful after venue-package and deployment-profile contracts are stable.
 
 ### Shared-runtime tenancy research — OPTIONAL / DEFERRED
 
-Only if concrete product/operational value justifies it:
+Only if concrete product/operational value later justifies it:
 
 - design explicit venue ownership for payment receipts, moderation state, onboarding requests, sessions/preflights, idempotency/replay domains, secrets, and observability;
 - preregister migrations and isolation tests;
 - prove cross-venue data and authority isolation before admitting multiple real venues to one runtime.
 
-No shared-runtime implementation is implied by the platform name.
+No shared-runtime implementation is implied by the platform name or by HV-3.
 
 ## Persistent quality tracks
 
@@ -203,7 +234,7 @@ Keep venue character strong; prefer plain patron language; maintain accessible t
 
 ### Data and isolation
 
-Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because context/profile objects exist.
+Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because context/profile/package objects exist.
 
 ### Operations and provenance
 
