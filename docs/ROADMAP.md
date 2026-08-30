@@ -1,6 +1,6 @@
 # Hive-Venues Living Roadmap
 
-This is the living current/next sequencing document for the successor repository. Historical Hive-Bar milestone files preserve accepted evidence and prior decisions but do not redefine this roadmap.
+This is the living current/next sequencing document for the successor repository. Historical Hive-Bar milestones, prior successor preregistrations, and prior sequencing decisions preserve accepted evidence and past authorization boundaries but do not redefine this roadmap.
 
 ## Current state
 
@@ -11,82 +11,60 @@ REFERENCE_VENUE = Fourth Street Bar, Reno
 SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
 HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
-POST_HV2_SEQUENCING_DECISION = ACCEPTED
-SELECTED_NEXT_LANE = VENUE_PACKAGING
-PROPOSED_MILESTONE = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION
-DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
-SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
-LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
-NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED
+POST_HV3_SEQUENCING_DECISION = ACCEPTED
+SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX
+PROPOSED_MILESTONE = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION
+NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-HV3_IMPLEMENTATION_STARTED = NO
 SECOND_REAL_VENUE_AUTHORIZED = NO
+LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
+SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+KUBO_IPFS_EXPERIMENT = ELIGIBLE_DOWNSTREAM_RESEARCH__NOT_SELECTED
+ORBITDB_HELIA_REPLICATION = DEFERRED_PENDING_CONCRETE_NONAUTHORITATIVE_USE_CASE
+DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 
-HV-1 is canonical at commit `ca553af0215d5d4165791a4af695b9cd70ff138c`, tree `15ff602871723a15557376cb59dabb151a658b47`.
+Canonical source moves independently of milestone identities. Resolve exact current `main` commit/tree from GitHub when qualifying or releasing.
 
-The accepted clean HV-2 implementation is commit `1b7549b31bd8692497061eaacfdcbc39a91b8a20`, tree `64bc51e164b7fdc4218d8928897627dfc7602028`, a direct child of the exact pre-HV-2 canonical parent `0bfa6753f08c87242ffbf9c9cc7a059c7e71a497`. Its acceptance and qualification evidence is recorded in `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
+## Accepted successor sequence
 
-The accepted post-HV-2 sequencing decision is commit `da9a150c451603c6a42ac71396a21e931f7e97ab`, tree `c7e8c78988ec2dd734edcc50f838bc55be388f65`. It selects venue packaging and authorizes only the HV-3 preregistration operation. Its exact reasoning and non-effects are recorded in `POST_HV2_SEQUENCING_DECISION_0_1_0.md`.
+### HV-0 — Successor migration and baseline — COMPLETE
 
-The successor architecture is frozen in `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. It adopts a hybrid preservation/reconstruction strategy: retain proven protocol/security/payment/operational machinery, reconstruct platform and deployment boundaries where needed, and preserve or improve strong venue-specific product work.
+Preserved the original Hive-Bar Git object graph, established Hive-Venues as the successor repository/product identity, and froze the inherited assurance baseline.
 
-The canonical source branch can advance after this document is written. Resolve the exact current `main` commit/tree from GitHub when qualifying or releasing rather than treating milestone identities above as permanent source pins.
+### HV-1 — Venue Context Foundation — COMPLETE
 
-## Production lineage boundary
+Established a validated, deeply frozen venue context and explicit application injection for venue identity, public business facts, Hive bindings, and merchant identity. It proved an alternate synthetic venue context offline without introducing shared-runtime multi-tenancy.
 
-Fourth Street's existing production environment remains the reference compatibility deployment. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag are provenance-bearing deployment facts and remain unchanged unless a later production migration is separately qualified and authorized.
+### HV-2 — Reference Deployment Profile Extraction — COMPLETE
 
-The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect the installed release/build identity for any operational decision.
+Established a validated, deeply immutable deployment profile compiled from the reviewed Fourth Street/Privex manifest while preserving exact reference behavior and provenance-bearing compatibility names. It separated deployment-owned facts from venue identity and platform logic.
 
-Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
+### HV-3 — Reference Venue Package Extraction — COMPLETE
 
-## HV-0 — Successor migration and baseline — COMPLETE
+Accepted clean implementation:
 
-Completed:
+```text
+PARENT = b5901cf6f4a603df11eca5c942d63caad5f009a8
+COMMIT = 291b93c696c6265c2da4ad5caaaaee9701cb69a8
+TREE = b39401e8154545bec2e6704455b53c3b8938b5b6
+QUALIFICATION_PR = 14
+QUALIFICATION_CI_RUN = 33327969282
+```
 
-- preserve the original Hive-Bar Git object graph rather than flattening history;
-- mirror all 34 source branch tips at their exact source SHAs;
-- establish the successor repository and product identity;
-- run a read-only inherited baseline audit;
-- freeze the successor baseline and HV-1 preregistration.
+HV-3 introduced a strict, deeply immutable venue-package abstraction; bound authored expression/media to venue identity; migrated selected reusable presentation surfaces away from hidden Fourth Street literals; preserved Fourth Street's authentic presentation; and proved a meaningfully distinct fictional alternate package offline without a source fork.
 
-Inherited baseline evidence included 532/532 tests passing, 81.93% line coverage, 73.82% branch coverage, 87.27% function coverage, and zero reported npm vulnerabilities.
+Acceptance details live in `HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
 
-## HV-1 — Venue Context Foundation — COMPLETE
-
-Purpose: establish the first explicit venue boundary while preserving Fourth Street behavior.
-
-Accepted result:
-
-- validated, deeply frozen venue context;
-- canonical Fourth Street reference venue;
-- explicit venue injection into application construction;
-- home and Pay route wiring consume venue bindings rather than hidden canonical identifiers;
-- existing environment contract retained as a compatibility input layer;
-- synthetic alternate venue construction proven without network access;
-- transaction/payment/onboarding engines unchanged.
-
-Acceptance evidence:
-
-- 538/538 full builder tests passing;
-- 6/6 focused venue-context tests passing;
-- coverage 82.14% lines / 73.88% branches / 87.36% functions;
-- zero reported npm vulnerabilities;
-- Ubuntu and Windows deterministic CI passing;
-- M18.2, M18.3, M18.4, UX-1A, UX-1B, UX-1C, UX-1D, and UX-1F visual acceptance passing;
-- independent Project Lead source and rendered-evidence review passing.
-
-HV-1 establishes a seam; it does not establish shared-runtime multi-tenancy.
-
-## Successor Architecture Reconciliation — CURRENT GOVERNANCE BASELINE
-
-The accepted architecture is:
+## Current architecture baseline
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
 +
 PLATFORM_APPLICATION_PRIMITIVES
++
+VENUE_CONTEXT
 +
 VENUE_PACKAGE
 +
@@ -95,157 +73,119 @@ DEPLOYMENT_PROFILE
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-Why:
+The three explicit seams now exist. The next uncertainty is no longer whether Fourth Street-specific facts can be separated. The next uncertainty is whether a developer/operator can intentionally instantiate another isolated venue composition from explicit, reviewable, secret-safe inputs without editing generic application source.
 
-- Hive transaction builders and security primitives are largely account/payload/config driven and reusable;
-- the payment lifecycle and related safety machinery are high-value shared assets;
-- current payment, moderation, and onboarding persistence is venue-local and not tenant-keyed;
-- release/deployment facts require an explicit deployment-profile boundary rather than scattered provider/venue literals;
-- current Fourth Street editorial/visual work demonstrates that venue specificity should be supported, not erased.
+## Post-HV-3 Sequencing Decision — COMPLETE
 
-## HV-2 — Reference Deployment Profile Extraction — COMPLETE
-
-Purpose: make deployment identity an explicit validated dependency while preserving the exact current Fourth Street/Privex reference values.
-
-Accepted result:
-
-- `ops/privex/manifest.json` remains the reviewed reference source for Fourth Street deployment-specific facts;
-- a validated, deeply immutable deployment profile is compiled from that manifest;
-- release/readiness/storage/onboarding consumers resolve deployment-owned facts through the profile where safe;
-- the Fourth Street reference profile preserves exact host, provider, topology, service, release-root, storage, provenance, runtime-profile, app-tag, and release-policy behavior;
-- a provider-neutral synthetic deployment compiles offline without changing venue identity;
-- Windows path/filename portability is explicitly fail-closed;
-- venue-owned merchant policy remains outside the deployment profile;
-- no live production change, second venue, persistent schema change, protocol semantic change, or shared-runtime tenancy was introduced.
-
-Acceptance evidence:
-
-- clean implementation commit `1b7549b31bd8692497061eaacfdcbc39a91b8a20`, tree `64bc51e164b7fdc4218d8928897627dfc7602028`;
-- exact one-commit clean history from canonical parent `0bfa6753f08c87242ffbf9c9cc7a059c7e71a497`;
-- 543-test deterministic suite with zero failures on Ubuntu and Windows, with only the two expected non-Windows Bash assertions skipped on Windows;
-- secret scan passed across 414 repository files;
-- zero reported production npm vulnerabilities;
-- clean-SHA M18.2, M18.3, M18.4, UX-1A, UX-1B, UX-1C, UX-1D, and UX-1F visual acceptance passed;
-- independent C2-E, C2-F, and UX-1E visual workflows passed;
-- aggregate coverage improved from 82.24/73.77/87.36 to 82.50/74.06/87.64 for lines/branches/functions;
-- the inherited coverage-mode-only M15.5.4 Tailwind exact-byte assertion failed identically on the exact parent and candidate and was not introduced or worsened by HV-2;
-- independent Project Lead source, abstraction, portability, lifecycle, and qualification review passed.
-
-The detailed acceptance record is `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
-
-HV-2 establishes a deployment seam. It does not establish shared-runtime multi-tenancy or authorize any production deployment.
-
-## Post-HV-2 Sequencing Decision — COMPLETE
-
-The required fresh evidence-driven sequencing decision has been performed and accepted. It did not treat prior listing order, momentum, or architectural neatness as authorization.
-
-Accepted result:
+The accepted Post-HV-3 decision selected:
 
 ```text
-SELECTED_NEXT_LANE = VENUE_PACKAGING
-PROPOSED_MILESTONE = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION
-NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX
+PROPOSED_MILESTONE = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION
+NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-Why venue packaging was selected:
+Why:
 
-- the accepted architecture explicitly names `VENUE_PACKAGE` as a first-class layer;
-- HV-1 already makes business/Hive identity an explicit venue context;
-- HV-2 already makes installation/deployment identity an explicit deployment profile;
-- strong Fourth Street venue expression—editorial copy, authentic media, local framing, shell identity, and venue-facing policy language—remains comparatively distributed through presentation/application surfaces;
-- an offline synthetic alternate package can test this boundary without admitting a real second venue or sharing runtime state.
+- HV-1/HV-2/HV-3 now make venue, deployment, and authored-expression ownership explicit;
+- package metadata and developer-facing assumptions still visibly inherit the one-off Hive-Bar identity;
+- a reproducible bootstrap contract is the smallest next test of whether the architecture can actually instantiate another isolated venue without source forks;
+- a real second venue would add unnecessary business/custody/infrastructure obligations before bootstrap correctness is proven;
+- fleet automation would automate a process not yet formally defined;
+- Kubo/IPFS publication is promising but needs a deliberately defined immutable publication object;
+- Helia/OrbitDB replicated state remains unjustified until a concrete non-authoritative replicated data domain is identified.
 
-The accepted decision is `POST_HV2_SEQUENCING_DECISION_0_1_0.md`.
+The accepted decision is `POST_HV3_SEQUENCING_DECISION_0_1_0.md`.
 
-## HV-3 — Reference Venue Package Extraction — PREREGISTRATION NEXT
+## Venue-category boundary
 
-No HV-3 implementation has started.
+Hive-Venues is intended to support independently branded venue applications beyond Fourth Street. Current project evidence does **not** provide a canonical exhaustive venue taxonomy.
+
+Therefore the bootstrap foundation must be venue-type neutral:
+
+- no mandatory `bar | restaurant | club | cafe | ...` enum is introduced merely for abstraction;
+- generic platform code should not require bar-specific nouns;
+- venue package content may provide authentic operator/staff/customer vocabulary where it genuinely differs;
+- platform/security semantics remain universal regardless of venue vocabulary;
+- future product evidence may justify explicit capabilities or venue classifications later, but HV-4 must not guess them now.
+
+## HV-4 — Isolated Venue Bootstrap Foundation — PREREGISTRATION NEXT
 
 The next bounded operation is only:
 
 ```text
-HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
 ```
 
-The prospective contract must be frozen before implementation. It must define, at minimum:
+The preregistration must freeze, at minimum:
 
-- the exact canonical source base;
-- an explicit ownership taxonomy separating venue context, venue package, deployment profile, and reusable platform/security mechanisms;
-- the Fourth Street reference package boundary for authentic content, media, brand expression, and venue-owned policy defaults;
-- the boundary against deployment-owned HV-2 facts;
-- the boundary against protocol/security and transaction/payment invariants;
-- an offline synthetic alternate-venue fixture proving meaningful distinctness without a source fork;
-- an anti-genericization criterion preserving or improving Fourth Street's accepted character;
-- human rendered-evidence review for meaningful presentation changes;
-- exact non-effects forbidding live production mutation, a second real venue, shared-runtime tenant selection, durable-schema migrations, protocol/payment semantic changes, package/runtime convenience upgrades, application-tag changes, and production namespace renaming.
+- exact canonical source base;
+- minimum bootstrap input taxonomy across platform, venue context, venue package, deployment profile, optional policy, and secret/private operational inputs;
+- deterministic reviewable output format;
+- offline synthetic bootstrap proof;
+- no-source-fork criterion;
+- venue-type neutrality and independently branded vocabulary support;
+- developer-facing successor identity boundary;
+- explicit preservation of Fourth Street production compatibility names;
+- fail-closed validation for malformed/missing/cross-venue/unsafe inputs;
+- source-control secret exclusion;
+- human developer/operator usability review;
+- deterministic Ubuntu/Windows qualification;
+- explicit non-effects forbidding real-client admission, production mutation, shared-runtime tenancy, fleet orchestration, Kubo/IPFS publication, Helia/OrbitDB integration, protocol/payment/auth semantic changes, and unrelated UI redesign.
 
 The preregistration itself does not authorize implementation.
 
-## Post-HV-2 candidate-lane disposition
+## Production lineage boundary
 
-The sequencing decision considered the prior candidate lanes and records the following current dispositions.
+Fourth Street's existing production environment remains the reference compatibility deployment. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain provenance-bearing deployment facts unless a later production migration is separately qualified and authorized.
 
-### Successor identity and developer experience — DEFERRED
+The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect installed release/build identity for any operational decision.
 
-Package/repository/runtime naming and new-venue bootstrap remain useful work, but broad identity cleanup should follow clearer venue-package ownership so platform, venue, deployment, and protocol identities are not conflated. Production Hive-Bar-era namespace compatibility remains provenance-bearing.
+Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
 
-### Venue packaging — SELECTED
+## Candidate-lane disposition after HV-3
 
-The next prospective milestone is HV-3 Reference Venue Package Extraction, beginning with preregistration only.
+### Real isolated second-venue pilot — DEFERRED ONE GATE
 
-### Shared product quality — PERSISTENT QUALITY TRACK
+Potentially valuable after HV-4 proves bootstrap from synthetic/offline inputs. A real pilot requires separate business identity, content, Hive account/community, domain, policy, custody, and deployment authorization.
 
-Shared navigation/shell identity, desktop profile/social density, accessibility, responsive behavior, operation review, payment safety communication, and failure-state semantics remain valid quality concerns. They are not independently selected as the next architecture milestone and may not be used to smuggle unrelated redesign into HV-3.
+### Kubo / immutable IPFS publication — ELIGIBLE DOWNSTREAM RESEARCH
 
-### New venue readiness — REAL PILOT DEFERRED
+Eligible after a deliberate immutable venue publication artifact is defined. A Kubo experiment must not pretend the dynamic Express application is already a static site or expose administrative APIs publicly.
 
-HV-3 may require an offline synthetic alternate venue package as a proof fixture. A real second-venue pilot remains unauthorized until the package and isolated deployment contracts are proven and a later sequencing decision justifies real-world custody/configuration work.
+### Helia + OrbitDB replicated state — DEFERRED
+
+Requires a concrete non-authoritative data domain with explicit privacy, access-control, conflict-resolution, and product-value justification. Canonical Hive state, payment receipts, auth/session authority, and onboarding credential custody are not candidates by default.
 
 ### Fleet operations — DEFERRED
 
-Repeatable provisioning, release, health, rollback, and upgrade management for multiple isolated venue instances remains valuable downstream work. It is more meaningful after venue-package and deployment-profile contracts are stable.
+Meaningful after HV-4 defines a repeatable per-venue input/output contract.
 
-### Shared-runtime tenancy research — OPTIONAL / DEFERRED
+### Shared-runtime multi-tenancy — DEFERRED
 
-Only if concrete product/operational value later justifies it:
+No current evidence justifies weakening one-isolated-venue-per-runtime. Payment, moderation, onboarding, session/preflight, secret, replay/idempotency, and observability ownership are not tenant-migrated.
 
-- design explicit venue ownership for payment receipts, moderation state, onboarding requests, sessions/preflights, idempotency/replay domains, secrets, and observability;
-- preregister migrations and isolation tests;
-- prove cross-venue data and authority isolation before admitting multiple real venues to one runtime.
+### Continuity branch-to-tag migration — OPTIONAL MAINTENANCE
 
-No shared-runtime implementation is implied by the platform name or by HV-3.
+The four `continuity/*` refs remain out of the substantive roadmap. They may later become milestone tags after exact semantic verification.
 
-## Persistent quality tracks
+### Shared product quality — PERSISTENT TRACK
 
-Every successor milestone should be evaluated across the whole product rather than only its named architectural goal.
+Accessibility, responsive behavior, navigation, social/profile composition, payment safety communication, onboarding clarity, and reference-venue quality remain continuous acceptance concerns.
 
-### Security and custody
+## Historical routing rule
 
-Preserve Keychain-local custody, no server Hive private keys, no server Hive broadcast RPC, explicit review, fail-closed authorization, and no automatic retry after ambiguous acceptance.
+Earlier accepted sequencing records remain immutable historical evidence. In particular, `POST_HV2_SEQUENCING_DECISION_0_1_0.md` correctly recorded, at that time:
 
-### Financial/payment integrity
+```text
+POST_HV2_SEQUENCING_DECISION = ACCEPTED
+SELECTED_NEXT_LANE = VENUE_PACKAGING
+NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
+HV3_IMPLEMENTATION_STARTED = NO
+SECOND_REAL_VENUE_AUTHORIZED = NO
+SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+```
 
-Preserve canonical amount handling, merchant validation, durable receipt state, payer serialization, invoice replay protection, idempotency, independent observation, and chain-confirmed success semantics.
-
-### Product and UX
-
-Keep venue character strong; prefer plain patron language; maintain accessible touch/focus/contrast behavior; and use real rendered evidence for meaningful visual decisions.
-
-### Data and isolation
-
-Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because context/profile/package objects exist.
-
-### Operations and provenance
-
-Preserve exact-commit release identity, fail-closed readiness, rollback discipline, and source-versus-runtime identity separation.
-
-### Maintainability and developer experience
-
-Reduce duplicated deployment/venue constants, make dependencies explicit, keep architecture boundaries machine-testable, and avoid carrying old names into new universal abstractions without a compatibility reason.
-
-## Historical Hive-Bar line
-
-The inherited M1–M20/C2/UX milestones remain in Git history and historical documentation. In particular, M17–M19 capture important beta/V1 readiness, presentation, deployment, and onboarding evidence. They remain authoritative for what those operations established at the time.
-
-They are no longer the living successor sequence. New work is governed by HV milestones and this roadmap.
+That snapshot is superseded for current routing by accepted HV-3 and `POST_HV3_SEQUENCING_DECISION_0_1_0.md`; it is retained here only to make the transition explicit during the routing-checker reconciliation and must not be interpreted as current authorization.
