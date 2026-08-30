@@ -5,7 +5,8 @@
 ```text
 OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION
 IMPLEMENTATION_VERSION = 0.1.0
-STATUS = IMPLEMENTATION_CANDIDATE__NOT_ACCEPTED
+DOCUMENT_ROLE = IMPLEMENTATION_CONTRACT_AND_OPERATOR_GUIDE
+ACCEPTANCE_STATUS_SOURCE = SEPARATE_ACCEPTANCE_RECORD_AND_CURRENT_ROUTING
 CANONICAL_AUTHORIZATION_BASE = 20590dff2222a6dc855fabb9f0c4f8cb37cc2670
 CONTROLLING_PREREGISTRATION = docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md
 REAL_SECOND_VENUE = NO
@@ -14,7 +15,7 @@ SHARED_RUNTIME_TENANCY = NO
 KUBO_IPFS_HELIA_ORBITDB = OUT_OF_SCOPE
 ```
 
-This candidate implements the smallest offline composition and review layer required by the frozen HV-4 contract. It does not change runtime selection, user-visible presentation, production deployment behavior, or the accepted ownership boundaries from HV-1 through HV-3.
+This implementation provides the smallest offline composition and review layer required by the frozen HV-4 contract. Whether this exact implementation has been accepted at a given repository state is determined by the separate acceptance record and living routing, not by rewriting this implementation guide. It does not change runtime selection, user-visible presentation, production deployment behavior, or the accepted ownership boundaries from HV-1 through HV-3.
 
 ## Input contract
 
@@ -113,4 +114,4 @@ This implementation does not:
 - change package/runtime dependencies;
 - change user-visible application presentation.
 
-Those ideas may compete in later sequencing only after HV-4 is accepted and living state is reconciled.
+Those ideas may compete in later sequencing after HV-4 acceptance and living-state reconciliation; this guide does not preselect any of them.
