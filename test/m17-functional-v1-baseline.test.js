@@ -61,7 +61,7 @@ test('C2-A exposes the reviewed profile action in beta while preserving the pre-
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
+    successorRouting: 'POST_HV2_SEQUENCING_DECISION',
   });
 });
 
@@ -91,12 +91,17 @@ test('accepted M17 invariants coexist with historical M19.2 deployment evidence 
   const milestone = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
 
   assert.match(readme, /^# Hive-Venues$/m);
-  assert.match(readme, /HV-1, the Venue Context Foundation, is accepted and canonical/);
+  assert.match(
+    readme,
+    /HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones/,
+  );
   assert.match(readme, /last recorded accepted production transition in the inherited record is M19\.2/);
   assert.match(readme, /No successor source refactor by itself authorizes a production deployment/);
 
-  assert.match(roadmap, /HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED/);
-  assert.match(roadmap, /NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION/);
+  assert.match(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m);
+  assert.match(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m);
+  assert.match(roadmap, /^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m);
+  assert.match(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
   assert.match(roadmap, /## Historical Hive-Bar line/);
   assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
   assert.match(roadmap, /They remain authoritative for what those operations established at the time/);

@@ -83,8 +83,14 @@ function assertFunctionalV1Baseline() {
   if (!/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m.test(roadmap)) {
     throw new Error('living successor roadmap must preserve accepted HV-1');
   }
-  if (!/^NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must route current work to HV-2');
+  if (!/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must preserve accepted HV-2');
+  }
+  if (!/^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must route current work to post-HV-2 sequencing');
+  }
+  if (!/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must not pre-authorize post-HV-2 implementation');
   }
   if (!/last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/.test(operations)) {
     throw new Error('production operations must retain M19.2 as the historical accepted M19.1 deployment event');
@@ -114,7 +120,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
+    successorRouting: 'POST_HV2_SEQUENCING_DECISION',
   });
 }
 

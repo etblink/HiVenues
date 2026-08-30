@@ -10,17 +10,21 @@ PRODUCT = Hive-Venues
 REFERENCE_VENUE = Fourth Street Bar, Reno
 SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
+HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
-NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION
+NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
 HV-1 is canonical at commit `ca553af0215d5d4165791a4af695b9cd70ff138c`, tree `15ff602871723a15557376cb59dabb151a658b47`.
 
+The accepted clean HV-2 implementation is commit `1b7549b31bd8692497061eaacfdcbc39a91b8a20`, tree `64bc51e164b7fdc4218d8928897627dfc7602028`, a direct child of the exact pre-HV-2 canonical parent `0bfa6753f08c87242ffbf9c9cc7a059c7e71a497`. Its acceptance and qualification evidence is recorded in `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
+
 The successor architecture is frozen in `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. It adopts a hybrid preservation/reconstruction strategy: retain proven protocol/security/payment/operational machinery, reconstruct platform and deployment boundaries where needed, and preserve or improve strong venue-specific product work.
 
-The canonical source branch can advance after this document is written. Resolve the exact current `main` commit/tree from GitHub when qualifying or releasing rather than treating the HV-1 identity above as a permanent source pin.
+The canonical source branch can advance after this document is written. Resolve the exact current `main` commit/tree from GitHub when qualifying or releasing rather than treating milestone identities above as permanent source pins.
 
 ## Production lineage boundary
 
@@ -89,42 +93,57 @@ Why:
 - Hive transaction builders and security primitives are largely account/payload/config driven and reusable;
 - the payment lifecycle and related safety machinery are high-value shared assets;
 - current payment, moderation, and onboarding persistence is venue-local and not tenant-keyed;
-- release/deployment code still hard-codes Fourth Street/Privex facts that should become reference-profile data;
+- release/deployment facts require an explicit deployment-profile boundary rather than scattered provider/venue literals;
 - current Fourth Street editorial/visual work demonstrates that venue specificity should be supported, not erased.
 
-## HV-2 — Reference Deployment Profile Extraction — NEXT
-
-HV-2 must be preregistered before implementation.
+## HV-2 — Reference Deployment Profile Extraction — COMPLETE
 
 Purpose: make deployment identity an explicit validated dependency while preserving the exact current Fourth Street/Privex reference values.
 
-Expected scope:
+Accepted result:
 
-- introduce a validated deployment-profile representation;
-- treat the existing reviewed `ops/privex/manifest.json` as a primary candidate source rather than duplicating constants;
-- move reference host/provider/topology/service/release-root/storage/app-tag expectations behind the deployment profile;
-- make release/readiness code consume profile data where safe;
-- add a synthetic deployment profile for offline construction/validation tests only;
-- preserve exact Fourth Street release-gate behavior and failure modes.
+- `ops/privex/manifest.json` remains the reviewed reference source for Fourth Street deployment-specific facts;
+- a validated, deeply immutable deployment profile is compiled from that manifest;
+- release/readiness/storage/onboarding consumers resolve deployment-owned facts through the profile where safe;
+- the Fourth Street reference profile preserves exact host, provider, topology, service, release-root, storage, provenance, runtime-profile, app-tag, and release-policy behavior;
+- a provider-neutral synthetic deployment compiles offline without changing venue identity;
+- Windows path/filename portability is explicitly fail-closed;
+- venue-owned merchant policy remains outside the deployment profile;
+- no live production change, second venue, persistent schema change, protocol semantic change, or shared-runtime tenancy was introduced.
 
-HV-2 may not:
+Acceptance evidence:
 
-- touch the live VPS or DNS/proxy configuration;
-- rename `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, or current durable storage paths in production;
-- change `fourth-street-bar-app/0.1.0` for the reference deployment;
-- change Hive operation semantics or signer authority;
-- change payment lifecycle semantics;
-- change persistent schemas;
-- add a second real venue;
-- introduce request-time tenant selection;
-- enable dormant production features;
-- perform unrelated dependency upgrades.
+- clean implementation commit `1b7549b31bd8692497061eaacfdcbc39a91b8a20`, tree `64bc51e164b7fdc4218d8928897627dfc7602028`;
+- exact one-commit clean history from canonical parent `0bfa6753f08c87242ffbf9c9cc7a059c7e71a497`;
+- 543-test deterministic suite with zero failures on Ubuntu and Windows, with only the two expected non-Windows Bash assertions skipped on Windows;
+- secret scan passed across 414 repository files;
+- zero reported production npm vulnerabilities;
+- clean-SHA M18.2, M18.3, M18.4, UX-1A, UX-1B, UX-1C, UX-1D, and UX-1F visual acceptance passed;
+- independent C2-E, C2-F, and UX-1E visual workflows passed;
+- aggregate coverage improved from 82.24/73.77/87.36 to 82.50/74.06/87.64 for lines/branches/functions;
+- the inherited coverage-mode-only M15.5.4 Tailwind exact-byte assertion failed identically on the exact parent and candidate and was not introduced or worsened by HV-2;
+- independent Project Lead source, abstraction, portability, lifecycle, and qualification review passed.
 
-Qualification must retain the full deterministic, cross-platform, visual, security, and release-coherence gates appropriate to the changed scope.
+The detailed acceptance record is `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
+
+HV-2 establishes a deployment seam. It does not establish shared-runtime multi-tenancy or authorize any production deployment.
+
+## Post-HV-2 sequencing decision — NEXT
+
+The accepted architecture requires a fresh sequencing decision after HV-2. Completing HV-2 does not silently authorize the next substantive implementation lane.
+
+The next operation is therefore:
+
+```text
+NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
+```
+
+That decision must re-evaluate the current evidence and choose among candidate lanes only if a lane is actually justified. Momentum, prior listing order, or architectural neatness is not sufficient authorization.
 
 ## Post-HV-2 candidate lanes — NOT YET SEQUENCED
 
-After HV-2, perform a fresh sequencing decision. Candidate work includes:
+Candidate work includes, without priority order:
 
 ### Successor identity and developer experience
 
@@ -184,7 +203,7 @@ Keep venue character strong; prefer plain patron language; maintain accessible t
 
 ### Data and isolation
 
-Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because a context object exists.
+Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because context/profile objects exist.
 
 ### Operations and provenance
 

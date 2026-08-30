@@ -11,6 +11,8 @@ These documents govern current successor interpretation and sequencing:
 - `HIVE_VENUES_SUCCESSOR_BASELINE_0_1_0.md` — exact source-lineage migration and inherited baseline boundary.
 - `HV1_VENUE_CONTEXT_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-1 contract.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted hybrid preservation/reconstruction architecture and isolated-venue runtime decision.
+- `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md` — frozen prospective HV-2 contract.
+- `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md` — Project Lead HV-2 acceptance, qualification, non-effects, and post-HV-2 routing record.
 
 Living documents must be updated when their current-state or routing claims become stale. They must not silently rewrite the meaning of historical evidence.
 
@@ -23,7 +25,7 @@ Until a successor deployment migration is separately accepted, the existing Four
 - `../ops/privex/hive-bar.env.example` — Fourth Street/Privex environment profile example.
 - `../ops/privex/manifest.json` — machine-readable reviewed Fourth Street production topology and release profiles.
 
-These are reference-deployment documents, not universal Hive-Venues architecture. HV-2 is specifically intended to establish an explicit deployment-profile boundary around those facts without mutating production.
+These are reference-deployment documents, not universal Hive-Venues architecture. HV-2 establishes an explicit validated deployment-profile boundary around those facts while preserving their exact reference values and making no live production change.
 
 ## Source identity versus production identity
 
@@ -64,7 +66,7 @@ DEPLOYMENT_PROFILE
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-The venue-context seam introduced by HV-1 does not mean the application is already shared-runtime multi-tenant. Payment, moderation, onboarding, and other durable state remain venue-local until explicitly migrated.
+The venue-context seam introduced by HV-1 and the deployment-profile seam accepted in HV-2 do not mean the application is already shared-runtime multi-tenant. Payment, moderation, onboarding, and other durable state remain venue-local until explicitly migrated.
 
 Venue-specific editorial content and assets are first-class product material. The platform should enable distinct venue products, not force every venue into generic copy or imagery.
 
@@ -75,6 +77,9 @@ For current project status, read in this order:
 1. `../README.md`
 2. `ROADMAP.md`
 3. `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
-4. the preregistration for the currently authorized operation
-5. relevant current operating documentation if production is involved
-6. historical milestone evidence only as needed for provenance or inherited invariants.
+4. the current acceptance/sequencing record governing the next operation
+5. the preregistration for a currently authorized implementation operation, when one exists
+6. relevant current operating documentation if production is involved
+7. historical milestone evidence only as needed for provenance or inherited invariants.
+
+After accepted HV-2 integration, the next authorized operation is a fresh `POST_HV2_SEQUENCING_DECISION`. No substantive implementation lane is authorized until that decision is separately made and recorded.

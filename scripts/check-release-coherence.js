@@ -81,6 +81,7 @@ function assertReleaseCoherence() {
   const roadmap = read('docs/ROADMAP.md');
   const architectureDecision = read('docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md');
   const hv2Preregistration = read('docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md');
+  const hv2Acceptance = read('docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
   if (pkg.version !== PACKAGE_VERSION) throw new Error('package version source is inconsistent');
@@ -121,13 +122,13 @@ function assertReleaseCoherence() {
   );
   requireMatch(
     readme,
-    /HV-1, the Venue Context Foundation, is accepted and canonical/,
-    'README must identify HV-1 as accepted',
+    /HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones/,
+    'README must identify HV-1 and HV-2 as accepted',
   );
   requireMatch(
     readme,
-    /next bounded implementation operation is \*\*HV-2: Reference Deployment Profile Extraction\*\*/i,
-    'README must route to HV-2 deployment profile extraction',
+    /next bounded governance operation is \*\*Post-HV-2 Sequencing Decision\*\*/i,
+    'README must route to the post-HV-2 sequencing decision',
   );
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
@@ -138,6 +139,11 @@ function assertReleaseCoherence() {
   );
   requireMatch(
     docsReadme,
+    /HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0\.md/,
+    'documentation index must route to the HV-2 acceptance record',
+  );
+  requireMatch(
+    docsReadme,
     /historical Hive-Bar milestone evidence/i,
     'documentation index must preserve historical Hive-Bar evidence as historical',
   );
@@ -145,10 +151,16 @@ function assertReleaseCoherence() {
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
   requireMatch(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'roadmap must bind accepted HV-1');
+  requireMatch(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'roadmap must bind accepted HV-2');
   requireMatch(
     roadmap,
-    /^NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m,
-    'roadmap must route to the preregistered HV-2 operation',
+    /^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m,
+    'roadmap must route to post-HV-2 sequencing',
+  );
+  requireMatch(
+    roadmap,
+    /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m,
+    'roadmap must not pre-authorize a post-HV-2 implementation lane',
   );
   requireMatch(
     roadmap,
@@ -179,7 +191,7 @@ function assertReleaseCoherence() {
   requireMatch(
     architectureDecision,
     /HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION/,
-    'architecture decision must route to HV-2',
+    'architecture decision must preserve its HV-2 sequencing rationale',
   );
 
   requireMatch(
@@ -197,6 +209,17 @@ function assertReleaseCoherence() {
     /^LIVE_PRODUCTION_MUTATION = FORBIDDEN$/m,
     'HV-2 preregistration must keep live production mutation forbidden',
   );
+
+  requireMatch(hv2Acceptance, /^OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m, 'HV-2 acceptance must bind the operation');
+  requireMatch(hv2Acceptance, /^STATUS = ACCEPTED$/m, 'HV-2 acceptance must record accepted status');
+  requireMatch(hv2Acceptance, /^CANONICAL_INTEGRATION_AUTHORIZED = YES$/m, 'HV-2 acceptance must authorize canonical integration');
+  requireMatch(hv2Acceptance, /^EXPECTED_CANONICAL_PARENT = 0bfa6753f08c87242ffbf9c9cc7a059c7e71a497$/m, 'HV-2 acceptance must bind the exact canonical parent');
+  requireMatch(hv2Acceptance, /^IMPLEMENTATION_COMMIT = 1b7549b31bd8692497061eaacfdcbc39a91b8a20$/m, 'HV-2 acceptance must bind the clean implementation commit');
+  requireMatch(hv2Acceptance, /^IMPLEMENTATION_TREE = 64bc51e164b7fdc4218d8928897627dfc7602028$/m, 'HV-2 acceptance must bind the clean implementation tree');
+  requireMatch(hv2Acceptance, /^LIVE_PRODUCTION_MUTATION = NO$/m, 'HV-2 acceptance must record no live production mutation');
+  requireMatch(hv2Acceptance, /^COVERAGE_NO_MATERIAL_REGRESSION = PASS$/m, 'HV-2 acceptance must record the coverage gate');
+  requireMatch(hv2Acceptance, /^NEXT_OPERATION_AFTER_INTEGRATION = POST_HV2_SEQUENCING_DECISION$/m, 'HV-2 acceptance must route to post-HV-2 sequencing');
+  requireMatch(hv2Acceptance, /^NEXT_SUBSTANTIVE_IMPLEMENTATION_AUTHORIZED = NO$/m, 'HV-2 acceptance must not pre-authorize successor implementation');
 
   requireMatch(
     operations,
@@ -247,6 +270,7 @@ function assertReleaseCoherence() {
     'docs/HV1_VENUE_CONTEXT_FOUNDATION_PREREGISTRATION_0_1_0.md',
     'docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md',
     'docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md',
+    'docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md',
     'docs/M17_1_V1_PRODUCT_BOUNDARY.md',
     'docs/M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md',
     'docs/M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md',
@@ -264,7 +288,7 @@ function assertReleaseCoherence() {
     packageVersion: PACKAGE_VERSION,
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
-    nextOperation: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
+    nextOperation: 'POST_HV2_SEQUENCING_DECISION',
   });
 }
 
