@@ -67,6 +67,8 @@ jobs:
                 ;;
               scripts/check-release-coherence.js|scripts/check-functional-v1-baseline.js)
                 ;;
+              src/venue/bootstrap.js|scripts/validate-venue-bootstrap.js|test/support/hv4-synthetic-bootstrap.js)
+                ;;
               *)
                 visual=true
                 break
