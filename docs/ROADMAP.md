@@ -242,6 +242,8 @@ Successor source changes do not authorize deployment, account creation, delegati
 
 ## Historical Hive-Bar line
 
+M17–M19 capture important beta/V1 readiness, presentation, deployment, and onboarding evidence. They remain authoritative for what those operations established at the time.
+
 The inherited M1–M20/C2/UX milestones and earlier successor governance files remain authoritative evidence for what they established at the time, but they do not all need to remain permanently present in the living `main` tree.
 
 A separate main-tree historical-artifact retirement/archive policy may retire historical files only after an immutable checkpoint ref preserves the exact pre-retirement tree and a retirement manifest records each path/blob/recovery location. Retirement from `main` must never be interpreted as evidence deletion or supersession of accepted facts.
