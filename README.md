@@ -15,9 +15,9 @@ The first four successor architecture milestones are accepted:
 - **HV-3 — Reference Venue Package Extraction:** explicit validated authored venue expression, media metadata, and venue-facing presentation material.
 - **HV-4 — Isolated Venue Bootstrap Foundation:** deterministic, secret-safe composition and review of one isolated venue from explicit venue, package, deployment, and composition-binding inputs without a source fork.
 
-The accepted **Post-HV-4 Sequencing Decision** selects the canonical venue-authoring contract as the next lane. The next bounded operation is **HV-5 Venue Authoring Contract Foundation Preregistration**. HV-5 implementation is not yet authorized.
+The accepted **Post-HV-4 Sequencing Decision** selected the canonical venue-authoring contract as the next lane. The **HV-5 Venue Authoring Contract Foundation preregistration is now frozen and Project-Lead accepted, and bounded HV-5 implementation is explicitly authorized.** HV-5 itself is not yet accepted; the next bounded operation is the authorized offline HV-5 implementation.
 
-The decision does not preselect GrapesJS or another editor dependency. It requires one versioned canonical authoring representation first, with visual and source/code authoring paths converging on the same validators. Optional starter archetypes remain convenience layers rather than a mandatory venue taxonomy. A real second venue is deferred only one gate and should be strongly reassessed after HV-5, or earlier if a suitable real pilot becomes concretely available.
+The authorization does not select GrapesJS or another editor dependency. HV-5 core must first implement one versioned canonical authoring representation and executable ownership policy, with direct source/code authoring preserved. Optional starter archetypes remain convenience layers rather than a mandatory venue taxonomy. A real second venue remains unauthorized and should be strongly reassessed after HV-5 acceptance, or earlier only through a fresh sequencing/authorization event if a suitable real pilot becomes concretely available.
 
 The near-term runtime model remains:
 
@@ -62,7 +62,7 @@ These are platform assets. They are not Fourth Street branding.
 
 HV-1 made the runtime consume a validated venue context instead of relying on hidden canonical venue identifiers. HV-2 made deployment identity an explicit validated dependency while preserving the exact current Fourth Street production compatibility namespace. HV-3 made authored venue content and media an explicit validated venue package and proved an alternate fictional venue can use the same generic application path offline without a source fork. HV-4 composes those accepted authorities into a deterministic offline bootstrap/review boundary with explicit venue/package/deployment identity binding and secret exclusion.
 
-Together they establish a reproducible one-isolated-venue composition contract. The accepted Post-HV-4 decision now asks HV-5 to make authoring ownership explicit before the project commits to a particular visual editor, publication layer, media stack, fleet system, or real-pilot workflow.
+Together they establish a reproducible one-isolated-venue composition contract. The accepted Post-HV-4 decision and accepted HV-5 preregistration now require implementation of explicit authoring ownership before the project commits to a particular visual editor, publication layer, media stack, fleet system, or real-pilot workflow.
 
 ## Source identity versus production identity
 
@@ -139,9 +139,9 @@ HV-3 introduces a validated, deeply immutable venue package containing or refere
 
 HV-4 adds a strict offline bootstrap envelope that delegates domain validation to HV-1/HV-2/HV-3, requires explicit venue/package/deployment identity bindings, rejects secret-bearing material before review output, and emits deterministic normalized composition JSON through `scripts/validate-venue-bootstrap.js`.
 
-The accepted Post-HV-4 Sequencing Decision selects **HV-5 Venue Authoring Contract Foundation**. HV-5 must define one editor-independent canonical authoring document, ownership classes for authored/derived/platform/deployment/security/secret fields, deterministic serialization and compilation through the accepted validators, preview semantics, and a source/code escape hatch before any WYSIWYG framework becomes authoritative.
+HV-5 implementation is now authorized under its frozen preregistration. The core must implement one strict editor-independent authoring document containing the accepted venue context and venue package plus deployment-profile ID reference, an executable ownership registry, ordinary-operator patch enforcement, deterministic serialization, validator delegation, secret/private rejection, a direct source/code validation path, Fourth Street equivalence evidence, Lantern Room non-bar evidence, and compatibility with the existing HV-4 bootstrap path.
 
-GrapesJS is an explicit evaluation candidate for a later visual adapter, not a selected dependency. The editor must adapt to Hive-Venues' canonical authoring contract rather than define it.
+GrapesJS remains an explicit evaluation candidate for a later visual adapter, not a selected dependency. The editor must adapt to Hive-Venues' canonical authoring contract rather than define it.
 
 ## Distributed publication and replication research
 
@@ -160,7 +160,10 @@ Living successor documents:
 - `docs/README.md` — living-vs-historical documentation index;
 - `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted architecture baseline;
 - `docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted HV-4 implementation and qualification record;
-- `docs/POST_HV4_SEQUENCING_DECISION_0_1_0.md` — accepted Post-HV-4 Project Lead sequencing decision selecting the HV-5 preregistration lane;
+- `docs/POST_HV4_SEQUENCING_DECISION_0_1_0.md` — accepted Post-HV-4 Project Lead sequencing decision selecting HV-5;
+- `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-5 prospective contract;
+- `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md` — Project Lead acceptance of that prospective contract;
+- `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — bounded authorization for HV-5 implementation;
 - `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded.
 
 Historical Hive-Bar milestones and prior HV preregistrations/decisions remain provenance. They are not rewritten to sound current and do not override the living routing surfaces.
