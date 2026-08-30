@@ -240,7 +240,7 @@ The last recorded accepted production transition in the inherited roadmap is M19
 
 Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
 
-## Historical evidence and main-tree scalability
+## Historical Hive-Bar line
 
 The inherited M1–M20/C2/UX milestones and earlier successor governance files remain authoritative evidence for what they established at the time, but they do not all need to remain permanently present in the living `main` tree.
 
