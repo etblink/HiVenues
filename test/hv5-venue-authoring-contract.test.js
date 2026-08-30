@@ -135,7 +135,7 @@ test('ordinary operator negative matrix fails closed without mutating the accept
   for (const [label, proposed] of cases) {
     assert.throws(
       () => applyOrdinaryOperatorEdit(base, proposed),
-      (error) => error instanceof VenueAuthoringError || /Invalid venue|Invalid venue package/.test(error.message),
+      (error) => error instanceof VenueAuthoringError || /Invalid venue|Venue package/.test(error.message),
       label,
     );
     assert.equal(JSON.stringify(base), snapshot, `${label} mutated the base`);
