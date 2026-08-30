@@ -100,6 +100,8 @@ function assertReleaseCoherence() {
   const hv5ImplementationReview = read('docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_REVIEW_0_1_0.md');
   const hv5Acceptance = read('docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md');
   const postHv5Reconciliation = read('docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const postHv5Decision = read('docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md');
+  const postHv5DecisionReconciliation = read('docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
   // Preserve the inherited exact release/runtime sources of truth.
@@ -132,43 +134,34 @@ function assertReleaseCoherence() {
   requireMatch(workflow, /uses:\s+actions\/checkout@[0-9a-f]{40}(?:\s+#.*)?$/m, 'checkout must be pinned by full commit SHA');
   requireMatch(workflow, /uses:\s+actions\/setup-node@[0-9a-f]{40}(?:\s+#.*)?$/m, 'setup-node must be pinned by full commit SHA');
 
-  // Living successor truth after HV-5 acceptance.
+  // Living successor truth after the accepted Post-HV-5 decision.
   requireMatch(readme, /^# Hive-Venues$/m, 'README must identify the successor product as Hive-Venues');
   requireMatch(readme, /Node\.js\s+24\.19\.0/, 'README must state the pinned Node runtime');
   requireMatch(readme, /npm\s+11\.17\.0/, 'README must state the pinned npm runtime');
   requireMatch(readme, /Canonical source is the `main` branch of `etblink\/Hive-Venues`/, 'README must identify moving canonical source');
   requireMatch(readme, /The first five successor architecture milestones are accepted/i, 'README must identify five accepted successor milestones');
-  requireMatch(readme, /HV-5 is canonically accepted/i, 'README must bind accepted HV-5');
-  requireMatch(readme, /neutral Post-HV-5 sequencing boundary/i, 'README must identify the neutral post-HV-5 boundary');
-  requireMatch(readme, /No post-HV-5 product lane has been selected/i, 'README must not preselect a post-HV-5 lane');
+  requireMatch(readme, /accepted \*\*Post-HV-5 Sequencing Decision\*\*.*operator visual authoring adapter/is, 'README must bind accepted Post-HV-5 selection');
+  requireMatch(readme, /next operation is \*\*HV-6 preregistration only\*\*/i, 'README must route to HV-6 preregistration');
+  requireMatch(readme, /No HV-6 substantive implementation is authorized yet/i, 'README must preserve HV-6 non-authorization');
+  requireMatch(readme, /GrapesJS Core is the primary technology evaluation candidate, but it is not a selected dependency/i, 'README must keep GrapesJS non-authoritative');
   requireMatch(readme, /platform does not currently require a universal venue-type taxonomy/i, 'README must preserve venue-type neutrality');
-  requireMatch(readme, /GrapesJS remains an evaluation candidate until separately selected/i, 'README must keep GrapesJS non-authoritative');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
   requireMatch(docsReadme, /Canonical integrated source is `main` in `etblink\/Hive-Venues`/, 'documentation index must identify canonical source');
   for (const requiredName of [
-    'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md',
-    'POST_HV2_SEQUENCING_DECISION_0_1_0.md',
-    'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md',
-    'POST_HV3_SEQUENCING_DECISION_0_1_0.md',
-    'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md',
-    'POST_HV4_SEQUENCING_DECISION_0_1_0.md',
-    'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_0_1_0.md',
-    'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md',
-    'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md',
-    'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_0_1_0.md',
-    'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_REVIEW_0_1_0.md',
     'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md',
     'POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md',
+    'POST_HV5_SEQUENCING_DECISION_0_1_0.md',
   ]) {
     requireMatch(docsReadme, new RegExp(requiredName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `documentation index must route to ${requiredName}`);
   }
-  requireMatch(docsReadme, /historical Hive-Bar milestone evidence/i, 'documentation index must preserve historical Hive-Bar evidence as historical');
   requireMatch(docsReadme, /HV-1 through HV-5 are accepted/i, 'documentation index must bind accepted HV-5');
-  requireMatch(docsReadme, /POST_HV5_SEQUENCING_DECISION = PENDING/, 'documentation index must preserve sequencing pending');
-  requireMatch(docsReadme, /SELECTED_NEXT_LANE = NONE/, 'documentation index must remain lane-neutral');
-  requireMatch(docsReadme, /NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY/, 'documentation index must route current work to sequencing');
+  requireMatch(docsReadme, /POST_HV5_SEQUENCING_DECISION = ACCEPTED/, 'documentation index must bind accepted sequencing');
+  requireMatch(docsReadme, /SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER/, 'documentation index must bind selected HV-6 lane');
+  requireMatch(docsReadme, /PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION/, 'documentation index must identify proposed HV-6');
+  requireMatch(docsReadme, /NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION/, 'documentation index must route to HV-6 preregistration');
   requireMatch(docsReadme, /NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED/, 'documentation index must keep implementation unauthorized');
+  requireMatch(docsReadme, /GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY/, 'documentation index must keep GrapesJS unselected');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
@@ -179,14 +172,14 @@ function assertReleaseCoherence() {
   requireMatch(roadmap, /^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m, 'roadmap must bind accepted HV-5');
   requireMatch(roadmap, /^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'roadmap must preserve post-HV-3 historical routing');
   requireMatch(roadmap, /^POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'roadmap must preserve post-HV-4 as historical');
-  requireMatch(roadmap, /^POST_HV5_SEQUENCING_DECISION = PENDING$/m, 'roadmap must preserve post-HV-5 pending state');
-  requireMatch(roadmap, /^SELECTED_NEXT_LANE = NONE$/m, 'roadmap must not preselect a lane');
-  requireMatch(roadmap, /^PROPOSED_NEXT_MILESTONE = NONE$/m, 'roadmap must not preselect a milestone');
-  requireMatch(roadmap, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m, 'roadmap must route to post-HV-5 sequencing');
+  requireMatch(roadmap, /^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m, 'roadmap must bind accepted post-HV-5 decision');
+  requireMatch(roadmap, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m, 'roadmap must bind selected lane');
+  requireMatch(roadmap, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m, 'roadmap must identify proposed HV-6');
+  requireMatch(roadmap, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m, 'roadmap must route to HV-6 preregistration');
   requireMatch(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'roadmap must keep substantive implementation unauthorized');
-  requireMatch(roadmap, /^GRAPESJS = ELIGIBLE_POST_HV5_ADAPTER_CANDIDATE__NOT_SELECTED$/m, 'roadmap must keep GrapesJS unselected');
+  requireMatch(roadmap, /^GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m, 'roadmap must keep GrapesJS unselected');
+  requireMatch(roadmap, /^GRAPESJS_STUDIO_SDK = SECONDARY_REFERENCE__NOT_SELECTED_DEPENDENCY$/m, 'roadmap must keep Studio SDK unselected');
   requireMatch(roadmap, /^OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE$/m, 'roadmap must keep archetypes non-authoritative');
-  requireMatch(roadmap, /^SECOND_REAL_VENUE = ELIGIBLE_FOR_FRESH_SEQUENCING_REASSESSMENT$/m, 'roadmap must recognize the completed one-gate prerequisite');
   requireMatch(roadmap, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'roadmap must keep a real second venue unauthorized');
   requireMatch(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'roadmap must keep production mutation unauthorized');
   requireMatch(roadmap, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'roadmap must keep shared-runtime tenancy deferred');
@@ -261,13 +254,11 @@ function assertReleaseCoherence() {
   requireMatch(hv5ImplementationAuthorization, /^BROWSER_WYSIWYG_EDITOR = NOT_AUTHORIZED$/m, 'HV-5 authorization must have kept WYSIWYG outside scope');
   requireMatch(hv5ImplementationRoutingReconciliation, /^HV5_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED$/m, 'pre-implementation reconciliation must preserve its historical state');
   requireMatch(hv5ImplementationRoutingReconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION_IN_THIS_RECONCILIATION = NO$/m, 'pre-implementation reconciliation must remain maintenance only');
-
   requireMatch(hv5Implementation, /^OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION$/m, 'HV-5 implementation guide must bind HV-5');
   requireMatch(hv5Implementation, /^DOCUMENT_ROLE = IMPLEMENTATION_CONTRACT_AND_OPERATOR_GUIDE$/m, 'HV-5 implementation guide must have a durable role');
   requireMatch(hv5ImplementationReview, /^PROJECT_LEAD_IMPLEMENTATION_REVIEW = PASS$/m, 'HV-5 implementation review must record PASS');
   requireMatch(hv5ImplementationReview, /^REVIEWED_IMPLEMENTATION_HEAD = 0cdb7277f34ff3832aca29c19f489776c11f2f00$/m, 'HV-5 review must bind reviewed implementation head');
   requireMatch(hv5ImplementationReview, /^REVIEWED_QUALIFICATION_RUN = 33339236850$/m, 'HV-5 review must preserve pre-review qualification evidence');
-
   requireMatch(hv5Acceptance, /^OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION$/m, 'HV-5 acceptance must bind HV-5');
   requireMatch(hv5Acceptance, /^STATUS = PROJECT_LEAD_ACCEPTED$/m, 'HV-5 acceptance must record Project Lead acceptance');
   requireMatch(hv5Acceptance, /^QUALIFICATION_PR = 31$/m, 'HV-5 acceptance must bind qualification PR');
@@ -278,16 +269,31 @@ function assertReleaseCoherence() {
   requireMatch(hv5Acceptance, /^NEXT_OPERATION_AFTER_ACCEPTANCE = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m, 'HV-5 acceptance must route first to neutral reconciliation');
   requireMatch(hv5Acceptance, /^NEXT_SUBSTANTIVE_IMPLEMENTATION_AUTHORIZED = NO$/m, 'HV-5 acceptance must not authorize a later lane');
 
-  requireMatch(postHv5Reconciliation, /^OPERATION = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m, 'post-HV-5 reconciliation must bind its operation');
-  requireMatch(postHv5Reconciliation, /^ROLE = BOUNDED_MAINTENANCE_AND_NAVIGATION_RECONCILIATION$/m, 'post-HV-5 reconciliation must remain maintenance');
-  requireMatch(postHv5Reconciliation, /^SCIENTIFIC_OR_PRODUCT_LANE_SELECTION = NO$/m, 'post-HV-5 reconciliation must not select a lane');
-  requireMatch(postHv5Reconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m, 'post-HV-5 reconciliation must not implement a lane');
-  requireMatch(postHv5Reconciliation, /^PRODUCTION_MUTATION = NO$/m, 'post-HV-5 reconciliation must not mutate production');
-  requireMatch(postHv5Reconciliation, /^POST_HV5_SEQUENCING_DECISION = PENDING$/m, 'post-HV-5 reconciliation must preserve pending sequencing');
-  requireMatch(postHv5Reconciliation, /^SELECTED_NEXT_LANE = NONE$/m, 'post-HV-5 reconciliation must be lane-neutral');
-  requireMatch(postHv5Reconciliation, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m, 'post-HV-5 reconciliation must route to sequencing');
-  requireMatch(postHv5Reconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'post-HV-5 reconciliation must preserve non-authorization');
-  requireMatch(postHv5Reconciliation, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'post-HV-5 reconciliation must keep a real second venue unauthorized');
+  // Preserve the neutral reconciliation as historical and bind the accepted Post-HV-5 decision plus current reconciliation.
+  requireMatch(postHv5Reconciliation, /^OPERATION = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m, 'post-HV-5 neutral reconciliation must bind its operation');
+  requireMatch(postHv5Reconciliation, /^SELECTED_NEXT_LANE = NONE$/m, 'post-HV-5 neutral reconciliation must remain historically lane-neutral');
+  requireMatch(postHv5Reconciliation, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m, 'post-HV-5 neutral reconciliation must preserve its historical route');
+  requireMatch(postHv5Reconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'post-HV-5 neutral reconciliation must preserve non-authorization');
+
+  requireMatch(postHv5Decision, /^OPERATION = POST_HV5_SEQUENCING_DECISION$/m, 'Post-HV-5 decision must bind its operation');
+  requireMatch(postHv5Decision, /^STATUS = FROZEN_PROJECT_LEAD_SEQUENCING_DECISION$/m, 'Post-HV-5 decision must remain frozen');
+  requireMatch(postHv5Decision, /^CANONICAL_DECISION_BASE_COMMIT = 2f85fab09de5c48ef5ed2c6a774922d2f8583c03$/m, 'Post-HV-5 decision must bind the neutral base');
+  requireMatch(postHv5Decision, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m, 'Post-HV-5 decision must select visual authoring adapter');
+  requireMatch(postHv5Decision, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m, 'Post-HV-5 decision must propose HV-6');
+  requireMatch(postHv5Decision, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m, 'Post-HV-5 decision must route to HV-6 preregistration');
+  requireMatch(postHv5Decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'Post-HV-5 decision must preserve non-authorization');
+  requireMatch(postHv5Decision, /^GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m, 'Post-HV-5 decision must keep GrapesJS unselected');
+  requireMatch(postHv5Decision, /^REAL_SECOND_VENUE = HIGH_PRIORITY_AFTER_OR_DURING_REASSESSMENT__NOT_AUTHORIZED$/m, 'Post-HV-5 decision must preserve real-pilot disposition');
+  requireMatch(postHv5Decision, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'Post-HV-5 decision must preserve no production mutation');
+
+  requireMatch(postHv5DecisionReconciliation, /^OPERATION = POST_HV5_DECISION_ROUTING_RECONCILIATION$/m, 'decision reconciliation must bind its operation');
+  requireMatch(postHv5DecisionReconciliation, /^ROLE = BOUNDED_MAINTENANCE_AND_NAVIGATION_RECONCILIATION$/m, 'decision reconciliation must remain maintenance');
+  requireMatch(postHv5DecisionReconciliation, /^SCIENTIFIC_OR_PRODUCT_LANE_SELECTION = NO$/m, 'decision reconciliation must not reselect the lane');
+  requireMatch(postHv5DecisionReconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m, 'decision reconciliation must not implement HV-6');
+  requireMatch(postHv5DecisionReconciliation, /^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m, 'decision reconciliation must bind accepted sequencing');
+  requireMatch(postHv5DecisionReconciliation, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m, 'decision reconciliation must bind the selected lane');
+  requireMatch(postHv5DecisionReconciliation, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m, 'decision reconciliation must route to HV-6 preregistration');
+  requireMatch(postHv5DecisionReconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'decision reconciliation must preserve non-authorization');
 
   // Preserve production and inherited runtime safety irrespective of successor source progress.
   requireMatch(operations, /Runtime source identity: `\/healthz` publishes the exact deployed beta build label, commit, and tree/, 'operations must define runtime source identity through healthz');
@@ -337,6 +343,8 @@ function assertReleaseCoherence() {
     'docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_REVIEW_0_1_0.md',
     'docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md',
     'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md',
+    'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md',
+    'docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md',
     'docs/M17_1_V1_PRODUCT_BOUNDARY.md',
     'docs/M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md',
     'docs/M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md',
@@ -355,7 +363,7 @@ function assertReleaseCoherence() {
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
     acceptedSuccessorMilestones: 5,
-    nextOperation: 'POST_HV5_SEQUENCING_DECISION__READ_ONLY',
+    nextOperation: 'HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION',
   });
 }
 
