@@ -86,11 +86,17 @@ function assertFunctionalV1Baseline() {
   if (!/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m.test(roadmap)) {
     throw new Error('living successor roadmap must preserve accepted HV-2');
   }
-  if (!/^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must route current work to post-HV-2 sequencing');
+  if (!/^POST_HV2_SEQUENCING_DECISION = ACCEPTED$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must preserve the accepted post-HV-2 sequencing decision');
+  }
+  if (!/^NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must route current work to HV-3 venue-package preregistration');
   }
   if (!/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must not pre-authorize post-HV-2 implementation');
+    throw new Error('living successor roadmap must not pre-authorize HV-3 implementation');
+  }
+  if (!/^HV3_IMPLEMENTATION_STARTED = NO$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must record that HV-3 implementation has not started');
   }
   if (!/last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/.test(operations)) {
     throw new Error('production operations must retain M19.2 as the historical accepted M19.1 deployment event');
@@ -120,7 +126,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'POST_HV2_SEQUENCING_DECISION',
+    successorRouting: 'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION',
   });
 }
 
