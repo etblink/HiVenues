@@ -1,49 +1,30 @@
+<%
+  const gallerySlots = ['pool', 'bartender', 'exterior'];
+%>
 <section class="home-gallery" aria-labelledby="photos-heading">
   <div class="app-content-frame home-section">
     <header class="home-section-heading home-gallery__heading">
       <div>
-        <p class="home-kicker">Inside 4th Street Bar</p>
-        <h2 id="photos-heading">A real look at the place</h2>
+        <p class="home-kicker"><%= venuePackage.home.gallery.kicker %></p>
+        <h2 id="photos-heading"><%= venuePackage.home.gallery.heading %></h2>
       </div>
-      <p>Candid photographs from the pool table, the bar, and the East 4th Street entrance.</p>
+      <p><%= venuePackage.home.gallery.intro %></p>
     </header>
 
     <div class="home-gallery__grid">
-      <figure class="home-gallery__item home-gallery__item--pool">
-        <img
-          src="/images/fourth-street-bar-pool-table.jpg"
-          alt="Pool table and crossed cues inside 4th Street Bar"
-          width="720"
-          height="960"
-          loading="lazy"
-          decoding="async"
-          class="home-gallery__image w-full">
-        <figcaption>Pool at the heart of the bar</figcaption>
-      </figure>
-
-      <figure class="home-gallery__item home-gallery__item--bartender">
-        <img
-          src="/images/fourth-street-bar-bartender.jpg"
-          alt="A bartender behind the bar holding a 4th Street Bar mug"
-          width="768"
-          height="960"
-          loading="lazy"
-          decoding="async"
-          class="home-gallery__image w-full">
-        <figcaption>A welcome from behind the bar</figcaption>
-      </figure>
-
-      <figure class="home-gallery__item home-gallery__item--exterior">
-        <img
-          src="/images/fourth-street-bar-exterior.jpg"
-          alt="The 4th Street Bar entrance and sign on East 4th Street in Reno"
-          width="720"
-          height="960"
-          loading="lazy"
-          decoding="async"
-          class="home-gallery__image w-full">
-        <figcaption>1114 East 4th Street</figcaption>
-      </figure>
+      <% venuePackage.home.gallery.items.forEach((item, index) => { %>
+        <figure class="home-gallery__item <%= gallerySlots[index] ? `home-gallery__item--${gallerySlots[index]}` : '' %>">
+          <img
+            src="<%= item.src %>"
+            alt="<%= item.alt %>"
+            width="<%= item.width %>"
+            height="<%= item.height %>"
+            loading="lazy"
+            decoding="async"
+            class="home-gallery__image w-full">
+          <figcaption><%= item.caption %></figcaption>
+        </figure>
+      <% }) %>
     </div>
   </div>
 </section>

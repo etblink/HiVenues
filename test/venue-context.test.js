@@ -8,6 +8,10 @@ const { createApp } = require('../src/app');
 const { loadConfig } = require('../src/config');
 const { createVenueContext } = require('../src/venue/context');
 const { FOURTH_STREET_REFERENCE_VENUE } = require('../src/venue/reference/fourth-street');
+const {
+  HV3_SYNTHETIC_PACKAGE,
+  HV3_SYNTHETIC_VENUE,
+} = require('./support/hv3-synthetic-venue');
 
 function testConfig(options = {}) {
   return loadConfig(
@@ -17,23 +21,7 @@ function testConfig(options = {}) {
 }
 
 function syntheticVenue() {
-  return createVenueContext({
-    id: 'synthetic-venue',
-    displayName: 'Synthetic Venue',
-    business: {
-      address: '1 Test Avenue, Example, NV 89000',
-      phone: '(555) 010-2000',
-      hours: 'Daily, 10:00 a.m.–10:00 p.m.',
-      websiteUrl: 'https://venue.example/',
-      mapUrl: 'https://venue.example/map',
-    },
-    hive: {
-      communityId: 'hive-123456',
-      officialAccount: 'syntheticvenue',
-      threadsContainerAccount: 'synthetic.threads',
-      paymentMerchantAccounts: ['syntheticvenue'],
-    },
-  });
+  return HV3_SYNTHETIC_VENUE;
 }
 
 test('default configuration compiles the canonical Fourth Street reference venue', () => {
@@ -51,23 +39,25 @@ test('default configuration compiles the canonical Fourth Street reference venue
   assert.equal(Object.isFrozen(config.venue.hive), true);
 });
 
-test('explicit synthetic venue context rebinds application venue-scoped identity without network access', () => {
+test('explicit synthetic venue context and package rebind application identity without network access', () => {
   const venue = syntheticVenue();
   const config = testConfig();
   const app = createApp({
     config,
     venue,
+    venuePackage: HV3_SYNTHETIC_PACKAGE,
     deploymentIdentity: { build: 'test', commit: 'test', tree: 'test' },
   });
 
-  assert.equal(app.locals.venue.id, 'synthetic-venue');
-  assert.equal(app.locals.siteName, 'Synthetic Venue');
-  assert.equal(app.locals.business.address, '1 Test Avenue, Example, NV 89000');
-  assert.equal(app.locals.config.hive.communityId, 'hive-123456');
-  assert.equal(app.locals.config.hive.officialAccount, 'syntheticvenue');
-  assert.equal(app.locals.config.hive.officialBarAccount, 'syntheticvenue');
-  assert.equal(app.locals.config.hive.threadsContainerAccount, 'synthetic.threads');
-  assert.deepEqual(app.locals.config.payments.merchantAccounts, ['syntheticvenue']);
+  assert.equal(app.locals.venue.id, 'lantern-room-fixture');
+  assert.equal(app.locals.venuePackage.id, 'lantern-room-fixture-package');
+  assert.equal(app.locals.siteName, 'The Lantern Room (Fixture)');
+  assert.equal(app.locals.business.address, '1 Example Way, Testville, NV 89000');
+  assert.equal(app.locals.config.hive.communityId, 'hive-654321');
+  assert.equal(app.locals.config.hive.officialAccount, 'lanternroom');
+  assert.equal(app.locals.config.hive.officialBarAccount, 'lanternroom');
+  assert.equal(app.locals.config.hive.threadsContainerAccount, 'lantern.threads');
+  assert.deepEqual(app.locals.config.payments.merchantAccounts, ['lanternroom']);
   assert.equal(app.locals.config.hive.writeMode, config.hive.writeMode);
   assert.equal(app.locals.config.hive.appTag, config.hive.appTag);
 

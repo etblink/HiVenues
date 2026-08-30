@@ -13,15 +13,15 @@
 <header class="app-shell-header [backdrop-filter:none]">
   <a href="/" class="app-brand" aria-label="<%= siteName %> home">
     <img
-      src="/images/fourth-street-bar-logo.jpg"
+      src="<%= venuePackage.brand.logo.src %>"
       alt=""
-      width="720"
-      height="720"
+      width="<%= venuePackage.brand.logo.width %>"
+      height="<%= venuePackage.brand.logo.height %>"
       decoding="async"
       class="app-brand__logo max-w-full"
       data-bar-logo>
     <span class="app-brand__wordmark">
-      <strong>4th Street Bar</strong>
+      <strong><%= siteName %></strong>
       <span>Hive-Bar</span>
     </span>
   </a>
@@ -88,7 +88,7 @@
                 to verify your Hive account by signing a login message. This does not send a transaction. Never enter a private key here.
               </p>
               <p class="app-field-hint">
-                New to Hive? <a class="underline hover:text-bar-gold" href="/create-account">Create an account at 4th Street Bar.</a>
+                New to Hive? <a class="underline hover:text-bar-gold" href="/create-account">Create an account at <%= siteName %>.</a>
               </p>
               <p id="hive-login-status" class="app-field-hint min-h-5" role="status" aria-live="polite" data-keychain-status></p>
             </form>
