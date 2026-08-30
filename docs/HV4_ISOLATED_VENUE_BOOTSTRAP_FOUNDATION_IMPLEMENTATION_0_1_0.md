@@ -24,6 +24,11 @@ A bootstrap input is non-secret JSON with this top-level shape:
 {
   "schemaVersion": 1,
   "bootstrapId": "example-offline-bootstrap",
+  "bindings": {
+    "venueId": "example-venue",
+    "packageId": "example-venue-package",
+    "deploymentId": "example-offline-deployment"
+  },
   "venueContext": {},
   "venuePackage": {},
   "deploymentManifest": {},
@@ -35,7 +40,9 @@ A bootstrap input is non-secret JSON with this top-level shape:
 
 The envelope is strict. Unknown top-level fields are rejected; there is intentionally no `venueType` field.
 
-The bootstrap layer does not define parallel venue or deployment schemas. It delegates the three domain objects to the accepted authorities:
+`bindings` is not a parallel domain schema. It is an explicit operator declaration of the three identities that are intended to compose. After the authoritative validators run, HV-4 compares each declared identity with the validated result and fails closed on any mismatch. This prevents a valid deployment for one isolated venue from being silently paired with another venue/package merely because each object is independently well-formed.
+
+The bootstrap layer delegates the three domain objects to the accepted authorities:
 
 ```text
 venueContext       -> createVenueContext(...)
@@ -43,7 +50,7 @@ venuePackage       -> createVenuePackage(..., venueContext)
 deploymentManifest -> compileDeploymentProfile(...)
 ```
 
-The venue-package validator therefore remains responsible for venue/package identity binding, while the deployment-profile compiler remains responsible for provider, topology, release, storage, and provenance validation.
+The venue-package validator therefore remains responsible for venue/package binding, while the HV-4 composition layer adds the explicit three-way venue/package/deployment identity check. The deployment-profile compiler remains responsible for provider, topology, release, storage, and provenance validation.
 
 ## Secret boundary
 
@@ -69,7 +76,7 @@ From a qualified repository checkout:
 node scripts/validate-venue-bootstrap.js path/to/non-secret-bootstrap.json
 ```
 
-A valid input prints one deterministic normalized JSON review document to stdout. The review makes these identities explicit:
+A valid input prints one deterministic normalized JSON review document to stdout. The review makes these validated identities explicit:
 
 ```text
 venueId
@@ -81,7 +88,7 @@ The command performs no network request, writes no generated venue source, chang
 
 ## Synthetic proof
 
-The focused HV-4 qualification uses the existing fictional **The Lantern Room (Fixture)** venue/package from HV-3 and adds only a test-only deployment manifest.
+The focused HV-4 qualification uses the existing fictional **The Lantern Room (Fixture)** venue/package from HV-3 and adds only a test-only deployment manifest plus explicit identity bindings.
 
 The proof remains materially non-bar:
 
@@ -90,7 +97,7 @@ operatorNoun = reading room
 staffRole = host
 ```
 
-Its deployment uses only fixture identities, `.invalid` hostnames, `/tmp` paths, one application instance, automatic deploys disabled, and no real account or infrastructure credential.
+Its deployment uses only fixture identities, `.invalid` hostnames, `/tmp` paths, one application instance, automatic deploys disabled, and no real account or infrastructure credential. A focused negative control also proves that the valid Fourth Street deployment manifest is rejected when supplied under the Lantern Room deployment binding.
 
 ## Deliberate non-effects
 
