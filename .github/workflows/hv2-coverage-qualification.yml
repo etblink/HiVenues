@@ -1,0 +1,85 @@
+name: HV-2 Coverage Qualification
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hv2-coverage-qualification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  coverage-compare:
+    name: Exact parent vs clean HV-2 coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out clean HV-2 candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 1b7549b31bd8692497061eaacfdcbc39a91b8a20
+          path: candidate
+          persist-credentials: false
+
+      - name: Check out exact canonical parent
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 0bfa6753f08c87242ffbf9c9cc7a059c7e71a497
+          path: baseline
+          persist-credentials: false
+
+      - name: Set up exact Node.js runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: candidate/.nvmrc
+          package-manager-cache: false
+
+      - name: Verify candidate runtime provenance
+        working-directory: candidate
+        run: npm run release:check:runtime
+
+      - name: Install candidate dependencies
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-fund
+
+      - name: Apply candidate pinned dependency patch
+        working-directory: candidate
+        run: npx --no-install patch-package
+
+      - name: Run candidate coverage
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -o pipefail
+          echo '=== HV2_CANDIDATE_COVERAGE_BEGIN ==='
+          npm run test:coverage | tee "$GITHUB_WORKSPACE/candidate-coverage.txt"
+          echo '=== HV2_CANDIDATE_COVERAGE_END ==='
+
+      - name: Verify baseline runtime provenance
+        working-directory: baseline
+        run: npm run release:check:runtime
+
+      - name: Install baseline dependencies
+        working-directory: baseline
+        run: npm ci --ignore-scripts --no-fund
+
+      - name: Apply baseline pinned dependency patch
+        working-directory: baseline
+        run: npx --no-install patch-package
+
+      - name: Run exact-parent coverage
+        working-directory: baseline
+        shell: bash
+        run: |
+          set -o pipefail
+          echo '=== HV2_BASELINE_COVERAGE_BEGIN ==='
+          npm run test:coverage | tee "$GITHUB_WORKSPACE/baseline-coverage.txt"
+          echo '=== HV2_BASELINE_COVERAGE_END ==='
+
+      - name: Print aggregate coverage summaries
+        shell: bash
+        run: |
+          echo '=== HV2_CANDIDATE_AGGREGATE ==='
+          grep '^all files' candidate-coverage.txt || true
+          echo '=== HV2_BASELINE_AGGREGATE ==='
+          grep '^all files' baseline-coverage.txt || true
