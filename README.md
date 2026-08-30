@@ -8,13 +8,14 @@ The platform does not currently require a universal venue-type taxonomy. A bar m
 
 ## Current successor state
 
-The first three successor architecture milestones are accepted:
+The first four successor architecture milestones are accepted:
 
 - **HV-1 — Venue Context Foundation:** explicit validated venue identity, business facts, Hive bindings, and merchant identity.
 - **HV-2 — Reference Deployment Profile Extraction:** explicit validated deployment identity and Fourth Street/Privex compatibility facts.
 - **HV-3 — Reference Venue Package Extraction:** explicit validated authored venue expression, media metadata, and venue-facing presentation material.
+- **HV-4 — Isolated Venue Bootstrap Foundation:** deterministic, secret-safe composition and review of one isolated venue from explicit venue, package, deployment, and composition-binding inputs without a source fork.
 
-The accepted Post-HV-3 Sequencing Decision selects **isolated-venue bootstrap and successor developer experience** as the next lane. The next bounded operation is **HV-4 Isolated Venue Bootstrap Foundation Preregistration**. HV-4 implementation, a second real venue, live production mutation, and shared-runtime tenancy are not authorized by that routing decision.
+HV-4 does not admit a real second venue, mutate production, create shared-runtime tenancy, select a venue taxonomy/template system, or choose a WYSIWYG/editor/distributed-publication/media stack. A fresh post-HV-4 sequencing decision is the next operation and will evaluate those candidate lanes against the now-proven bootstrap contract rather than preselecting one.
 
 The near-term runtime model remains:
 
@@ -28,6 +29,8 @@ VENUE_CONTEXT
 VENUE_PACKAGE
 +
 DEPLOYMENT_PROFILE
++
+BOOTSTRAP_COMPOSITION_BINDINGS
 =
 ONE_ISOLATED_VENUE_RUNTIME
 ```
@@ -53,11 +56,11 @@ The inherited Hive-Bar codebase contains a mature assurance boundary that succes
 
 These are platform assets. They are not Fourth Street branding.
 
-## What HV-1 through HV-3 established
+## What HV-1 through HV-4 established
 
-HV-1 made the runtime consume a validated venue context instead of relying on hidden canonical venue identifiers. HV-2 made deployment identity an explicit validated dependency while preserving the exact current Fourth Street production compatibility namespace. HV-3 made authored venue content and media an explicit validated venue package and proved an alternate fictional venue can use the same generic application path offline without a source fork.
+HV-1 made the runtime consume a validated venue context instead of relying on hidden canonical venue identifiers. HV-2 made deployment identity an explicit validated dependency while preserving the exact current Fourth Street production compatibility namespace. HV-3 made authored venue content and media an explicit validated venue package and proved an alternate fictional venue can use the same generic application path offline without a source fork. HV-4 composes those accepted authorities into a deterministic offline bootstrap/review boundary with explicit venue/package/deployment identity binding and secret exclusion.
 
-Together they establish an explicit source-level composition. HV-4 is intended to turn that composition into a reproducible developer/operator bootstrap workflow before a real second venue is admitted.
+Together they establish a reproducible one-isolated-venue composition contract. The next question is no longer whether another venue can be represented or composed offline; it is which product/developer capability should be proven next without weakening the accepted safety and ownership boundaries.
 
 ## Source identity versus production identity
 
@@ -132,13 +135,17 @@ HV-2 retains `ops/privex/manifest.json` as the reviewed Fourth Street reference-
 
 HV-3 introduces a validated, deeply immutable venue package containing or referencing authored venue expression and media while preserving universal platform/security language outside venue configuration.
 
-The Post-HV-3 decision routes next to **HV-4 Isolated Venue Bootstrap Foundation Preregistration**. That prospective contract must define the minimum reviewable, deterministic, secret-free inputs required to compose one isolated venue runtime without source forks or hidden Fourth Street assumptions. It must remain neutral to venue category unless a future product requirement supplies a real taxonomy.
+HV-4 adds a strict offline bootstrap envelope that delegates domain validation to HV-1/HV-2/HV-3, requires explicit venue/package/deployment identity bindings, rejects secret-bearing material before review output, and emits deterministic normalized composition JSON through `scripts/validate-venue-bootstrap.js`.
+
+The next operation is a fresh post-HV-4 sequencing decision. Candidate lanes include a real isolated second-venue pilot, developer/no-code authoring and optional starter archetypes, distributed publication/provenance experiments, media integrations, fleet tooling, and bounded successor-identity maintenance. None is selected merely by appearing here.
 
 ## Distributed publication and replication research
 
-A bounded Kubo/IPFS immutable-publication experiment is eligible downstream but is not the selected next operation. A later experiment should publish an explicitly defined immutable venue artifact rather than assume the dynamic Express application is already a static site.
+Content-addressed publication remains an eligible downstream research lane. A bounded experiment may pair Git commit/tree provenance with a CID for an explicitly defined immutable venue artifact. IPNS may later be evaluated as a mutable pointer to successive immutable CIDs, but neither CID nor IPNS replaces Git commit/tree identity for source provenance.
 
 Helia/OrbitDB replication remains deferred until the project can name a concrete non-authoritative data domain whose product value justifies replicated mutable state, privacy/access-control rules, and conflict-resolution complexity.
+
+3Speak/SPKNetwork remains a candidate media/content lane rather than an auth/payment/private-state authority. Any adoption requires a separately selected and preregistered use case.
 
 ## Documentation policy
 
@@ -148,8 +155,7 @@ Living successor documents:
 - `docs/ROADMAP.md` — current and next project sequencing;
 - `docs/README.md` — living-vs-historical documentation index;
 - `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted architecture baseline;
-- `docs/HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-3 implementation and qualification record;
-- `docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md` — accepted post-HV-3 lane selection and HV-4 preregistration routing;
+- `docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted HV-4 implementation and qualification record;
 - `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded.
 
 Historical Hive-Bar milestones and prior HV preregistrations/decisions remain provenance. They are not rewritten to sound current and do not override the living routing surfaces.
