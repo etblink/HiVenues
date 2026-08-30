@@ -61,7 +61,7 @@ test('C2-A exposes the reviewed profile action in beta while preserving the pre-
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'POST_HV2_SEQUENCING_DECISION',
+    successorRouting: 'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION',
   });
 });
 
@@ -95,13 +95,17 @@ test('accepted M17 invariants coexist with historical M19.2 deployment evidence 
     readme,
     /HV-1, the Venue Context Foundation, and HV-2, Reference Deployment Profile Extraction, are accepted successor milestones/,
   );
+  assert.match(readme, /accepted Post-HV-2 Sequencing Decision selects \*\*venue packaging\*\*/);
   assert.match(readme, /last recorded accepted production transition in the inherited record is M19\.2/);
   assert.match(readme, /No successor source refactor by itself authorizes a production deployment/);
 
   assert.match(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m);
   assert.match(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m);
-  assert.match(roadmap, /^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m);
+  assert.match(roadmap, /^POST_HV2_SEQUENCING_DECISION = ACCEPTED$/m);
+  assert.match(roadmap, /^SELECTED_NEXT_LANE = VENUE_PACKAGING$/m);
+  assert.match(roadmap, /^NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION$/m);
   assert.match(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+  assert.match(roadmap, /^HV3_IMPLEMENTATION_STARTED = NO$/m);
   assert.match(roadmap, /## Historical Hive-Bar line/);
   assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
   assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
@@ -117,6 +121,7 @@ test('accepted M17 invariants coexist with historical M19.2 deployment evidence 
   assert.match(index, /## Historical Hive-Bar evidence/);
   assert.match(index, /All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence/);
   assert.match(index, /original Git object graph is preserved/);
+  assert.match(index, /POST_HV2_SEQUENCING_DECISION_0_1_0\.md/);
 
   assert.match(milestone, /No cosmetic redesign is required for M17\.4 acceptance/);
   assert.match(milestone, /canonicalization is not part of this source-qualification authorization/);
