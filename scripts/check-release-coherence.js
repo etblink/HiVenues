@@ -82,6 +82,7 @@ function assertReleaseCoherence() {
   const architectureDecision = read('docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md');
   const hv2Preregistration = read('docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md');
   const hv2Acceptance = read('docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md');
+  const postHv2Decision = read('docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
   if (pkg.version !== PACKAGE_VERSION) throw new Error('package version source is inconsistent');
@@ -127,8 +128,13 @@ function assertReleaseCoherence() {
   );
   requireMatch(
     readme,
-    /next bounded governance operation is \*\*Post-HV-2 Sequencing Decision\*\*/i,
-    'README must route to the post-HV-2 sequencing decision',
+    /next bounded operation is \*\*HV-3 Reference Venue Package Extraction Preregistration\*\*/i,
+    'README must route to HV-3 venue-package preregistration',
+  );
+  requireMatch(
+    readme,
+    /HV-3 implementation, a second real venue, live production mutation, and shared-runtime tenancy remain unauthorized/,
+    'README must preserve the post-HV-2 non-authorization boundary',
   );
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
@@ -144,6 +150,11 @@ function assertReleaseCoherence() {
   );
   requireMatch(
     docsReadme,
+    /POST_HV2_SEQUENCING_DECISION_0_1_0\.md/,
+    'documentation index must route to the accepted post-HV-2 sequencing decision',
+  );
+  requireMatch(
+    docsReadme,
     /historical Hive-Bar milestone evidence/i,
     'documentation index must preserve historical Hive-Bar evidence as historical',
   );
@@ -154,13 +165,33 @@ function assertReleaseCoherence() {
   requireMatch(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'roadmap must bind accepted HV-2');
   requireMatch(
     roadmap,
-    /^NEXT_OPERATION = POST_HV2_SEQUENCING_DECISION$/m,
-    'roadmap must route to post-HV-2 sequencing',
+    /^POST_HV2_SEQUENCING_DECISION = ACCEPTED$/m,
+    'roadmap must bind the accepted post-HV-2 decision',
+  );
+  requireMatch(
+    roadmap,
+    /^SELECTED_NEXT_LANE = VENUE_PACKAGING$/m,
+    'roadmap must bind venue packaging as the selected lane',
+  );
+  requireMatch(
+    roadmap,
+    /^NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION$/m,
+    'roadmap must route to HV-3 venue-package preregistration',
   );
   requireMatch(
     roadmap,
     /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m,
-    'roadmap must not pre-authorize a post-HV-2 implementation lane',
+    'roadmap must not pre-authorize HV-3 implementation',
+  );
+  requireMatch(
+    roadmap,
+    /^HV3_IMPLEMENTATION_STARTED = NO$/m,
+    'roadmap must record that HV-3 implementation has not started',
+  );
+  requireMatch(
+    roadmap,
+    /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m,
+    'roadmap must keep a real second venue unauthorized',
   );
   requireMatch(
     roadmap,
@@ -191,7 +222,7 @@ function assertReleaseCoherence() {
   requireMatch(
     architectureDecision,
     /HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION/,
-    'architecture decision must preserve its HV-2 sequencing rationale',
+    'architecture decision must preserve its historical HV-2 sequencing rationale',
   );
 
   requireMatch(
@@ -218,8 +249,16 @@ function assertReleaseCoherence() {
   requireMatch(hv2Acceptance, /^IMPLEMENTATION_TREE = 64bc51e164b7fdc4218d8928897627dfc7602028$/m, 'HV-2 acceptance must bind the clean implementation tree');
   requireMatch(hv2Acceptance, /^LIVE_PRODUCTION_MUTATION = NO$/m, 'HV-2 acceptance must record no live production mutation');
   requireMatch(hv2Acceptance, /^COVERAGE_NO_MATERIAL_REGRESSION = PASS$/m, 'HV-2 acceptance must record the coverage gate');
-  requireMatch(hv2Acceptance, /^NEXT_OPERATION_AFTER_INTEGRATION = POST_HV2_SEQUENCING_DECISION$/m, 'HV-2 acceptance must route to post-HV-2 sequencing');
+  requireMatch(hv2Acceptance, /^NEXT_OPERATION_AFTER_INTEGRATION = POST_HV2_SEQUENCING_DECISION$/m, 'HV-2 acceptance must preserve its historical route to post-HV-2 sequencing');
   requireMatch(hv2Acceptance, /^NEXT_SUBSTANTIVE_IMPLEMENTATION_AUTHORIZED = NO$/m, 'HV-2 acceptance must not pre-authorize successor implementation');
+
+  requireMatch(postHv2Decision, /^OPERATION = POST_HV2_SEQUENCING_DECISION$/m, 'post-HV-2 decision must bind its operation');
+  requireMatch(postHv2Decision, /^STATUS = FROZEN_PROJECT_LEAD_SEQUENCING_DECISION$/m, 'post-HV-2 decision must be frozen');
+  requireMatch(postHv2Decision, /^SELECTED_NEXT_LANE = VENUE_PACKAGING$/m, 'post-HV-2 decision must select venue packaging');
+  requireMatch(postHv2Decision, /^NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION$/m, 'post-HV-2 decision must route to HV-3 preregistration');
+  requireMatch(postHv2Decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'post-HV-2 decision must not authorize substantive implementation');
+  requireMatch(postHv2Decision, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'post-HV-2 decision must keep a real second venue unauthorized');
+  requireMatch(postHv2Decision, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'post-HV-2 decision must keep shared-runtime tenancy deferred');
 
   requireMatch(
     operations,
@@ -271,6 +310,7 @@ function assertReleaseCoherence() {
     'docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md',
     'docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md',
     'docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md',
+    'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md',
     'docs/M17_1_V1_PRODUCT_BOUNDARY.md',
     'docs/M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md',
     'docs/M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md',
@@ -288,7 +328,7 @@ function assertReleaseCoherence() {
     packageVersion: PACKAGE_VERSION,
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
-    nextOperation: 'POST_HV2_SEQUENCING_DECISION',
+    nextOperation: 'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION',
   });
 }
 
