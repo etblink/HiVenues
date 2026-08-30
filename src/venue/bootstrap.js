@@ -6,7 +6,7 @@ const { createVenueContext } = require('./context');
 const { createVenuePackage } = require('./package');
 
 const BOOTSTRAP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SECRET_FIELD_PATTERN = /(?:secret|password|privatekey|apikey|token|credential|sshkey)$/i;
+const SECRET_FIELD_PATTERN = /(?:secret|password|privatekey|apikey|token|credential|authorization|sshkey|signature)$/i;
 const PRIVATE_MATERIAL_PATTERNS = [
   /-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----/i,
   /\b5[HJK][1-9A-HJ-NP-Za-km-z]{48,50}\b/,
@@ -47,11 +47,33 @@ function normalizedKey(value) {
   return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
+function assertUrlHasNoCredentialMaterial(value, location) {
+  if (!/^https?:\/\//i.test(value)) return;
+
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return;
+  }
+
+  if (url.username || url.password) {
+    throw new VenueBootstrapError(`${location} contains URL userinfo credentials`);
+  }
+
+  for (const key of url.searchParams.keys()) {
+    if (SECRET_FIELD_PATTERN.test(normalizedKey(key))) {
+      throw new VenueBootstrapError(`${location} contains a secret-bearing URL query parameter`);
+    }
+  }
+}
+
 function assertNoSecretMaterial(value, location = 'bootstrap', seen = new WeakSet()) {
   if (typeof value === 'string') {
     if (PRIVATE_MATERIAL_PATTERNS.some((pattern) => pattern.test(value))) {
       throw new VenueBootstrapError(`${location} contains private key material`);
     }
+    assertUrlHasNoCredentialMaterial(value, location);
     return;
   }
 
