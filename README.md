@@ -1,76 +1,141 @@
-# Hive-Bar
+# Hive-Venues
 
-Hive-Bar is a focused Hive blockchain frontend for the 4th Street Bar. Canonical integrated source is `main`; because `main` advances independently of production, its exact commit/tree must be resolved from GitHub at the time of qualification or release. The deployed beta reports its own exact build label, commit, and tree through `/healthz` after R0 is deployed. M19.2 remains the historical deployment event that put accepted M19.1 source at commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4` (tree `1a4bb993ad59ca67032997d8938696a079a71e1f`) on `fourthstreetbar.com` under the accepted beta self-signing runtime; living documentation must not infer the current runtime identity from that historical event.
+Hive-Venues is a successor platform for building venue-native community and social experiences on Hive. It preserves the strongest engineering and product work from the original Hive-Bar application while separating reusable platform machinery from venue identity and deployment-specific policy.
 
-## Current functional boundary
+**Fourth Street Bar in Reno is the reference venue and first real deployment.** It is not the platform identity, and it is not treated as a disposable demo. The successor is designed so that strong venue-specific content, photography, policies, and community identity remain first-class while shared protocol/security machinery can be maintained once.
 
-Canonical source currently defines the beta write manifest in `src/beta/actions.js` as exactly `post`, `comment`, `vote`, `follow`, `unfollow`, `subscribe`, `unsubscribe`, `claim-rewards`, `wall`, `inbox`, and `thread`. Every user-owned write is reviewed before one local Hive Keychain request and independently observed afterward. No server private key or broadcast RPC method exists, and automatic rebroadcast is prohibited. The action set actually available to a tester is determined by the exact deployed beta build and runtime profile, so bind tester reports to the visible beta build label rather than inferring runtime behavior from this moving branch.
+## Current successor state
 
-The dormant V1 source manifest in `src/v1/actions.js` contains `post`, `thread`, `comment`, `vote`, `follow`, `unfollow`, `subscribe`, `unsubscribe`, `profile`, `claim-rewards`, `wall`, and `inbox`. Pay Tab activation, Distriator, controlled operator posting, delegated staff posting, and additional wallet operations remain outside that V1 self-signing gate. The product itself remains beta until iterative testing supports an explicit V1 graduation decision.
+HV-1, the Venue Context Foundation, is accepted and canonical. The application can now be constructed with an explicit validated venue context while the default/reference construction preserves the established Fourth Street values and behavior.
 
-M17 is complete. M18 is accepted through M18.4. M19.1 completed the final patron copy/onboarding-readiness pass and M19.2 deployed it exactly under beta. Later integrated source has advanced beyond that historical deployment boundary; runtime identity must therefore be established from the deployed release rather than this narrative. M19.3 in-person Hive onboarding remains disabled by default and source qualification does not authorize a live account creation or delegation.
+The current architecture decision is documented in `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. The default near-term model is:
 
-See `docs/ROADMAP.md` for the living milestone roadmap and `docs/README.md` for the documentation index.
-
-## Production topology
-
-Production is one Privex Debian 13 VPS behind Cloudflare and Caddy. Node listens only on `127.0.0.1:3000`. The pinned runtime is Node.js `24.19.0` with npm `11.17.0`. Exact-commit deployment is deliberately read-only gated before restoration of any separately accepted beta runtime environment.
-
-Current operations guidance lives in `docs/PRODUCTION_OPERATIONS.md`. Historical milestone documents remain preserved as evidence and should not be treated as current runbooks unless the documentation index says otherwise.
-
-## Local development
-
-Prerequisites: Node.js `24.19.0` and npm `11.17.0`.
-
-```sh
-git clone https://github.com/etblink/Hive-Bar.git
-cd Hive-Bar
-cp .env.example .env
-npm ci
-npm run build
-npm start
+```text
+HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
++
+PLATFORM_APPLICATION_PRIMITIVES
++
+VENUE_PACKAGE
++
+DEPLOYMENT_PROFILE
+=
+ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-Development mode rebuilds CSS and watches the Node process with `npm run dev`. Non-release development/test application construction reports the explicit non-production build label `beta-dev`; it never fabricates a production commit or tree.
+Hive-Venues does **not** currently claim request-time shared multi-tenancy. The inherited durable payment, moderation, and onboarding stores are intentionally treated as venue-local until a future operation explicitly proves safe tenant scoping. Multiple venues can instead run isolated instances from the same platform lineage.
 
-## Deterministic quality gates
+See `docs/ROADMAP.md` for current sequencing and `docs/README.md` for the documentation index.
 
-Run `npm run check` for the credential scan, release/documentation coherence checks, M17 functional-baseline check, ESLint, production CSS build, deterministic tests, and high-severity production dependency audit. Visual acceptance remains separately qualified by the pinned-Chromium M18.2, M18.3, and M18.4 jobs.
+## What is being preserved
 
-Useful release checks include `release:check:runtime`, `release:check:read-only`, `release:check:privex`, `release:check:beta`, `release:check:v1`, and `release:check:functional-v1`. Production activation still requires separate explicit authorization.
+The inherited Hive-Bar codebase has a mature assurance boundary that successor work should improve around rather than casually discard:
 
-## Primary surfaces
+- Hive Keychain remains the user-side signing/custody boundary.
+- The server does not hold Hive private keys.
+- The server contains no Hive broadcast RPC implementation.
+- User-owned writes are explicitly reviewed before signing.
+- Ambiguous post-Keychain acceptance never triggers automatic rebroadcast.
+- Hive observations are read independently after a signing attempt.
+- Payment preparation, idempotency, replay prevention, durable receipt state, cancellation, and chain confirmation are fail-closed.
+- Structured input validation, sanitization, session ownership, origin/CSRF checks, and rate limits are extensively tested.
+- Release identity and rollback discipline are exact rather than inferred.
+- Accessibility, responsive behavior, and accepted visual states are covered by automated and rendered-evidence gates.
 
-- `/` — venue information and official updates
-- `/create-account` — in-person Hive account onboarding entry point (inactive until separately enabled)
-- `/community` — community information and posts
-- `/community/threads` — thread surface
-- `/post/:author/:permlink` — post and replies
-- `/profile/:username` — public profile
-- `/profile/:username/wallet` — read-only wallet/HP/reward information
-- `/profile/:username/followers` and `/following` — social graph
-- `/profile/:username/wall-posts` — public fee-qualified wall messages
-- `/profile/:username/inbox` — verified-owner encrypted inbox
-- `/profile/:username/settings` — verified-owner profile/wall settings
-- `/healthz` and `/readyz` — liveness/build identity and Hive-backed readiness
+These properties are platform assets. They are not tied to Fourth Street branding.
 
-## Safety invariants
+## What is free to evolve
 
-- user identity is server-verified from Hive authority and a local Keychain signature;
-- write operations are prepared deterministically and reviewed before signing;
-- the server stores no private Hive key and exposes no broadcast method;
-- private Inbox plaintext is encrypted client-side before the transfer memo reaches the server;
-- M19.3 customer account credentials are generated in-browser and only public keys may be submitted to Hive-Bar;
-- the M19.3 bartender transaction is separately gated, Active-authority Keychain-signed, and locked to one attempt before Keychain opens;
-- a Keychain-accepted or ambiguous operation is never automatically rebroadcast;
-- post-broadcast confirmation is read-only and can be rechecked without preparing a new operation;
-- first-party browser assets use runtime-byte SHA-256 versioning;
-- payments, Distriator, controlled/operator lanes, and delegated staff authority are not part of V1 self-signing.
+The successor is not limited to tenant abstraction. Product quality is the governing objective. Future operations may reconstruct or replace inherited layers when evidence supports doing so, including:
 
-## Repository governance
+- repository/package/developer identity;
+- shared shell and navigation;
+- desktop social/profile composition;
+- venue package and asset structure;
+- deployment/configuration architecture;
+- onboarding and venue-policy packaging;
+- new-venue bootstrap and fleet operations.
 
-Canonical integrated source is `main`; never equate a moving branch with production by documentation assertion. Production identity is the exact commit/tree installed in `/opt/hive-bar/current`, surfaced as `beta-<short-sha>` in the application shell and as full build/commit/tree fields in `/healthz`. Historical deployment records remain evidence of past transitions, not substitutes for runtime identity. No source milestone implicitly consumes an account-creation token, creates an account, delegates HP, collects tester cash, graduates the product from beta to V1, enables payments/Distriator, or changes infrastructure.
+Strong venue-specific work should remain venue-specific. In particular, Fourth Street's current homepage uses authentic venue photography and useful visit/community pathways; that work is a reference product asset, not something to flatten into generic copy merely for reuse.
 
-## Licensing
+## Source and production are separate identities
 
-No open-source license is granted for this repository. All rights are reserved by the copyright holder.
+Canonical source is the `main` branch of `etblink/Hive-Venues`. Resolve its exact commit/tree at qualification or release time; do not infer source identity from a historical deployment record.
+
+The existing Fourth Street production installation remains a compatibility deployment with provenance-bearing Hive-Bar-era names and paths. Historical identifiers such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, and the Fourth Street Hive application tag must not be renamed in production merely because the successor repository has a new name.
+
+The last recorded accepted production transition in the inherited record is M19.2. Current runtime identity must be obtained from the installed release/build evidence, not from this README or from the moving source branch. No successor source refactor by itself authorizes a production deployment.
+
+Current operational guidance for that deployment remains in `docs/PRODUCTION_OPERATIONS.md` until a separately qualified successor deployment migration supersedes it.
+
+## Functional boundary
+
+Canonical source contains the accepted beta self-signing social action set:
+
+```text
+post
+thread
+comment
+vote
+follow
+unfollow
+subscribe
+unsubscribe
+profile
+claim-rewards
+wall
+inbox
+```
+
+The codebase also contains independently gated payment functionality and dormant/rehearsed release profiles. Their presence in source does not imply that a particular production deployment has enabled them. Production capability must be determined from its exact runtime profile and release identity.
+
+In-person account creation/onboarding machinery remains separately gated. Source qualification does not itself authorize a live account creation, delegation, payment, or other production mutation.
+
+## Development
+
+Pinned runtime:
+
+```text
+Node.js 24.19.0
+npm 11.17.0
+```
+
+Clone the successor repository and install the locked dependencies:
+
+```bash
+git clone https://github.com/etblink/Hive-Venues.git
+cd Hive-Venues
+npm ci --ignore-scripts --no-fund
+npx --no-install patch-package
+```
+
+Run the deterministic quality gate:
+
+```bash
+npm run check
+```
+
+Run coverage:
+
+```bash
+npm run test:coverage
+```
+
+The main CI verifies the pinned runtime and deterministic gate on both Ubuntu and Windows and then runs the accepted pinned-Chromium visual qualification chain. Live Hive smoke tests are separately gated and should not be substituted for deterministic unit/integration evidence.
+
+## Configuration model
+
+HV-1 retains the inherited environment-variable contract for compatibility, but application construction now compiles venue-scoped values through an explicit validated venue context. This is an intermediate compatibility boundary, not the final deployment architecture.
+
+The next bounded implementation operation is **HV-2: Reference Deployment Profile Extraction**. It will move the Fourth Street/Privex host, topology, service namespace, release root, storage paths, app tag, and release-policy assumptions behind a validated deployment profile while preserving their exact current reference values and making no live production change.
+
+## Documentation policy
+
+Living successor documents:
+
+- `README.md` — product/developer entry point;
+- `docs/ROADMAP.md` — current and next project sequencing;
+- `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted successor architecture;
+- `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded;
+- `docs/README.md` — living-vs-historical documentation index.
+
+Historical Hive-Bar milestone documents are retained as provenance. They should not be rewritten to sound current and should not override the successor living documents.

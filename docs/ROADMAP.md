@@ -1,75 +1,201 @@
-# Hive-Bar Living Roadmap
+# Hive-Venues Living Roadmap
 
-This is the only living document that defines the current and next project milestones. Historical milestone files preserve prior decisions but do not redefine this roadmap.
+This is the living current/next sequencing document for the successor repository. Historical Hive-Bar milestone files preserve accepted evidence and prior decisions but do not redefine this roadmap.
 
 ## Current state
 
-- Last recorded accepted production transition: M19.2 deployed accepted M19.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`.
-- Runtime source identity: after R0 deployment, read the deployed `beta-<short-sha>` label and full commit/tree from `/healthz`; before that deployment, verify `/opt/hive-bar/current/.hive-bar-commit` and `.hive-bar-tree` operator-side rather than inferring from this document.
-- Persistent production runtime: accepted beta self-signing profile.
-- Canonical-source beta writes: post, comment, weighted vote, follow, unfollow, subscribe, unsubscribe, claim rewards, Wall, encrypted Inbox, Thread.
-- Production rollback pointer: prior accepted M17.3 release remains the last recorded `/opt/hive-bar/last-good` boundary from M19.2; verify the live symlink before any operation.
-- V1 release gate: operationally rehearsed and accepted without persistent V1 activation.
-- Payments/Distriator: disabled.
-- Controlled/operator/delegated lanes: inert.
-- Canonical repository source: `main`; resolve its exact commit/tree from GitHub at qualification time rather than pinning this moving branch to a historical production event.
-- In-person account creation: not activated; M19.3 remains the accepted source-only onboarding milestone.
-- Product lifecycle: beta. Tester feedback and remediation continue until an explicit graduation decision; integrated V1-capable code does not itself make the product V1.
+```text
+REPOSITORY = etblink/Hive-Venues
+PRODUCT = Hive-Venues
+REFERENCE_VENUE = Fourth Street Bar, Reno
+SOURCE_LINEAGE = etblink/Hive-Bar
+HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
+DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
+SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
+NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION
+```
 
-## M17 — Beta closeout and functional V1 readiness
+HV-1 is canonical at commit `ca553af0215d5d4165791a4af695b9cd70ff138c`, tree `15ff602871723a15557376cb59dabb151a658b47`.
 
-M17.1 through M17.4 are accepted historical milestones. They froze the V1 product boundary, reconciled source/release governance, rehearsed runtime V1 wiring without persistent activation, and established the functional V1 baseline while production remained beta.
+The successor architecture is frozen in `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`. It adopts a hybrid preservation/reconstruction strategy: retain proven protocol/security/payment/operational machinery, reconstruct platform and deployment boundaries where needed, and preserve or improve strong venue-specific product work.
 
-### M17.4 — Functional V1 baseline
+The canonical source branch can advance after this document is written. Resolve the exact current `main` commit/tree from GitHub when qualifying or releasing rather than treating the HV-1 identity above as a permanent source pin.
 
-**Accepted.** M17.4 established the exact pre-final functional V1 baseline, synchronized the accepted development lineage with canonical `main`, and preserved production on the accepted beta runtime without activating V1.
+## Production lineage boundary
 
-## M18 — Cosmetic and user-experience elevation
+Fourth Street's existing production environment remains the reference compatibility deployment. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag are provenance-bearing deployment facts and remain unchanged unless a later production migration is separately qualified and authorized.
 
-### M18.1–M18.3
+The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect the installed release/build identity for any operational decision.
 
-**Accepted in source.** The accepted M18 sequence modernized the application shell and patron experience, hardened deterministic visual qualification, and completed the Home, Wall, and Pay redesign through exact M18.3 without changing accepted transaction semantics.
+Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
 
-### M18.4 — Beta-readiness closure
+## HV-0 — Successor migration and baseline — COMPLETE
 
-**Accepted in source.** M18.4 closed the Followers/Following empty-state render defect; added route and HTMX regressions; preserved social-graph pagination/RPC semantics; added bounded live read-only Followers/Following qualification; completed patron-facing length feedback and follow-sign-in copy; synchronized living release governance; and added targeted patron visual coverage.
+Completed:
 
-M18.4 was accepted and integrated on canonical `main` at commit `1aaef44c5b300810841f89044cf302aab789caf5`, tree `ece4e565a514f01879761f2d5467dc7cc5323773`.
+- preserve the original Hive-Bar Git object graph rather than flattening history;
+- mirror all 34 source branch tips at their exact source SHAs;
+- establish the successor repository and product identity;
+- run a read-only inherited baseline audit;
+- freeze the successor baseline and HV-1 preregistration.
 
-## M19 — Closed beta launch
+Inherited baseline evidence included 532/532 tests passing, 81.93% line coverage, 73.82% branch coverage, 87.27% function coverage, and zero reported npm vulnerabilities.
 
-### M19.1 — Copy and onboarding readiness
+## HV-1 — Venue Context Foundation — COMPLETE
 
-**Accepted.** M19.1 completed the bounded patron-facing copy/onboarding pass, clarified Keychain and privacy boundaries, improved participation discoverability, humanized the 404 state, and synchronized living governance. It was accepted and integrated at commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`.
+Purpose: establish the first explicit venue boundary while preserving Fourth Street behavior.
 
-### M19.2 — Controlled beta deployment
+Accepted result:
 
-**Accepted.** The exact accepted M19.1 source was deployed to `fourthstreetbar.com` through the read-only deployment gate and the previously accepted beta environment was restored byte-for-byte. Local health/readiness and public beta health passed; public first-party asset revisions matched the deployed release; the prior accepted M17.3 release remained the validated `last-good` rollback target. No V1 activation, Pay/Distriator activation, Keychain request, or Hive write was part of deployment.
+- validated, deeply frozen venue context;
+- canonical Fourth Street reference venue;
+- explicit venue injection into application construction;
+- home and Pay route wiring consume venue bindings rather than hidden canonical identifiers;
+- existing environment contract retained as a compatibility input layer;
+- synthetic alternate venue construction proven without network access;
+- transaction/payment/onboarding engines unchanged.
 
-### M19.3 — In-person Hive onboarding
+Acceptance evidence:
 
-**Current.** Build and qualify the real account-creation path that the first beta users should experience: choose a Hive username, generate/save recovery credentials entirely in the customer browser, create a short-lived opaque bartender QR, require the $5.00 cash onboarding fee before staff preparation, use an explicitly configured creator account with a pre-claimed account token, prepare one `create_claimed_account` plus fixed starter-HP `delegate_vesting_shares` transaction, obtain one Active-authority Keychain approval, and observe the exact created account/delegation without automatic retry.
+- 538/538 full builder tests passing;
+- 6/6 focused venue-context tests passing;
+- coverage 82.14% lines / 73.88% branches / 87.36% functions;
+- zero reported npm vulnerabilities;
+- Ubuntu and Windows deterministic CI passing;
+- M18.2, M18.3, M18.4, UX-1A, UX-1B, UX-1C, UX-1D, and UX-1F visual acceptance passing;
+- independent Project Lead source and rendered-evidence review passing.
 
-M19.3 is source-only until separately accepted and integrated. It must not consume an account-creation token, create a Hive account, delegate HP, collect live tester cash, activate onboarding in production, deploy source, activate V1, or enable Pay/Distriator. A narrow legal review remains required before broad public commercialization of the paid onboarding flow.
+HV-1 establishes a seam; it does not establish shared-runtime multi-tenancy.
 
-### M19.4 — Real closed beta
+## Successor Architecture Reconciliation — CURRENT GOVERNANCE BASELINE
 
-**Planned.** Expand beta testing deliberately after the earliest independent testers and remediation cycles demonstrate that the next cohort can participate productively. Preserve build provenance for each report, collect where people hesitate or fail, and continue iterative remediation before broader customer exposure.
+The accepted architecture is:
 
-### M19.5 — Beta triage and release decision
+```text
+HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
++
+PLATFORM_APPLICATION_PRIMITIVES
++
+VENUE_PACKAGE
++
+DEPLOYMENT_PROFILE
+=
+ONE_ISOLATED_VENUE_RUNTIME
+```
 
-**Planned.** Classify findings as beta blockers, material pre-V1 usability problems, or later enhancements. Continue bounded remediation and cohort expansion until the product is demonstrably working. Only then make an explicit V1 graduation decision; do not infer V1 status from the existence of V1-capable source code.
+Why:
 
-## Final V1 release
+- Hive transaction builders and security primitives are largely account/payload/config driven and reusable;
+- the payment lifecycle and related safety machinery are high-value shared assets;
+- current payment, moderation, and onboarding persistence is venue-local and not tenant-keyed;
+- release/deployment code still hard-codes Fourth Street/Privex facts that should become reference-profile data;
+- current Fourth Street editorial/visual work demonstrates that venue specificity should be supported, not erased.
 
-After controlled beta feedback and explicit release approval, synchronize package/app identity to `1.0.0`, qualify and deploy one exact final candidate, activate the accepted V1 profile under separate authorization, verify production, then create the first `v1.0.0` Git tag/release.
+## HV-2 — Reference Deployment Profile Extraction — NEXT
 
-## Deferred/separate lanes
+HV-2 must be preregistered before implementation.
 
-- Pay Tab genuine-purchase activation;
-- Distriator;
-- controlled bar-operator posting;
-- delegated staff posting;
-- additional wallet operations beyond the accepted beta/V1 manifests;
-- future dedicated onboarding creator/recovery-account operationalization;
-- future multi-venue/brand productization and resale architecture.
+Purpose: make deployment identity an explicit validated dependency while preserving the exact current Fourth Street/Privex reference values.
+
+Expected scope:
+
+- introduce a validated deployment-profile representation;
+- treat the existing reviewed `ops/privex/manifest.json` as a primary candidate source rather than duplicating constants;
+- move reference host/provider/topology/service/release-root/storage/app-tag expectations behind the deployment profile;
+- make release/readiness code consume profile data where safe;
+- add a synthetic deployment profile for offline construction/validation tests only;
+- preserve exact Fourth Street release-gate behavior and failure modes.
+
+HV-2 may not:
+
+- touch the live VPS or DNS/proxy configuration;
+- rename `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, or current durable storage paths in production;
+- change `fourth-street-bar-app/0.1.0` for the reference deployment;
+- change Hive operation semantics or signer authority;
+- change payment lifecycle semantics;
+- change persistent schemas;
+- add a second real venue;
+- introduce request-time tenant selection;
+- enable dormant production features;
+- perform unrelated dependency upgrades.
+
+Qualification must retain the full deterministic, cross-platform, visual, security, and release-coherence gates appropriate to the changed scope.
+
+## Post-HV-2 candidate lanes — NOT YET SEQUENCED
+
+After HV-2, perform a fresh sequencing decision. Candidate work includes:
+
+### Successor identity and developer experience
+
+- reconcile package metadata and runtime logging from Hive-Bar lineage to Hive-Venues where doing so does not alter the Fourth Street protocol/deployment identity;
+- create a clean new-venue bootstrap/development experience;
+- distinguish platform names, venue names, deployment names, and protocol application tags explicitly.
+
+### Venue packaging
+
+- move venue-local editorial content, photography/assets, branding, and policy defaults behind a coherent venue-package boundary;
+- preserve the strong Fourth Street homepage and other evidence-supported venue work as the reference package;
+- prevent genericization from producing low-character template sites.
+
+### Shared product quality
+
+- improve shared navigation/shell identity so venue identity does not compete with implementation lineage;
+- improve desktop profile/social information density where human review supports it;
+- preserve strong accessibility, responsive behavior, operation review, payment safety communication, and failure-state semantics;
+- use human rendered-evidence review as well as automated visual gates for meaningful presentation work.
+
+### New venue readiness
+
+- construct a complete synthetic/offline second venue package and isolated deployment profile;
+- only then select a real second-venue pilot, with explicit custody/identity/configuration evidence;
+- prove that a second venue requires configuration/content/policy work rather than a source fork.
+
+### Fleet operations
+
+- investigate safe repeatable provisioning, release, health, rollback, and upgrade management for multiple isolated venue instances;
+- keep secrets, durable stores, domains, and failure domains isolated per venue by default.
+
+### Shared-runtime tenancy research — OPTIONAL / DEFERRED
+
+Only if concrete product/operational value justifies it:
+
+- design explicit venue ownership for payment receipts, moderation state, onboarding requests, sessions/preflights, idempotency/replay domains, secrets, and observability;
+- preregister migrations and isolation tests;
+- prove cross-venue data and authority isolation before admitting multiple real venues to one runtime.
+
+No shared-runtime implementation is implied by the platform name.
+
+## Persistent quality tracks
+
+Every successor milestone should be evaluated across the whole product rather than only its named architectural goal.
+
+### Security and custody
+
+Preserve Keychain-local custody, no server Hive private keys, no server Hive broadcast RPC, explicit review, fail-closed authorization, and no automatic retry after ambiguous acceptance.
+
+### Financial/payment integrity
+
+Preserve canonical amount handling, merchant validation, durable receipt state, payer serialization, invoice replay protection, idempotency, independent observation, and chain-confirmed success semantics.
+
+### Product and UX
+
+Keep venue character strong; prefer plain patron language; maintain accessible touch/focus/contrast behavior; and use real rendered evidence for meaningful visual decisions.
+
+### Data and isolation
+
+Treat current durable stores as venue-local until explicitly migrated. Do not imply tenancy merely because a context object exists.
+
+### Operations and provenance
+
+Preserve exact-commit release identity, fail-closed readiness, rollback discipline, and source-versus-runtime identity separation.
+
+### Maintainability and developer experience
+
+Reduce duplicated deployment/venue constants, make dependencies explicit, keep architecture boundaries machine-testable, and avoid carrying old names into new universal abstractions without a compatibility reason.
+
+## Historical Hive-Bar line
+
+The inherited M1–M20/C2/UX milestones remain in Git history and historical documentation. In particular, M17–M19 capture important beta/V1 readiness, presentation, deployment, and onboarding evidence. They remain authoritative for what those operations established at the time.
+
+They are no longer the living successor sequence. New work is governed by HV milestones and this roadmap.

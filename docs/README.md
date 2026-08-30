@@ -1,43 +1,80 @@
-# Hive-Bar Documentation Index
+# Hive-Venues Documentation Index
 
-This index separates **living documentation** from **historical milestone evidence**.
+This index separates **living successor documentation**, **current Fourth Street operating documentation**, and **historical Hive-Bar milestone evidence**.
 
-## Living documentation
+## Living successor documentation
 
-- `../README.md` — current product/developer entry point.
-- `ROADMAP.md` — the only living current/next milestone roadmap.
-- `PRODUCTION_OPERATIONS.md` — current production operating model and release boundary.
-- `../.env.example` and `../ops/privex/hive-bar.env.example` — current configuration examples.
-- `../ops/privex/manifest.json` — machine-readable reviewed production architecture and allowed release profiles.
+These documents govern current successor interpretation and sequencing:
 
-Living documentation must be updated when its factual claims become stale.
+- `../README.md` — Hive-Venues product/developer entry point and current source boundary.
+- `ROADMAP.md` — the only living current/next successor milestone roadmap.
+- `HIVE_VENUES_SUCCESSOR_BASELINE_0_1_0.md` — exact source-lineage migration and inherited baseline boundary.
+- `HV1_VENUE_CONTEXT_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-1 contract.
+- `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted hybrid preservation/reconstruction architecture and isolated-venue runtime decision.
 
-## Current source and production identity
+Living documents must be updated when their current-state or routing claims become stale. They must not silently rewrite the meaning of historical evidence.
 
-Canonical integrated source is `main`. Because that branch can advance independently of production, living documentation must not hard-code a historical deployment as the current identity of `main`. Resolve the exact canonical commit/tree from GitHub when qualifying source.
+## Current Fourth Street operating documentation
 
-Production identity is runtime evidence: each installed release carries `.hive-bar-commit` and `.hive-bar-tree`; after R0 deployment the shell exposes `beta-<short-sha>` and `/healthz` exposes the full deployed build, commit, and tree. M19.2 remains historical evidence that accepted M19.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`, was deployed under the accepted beta self-signing runtime and that exact M17.3 was preserved as `/opt/hive-bar/last-good`; it is not a substitute for reading the current runtime identity. V1, Pay, and Distriator remain inactive. M19.3 in-person Hive onboarding is not production-activated.
+Until a successor deployment migration is separately accepted, the existing Fourth Street deployment retains its provenance-bearing Hive-Bar-era namespace and runbooks:
 
-## Accepted M17 release-governance record
+- `PRODUCTION_OPERATIONS.md` — current production operating model and exact-release safety boundary.
+- `../.env.example` — inherited-compatible application environment example.
+- `../ops/privex/hive-bar.env.example` — Fourth Street/Privex environment profile example.
+- `../ops/privex/manifest.json` — machine-readable reviewed Fourth Street production topology and release profiles.
 
-- `M17_1_V1_PRODUCT_BOUNDARY.md` — accepted V1 functional boundary.
-- `M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md` — accepted source-of-truth and V1-gate reconciliation record.
-- `M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md` — accepted runtime V1 wiring and operational-acceptance record.
-- `M17_4_FUNCTIONAL_V1_BASELINE.md` — accepted pre-final functional V1 baseline qualification record.
+These are reference-deployment documents, not universal Hive-Venues architecture. HV-2 is specifically intended to establish an explicit deployment-profile boundary around those facts without mutating production.
 
-## Accepted M18 historical evidence
+## Source identity versus production identity
 
-M18 milestone files, tests, CI runs, and visual evidence preserve the accepted visual/user-experience work through M18.4. They are historical evidence, not a substitute for the living current-state statements above.
+Canonical integrated source is `main` in `etblink/Hive-Venues`. Because `main` can advance independently of production, resolve its exact commit/tree from GitHub when qualifying or releasing.
 
-## M19 records
+The existing Fourth Street deployment carries its own installed release identity using the inherited exact-release mechanism. Historical records such as M19.2 prove what was deployed at that event; they are not a substitute for reading the current installed release/build identity.
 
-- `M19_1_COPY_AND_ONBOARDING_READINESS.md` — accepted copy/onboarding-readiness source boundary preceding controlled beta deployment.
-- `M19_3_IN_PERSON_HIVE_ONBOARDING.md` — source qualification record for customer credential generation, one-time bartender QR handoff, claimed-account creation, starter HP delegation, and no-auto-retry observation.
+A source commit in Hive-Venues never authorizes a live deployment by itself.
 
-M19.2 is an accepted historical production deployment event recorded in the living roadmap and production operations document rather than a source implementation file.
+## Historical Hive-Bar evidence
 
-## Historical milestone records
+All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence for the operations they document.
 
-Files named for M1 onward are preserved as contemporaneous specifications, runbooks, or evidence. They may accurately say that a then-future action was unexecuted, write-disabled, incomplete, or separately authorized. Do not rewrite those historical facts merely to make them sound current.
+Use them to answer questions such as:
 
-When a historical runbook conflicts with `PRODUCTION_OPERATIONS.md`, the current operations document governs present procedure unless a newer accepted milestone explicitly supersedes it.
+- what behavior or safety invariant was originally accepted;
+- why a transaction/payment/deployment rule exists;
+- what exact source or deployment was qualified at a historical gate;
+- what visual or operational evidence supported an accepted milestone.
+
+Do not use a historical milestone file to override a current successor routing decision merely because the older document called itself current at the time.
+
+The original Git object graph is preserved in this repository, and `etblink/Hive-Bar` remains independently available as the source-lineage repository.
+
+## Current architecture interpretation
+
+The default successor model is:
+
+```text
+HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
++
+PLATFORM_APPLICATION_PRIMITIVES
++
+VENUE_PACKAGE
++
+DEPLOYMENT_PROFILE
+=
+ONE_ISOLATED_VENUE_RUNTIME
+```
+
+The venue-context seam introduced by HV-1 does not mean the application is already shared-runtime multi-tenant. Payment, moderation, onboarding, and other durable state remain venue-local until explicitly migrated.
+
+Venue-specific editorial content and assets are first-class product material. The platform should enable distinct venue products, not force every venue into generic copy or imagery.
+
+## Navigation rule
+
+For current project status, read in this order:
+
+1. `../README.md`
+2. `ROADMAP.md`
+3. `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
+4. the preregistration for the currently authorized operation
+5. relevant current operating documentation if production is involved
+6. historical milestone evidence only as needed for provenance or inherited invariants.
