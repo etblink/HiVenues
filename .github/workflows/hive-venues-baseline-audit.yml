@@ -1,0 +1,79 @@
+name: Hive-Venues successor baseline audit
+
+on:
+  push:
+    branches:
+      - automation/hive-venues-baseline-audit
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install exact dependencies
+        run: |
+          npm run release:check:runtime
+          npm ci --ignore-scripts --no-fund
+          npx --no-install patch-package
+      - name: Run inherited deterministic quality gate
+        run: npm run check
+      - name: Run coverage gate
+        run: npm run test:coverage
+      - name: Generate successor baseline metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== HIVE-VENUES SUCCESSOR BASELINE AUDIT ==='
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "TREE=$(git rev-parse HEAD^{tree})"
+          echo "PARENT=$(git rev-parse HEAD^)"
+          echo "TRACKED_FILES=$(git ls-files | wc -l | tr -d ' ')"
+          echo "SOURCE_FILES=$(git ls-files src routes views public scripts | wc -l | tr -d ' ')"
+          echo "TEST_FILES=$(git ls-files test | wc -l | tr -d ' ')"
+          echo "DOC_FILES=$(git ls-files docs | wc -l | tr -d ' ')"
+          node <<'NODE'
+          const p = require('./package.json');
+          console.log(`RUNTIME_DEPENDENCIES=${Object.keys(p.dependencies || {}).length}`);
+          console.log(`DEV_DEPENDENCIES=${Object.keys(p.devDependencies || {}).length}`);
+          console.log(`PACKAGE_NAME=${p.name}`);
+          console.log(`PACKAGE_VERSION=${p.version}`);
+          NODE
+          echo "FOURTH_STREET_COUPLED_NON_DOC_FILES=$(git grep -IlE 'Hive-Bar|4th Street|Fourth Street|fourthstreet|fourthst' -- ':!docs/**' ':!README.md' | wc -l | tr -d ' ')"
+          echo 'FOURTH_STREET_COUPLED_NON_DOC_PATHS_BEGIN'
+          git grep -IlE 'Hive-Bar|4th Street|Fourth Street|fourthstreet|fourthst' -- ':!docs/**' ':!README.md' | sort || true
+          echo 'FOURTH_STREET_COUPLED_NON_DOC_PATHS_END'
+          echo "ENV_KEYS=$(grep -Ec '^[A-Z][A-Z0-9_]*=' .env.example || true)"
+          echo "ROUTE_DECLARATIONS=$(git grep -Eh '\.(get|post|put|patch|delete)\(' -- routes src | wc -l | tr -d ' ')"
+          npm audit --omit=dev --json > /tmp/npm-audit.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          const a = JSON.parse(fs.readFileSync('/tmp/npm-audit.json', 'utf8'));
+          const v = a.metadata?.vulnerabilities || {};
+          console.log(`NPM_AUDIT_INFO=${v.info ?? 'unknown'}`);
+          console.log(`NPM_AUDIT_LOW=${v.low ?? 'unknown'}`);
+          console.log(`NPM_AUDIT_MODERATE=${v.moderate ?? 'unknown'}`);
+          console.log(`NPM_AUDIT_HIGH=${v.high ?? 'unknown'}`);
+          console.log(`NPM_AUDIT_CRITICAL=${v.critical ?? 'unknown'}`);
+          NODE
+          npm outdated --json > /tmp/npm-outdated.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          let o = {};
+          try { o = JSON.parse(fs.readFileSync('/tmp/npm-outdated.json', 'utf8') || '{}'); } catch {}
+          console.log(`OUTDATED_DIRECT_DEPENDENCIES=${Object.keys(o).length}`);
+          console.log(`OUTDATED_NAMES=${Object.keys(o).sort().join(',')}`);
+          NODE
+          echo '=== END BASELINE AUDIT ==='
