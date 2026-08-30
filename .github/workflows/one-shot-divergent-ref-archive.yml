@@ -1,0 +1,225 @@
+name: One-shot divergent ref archive
+
+on:
+  pull_request:
+    paths:
+      - docs/HISTORICAL_REF_ARCHIVE_0_1_0.md
+      - .github/workflows/one-shot-divergent-ref-archive.yml
+  push:
+    branches:
+      - main
+    paths:
+      - docs/HISTORICAL_REF_ARCHIVE_0_1_0.md
+      - .github/workflows/one-shot-divergent-ref-archive.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: divergent-ref-archive-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    name: Verify tags first, retire branches only on canonical main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact event commit with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: true
+
+      - name: Verify archive plan and apply only on canonical main
+        shell: bash
+        env:
+          APPLY: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          ARCHIVE_BRANCH: maintenance/archive-divergent-ref-history
+          PRIOR_TEARDOWN_BRANCH: maintenance/remove-one-shot-ref-hygiene
+          PRIOR_TEARDOWN_SHA: 40652f8e616826d139a75f5ceac3a60f6b703d0c
+        run: |
+          set -euo pipefail
+
+          records=(
+            'automation/hive-venues-baseline-audit|8f07116ec357d51d03bfdf3c037570717a403c9c|archive/branch/automation/hive-venues-baseline-audit|SUCCESSOR_BASELINE_AUTOMATION_SCAFFOLD'
+            'automation/hv1-venue-context-builder|f4830e82a129fe24f510597aecdcff087360707f|archive/branch/automation/hv1-venue-context-builder|SUCCESSOR_HV1_BUILDER_SCAFFOLD'
+            'automation/post-hv2-routing-reconciliation-builder|a7d654bb4609a97abea1de25e87209982ec47f28|archive/branch/automation/post-hv2-routing-reconciliation-builder|SUCCESSOR_NONCANONICAL_BUILDER'
+            'codex/c2-g1c-r5-4-import-diagnostic|166dd220b18e096d82e81833172a04b99f72e76d|archive/branch/codex/c2-g1c-r5-4-import-diagnostic|IMPORTED_HIVE_BAR_HISTORICAL_BRANCH'
+            'codex/m18-4-beta-readiness-closure|dff288723a8e69e728c50d30aaa36aa5d101464a|archive/branch/codex/m18-4-beta-readiness-closure|IMPORTED_HIVE_BAR_HISTORICAL_BRANCH'
+            'codex/m2-live-smoke-validation|3bf8fad3ec46b1b00ebbfc3cd6070010f252ffd8|archive/branch/codex/m2-live-smoke-validation|IMPORTED_HIVE_BAR_HISTORICAL_BRANCH'
+            'codex/m2-read-only-slice|9085e9d00d73f61e0ea0b450832f28ac782ef36d|archive/branch/codex/m2-read-only-slice|IMPORTED_HIVE_BAR_HISTORICAL_BRANCH'
+            'maintenance/ci-graph-rationalization|3f0c4c551817ecdecc26b3e29fd23ae42f9ad987|archive/branch/maintenance/ci-graph-rationalization|REJECTED_SUCCESSOR_CANDIDATE'
+            'parseMarkdown|12aaaad684141ea77eae5a7a7170719742f1d84e|archive/branch/parseMarkdown|IMPORTED_HIVE_BAR_HISTORICAL_BRANCH'
+            'platform/hv2-acceptance-reconciliation|d6b61e0531d52ad09d90cb4772ea214c260239fc|archive/branch/platform/hv2-acceptance-reconciliation|REJECTED_SUCCESSOR_CANDIDATE'
+            'platform/hv2-acceptance-reconciliation-v2|afe7a09f2239b7d6d75d85c3163a81d85eb5ecb1|archive/branch/platform/hv2-acceptance-reconciliation-v2|REJECTED_SUCCESSOR_CANDIDATE'
+            'platform/hv2-reference-deployment-profile|8ea27a878872befb9e719f82ae05337c7bb8b2e8|archive/branch/platform/hv2-reference-deployment-profile|SUPERSEDED_EXPLORATORY_SUCCESSOR_CANDIDATE'
+            'platform/hv3-reference-venue-package|1c9a1522096ddea38ee99b89a92d883eafb52d6f|archive/branch/platform/hv3-reference-venue-package|REJECTED_SUCCESSOR_CANDIDATE'
+            'qualification/hv2-coverage-compare|5fe94d07d89a7f60a0937e0fa5ef57a564808c72|archive/branch/qualification/hv2-coverage-compare|DISPOSABLE_SUCCESSOR_QUALIFICATION'
+          )
+
+          git fetch origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*' \
+            --prune --force
+
+          event_sha="$(git rev-parse HEAD)"
+          canonical_sha="$(git rev-parse refs/remotes/origin/main)"
+
+          echo "Event SHA: $event_sha"
+          echo "Canonical main: $canonical_sha"
+          echo "Mutation enabled: $APPLY"
+
+          if [[ "$APPLY" == 'true' && "$event_sha" != "$canonical_sha" ]]; then
+            echo 'Refusing mutation: event commit is not exact canonical main.' >&2
+            exit 1
+          fi
+
+          missing_tag_refs=()
+          divergent_branches=()
+
+          printf '\nARCHIVE_PLAN\n'
+          for record in "${records[@]}"; do
+            IFS='|' read -r branch expected_sha tag classification <<< "$record"
+            remote_ref="refs/remotes/origin/$branch"
+
+            if ! git show-ref --verify --quiet "$remote_ref"; then
+              echo "Missing required branch: $branch" >&2
+              exit 1
+            fi
+
+            actual_sha="$(git rev-parse "$remote_ref")"
+            if [[ "$actual_sha" != "$expected_sha" ]]; then
+              echo "Branch tip mismatch: $branch expected=$expected_sha actual=$actual_sha" >&2
+              exit 1
+            fi
+
+            if git show-ref --verify --quiet "refs/tags/$tag"; then
+              tag_target="$(git rev-parse "refs/tags/$tag^{commit}")"
+              if [[ "$tag_target" != "$expected_sha" ]]; then
+                echo "Archive tag collision: $tag expected=$expected_sha actual=$tag_target" >&2
+                exit 1
+              fi
+              tag_state='EXISTS_EXACT'
+            else
+              missing_tag_refs+=("refs/tags/$tag")
+              tag_state='TO_CREATE'
+            fi
+
+            divergent_branches+=("$branch")
+            printf '%s | %s | %s | %s | %s\n' \
+              "$branch" "$expected_sha" "$tag" "$classification" "$tag_state"
+          done
+
+          if ! git show-ref --verify --quiet "refs/remotes/origin/$PRIOR_TEARDOWN_BRANCH"; then
+            echo "Missing expected canonical scaffolding branch: $PRIOR_TEARDOWN_BRANCH" >&2
+            exit 1
+          fi
+          teardown_actual="$(git rev-parse "refs/remotes/origin/$PRIOR_TEARDOWN_BRANCH")"
+          if [[ "$teardown_actual" != "$PRIOR_TEARDOWN_SHA" ]]; then
+            echo "Teardown branch mismatch: expected=$PRIOR_TEARDOWN_SHA actual=$teardown_actual" >&2
+            exit 1
+          fi
+
+          if ! git show-ref --verify --quiet "refs/remotes/origin/$ARCHIVE_BRANCH"; then
+            echo "Missing archive candidate branch: $ARCHIVE_BRANCH" >&2
+            exit 1
+          fi
+          archive_branch_sha="$(git rev-parse "refs/remotes/origin/$ARCHIVE_BRANCH")"
+          if [[ "$archive_branch_sha" != "$event_sha" ]]; then
+            if [[ "$APPLY" == 'true' ]]; then
+              echo "Archive candidate branch is not exact canonical event SHA: branch=$archive_branch_sha event=$event_sha" >&2
+              exit 1
+            fi
+            echo "Dry-run note: archive candidate branch tip $archive_branch_sha differs from canonical main $canonical_sha as expected before integration."
+          fi
+
+          {
+            echo '## Divergent ref archive'
+            echo
+            echo "- canonical main: \`$canonical_sha\`"
+            echo "- mutation enabled: \`$APPLY\`"
+            echo "- divergent branches covered: ${#records[@]}"
+            echo "- archive tags missing before run: ${#missing_tag_refs[@]}"
+            echo '- continuity refs: unchanged'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$APPLY" != 'true' ]]; then
+            echo 'Dry run only: no tags or branches mutated.'
+            exit 0
+          fi
+
+          # Construct all absent annotated tags locally before pushing any tag.
+          push_tag_refs=()
+          for record in "${records[@]}"; do
+            IFS='|' read -r branch expected_sha tag classification <<< "$record"
+            if git show-ref --verify --quiet "refs/tags/$tag"; then
+              continue
+            fi
+
+            git \
+              -c user.name='Hive-Venues Archive Custodian' \
+              -c user.email='actions@users.noreply.github.com' \
+              tag -a "$tag" "$expected_sha" \
+              -m "Archive historical branch $branch" \
+              -m "Exact archived tip: $expected_sha" \
+              -m "Classification: $classification" \
+              -m 'See docs/HISTORICAL_REF_ARCHIVE_0_1_0.md'
+            push_tag_refs+=("refs/tags/$tag")
+          done
+
+          if (( ${#push_tag_refs[@]} > 0 )); then
+            git push --atomic origin "${push_tag_refs[@]}"
+          fi
+
+          # Re-fetch and verify every archive tag before branch deletion is permitted.
+          git fetch origin '+refs/tags/*:refs/tags/*' --force
+          for record in "${records[@]}"; do
+            IFS='|' read -r branch expected_sha tag classification <<< "$record"
+            if ! git show-ref --verify --quiet "refs/tags/$tag"; then
+              echo "Archive tag missing after push: $tag" >&2
+              exit 1
+            fi
+            tag_target="$(git rev-parse "refs/tags/$tag^{commit}")"
+            if [[ "$tag_target" != "$expected_sha" ]]; then
+              echo "Archive tag verification failed: $tag expected=$expected_sha actual=$tag_target" >&2
+              exit 1
+            fi
+          done
+          echo 'All archive tags verified before branch deletion.'
+
+          # Delete all retired branch refs atomically only after complete tag verification.
+          delete_branches=(
+            "${divergent_branches[@]}"
+            "$PRIOR_TEARDOWN_BRANCH"
+            "$ARCHIVE_BRANCH"
+          )
+          git push --atomic origin --delete "${delete_branches[@]}"
+
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --force
+
+          mapfile -t remaining < <(
+            git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin |
+              grep -Ev '^(HEAD)?$' |
+              LC_ALL=C sort
+          )
+          expected_remaining=(
+            'continuity/v0.4.1-handoff-freeze'
+            'continuity/v0.5.0-c2-b-closure-freeze'
+            'continuity/v0.5.0-c2-b-closure-freeze-check'
+            'continuity/v0.5.0-c2-b-closure-freeze-final'
+            'main'
+          )
+
+          if [[ "$(printf '%s\n' "${remaining[@]}")" != "$(printf '%s\n' "${expected_remaining[@]}" | LC_ALL=C sort)" ]]; then
+            echo 'Unexpected post-archive branch surface:' >&2
+            printf '%s\n' "${remaining[@]}" >&2
+            exit 1
+          fi
+
+          echo 'POST_ARCHIVE_BRANCH_SURFACE'
+          printf '%s\n' "${remaining[@]}"
+          echo '- post-archive active branches: 5' >> "$GITHUB_STEP_SUMMARY"
+          echo '- archive tags verified: 14' >> "$GITHUB_STEP_SUMMARY"
