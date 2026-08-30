@@ -11,6 +11,7 @@ const PRIVATE_MATERIAL_PATTERNS = [
   /-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----/i,
   /\b5[HJK][1-9A-HJ-NP-Za-km-z]{48,50}\b/,
 ];
+const BINDING_ID = z.string().trim().min(1).max(120);
 
 class VenueBootstrapError extends Error {
   constructor(message) {
@@ -23,6 +24,13 @@ const bootstrapEnvelopeSchema = z
   .object({
     schemaVersion: z.literal(1),
     bootstrapId: z.string().trim().regex(BOOTSTRAP_ID_PATTERN),
+    bindings: z
+      .object({
+        venueId: BINDING_ID,
+        packageId: BINDING_ID,
+        deploymentId: BINDING_ID,
+      })
+      .strict(),
     venueContext: z.unknown(),
     venuePackage: z.unknown(),
     deploymentManifest: z.unknown(),
@@ -78,6 +86,12 @@ function parseEnvelope(input) {
   return result.data;
 }
 
+function assertBinding(label, expected, actual) {
+  if (expected !== actual) {
+    throw new VenueBootstrapError(`${label} expects ${expected}, but validated input resolves to ${actual}`);
+  }
+}
+
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
   for (const child of Object.values(value)) deepFreeze(child);
@@ -89,6 +103,10 @@ function composeVenueBootstrap(input) {
   const venueContext = createVenueContext(envelope.venueContext);
   const venuePackage = createVenuePackage(envelope.venuePackage, venueContext);
   const deploymentProfile = compileDeploymentProfile(envelope.deploymentManifest);
+
+  assertBinding('bindings.venueId', envelope.bindings.venueId, venueContext.id);
+  assertBinding('bindings.packageId', envelope.bindings.packageId, venuePackage.id);
+  assertBinding('bindings.deploymentId', envelope.bindings.deploymentId, deploymentProfile.id);
 
   return deepFreeze({
     schemaVersion: 1,
