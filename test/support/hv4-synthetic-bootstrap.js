@@ -66,6 +66,11 @@ const HV4_SYNTHETIC_DEPLOYMENT_MANIFEST = deepFreeze({
 const HV4_SYNTHETIC_BOOTSTRAP_INPUT = deepFreeze({
   schemaVersion: 1,
   bootstrapId: 'lantern-room-offline-bootstrap',
+  bindings: {
+    venueId: HV3_SYNTHETIC_VENUE.id,
+    packageId: HV3_SYNTHETIC_PACKAGE.id,
+    deploymentId: HV4_SYNTHETIC_DEPLOYMENT_MANIFEST.deployment.id,
+  },
   venueContext: HV3_SYNTHETIC_VENUE,
   venuePackage: HV3_SYNTHETIC_PACKAGE,
   deploymentManifest: HV4_SYNTHETIC_DEPLOYMENT_MANIFEST,
