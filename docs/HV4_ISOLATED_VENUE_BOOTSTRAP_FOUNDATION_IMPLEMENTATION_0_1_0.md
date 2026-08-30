@@ -65,9 +65,11 @@ Do not put any of the following into a bootstrap document:
 - SSH private keys;
 - DNS or Cloudflare credentials;
 - private-key PEM material;
+- credentials embedded in URL username/password fields;
+- token-, credential-, authorization-, signature-, password-, key-, or secret-bearing URL query parameters;
 - any other credential-bearing field.
 
-The bootstrap layer rejects secret-bearing field names and recognizable private-key material before it constructs review output. Rejection errors identify the field or location but do not echo the rejected value.
+The bootstrap layer rejects secret-bearing field names, recognizable private-key material, URL userinfo credentials, and sensitive URL query-parameter names before it constructs review output. Rejection errors identify the field or location but do not echo the rejected value. These checks are defense in depth; bootstrap authors remain responsible for supplying only public, non-secret configuration data.
 
 ## Offline validation workflow
 
@@ -98,7 +100,7 @@ operatorNoun = reading room
 staffRole = host
 ```
 
-Its deployment uses only fixture identities, `.invalid` hostnames, `/tmp` paths, one application instance, automatic deploys disabled, and no real account or infrastructure credential. A focused negative control also proves that the valid Fourth Street deployment manifest is rejected when supplied under the Lantern Room deployment binding.
+Its deployment uses only fixture identities, `.invalid` hostnames, `/tmp` paths, one application instance, automatic deploys disabled, and no real account or infrastructure credential. Focused negative controls prove that the valid Fourth Street deployment manifest is rejected when supplied under the Lantern Room deployment binding and that credential-bearing HTTPS URLs are rejected before their values can appear in review output.
 
 ## Deliberate non-effects
 
