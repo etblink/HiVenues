@@ -87,6 +87,9 @@ function assertReleaseCoherence() {
   const hv3Preregistration = read('docs/HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION_0_1_0.md');
   const hv3Acceptance = read('docs/HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md');
   const postHv3Decision = read('docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md');
+  const hv4Preregistration = read('docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md');
+  const hv4Acceptance = read('docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md');
+  const postHv4Reconciliation = read('docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
   if (pkg.version !== PACKAGE_VERSION) throw new Error('package version source is inconsistent');
@@ -123,9 +126,10 @@ function assertReleaseCoherence() {
   requireMatch(readme, /npm\s+11\.17\.0/, 'README must state the pinned npm runtime');
   requireMatch(readme, /Canonical source is the `main` branch of `etblink\/Hive-Venues`/, 'README must identify moving canonical source');
   requireMatch(readme, /HV-3 — Reference Venue Package Extraction/i, 'README must identify accepted HV-3');
-  requireMatch(readme, /next bounded operation is \*\*HV-4 Isolated Venue Bootstrap Foundation Preregistration\*\*/i, 'README must route to HV-4 preregistration');
+  requireMatch(readme, /HV-4 — Isolated Venue Bootstrap Foundation/i, 'README must identify accepted HV-4');
+  requireMatch(readme, /next bounded operation is a \*\*fresh post-HV-4 sequencing decision\*\*/i, 'README must route to fresh post-HV-4 sequencing');
   requireMatch(readme, /platform does not currently require a universal venue-type taxonomy/i, 'README must preserve venue-type neutrality');
-  requireMatch(readme, /HV-4 implementation, a second real venue, live production mutation, and shared-runtime tenancy are not authorized/i, 'README must preserve current non-authorization boundary');
+  requireMatch(readme, /No substantive successor lane is selected until that decision is accepted/i, 'README must not preselect a post-HV-4 lane');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
   requireMatch(docsReadme, /Canonical integrated source is `main` in `etblink\/Hive-Venues`/, 'documentation index must identify canonical source');
@@ -134,25 +138,32 @@ function assertReleaseCoherence() {
     'POST_HV2_SEQUENCING_DECISION_0_1_0.md',
     'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md',
     'POST_HV3_SEQUENCING_DECISION_0_1_0.md',
+    'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md',
+    'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md',
   ]) {
     requireMatch(docsReadme, new RegExp(requiredName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `documentation index must route to ${requiredName}`);
   }
   requireMatch(docsReadme, /historical Hive-Bar milestone evidence/i, 'documentation index must preserve historical Hive-Bar evidence as historical');
-  requireMatch(docsReadme, /HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION/, 'documentation index must route current work to HV-4 preregistration');
+  requireMatch(docsReadme, /POST_HV4_SEQUENCING_DECISION__READ_ONLY/, 'documentation index must route current work to post-HV-4 sequencing');
+  requireMatch(docsReadme, /No next substantive implementation is selected until that decision is accepted/i, 'documentation index must preserve post-HV-4 non-authorization');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
   requireMatch(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'roadmap must bind accepted HV-1');
   requireMatch(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'roadmap must bind accepted HV-2');
   requireMatch(roadmap, /^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m, 'roadmap must bind accepted HV-3');
-  requireMatch(roadmap, /^POST_HV3_SEQUENCING_DECISION = ACCEPTED$/m, 'roadmap must bind accepted post-HV-3 decision');
-  requireMatch(roadmap, /^SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX$/m, 'roadmap must bind the selected post-HV-3 lane');
-  requireMatch(roadmap, /^NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION$/m, 'roadmap must route to HV-4 preregistration');
-  requireMatch(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'roadmap must not pre-authorize HV-4 implementation');
+  requireMatch(roadmap, /^HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED$/m, 'roadmap must bind accepted HV-4');
+  requireMatch(roadmap, /^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'roadmap must preserve post-HV-3 as historical current-routing predecessor');
+  requireMatch(roadmap, /^SELECTED_NEXT_LANE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION$/m, 'roadmap must not preselect a post-HV-4 lane');
+  requireMatch(roadmap, /^PROPOSED_MILESTONE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION$/m, 'roadmap must not preselect a post-HV-4 milestone');
+  requireMatch(roadmap, /^NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY$/m, 'roadmap must route to post-HV-4 sequencing');
+  requireMatch(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'roadmap must keep substantive implementation unauthorized');
   requireMatch(roadmap, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'roadmap must keep a real second venue unauthorized');
+  requireMatch(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'roadmap must keep production mutation unauthorized');
   requireMatch(roadmap, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'roadmap must keep shared-runtime tenancy deferred');
+  requireMatch(roadmap, /^DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME$/m, 'roadmap must preserve isolated-runtime default');
   requireMatch(roadmap, /The last recorded accepted production transition in the inherited roadmap is M19\.2/, 'roadmap must preserve the historical M19.2 production boundary');
-  requireMatch(roadmap, /venue-type neutral/i, 'roadmap must state venue-type-neutral bootstrap semantics');
+  requireMatch(roadmap, /platform core remains venue-type neutral/i, 'roadmap must state venue-type-neutral platform semantics');
 
   requireMatch(architectureDecision, /^STATUS = ACCEPTED_SUCCESSOR_ARCHITECTURE_DECISION$/m, 'architecture decision must remain accepted');
   requireMatch(architectureDecision, /^SHARED_RUNTIME_MULTI_TENANCY_AUTHORIZED = NO$/m, 'architecture decision must keep shared-runtime tenancy unauthorized');
@@ -183,7 +194,7 @@ function assertReleaseCoherence() {
   requireMatch(postHv2Decision, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'post-HV-2 decision must preserve its second-venue boundary');
   requireMatch(postHv2Decision, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'post-HV-2 decision must preserve its tenancy boundary');
 
-  // Add HV-3 acceptance and post-HV-3 routing checks without weakening earlier gates.
+  // Preserve the full historical HV-3 contract/acceptance/routing integrity checks.
   requireMatch(hv3Preregistration, /^OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION$/m, 'HV-3 preregistration must bind HV-3');
   requireMatch(hv3Preregistration, /^STATUS = FROZEN_PREREGISTRATION__IMPLEMENTATION_NOT_STARTED$/m, 'HV-3 preregistration must remain frozen prospective evidence');
   requireMatch(hv3Preregistration, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = FORBIDDEN$/m, 'HV-3 preregistration must keep production mutation forbidden');
@@ -214,6 +225,34 @@ function assertReleaseCoherence() {
   requireMatch(postHv3Decision, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'post-HV-3 decision must keep a real second venue unauthorized');
   requireMatch(postHv3Decision, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'post-HV-3 decision must keep production mutation unauthorized');
   requireMatch(postHv3Decision, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'post-HV-3 decision must keep shared-runtime tenancy deferred');
+
+  // Bind the frozen HV-4 prospective contract, accepted result, and post-acceptance living reconciliation.
+  requireMatch(hv4Preregistration, /^OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION$/m, 'HV-4 preregistration must bind HV-4');
+  requireMatch(hv4Preregistration, /^STATUS = FROZEN_PREREGISTRATION__IMPLEMENTATION_NOT_STARTED$/m, 'HV-4 preregistration must remain frozen prospective evidence');
+  requireMatch(hv4Preregistration, /^IMPLEMENTATION_AUTHORIZED_BY_THIS_FILE_ALONE = NO$/m, 'HV-4 preregistration must preserve its non-authorization boundary');
+  requireMatch(hv4Preregistration, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'HV-4 preregistration must keep a real second venue unauthorized');
+  requireMatch(hv4Preregistration, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = FORBIDDEN$/m, 'HV-4 preregistration must keep production mutation forbidden');
+  requireMatch(hv4Preregistration, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'HV-4 preregistration must preserve isolated-runtime routing');
+  requireMatch(hv4Preregistration, /^MANDATORY_VENUE_TYPE_ENUM = FORBIDDEN_WITHOUT_NEW_PRODUCT_EVIDENCE$/m, 'HV-4 preregistration must preserve venue-type neutrality');
+
+  requireMatch(hv4Acceptance, /^OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION$/m, 'HV-4 acceptance must bind the operation');
+  requireMatch(hv4Acceptance, /^STATUS = PROJECT_LEAD_ACCEPTED$/m, 'HV-4 acceptance must record Project Lead acceptance');
+  requireMatch(hv4Acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = c59f6aac948e5be59647694b3b60310d2b8faa30$/m, 'HV-4 acceptance must bind the clean implementation commit');
+  requireMatch(hv4Acceptance, /^ACCEPTED_IMPLEMENTATION_TREE = dd74fa3944b348d86e9bef7c827a13cb8ab21ee2$/m, 'HV-4 acceptance must bind the qualified implementation tree');
+  requireMatch(hv4Acceptance, /^QUALIFICATION_PR = 22$/m, 'HV-4 acceptance must bind qualification PR');
+  requireMatch(hv4Acceptance, /^QUALIFICATION_CI_RUN = 33334114135$/m, 'HV-4 acceptance must bind qualification CI');
+  requireMatch(hv4Acceptance, /^SECOND_REAL_VENUE_ADMITTED = NO$/m, 'HV-4 acceptance must record no real second venue');
+  requireMatch(hv4Acceptance, /^PRODUCTION_MUTATION = NO$/m, 'HV-4 acceptance must record no production mutation');
+  requireMatch(hv4Acceptance, /^SHARED_RUNTIME_MULTI_TENANCY = NO$/m, 'HV-4 acceptance must record no shared-runtime tenancy');
+
+  requireMatch(postHv4Reconciliation, /^OPERATION = POST_HV4_LIVING_ROUTING_RECONCILIATION$/m, 'post-HV-4 reconciliation must bind its operation');
+  requireMatch(postHv4Reconciliation, /^ROLE = BOUNDED_MAINTENANCE_AND_NAVIGATION_RECONCILIATION$/m, 'post-HV-4 reconciliation must remain bounded maintenance');
+  requireMatch(postHv4Reconciliation, /^SCIENTIFIC_OR_PRODUCT_LANE_SELECTION = NO$/m, 'post-HV-4 reconciliation must not select a product lane');
+  requireMatch(postHv4Reconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m, 'post-HV-4 reconciliation must not implement a new lane');
+  requireMatch(postHv4Reconciliation, /^PRODUCTION_MUTATION = NO$/m, 'post-HV-4 reconciliation must not mutate production');
+  requireMatch(postHv4Reconciliation, /^SELECTED_NEXT_LANE = NONE$/m, 'post-HV-4 reconciliation must preserve the neutral sequencing boundary');
+  requireMatch(postHv4Reconciliation, /^NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY$/m, 'post-HV-4 reconciliation must route to read-only sequencing');
+  requireMatch(postHv4Reconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'post-HV-4 reconciliation must keep substantive implementation unauthorized');
 
   requireMatch(operations, /Runtime source identity: `\/healthz` publishes the exact deployed beta build label, commit, and tree/, 'operations must define runtime source identity through healthz');
   requireMatch(operations, /last-good.*M17\.3/i, 'operations must retain M17.3 as the last-good boundary');
@@ -249,6 +288,8 @@ function assertReleaseCoherence() {
     'docs/HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md',
     'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md',
     'docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md',
+    'docs/HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md',
+    'docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md',
     'docs/M17_1_V1_PRODUCT_BOUNDARY.md',
     'docs/M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md',
     'docs/M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md',
@@ -266,8 +307,8 @@ function assertReleaseCoherence() {
     packageVersion: PACKAGE_VERSION,
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
-    acceptedSuccessorMilestones: 3,
-    nextOperation: 'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION',
+    acceptedSuccessorMilestones: 4,
+    nextOperation: 'POST_HV4_SEQUENCING_DECISION__READ_ONLY',
   });
 }
 

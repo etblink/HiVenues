@@ -84,12 +84,15 @@ function assertFunctionalV1Baseline() {
     [/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-1'],
     [/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-2'],
     [/^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-3'],
-    [/^POST_HV3_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must preserve accepted post-HV-3 sequencing'],
-    [/^SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX$/m, 'living roadmap must select bootstrap/DX'],
-    [/^NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION$/m, 'living roadmap must route to HV-4 preregistration'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must not pre-authorize HV-4 implementation'],
+    [/^HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-4'],
+    [/^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'living roadmap must preserve post-HV-3 sequencing as historical'],
+    [/^SELECTED_NEXT_LANE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION$/m, 'living roadmap must not preselect a post-HV-4 lane'],
+    [/^NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY$/m, 'living roadmap must route to post-HV-4 sequencing'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep substantive implementation unauthorized'],
     [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
+    [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep production mutation unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
+    [/^DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME$/m, 'living roadmap must preserve the isolated-runtime default'],
   ]) {
     if (!pattern.test(roadmap)) throw new Error(message);
   }
@@ -122,7 +125,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION',
+    successorRouting: 'POST_HV4_SEQUENCING_DECISION__READ_ONLY',
   });
 }
 

@@ -12,16 +12,15 @@ SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
 HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
 HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED
-POST_HV3_SEQUENCING_DECISION = ACCEPTED
-SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX
-PROPOSED_MILESTONE = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION
-NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
+HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED
+POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
+SELECTED_NEXT_LANE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION
+PROPOSED_MILESTONE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION
+NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 SECOND_REAL_VENUE_AUTHORIZED = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
-KUBO_IPFS_EXPERIMENT = ELIGIBLE_DOWNSTREAM_RESEARCH__NOT_SELECTED
-ORBITDB_HELIA_REPLICATION = DEFERRED_PENDING_CONCRETE_NONAUTHORITATIVE_USE_CASE
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 
@@ -57,6 +56,32 @@ HV-3 introduced a strict, deeply immutable venue-package abstraction; bound auth
 
 Acceptance details live in `HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md`.
 
+### HV-4 — Isolated Venue Bootstrap Foundation — COMPLETE
+
+Accepted implementation:
+
+```text
+AUTHORIZED_BASE = 20590dff2222a6dc855fabb9f0c4f8cb37cc2670
+IMPLEMENTATION_COMMIT = c59f6aac948e5be59647694b3b60310d2b8faa30
+IMPLEMENTATION_TREE = dd74fa3944b348d86e9bef7c827a13cb8ab21ee2
+QUALIFICATION_PR = 22
+QUALIFICATION_CI_RUN = 33334114135
+ACCEPTANCE_RECORD_TREE = 1113150e749c1071809d7b10af953c9f965e1b47
+```
+
+HV-4 established a strict offline bootstrap envelope that:
+
+- delegates venue, package, and deployment validation to the accepted HV-1/HV-3/HV-2 authorities rather than creating parallel domain schemas;
+- requires explicit venue/package/deployment composition bindings and fails closed on mismatch;
+- rejects secret-bearing fields, recognizable private-key material, URL userinfo credentials, and sensitive URL query-parameter names before review output;
+- emits deeply immutable composition and deterministic canonical review JSON;
+- proves a meaningfully non-bar Lantern Room isolated composition with one test-only deployment and no source fork;
+- proves that the valid Fourth Street deployment manifest cannot be silently paired with Lantern Room under conflicting bindings;
+- preserves Fourth Street production compatibility paths, service names, storage locations, provenance names, host/application identity, and runtime semantics;
+- changes no production system and admits no real second venue.
+
+Acceptance details live in `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md`.
+
 ## Current architecture baseline
 
 ```text
@@ -69,72 +94,55 @@ VENUE_CONTEXT
 VENUE_PACKAGE
 +
 DEPLOYMENT_PROFILE
++
+BOOTSTRAP_COMPOSITION_BINDINGS
 =
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-The three explicit seams now exist. The next uncertainty is no longer whether Fourth Street-specific facts can be separated. The next uncertainty is whether a developer/operator can intentionally instantiate another isolated venue composition from explicit, reviewable, secret-safe inputs without editing generic application source.
+The core ownership seams and the deterministic bootstrap composition now exist. The next uncertainty is therefore a **sequencing** question: which capability should be proven next to turn the accepted isolated-venue architecture into a useful successor platform without weakening the assurance boundary or prematurely automating an unproven product model?
 
-## Post-HV-3 Sequencing Decision — COMPLETE
+## Post-HV-3 Sequencing Decision — COMPLETE / HISTORICAL
 
-The accepted Post-HV-3 decision selected:
+The accepted Post-HV-3 decision correctly selected isolated-venue bootstrap and successor DX, leading to HV-4. That decision is preserved in `POST_HV3_SEQUENCING_DECISION_0_1_0.md` but is superseded for current routing by accepted HV-4.
 
-```text
-SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX
-PROPOSED_MILESTONE = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION
-NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-```
+It must not be rewritten to pretend it anticipated or selected the post-HV-4 lane.
 
-Why:
+## Venue-category boundary after HV-4
 
-- HV-1/HV-2/HV-3 now make venue, deployment, and authored-expression ownership explicit;
-- package metadata and developer-facing assumptions still visibly inherit the one-off Hive-Bar identity;
-- a reproducible bootstrap contract is the smallest next test of whether the architecture can actually instantiate another isolated venue without source forks;
-- a real second venue would add unnecessary business/custody/infrastructure obligations before bootstrap correctness is proven;
-- fleet automation would automate a process not yet formally defined;
-- Kubo/IPFS publication is promising but needs a deliberately defined immutable publication object;
-- Helia/OrbitDB replicated state remains unjustified until a concrete non-authoritative replicated data domain is identified.
+Hive-Venues is intended to support independently branded venue applications beyond Fourth Street. Current evidence still does **not** provide a canonical exhaustive venue taxonomy.
 
-The accepted decision is `POST_HV3_SEQUENCING_DECISION_0_1_0.md`.
+Therefore the platform core remains venue-type neutral:
 
-## Venue-category boundary
-
-Hive-Venues is intended to support independently branded venue applications beyond Fourth Street. Current project evidence does **not** provide a canonical exhaustive venue taxonomy.
-
-Therefore the bootstrap foundation must be venue-type neutral:
-
-- no mandatory `bar | restaurant | club | cafe | ...` enum is introduced merely for abstraction;
-- generic platform code should not require bar-specific nouns;
+- no mandatory `bar | restaurant | club | cafe | band | streamer | news | store | ...` enum is inferred merely for abstraction;
+- generic platform/security code must not depend on bar-specific nouns or category branching;
 - venue package content may provide authentic operator/staff/customer vocabulary where it genuinely differs;
-- platform/security semantics remain universal regardless of venue vocabulary;
-- future product evidence may justify explicit capabilities or venue classifications later, but HV-4 must not guess them now.
+- future starter archetypes may be evaluated as optional authoring conveniences or capability bundles rather than platform identity;
+- hybrid real-world entities are expected to cross category boundaries, which argues against making a starter taxonomy authoritative.
 
-## HV-4 — Isolated Venue Bootstrap Foundation — PREREGISTRATION NEXT
+## Post-HV-4 Sequencing Decision — NEXT
 
 The next bounded operation is only:
 
 ```text
-HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
+POST_HV4_SEQUENCING_DECISION__READ_ONLY
 ```
 
-The preregistration must freeze, at minimum:
+Its purpose is to compare the credible post-HV-4 lanes against the accepted evidence and select the smallest next uncertainty worth proving. It is not implementation authorization.
 
-- exact canonical source base;
-- minimum bootstrap input taxonomy across platform, venue context, venue package, deployment profile, optional policy, and secret/private operational inputs;
-- deterministic reviewable output format;
-- offline synthetic bootstrap proof;
-- no-source-fork criterion;
-- venue-type neutrality and independently branded vocabulary support;
-- developer-facing successor identity boundary;
-- explicit preservation of Fourth Street production compatibility names;
-- fail-closed validation for malformed/missing/cross-venue/unsafe inputs;
-- source-control secret exclusion;
-- human developer/operator usability review;
-- deterministic Ubuntu/Windows qualification;
-- explicit non-effects forbidding real-client admission, production mutation, shared-runtime tenancy, fleet orchestration, Kubo/IPFS publication, Helia/OrbitDB integration, protocol/payment/auth semantic changes, and unrelated UI redesign.
+At minimum, the decision should compare:
 
-The preregistration itself does not authorize implementation.
+1. **Real isolated second-venue pilot** — test the bootstrap contract against a real independently branded client/venue, with separately authorized business identity, content, Hive identity/community, domain, policy, custody, and deployment.
+2. **Successor authoring / no-code developer experience** — make the accepted venue/package/bootstrap model approachable to nontechnical operators while preserving one canonical validated representation and retaining an advanced source/code path. GrapesJS is an evaluation candidate for the visual-editor layer, not a preselected dependency.
+3. **Optional archetype/capability starters** — evaluate bar, band, streamer/influencer, news, digital store, and hybrid starting experiences as non-authoritative convenience layers over the venue-neutral core.
+4. **Successor developer/package identity maintenance** — remove remaining source-development assumptions such as inherited `hive-bar` package metadata where doing so does not rename Fourth Street production provenance.
+5. **Content-addressed publication and provenance** — define an immutable venue artifact and test Git commit/tree + artifact digest + CID binding; evaluate IPNS separately as a mutable naming layer over successive immutable CIDs rather than replacing Git source identity.
+6. **3Speak / SPKNetwork media capability** — evaluate a concrete media use case such as venue video/channel embedding, publishing, storage, or transcoding without transferring auth/payment/private-state authority.
+7. **Fleet operations** — automate per-venue provisioning/release only if the accepted bootstrap contract is sufficiently complete and the product value outweighs orchestration complexity.
+8. **Helia / OrbitDB replicated state** — remain deferred unless a concrete non-authoritative mutable data domain emerges with explicit privacy, access-control, conflict-resolution, and product-value requirements.
+9. **Shared-runtime multi-tenancy** — remain deferred absent a separately proven tenant ownership/isolation model across payments, moderation, onboarding, sessions, secrets, replay/idempotency, and observability.
+
+The sequencing decision may reject, defer, combine, or narrow these candidates. This roadmap does not preselect a winner.
 
 ## Production lineage boundary
 
@@ -144,23 +152,49 @@ The last recorded accepted production transition in the inherited roadmap is M19
 
 Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
 
-## Candidate-lane disposition after HV-3
+## Candidate-lane status after HV-4
 
-### Real isolated second-venue pilot — DEFERRED ONE GATE
+### Real isolated second-venue pilot — ELIGIBLE FOR SEQUENCING
 
-Potentially valuable after HV-4 proves bootstrap from synthetic/offline inputs. A real pilot requires separate business identity, content, Hive account/community, domain, policy, custody, and deployment authorization.
+HV-4 removed the prior technical gate that bootstrap composition had not yet been proven. A real pilot still carries materially new business, identity, custody, content, domain, infrastructure, and operational obligations and therefore requires its own authorization if selected.
 
-### Kubo / immutable IPFS publication — ELIGIBLE DOWNSTREAM RESEARCH
+### Successor no-code / WYSIWYG authoring — ELIGIBLE FOR SEQUENCING
 
-Eligible after a deliberate immutable venue publication artifact is defined. A Kubo experiment must not pretend the dynamic Express application is already a static site or expose administrative APIs publicly.
+Potentially high leverage for platform usability. The desired architecture is one canonical validated venue/package/bootstrap model with multiple authoring surfaces—not separate visual and developer configuration systems. GrapesJS may be evaluated as an implementation framework only after the editable schema, component permissions, serialization contract, sanitization boundary, preview model, and escape hatch to source/code are defined.
+
+### Optional archetype/capability starters — ELIGIBLE FOR SEQUENCING
+
+Bar, band, streamer/influencer, news, digital store, and hybrid examples are useful product evidence. They should initially compete as starter experiences or composable capabilities, not as a mandatory platform enum.
+
+### CID / IPFS / IPNS publication — ELIGIBLE FOR SEQUENCING
+
+A hybrid provenance model is preferred for evaluation:
+
+```text
+GIT_COMMIT_SHA = source/provenance event
+GIT_TREE_SHA = exact source tree
+ARTIFACT_DIGEST = exact deterministic publication payload
+CID = immutable content-addressed publication identity
+IPNS = optional mutable name pointing to successive immutable CIDs
+```
+
+A future experiment must define the publication artifact explicitly; it must not pretend the dynamic Express runtime is already a static site or expose administrative IPFS interfaces publicly.
+
+### 3Speak / SPKNetwork — ELIGIBLE FOR SEQUENCING
+
+Interesting primarily as a media/content capability. It is not currently selected and must not become authoritative for Hive private keys, authentication, payments, onboarding custody, or other security-critical private state merely because it participates in decentralized media/storage infrastructure.
+
+### Successor package/developer identity cleanup — ELIGIBLE MAINTENANCE CANDIDATE
+
+The repository still contains developer-facing inherited `hive-bar` package metadata. That is distinct from Fourth Street's intentionally preserved production compatibility namespace. A bounded maintenance operation may be appropriate if sequencing judges the mismatch materially harmful to onboarding or tooling.
+
+### Fleet operations — ELIGIBLE BUT NOT SELECTED
+
+HV-4 now defines a repeatable per-venue composition contract, removing one earlier blocker. Fleet work still needs evidence that automating provisioning/release is more valuable than first improving authoring or proving a real second venue.
 
 ### Helia + OrbitDB replicated state — DEFERRED
 
 Requires a concrete non-authoritative data domain with explicit privacy, access-control, conflict-resolution, and product-value justification. Canonical Hive state, payment receipts, auth/session authority, and onboarding credential custody are not candidates by default.
-
-### Fleet operations — DEFERRED
-
-Meaningful after HV-4 defines a repeatable per-venue input/output contract.
 
 ### Shared-runtime multi-tenancy — DEFERRED
 
@@ -182,16 +216,12 @@ They are no longer the living successor sequence. New work is governed by HV mil
 
 ## Historical routing rule
 
-Earlier accepted sequencing records remain immutable historical evidence. In particular, `POST_HV2_SEQUENCING_DECISION_0_1_0.md` correctly recorded, at that time:
+Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-3 at its boundary, and `POST_HV3_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-4 at its boundary.
+
+Accepted HV-4 now supersedes those records for current routing. Until a fresh post-HV-4 sequencing decision is accepted:
 
 ```text
-POST_HV2_SEQUENCING_DECISION = ACCEPTED
-SELECTED_NEXT_LANE = VENUE_PACKAGING
-NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+SELECTED_NEXT_LANE = NONE
+NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-HV3_IMPLEMENTATION_STARTED = NO
-SECOND_REAL_VENUE_AUTHORIZED = NO
-SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 ```
-
-That snapshot is superseded for current routing by accepted HV-3 and `POST_HV3_SEQUENCING_DECISION_0_1_0.md`; it is retained here only to make the transition explicit during the routing-checker reconciliation and must not be interpreted as current authorization.

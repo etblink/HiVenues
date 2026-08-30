@@ -13,17 +13,19 @@ These documents govern current interpretation and sequencing:
 - `HV1_VENUE_CONTEXT_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-1 prospective contract.
 - `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md` — frozen HV-2 prospective contract.
 - `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-2 implementation and qualification record.
-- `POST_HV2_SEQUENCING_DECISION_0_1_0.md` — historical accepted decision that selected venue packaging before HV-3.
 - `HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION_0_1_0.md` — frozen HV-3 prospective contract.
 - `HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-3 implementation and qualification record.
-- `POST_HV3_SEQUENCING_DECISION_0_1_0.md` — current accepted sequencing decision selecting isolated-venue bootstrap / successor developer experience.
+- `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-4 prospective contract.
+- `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted HV-4 implementation and qualification record.
 - `HISTORICAL_REF_ARCHIVE_0_1_0.md` — bounded archive policy and provenance for divergent historical refs.
+
+`POST_HV2_SEQUENCING_DECISION_0_1_0.md` and `POST_HV3_SEQUENCING_DECISION_0_1_0.md` remain immutable historical sequencing records. The latter correctly selected HV-4 at the time but no longer governs current routing after accepted HV-4.
 
 Living documents must be updated when their current-state or routing claims become stale. Historical records must not be rewritten to make old authorization boundaries look current.
 
 ## Current successor interpretation
 
-HV-1, HV-2, and HV-3 are accepted. The accepted near-term composition is:
+HV-1, HV-2, HV-3, and HV-4 are accepted. The accepted near-term composition is:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -35,19 +37,25 @@ VENUE_CONTEXT
 VENUE_PACKAGE
 +
 DEPLOYMENT_PROFILE
++
+BOOTSTRAP_COMPOSITION_BINDINGS
 =
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-The selected next bounded operation is:
+HV-4 proves deterministic, secret-safe offline composition and review of one isolated venue without a source fork. It does not admit a real second venue, change Fourth Street production, or establish shared-runtime tenancy.
+
+The next bounded operation is:
 
 ```text
-HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION
+POST_HV4_SEQUENCING_DECISION__READ_ONLY
 ```
 
-HV-4 implementation is not authorized merely because the routing decision exists. A second real venue, live production mutation, and shared-runtime tenancy remain outside the current authorization boundary.
+No next substantive implementation is selected until that decision is accepted.
 
-The bootstrap lane is intentionally **venue-type neutral**. The platform is intended to support independently branded venue applications. Fourth Street remains the reference bar, but no mandatory bar/restaurant/club/café taxonomy is inferred from the current evidence. Venue-specific operator/staff vocabulary belongs in the explicit venue package when it genuinely differs.
+Candidate lanes may be compared in that decision, including real isolated second-venue admission, developer/no-code authoring, optional archetype/capability starters, successor package/developer identity cleanup, content-addressed publication/provenance, media integrations, and fleet tooling. Their appearance as candidates is not authorization or selection.
+
+The platform remains intentionally **venue-type neutral** at its core. Independently branded venues may use authentic vocabulary and optional future starter configurations, but no mandatory bar/restaurant/club/café/band/streamer/news/store taxonomy is currently part of platform authority.
 
 ## Current Fourth Street operating documentation
 
@@ -81,7 +89,7 @@ Use it to answer questions such as:
 - what exact source or deployment was qualified at a historical gate;
 - what visual or operational evidence supported an accepted milestone.
 
-Do not use a historical milestone file to override a current successor routing decision merely because the older file called itself current at the time.
+Do not use a historical milestone file to override current successor routing merely because the older file called itself current at the time.
 
 The original Git object graph is preserved in this repository, and `etblink/Hive-Bar` remains independently available as the source-lineage repository.
 
@@ -91,10 +99,10 @@ For current project status, read in this order:
 
 1. `../README.md`
 2. `ROADMAP.md`
-3. `POST_HV3_SEQUENCING_DECISION_0_1_0.md`
-4. the currently authorized preregistration, when present
+3. `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md`
+4. the accepted post-HV-4 sequencing decision, once one exists
 5. `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
 6. relevant current operating documentation if production is involved
-7. historical milestone/preregistration/acceptance evidence only as needed for provenance or inherited invariants.
+7. historical milestone/preregistration/sequencing/acceptance evidence only as needed for provenance or inherited invariants.
 
-Prior accepted records remain intentionally frozen. In particular, `POST_HV2_SEQUENCING_DECISION_0_1_0.md` remains the historical record that selected HV-3; it no longer governs current sequencing after accepted HV-3 and the Post-HV-3 decision.
+Prior accepted routing records remain intentionally frozen. `POST_HV3_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-4 from the post-HV-3 boundary; accepted HV-4 now supersedes it for current routing. Until the fresh post-HV-4 decision is accepted, the project is deliberately at a sequencing-decision boundary rather than silently continuing a prior lane.
