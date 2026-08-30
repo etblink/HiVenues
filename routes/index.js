@@ -7,12 +7,12 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { config, services } = req.app.locals;
+    const { services, venue } = req.app.locals;
     let officialUpdates = { items: [], status: 'empty' };
     try {
       const items = await services.hiveReads.getOfficialCommunityPosts({
-        account: config.hive.officialBarAccount,
-        community: config.hive.communityId,
+        account: venue.hive.officialAccount,
+        community: venue.hive.communityId,
         limit: 3,
       });
       officialUpdates = { items, status: items.length > 0 ? 'ready' : 'empty' };
@@ -41,7 +41,7 @@ router.get('/pay', (req, res) => {
     pageTitle: `Pay Tab — ${res.app.locals.siteName}`,
     payment: {
       enabled: req.app.locals.config.payments.enabled,
-      merchants: req.app.locals.config.payments.merchantAccounts,
+      merchants: req.app.locals.venue.hive.paymentMerchantAccounts,
     },
     distriator: req.app.locals.config.distriator,
   });

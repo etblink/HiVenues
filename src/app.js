@@ -9,6 +9,7 @@ const { ChallengeStore, SessionStore } = require('./auth/session-store');
 const { KeychainAuthService } = require('./auth/keychain-auth');
 const { isBetaAction } = require('./beta/actions');
 const { loadConfig } = require('./config');
+const { withVenueContext } = require('./venue/context');
 const { PostingAuthorityVerifier } = require('./hive/posting-authority');
 const { HiveReadService } = require('./hive/read-service');
 const { HiveRpcPool } = require('./hive/rpc-pool');
@@ -64,7 +65,9 @@ function securityMiddleware(config) {
 }
 
 function createApp(options = {}) {
-  const config = options.config || loadConfig();
+  const baseConfig = options.config || loadConfig();
+  const config = options.venue ? withVenueContext(baseConfig, options.venue) : baseConfig;
+  const venue = config.venue;
   const logger = options.logger || createLogger(config);
   const deploymentIdentity =
     options.deploymentIdentity || readDeploymentIdentity({ rootDir: options.releaseRoot });
@@ -194,11 +197,12 @@ function createApp(options = {}) {
   app.set('view engine', 'ejs');
 
   app.locals.config = config;
+  app.locals.venue = venue;
   app.locals.onboardingConfig = onboardingConfig;
-  app.locals.siteName = config.site.name;
-  app.locals.business = config.site.business;
-  app.locals.communityId = config.hive.communityId;
-  app.locals.threadsContainerAccount = config.hive.threadsContainerAccount;
+  app.locals.siteName = venue.displayName;
+  app.locals.business = venue.business;
+  app.locals.communityId = venue.hive.communityId;
+  app.locals.threadsContainerAccount = venue.hive.threadsContainerAccount;
   app.locals.writesEnabled = config.hive.writesEnabled;
   app.locals.signerMode = config.hive.signerMode;
   app.locals.buildLabel = deploymentIdentity.build;

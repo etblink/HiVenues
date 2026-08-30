@@ -152,8 +152,8 @@ test('UX-1F is a registered homepage-only presentation layer and preserves the f
   assert.doesNotMatch(css, /https?:\/\//i);
 
   assert.equal((routeSource.match(/getOfficialCommunityPosts\(/g) || []).length, 1);
-  assert.match(routeSource, /account:\s*config\.hive\.officialBarAccount/);
-  assert.match(routeSource, /community:\s*config\.hive\.communityId/);
+  assert.match(routeSource, /account:\s*venue\.hive\.officialAccount/);
+  assert.match(routeSource, /community:\s*venue\.hive\.communityId/);
   assert.match(routeSource, /limit:\s*3/);
   assert.match(routeSource, /status:\s*items\.length > 0 \? 'ready' : 'empty'/);
   assert.match(routeSource, /status:\s*'unavailable'/);

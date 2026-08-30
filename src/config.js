@@ -4,6 +4,8 @@ const { randomBytes } = require('node:crypto');
 const dotenv = require('dotenv');
 const { z } = require('zod');
 const { parseAsset } = require('./hive/assets');
+const { createVenueContext, withVenueContext } = require('./venue/context');
+const { FOURTH_STREET_REFERENCE_VENUE } = require('./venue/reference/fourth-street');
 
 const HIVE_ACCOUNT_PATTERN = /^(?=.{3,64}$)[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
 const COMMUNITY_PATTERN = /^hive-[0-9]{3,12}$/;
@@ -205,38 +207,37 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     BIND_HOST: z.enum(['127.0.0.1', '::1', '0.0.0.0', '::']).default('127.0.0.1'),
-    SITE_NAME: z.string().trim().min(1).max(80).default('4th Street Bar'),
+    VENUE_ID: z.string().trim().default(FOURTH_STREET_REFERENCE_VENUE.id),
+    SITE_NAME: z.string().trim().min(1).max(80).default(FOURTH_STREET_REFERENCE_VENUE.displayName),
     BAR_ADDRESS: z
       .string()
       .trim()
       .min(1)
       .max(200)
-      .default('1114 E. 4th Street, Reno, NV 89512'),
-    BAR_PHONE: z.string().trim().min(1).max(40).default('(775) 324-7827'),
-    BAR_HOURS: z.string().trim().min(1).max(120).default('Daily, 12:00 p.m.–2:00 a.m.'),
+      .default(FOURTH_STREET_REFERENCE_VENUE.business.address),
+    BAR_PHONE: z.string().trim().min(1).max(40).default(FOURTH_STREET_REFERENCE_VENUE.business.phone),
+    BAR_HOURS: z.string().trim().min(1).max(120).default(FOURTH_STREET_REFERENCE_VENUE.business.hours),
     BAR_WEBSITE_URL: z
       .string()
       .trim()
-      .default('https://4thstreetbarreno.com/')
+      .default(FOURTH_STREET_REFERENCE_VENUE.business.websiteUrl)
       .transform(requireHttpsUrl),
     BAR_MAP_URL: z
       .string()
       .trim()
-      .default(
-        'https://www.google.com/maps/search/?api=1&query=1114%20E.%204th%20Street%2C%20Reno%2C%20NV%2089512',
-      )
+      .default(FOURTH_STREET_REFERENCE_VENUE.business.mapUrl)
       .transform(requireHttpsUrl),
-    HIVE_COMMUNITY_ID: z.string().trim().regex(COMMUNITY_PATTERN).default('hive-108590'),
+    HIVE_COMMUNITY_ID: z.string().trim().regex(COMMUNITY_PATTERN).default(FOURTH_STREET_REFERENCE_VENUE.hive.communityId),
     HIVE_OFFICIAL_BAR_ACCOUNT: z
       .string()
       .trim()
       .regex(HIVE_ACCOUNT_PATTERN)
-      .default('fourthstreetbar'),
+      .default(FOURTH_STREET_REFERENCE_VENUE.hive.officialAccount),
     THREADS_CONTAINER_ACCOUNT: z
       .string()
       .trim()
       .regex(HIVE_ACCOUNT_PATTERN)
-      .default('fourthst.threads'),
+      .default(FOURTH_STREET_REFERENCE_VENUE.hive.threadsContainerAccount),
     HIVE_RPC_NODES: z
       .string()
       .default('https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network')
@@ -262,7 +263,7 @@ const envSchema = z
     HIVE_PAYMENT_ENABLED: z.string().default('false').transform(parseBoolean),
     HIVE_PAYMENT_MERCHANT_ACCOUNTS: z
       .string()
-      .default('fourthstreetbar')
+      .default(FOURTH_STREET_REFERENCE_VENUE.hive.paymentMerchantAccounts.join(','))
       .transform(parseAccountList),
     HIVE_PAYMENT_RECEIPT_DB_PATH: z.string().default(':memory:').transform(parseReceiptPath),
     HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS: z.coerce
@@ -416,7 +417,7 @@ const envSchema = z
 
 function loadConfig(
   source = process.env,
-  { loadDotenv = source === process.env, allowV1Production = false } = {},
+  { loadDotenv = source === process.env, allowV1Production = false, venue: venueOverride = null } = {},
 ) {
   if (loadDotenv) dotenv.config({ quiet: true });
 
@@ -454,6 +455,26 @@ function loadConfig(
   } catch (error) {
     throw new Error(`Invalid Hive-Bar configuration: TRUST_PROXY: ${error.message}`);
   }
+
+  const venue = venueOverride
+    ? createVenueContext(venueOverride)
+    : createVenueContext({
+        id: result.data.VENUE_ID,
+        displayName: result.data.SITE_NAME,
+        business: {
+          address: result.data.BAR_ADDRESS,
+          phone: result.data.BAR_PHONE,
+          hours: result.data.BAR_HOURS,
+          websiteUrl: result.data.BAR_WEBSITE_URL,
+          mapUrl: result.data.BAR_MAP_URL,
+        },
+        hive: {
+          communityId: result.data.HIVE_COMMUNITY_ID,
+          officialAccount: result.data.HIVE_OFFICIAL_BAR_ACCOUNT,
+          threadsContainerAccount: result.data.THREADS_CONTAINER_ACCOUNT,
+          paymentMerchantAccounts: result.data.HIVE_PAYMENT_MERCHANT_ACCOUNTS,
+        },
+      });
 
   const config = {
     env: result.data.NODE_ENV,
@@ -533,13 +554,7 @@ function loadConfig(
     },
   };
 
-  return deepFreeze(config);
-}
-
-function deepFreeze(value) {
-  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
-  for (const child of Object.values(value)) deepFreeze(child);
-  return Object.freeze(value);
+  return withVenueContext(config, venue);
 }
 
 module.exports = {
