@@ -31,6 +31,7 @@ jobs:
         run: |
           node ../automation/tools/hv1-build-candidate.js
           node ../automation/tools/hv1-build-repair.js
+          node ../automation/tools/hv1-build-repair-v2.js
           npm run release:check:runtime
           npm ci --ignore-scripts --no-fund
           npx --no-install patch-package
@@ -53,7 +54,7 @@ jobs:
           set -euo pipefail
           git config user.name 'Hive-Venues Project Lead Automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/config.js src/app.js routes/index.js src/venue test/venue-context.test.js
+          git add src/config.js src/app.js routes/index.js src/venue test/venue-context.test.js test/ux-1f-homepage.test.js
           git diff --cached --check
           git commit -m 'Establish explicit venue context foundation'
           git push origin HEAD:platform/hv1-venue-context-foundation
