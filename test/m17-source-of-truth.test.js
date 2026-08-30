@@ -124,6 +124,6 @@ test('release and successor living-document sources are mechanically coherent', 
     appTag: 'fourth-street-bar-app/0.1.0',
     v1ActionCount: 12,
     acceptedSuccessorMilestones: 4,
-    nextOperation: 'POST_HV4_SEQUENCING_DECISION__READ_ONLY',
+    nextOperation: 'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION',
   });
 });
