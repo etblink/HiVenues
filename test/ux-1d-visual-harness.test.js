@@ -71,27 +71,23 @@ test('UX-1D pinned-Chromium contract covers posts, Threads, nesting, mobile, and
   assert.match(capture, /assert\.equal\(evidence\.scrollY, 0\)/);
 });
 
-test('UX-1D visual CI is additive after every accepted visual lane and uploads commit-bound evidence', () => {
-  const job = workflow.match(
-    /  ux-1d-visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/,
-  )?.[0];
+test('UX-1D consolidated CI retains every accepted predecessor suite and commit-bound evidence', () => {
+  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
-  assert.match(job, /UX-1D content hierarchy visual acceptance \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /needs:\n\s+- verify\n\s+- ux-1c-visual-acceptance/);
   assert.match(job, /npx --no-install playwright install --with-deps chromium/);
+  for (const command of [
+    'npm run test:visual:m18',
+    'npm run test:visual:m18-3',
+    'npm run test:visual:m18-4',
+    'npm run test:visual:ux-1a',
+    'npm run test:visual:ux-1b',
+    'npm run test:visual:ux-1c',
+    'npm run test:visual:ux-1d',
+  ]) assert.ok(job.includes(command));
   assert.match(job, /UX_1D_VISUAL_OUTPUT: artifacts\/ux-1d-visual/);
-  assert.match(job, /npm run test:visual:ux-1d/);
   assert.match(
     job,
-    /ux-1d-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
+    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  for (const acceptedLane of [
-    'M18.2 visual acceptance',
-    'M18.3 Home / Wall / Pay visual acceptance',
-    'M18.4 beta-readiness patron visual acceptance',
-    'UX-1A Threads visual acceptance',
-    'UX-1B composer visual acceptance',
-    'UX-1C weighted voting visual acceptance',
-  ]) assert.match(workflow, new RegExp(acceptedLane.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });

@@ -51,22 +51,9 @@ test('M18.2 console policy permits only one exact intentional main-document 401 
   const rejectedConsoleErrors = [
     [],
     [exactWithoutLocation, exactWithoutLocation],
-    [
-      exactWithoutLocation,
-      { locationUrl: null, text: 'Unrelated console error' },
-    ],
-    [
-      {
-        locationUrl: null,
-        text: 'Failed to load resource: the server responded with a status of 401',
-      },
-    ],
-    [
-      {
-        locationUrl: 'http://127.0.0.1:3000/unexpected-resource',
-        text: EXPECTED_INTENTIONAL_401_CONSOLE_ERROR,
-      },
-    ],
+    [exactWithoutLocation, { locationUrl: null, text: 'Unrelated console error' }],
+    [{ locationUrl: null, text: 'Failed to load resource: the server responded with a status of 401' }],
+    [{ locationUrl: 'http://127.0.0.1:3000/unexpected-resource', text: EXPECTED_INTENTIONAL_401_CONSOLE_ERROR }],
   ];
   for (const consoleErrors of rejectedConsoleErrors) {
     assert.throws(() =>
@@ -112,9 +99,7 @@ test('M18.2 visual fixture renders real signed-out and fixture-authenticated she
   const signedOutDocument = new JSDOM(signedOut.text).window.document;
   assert.equal(signedOutDocument.querySelector('h1')?.textContent.trim(), 'Sign in required');
   assert.deepEqual(
-    Array.from(signedOutDocument.querySelectorAll('.app-nav-label'), (item) =>
-      item.textContent.trim(),
-    ),
+    Array.from(signedOutDocument.querySelectorAll('.app-nav-label'), (item) => item.textContent.trim()),
     ['Home', 'Community', 'Threads', 'Sign in'],
   );
   assert.ok(signedOutDocument.querySelector('.app-signin__panel .app-field-control'));
@@ -126,15 +111,11 @@ test('M18.2 visual fixture renders real signed-out and fixture-authenticated she
     .expect(200);
   const authenticatedDocument = new JSDOM(authenticated.text).window.document;
   assert.deepEqual(
-    Array.from(authenticatedDocument.querySelectorAll('.app-nav-label'), (item) =>
-      item.textContent.trim(),
-    ),
+    Array.from(authenticatedDocument.querySelectorAll('.app-nav-label'), (item) => item.textContent.trim()),
     ['Home', 'Community', 'Threads', 'You'],
   );
   assert.equal(
-    authenticatedDocument
-      .querySelector(`a[href="/profile/${FIXTURE_ACCOUNT}"]`)
-      ?.getAttribute('aria-current'),
+    authenticatedDocument.querySelector(`a[href="/profile/${FIXTURE_ACCOUNT}"]`)?.getAttribute('aria-current'),
     'page',
   );
   assert.equal(authenticatedDocument.querySelector('#profile-heading')?.textContent.trim(), 'Evan');
@@ -149,26 +130,26 @@ test('M18.2 visual fixture renders real signed-out and fixture-authenticated she
   );
 });
 
-test('M18.2 CI retains dual-OS source qualification and one pinned Ubuntu visual artifact job', () => {
+test('M18.2 CI retains dual-OS source qualification and pinned consolidated visual evidence', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-m18-visual.js'), 'utf8');
-  const visualJob = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  m18-3-visual-acceptance:)/)?.[0];
+  const visualJob = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
 
   assert.match(workflow, /os:\s*[\s\S]*ubuntu-latest[\s\S]*windows-latest/);
   assert.ok(visualJob);
+  assert.match(visualJob, /name: Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(visualJob, /needs:\n\s+- scope\n\s+- verify/);
+  assert.match(visualJob, /if: needs\.scope\.outputs\.visual == 'true'/);
   assert.match(visualJob, /runs-on:\s*ubuntu-latest/);
   assert.match(
     visualJob,
     /with:\n\s+ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}\n\s+fetch-depth: 2\n\s+persist-credentials: false/,
   );
+  assert.match(visualJob, /M18_VISUAL_OUTPUT: artifacts\/m18-visual/);
   assert.match(visualJob, /npm run test:visual:m18/);
   assert.match(
     visualJob,
-    /m18-2-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
-  );
-  assert.equal(
-    visualJob.match(/\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g)?.length,
-    2,
+    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(visualJob, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
   assert.match(capture, /M18 visual qualification forbids Keychain access/);
@@ -177,19 +158,13 @@ test('M18.2 CI retains dual-OS source qualification and one pinned Ubuntu visual
   assert.match(capture, /assertExpectedConsoleErrors\(\{/);
   assert.match(capture, /assert\.deepEqual\(pageErrors, \[\]\)/);
   assert.match(capture, /footerNavigationOverlap/);
-  assert.match(
-    capture,
-    /assert\.ok\(evidence\.footerLineBottom <= evidence\.navigationRect\.top \+ 1\)/,
-  );
+  assert.match(capture, /assert\.ok\(evidence\.footerLineBottom <= evidence\.navigationRect\.top \+ 1\)/);
   assert.match(capture, /wordmark\.clipped/);
   assert.match(capture, /horizontalCenterDelta/);
   assert.match(capture, /summaryHorizontalOverflow/);
   assert.match(capture, /busyCueContent/);
   assert.match(capture, /details\.busy\.footerNavigationOverlap <= 1/);
-  assert.match(
-    capture,
-    /details\.busy\.footerLineBottom <= details\.busy\.navigationTop \+ 1/,
-  );
+  assert.match(capture, /details\.busy\.footerLineBottom <= details\.busy\.navigationTop \+ 1/);
   assert.match(
     capture,
     /const screenshot = await page\.screenshot\([\s\S]*?details\.busy\.footerNavigationOverlap <= 1/,

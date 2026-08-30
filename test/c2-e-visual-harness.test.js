@@ -26,12 +26,14 @@ test('C2-E visual harness freezes mobile/desktop moderation and unavailable-stor
   assert.match(script, /status of 503/);
 });
 
-test('C2-E workflow is pinned, read-only during capture, and preserves rendered evidence', () => {
-  const workflow = read('.github/workflows/c2-e-visual.yml');
+test('C2-E remains in pinned consolidated visual qualification with rendered evidence', () => {
+  const workflow = read('.github/workflows/ci.yml');
   assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
   assert.match(workflow, /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020/);
   assert.match(workflow, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
+  assert.match(workflow, /C2_E_VISUAL_OUTPUT: artifacts\/c2-e-visual/);
   assert.match(workflow, /npm run test:visual:c2-e/);
+  assert.match(workflow, /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(workflow, /retention-days: 90/);
 });
 

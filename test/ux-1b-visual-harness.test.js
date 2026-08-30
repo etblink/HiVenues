@@ -46,10 +46,7 @@ test('UX-1B pinned-Chromium contract covers five composer contexts at desktop an
     'public-wall-active',
     'private-message-active',
   ]) assert.match(capture, new RegExp(scenario));
-  assert.match(
-    capture,
-    /open: '\[data-composer\^="reply-composer-"\] \[data-composer-dialog-trigger\]'/,
-  );
+  assert.match(capture, /open: '\[data-composer\^="reply-composer-"\] \[data-composer-dialog-trigger\]'/);
   assert.doesNotMatch(capture, /reply-composer-.*> summary/);
   assert.match(capture, /UX-1B visual qualification forbids Keychain signing/);
   assert.match(capture, /UX-1B visual qualification forbids Keychain encryption/);
@@ -72,20 +69,18 @@ test('UX-1B pinned-Chromium contract covers five composer contexts at desktop an
   assert.match(capture, /duplicateIds/);
 });
 
-test('UX-1B visual CI remains additive and uploads commit-bound evidence', () => {
-  const job = workflow.match(
-    /  ux-1b-visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/,
-  )?.[0];
+test('UX-1B remains in consolidated visual qualification with commit-bound evidence', () => {
+  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
-  assert.match(job, /UX-1B composer visual acceptance \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /needs:\n\s+- verify\n\s+- ux-1a-visual-acceptance/);
+  assert.match(job, /Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
   assert.match(job, /npx --no-install playwright install --with-deps chromium/);
+  assert.match(job, /UX_1A_VISUAL_OUTPUT: artifacts\/ux-1a-visual/);
+  assert.match(job, /npm run test:visual:ux-1a/);
   assert.match(job, /UX_1B_VISUAL_OUTPUT: artifacts\/ux-1b-visual/);
   assert.match(job, /npm run test:visual:ux-1b/);
   assert.match(
     job,
-    /ux-1b-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
+    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  assert.match(workflow, /UX-1A Threads visual acceptance \(Ubuntu \/ pinned Chromium\)/);
 });

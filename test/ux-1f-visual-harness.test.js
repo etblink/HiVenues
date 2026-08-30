@@ -10,7 +10,6 @@ const { createUx1fVisualFixture } = require('./support/ux-1f-fixture');
 const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts/capture-ux-1f-visual.js'), 'utf8');
 const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
-const ux1eWorkflow = fs.readFileSync(path.join(ROOT, '.github/workflows/ux-1e-visual.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
 test('UX-1F deterministic fixture supplies each update state and rejects mutation or unplanned Hive access', async () => {
@@ -57,31 +56,27 @@ test('UX-1F pinned-Chromium contract covers every required viewport, degradation
   assert.match(capture, /assert\.deepEqual\(fixture\.rpcPool\.calls, \[\]\)/);
 });
 
-test('UX-1F visual CI is additive after accepted main-CI lanes and preserves the separate UX-1E lane', () => {
-  const job = workflow.match(
-    /  ux-1f-visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/,
-  )?.[0];
+test('UX-1F and UX-1E remain distinct suites in consolidated visual qualification', () => {
+  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
-  assert.match(job, /UX-1F homepage visual acceptance \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /needs:\n\s+- verify\n\s+- ux-1d-visual-acceptance/);
-  assert.match(job, /npx --no-install playwright install --with-deps chromium/);
+  assert.match(job, /Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
   assert.match(job, /UX_1F_VISUAL_OUTPUT: artifacts\/ux-1f-visual/);
   assert.match(job, /npm run test:visual:ux-1f/);
+  assert.match(job, /UX_1E_VISUAL_OUTPUT: artifacts\/ux-1e-visual/);
+  assert.match(job, /node scripts\/capture-ux-1e-visual\.js/);
   assert.match(
     job,
-    /ux-1f-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
+    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
 
-  for (const acceptedLane of [
-    'M18.2 visual acceptance',
-    'M18.3 Home / Wall / Pay visual acceptance',
-    'M18.4 beta-readiness patron visual acceptance',
-    'UX-1A Threads visual acceptance',
-    'UX-1B composer visual acceptance',
-    'UX-1C weighted voting visual acceptance',
-    'UX-1D content hierarchy visual acceptance',
-  ]) assert.match(workflow, new RegExp(acceptedLane.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(ux1eWorkflow, /UX-1E Wall \/ Inbox visual acceptance/);
-  assert.match(ux1eWorkflow, /node scripts\/capture-ux-1e-visual\.js/);
+  for (const command of [
+    'npm run test:visual:m18',
+    'npm run test:visual:m18-3',
+    'npm run test:visual:m18-4',
+    'npm run test:visual:ux-1a',
+    'npm run test:visual:ux-1b',
+    'npm run test:visual:ux-1c',
+    'npm run test:visual:ux-1d',
+  ]) assert.ok(job.includes(command));
 });

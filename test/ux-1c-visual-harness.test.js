@@ -62,20 +62,18 @@ test('UX-1C pinned-Chromium contract covers neutral, contextual weighted directi
   assert.match(capture, /assert\.equal\(evidence\.scrollY, 0\)/);
 });
 
-test('UX-1C visual CI is additive after every previously accepted visual lane', () => {
-  const job = workflow.match(
-    /  ux-1c-visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/,
-  )?.[0];
+test('UX-1C remains in consolidated visual qualification after the UX-1B suite', () => {
+  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
-  assert.match(job, /UX-1C weighted voting visual acceptance \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /needs:\n\s+- verify\n\s+- ux-1b-visual-acceptance/);
   assert.match(job, /npx --no-install playwright install --with-deps chromium/);
+  assert.match(job, /UX_1B_VISUAL_OUTPUT: artifacts\/ux-1b-visual/);
+  assert.match(job, /npm run test:visual:ux-1b/);
   assert.match(job, /UX_1C_VISUAL_OUTPUT: artifacts\/ux-1c-visual/);
   assert.match(job, /npm run test:visual:ux-1c/);
+  assert.ok(job.indexOf('npm run test:visual:ux-1b') < job.indexOf('npm run test:visual:ux-1c'));
   assert.match(
     job,
-    /ux-1c-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
+    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  assert.match(workflow, /UX-1B composer visual acceptance \(Ubuntu \/ pinned Chromium\)/);
 });

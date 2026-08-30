@@ -15,6 +15,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  scope:
+    name: Classify qualification scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      visual: ${{ steps.classify.outputs.visual }}
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "visual=true" >> "$GITHUB_OUTPUT"
+            echo "Manual qualification: exhaustive visual suite selected."
+            exit 0
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+          else
+            base="$PUSH_BEFORE_SHA"
+          fi
+
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git rev-parse HEAD^)"
+          fi
+
+          changed="$(git diff --name-only "$base" HEAD)"
+          printf 'Changed paths:\n%s\n' "$changed"
+
+          visual=false
+          while IFS= read -r path; do
+            [[ -z "$path" ]] && continue
+            case "$path" in
+              README.md|docs/*)
+                ;;
+              test/*.test.js)
+                ;;
+              scripts/check-release-coherence.js|scripts/check-functional-v1-baseline.js)
+                ;;
+              *)
+                visual=true
+                break
+                ;;
+            esac
+          done <<< "$changed"
+
+          echo "visual=$visual" >> "$GITHUB_OUTPUT"
+          echo "Visual qualification required: $visual"
+
   verify:
     name: Node 24.19.0 / npm 11.17.0 verification (${{ matrix.os }})
     strategy:
@@ -39,19 +101,21 @@ jobs:
         run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-
       - name: Apply pinned dependency patch
         run: npx --no-install patch-package
       - name: Run deterministic quality gate
         run: npm run check
 
   visual-acceptance:
-    name: M18.2 visual acceptance (Ubuntu / pinned Chromium)
-    needs: verify
+    name: Consolidated visual acceptance (Ubuntu / pinned Chromium)
+    needs:
+      - scope
+      - verify
+    if: needs.scope.outputs.visual == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Check out repository
+      - name: Check out exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -66,327 +130,66 @@ jobs:
         run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-
       - name: Apply pinned dependency patch
         run: npx --no-install patch-package
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Qualify M19.3.1 onboarding browser modules
         run: npm run test:browser:m19-3-1
-      - name: Build exact presentation assets
+      - name: Build exact presentation assets once
         run: npm run build
+
       - name: Capture and qualify M18.2 viewports
         env:
           M18_VISUAL_OUTPUT: artifacts/m18-visual
         run: npm run test:visual:m18
-      - name: Preserve M18.2 rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: m18-2-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/m18-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  m18-3-visual-acceptance:
-    name: M18.3 Home / Wall / Pay visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
-      - name: Capture and qualify M18.3 viewports
+      - name: Capture and qualify M18.3 Home / Wall / Pay viewports
         env:
           M18_3_VISUAL_OUTPUT: artifacts/m18-3-visual
         run: npm run test:visual:m18-3
-      - name: Preserve M18.3 rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: m18-3-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/m18-3-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  m18-4-visual-acceptance:
-    name: M18.4 beta-readiness patron visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - visual-acceptance
-      - m18-3-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
       - name: Capture and qualify M18.4 patron surfaces
         env:
           M18_4_VISUAL_OUTPUT: artifacts/m18-4-visual
         run: npm run test:visual:m18-4
-      - name: Preserve M18.4 rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: m18-4-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/m18-4-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  ux-1a-visual-acceptance:
-    name: UX-1A Threads visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - m18-4-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
+      - name: Capture and qualify C2-E moderation states
+        env:
+          C2_E_VISUAL_OUTPUT: artifacts/c2-e-visual
+        run: npm run test:visual:c2-e
+      - name: Capture and qualify C2-F responsive onboarding states
+        env:
+          C2_F_VISUAL_OUTPUT: artifacts/c2-f-visual
+        run: npm run test:visual:c2-f
       - name: Capture and qualify UX-1A Threads states
         env:
           UX_1A_VISUAL_OUTPUT: artifacts/ux-1a-visual
         run: npm run test:visual:ux-1a
-      - name: Preserve UX-1A rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ux-1a-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/ux-1a-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  ux-1b-visual-acceptance:
-    name: UX-1B composer visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - ux-1a-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
       - name: Capture and qualify UX-1B composer states
         env:
           UX_1B_VISUAL_OUTPUT: artifacts/ux-1b-visual
         run: npm run test:visual:ux-1b
-      - name: Preserve UX-1B rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ux-1b-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/ux-1b-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  ux-1c-visual-acceptance:
-    name: UX-1C weighted voting visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - ux-1b-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
       - name: Capture and qualify UX-1C weighted voting states
         env:
           UX_1C_VISUAL_OUTPUT: artifacts/ux-1c-visual
         run: npm run test:visual:ux-1c
-      - name: Preserve UX-1C rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ux-1c-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/ux-1c-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  ux-1d-visual-acceptance:
-    name: UX-1D content hierarchy visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - ux-1c-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
       - name: Capture and qualify UX-1D content hierarchy states
         env:
           UX_1D_VISUAL_OUTPUT: artifacts/ux-1d-visual
         run: npm run test:visual:ux-1d
-      - name: Preserve UX-1D rendered evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ux-1d-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/ux-1d-visual
-          if-no-files-found: warn
-          retention-days: 90
-
-  ux-1f-visual-acceptance:
-    name: UX-1F homepage visual acceptance (Ubuntu / pinned Chromium)
-    needs:
-      - verify
-      - ux-1d-visual-acceptance
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 2
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Verify exact runtime provenance
-        run: npm run release:check:runtime
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-fund
-
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
-      - name: Install pinned Chromium runtime
-        run: npx --no-install playwright install --with-deps chromium
-      - name: Build exact presentation assets
-        run: npm run build
       - name: Capture and qualify UX-1F homepage states
         env:
           UX_1F_VISUAL_OUTPUT: artifacts/ux-1f-visual
         run: npm run test:visual:ux-1f
-      - name: Preserve UX-1F rendered evidence
+      - name: Capture and qualify UX-1E Wall and Inbox states
+        env:
+          UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
+        run: node scripts/capture-ux-1e-visual.js
+
+      - name: Preserve consolidated rendered evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ux-1f-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/ux-1f-visual
+          name: consolidated-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts
           if-no-files-found: warn
           retention-days: 90
 
@@ -408,7 +211,6 @@ jobs:
           package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-
       - name: Apply pinned dependency patch
         run: npx --no-install patch-package
       - name: Verify production targets through read-only RPC calls

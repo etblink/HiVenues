@@ -8,13 +8,6 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const patchSha256 = 'e68145d75b25e660098569dc5c8211898cc680ea7f0f8a8e5ee5022be0b7fe8b';
-const installAndPatch = [
-  '      - name: Install locked dependencies',
-  '        run: npm ci --ignore-scripts --no-fund',
-  '',
-  '      - name: Apply pinned dependency patch',
-  '        run: npx --no-install patch-package',
-].join('\n');
 
 function canonicalLf(value) {
   return String(value).replace(/\r\n?/g, '\n');
@@ -24,8 +17,17 @@ function canonicalTextSha256(value) {
   return createHash('sha256').update(canonicalLf(value), 'utf8').digest('hex');
 }
 
-function installAndPatchCount(workflow) {
-  return canonicalLf(workflow).split(installAndPatch).length - 1;
+function assertEveryScriptDisabledInstallIsPatched(workflow) {
+  const normalized = canonicalLf(workflow);
+  const installs = normalized.match(/run: npm ci --ignore-scripts --no-fund/g) || [];
+  const patches = normalized.match(/run: npx --no-install patch-package/g) || [];
+  const paired = normalized.match(
+    /- name: Install locked dependencies\n\s+run: npm ci --ignore-scripts --no-fund\n\s+- name: Apply pinned dependency patch\n\s+run: npx --no-install patch-package/g,
+  ) || [];
+
+  assert.ok(installs.length >= 3, 'CI must retain deterministic, visual, and manual-smoke install paths');
+  assert.equal(patches.length, installs.length);
+  assert.equal(paired.length, installs.length);
 }
 
 test('binds the exact M5 decoder, compatibility patch, scanner, and runtime provenance', () => {
@@ -49,11 +51,11 @@ test('binds the exact M5 decoder, compatibility patch, scanner, and runtime prov
   assert.equal(canonicalTextSha256(patch), patchSha256);
 });
 
-test('applies the pinned dependency patch explicitly after script-disabled CI installs', () => {
+test('applies the pinned dependency patch explicitly after every script-disabled CI install', () => {
   const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
   const attributes = canonicalLf(fs.readFileSync(path.join(root, '.gitattributes'), 'utf8'));
 
-  assert.equal(installAndPatchCount(workflow), 10);
+  assertEveryScriptDisabledInstallIsPatched(workflow);
   assert.match(workflow, /ubuntu-latest/);
   assert.match(workflow, /windows-latest/);
   assert.match(attributes, /^patches\/\*\.patch text eol=lf$/m);
@@ -73,6 +75,6 @@ test('binds identical provenance under simulated LF and Windows CRLF checkouts',
 
   assert.equal(canonicalTextSha256(patch), patchSha256);
   assert.equal(canonicalTextSha256(windowsPatch), patchSha256);
-  assert.equal(installAndPatchCount(workflow), 10);
-  assert.equal(installAndPatchCount(windowsWorkflow), 10);
+  assertEveryScriptDisabledInstallIsPatched(workflow);
+  assertEveryScriptDisabledInstallIsPatched(windowsWorkflow);
 });

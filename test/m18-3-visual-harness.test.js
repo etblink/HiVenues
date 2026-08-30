@@ -62,11 +62,12 @@ test('M18.3 harness gates responsive geometry and long receipt proof', () => {
   assert.match(capture, /'b'\.repeat\(64\)/);
 });
 
-test('M18.3 remains a separate visual job while frozen M18.2 still runs', () => {
+test('M18.2 and M18.3 remain distinct retained suites in consolidated visual qualification', () => {
   assert.equal(packageJson.scripts['test:visual:m18-3'], 'node scripts/capture-m18-3-visual.js');
   assert.equal(packageJson.scripts['test:visual:m18'], 'node scripts/capture-m18-visual.js');
-  assert.match(workflow, /M18\.2 visual acceptance \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(workflow, /M18\.3 Home \/ Wall \/ Pay visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /M18_VISUAL_OUTPUT: artifacts\/m18-visual/);
+  assert.match(workflow, /npm run test:visual:m18/);
   assert.match(workflow, /M18_3_VISUAL_OUTPUT: artifacts\/m18-3-visual/);
   assert.match(workflow, /npm run test:visual:m18-3/);
 });

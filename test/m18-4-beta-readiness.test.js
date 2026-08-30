@@ -113,7 +113,9 @@ test('M18.4 historical acceptance remains bound after the successor documentatio
   );
   assert.match(operations, /Production remains beta until a separately authorized transition/);
 
-  assert.match(workflow, /M18\.4 beta-readiness patron visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /M18_4_VISUAL_OUTPUT: artifacts\/m18-4-visual/);
+  assert.match(workflow, /npm run test:visual:m18-4/);
 });
 
 test('M18.4 live qualification explicitly reads both social-graph directions without writes', () => {
