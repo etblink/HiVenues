@@ -147,7 +147,7 @@ test('accepted M17 invariants coexist with historical M19.2 evidence and selecte
   assert.match(operations, /Production remains beta until a separately authorized transition/);
   assert.match(operations, /last-good.*M17\.3/i);
 
-  assert.match(index, /Historical Hive-Bar and successor evidence/);
+  assert.match(index, /## Historical Hive-Bar evidence/);
   assert.match(index, /original Git object graph is preserved/);
   assert.match(index, /POST_HV5_SEQUENCING_DECISION_0_1_0\.md/);
   assert.match(index, /NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION/);
