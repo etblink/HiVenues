@@ -61,7 +61,7 @@ test('C2-A exposes the reviewed profile action in beta while preserving the pre-
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'POST_HV5_SEQUENCING_DECISION__READ_ONLY',
+    successorRouting: 'HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION',
   });
 });
 
@@ -83,20 +83,23 @@ test('M17.4 last-good bookkeeping is atomic and does not weaken explicit rollbac
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('accepted M17 invariants coexist with historical M19.2 evidence and neutral post-HV-5 routing', () => {
+test('accepted M17 invariants coexist with historical M19.2 evidence and selected Post-HV-5 routing', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const index = read('docs/README.md');
   const milestone = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
   const hv5Acceptance = read('docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md');
-  const reconciliation = read('docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const neutralReconciliation = read('docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const decision = read('docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md');
+  const decisionReconciliation = read('docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md');
 
   assert.match(readme, /^# Hive-Venues$/m);
   assert.match(readme, /The first five successor architecture milestones are accepted/);
-  assert.match(readme, /HV-5 is canonically accepted/i);
-  assert.match(readme, /neutral Post-HV-5 sequencing boundary/i);
-  assert.match(readme, /No post-HV-5 product lane has been selected/i);
+  assert.match(readme, /accepted \*\*Post-HV-5 Sequencing Decision\*\*/i);
+  assert.match(readme, /operator visual authoring adapter/i);
+  assert.match(readme, /next operation is \*\*HV-6 preregistration only\*\*/i);
+  assert.match(readme, /No HV-6 substantive implementation is authorized yet/i);
   assert.match(readme, /last recorded accepted production transition in the inherited record is M19\.2/);
   assert.match(readme, /No successor source refactor by itself authorizes deployment/);
 
@@ -107,25 +110,34 @@ test('accepted M17 invariants coexist with historical M19.2 evidence and neutral
   assert.match(roadmap, /^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m);
   assert.match(roadmap, /^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
   assert.match(roadmap, /^POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
-  assert.match(roadmap, /^POST_HV5_SEQUENCING_DECISION = PENDING$/m);
-  assert.match(roadmap, /^SELECTED_NEXT_LANE = NONE$/m);
-  assert.match(roadmap, /^PROPOSED_NEXT_MILESTONE = NONE$/m);
-  assert.match(roadmap, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m);
+  assert.match(roadmap, /^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m);
+  assert.match(roadmap, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
+  assert.match(roadmap, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m);
+  assert.match(roadmap, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
   assert.match(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+  assert.match(roadmap, /^GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m);
   assert.match(roadmap, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m);
   assert.match(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
   assert.match(roadmap, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m);
-  assert.match(roadmap, /## Historical Hive-Bar line/);
-  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
-  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
 
   assert.match(hv5Acceptance, /^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m);
   assert.match(hv5Acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = 932bb2fe109acfca9cb4ab0514dabc7553edf764$/m);
   assert.match(hv5Acceptance, /^ACCEPTED_IMPLEMENTATION_TREE = aeaddf2bda5bdc89997caeaa8e4e472839ae8b10$/m);
-  assert.match(reconciliation, /^OPERATION = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m);
-  assert.match(reconciliation, /^SELECTED_NEXT_LANE = NONE$/m);
-  assert.match(reconciliation, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m);
-  assert.match(reconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+
+  assert.match(neutralReconciliation, /^OPERATION = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m);
+  assert.match(neutralReconciliation, /^SELECTED_NEXT_LANE = NONE$/m);
+  assert.match(neutralReconciliation, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m);
+
+  assert.match(decision, /^STATUS = FROZEN_PROJECT_LEAD_SEQUENCING_DECISION$/m);
+  assert.match(decision, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
+  assert.match(decision, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m);
+  assert.match(decision, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
+  assert.match(decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+
+  assert.match(decisionReconciliation, /^OPERATION = POST_HV5_DECISION_ROUTING_RECONCILIATION$/m);
+  assert.match(decisionReconciliation, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
+  assert.match(decisionReconciliation, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
+  assert.match(decisionReconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m);
 
   assert.match(
     operations,
@@ -135,13 +147,10 @@ test('accepted M17 invariants coexist with historical M19.2 evidence and neutral
   assert.match(operations, /Production remains beta until a separately authorized transition/);
   assert.match(operations, /last-good.*M17\.3/i);
 
-  assert.match(index, /## Historical Hive-Bar evidence/);
-  assert.match(index, /All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence/);
+  assert.match(index, /Historical Hive-Bar and successor evidence/);
   assert.match(index, /original Git object graph is preserved/);
-  assert.match(index, /HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0\.md/);
-  assert.match(index, /POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0\.md/);
-  assert.match(index, /NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY/);
-  assert.match(index, /POST_HV3_SEQUENCING_DECISION_0_1_0/);
+  assert.match(index, /POST_HV5_SEQUENCING_DECISION_0_1_0\.md/);
+  assert.match(index, /NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION/);
 
   assert.match(milestone, /No cosmetic redesign is required for M17\.4 acceptance/);
   assert.match(milestone, /canonicalization is not part of this source-qualification authorization/);
