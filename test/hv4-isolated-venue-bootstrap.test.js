@@ -98,12 +98,14 @@ test('HV-4 rejects a valid Fourth Street deployment manifest when the bootstrap 
 });
 
 test('HV-4 rejects secret-bearing fields and recognizable private key material before producing review output', () => {
+  const fakePemMarker = ['-----BEGIN', ' PRIVATE', ' KEY----- fixture'].join('');
+
   expectInvalid(
     (input) => { input.metadata.apiToken = 'fixture-value'; },
     /metadata\.apiToken is a secret-bearing field and is not allowed/,
   );
   expectInvalid(
-    (input) => { input.metadata.notes = '-----BEGIN PRIVATE KEY----- fixture'; },
+    (input) => { input.metadata.notes = fakePemMarker; },
     /contains private key material/,
   );
 });
