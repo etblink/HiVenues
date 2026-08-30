@@ -1,12 +1,13 @@
 'use strict';
 
 const { BETA_ACTIONS } = require('../beta/actions');
+const { REFERENCE_DEPLOYMENT_PROFILE } = require('../deployment/reference/fourth-street-privex');
 const { DEFAULT_ONBOARDING_DB_PATH, parseOnboardingConfig } = require('../onboarding/config');
 const { inspectOnboardingStore } = require('../onboarding/request-store');
 const { inspectReceiptStore } = require('../payments/receipt-store');
 const { RELEASE_APP_TAG } = require('./read-only-readiness');
 const { PAYMENT_DB_PATH, isSafePaymentDatabasePath } = require('./payment-storage');
-const { RELEASE_PUBLIC_HOST, normalizePublicHost } = require('./privex-readiness');
+const { normalizePublicHost } = require('./privex-readiness');
 
 const BETA_EXPLICIT_SETTINGS = Object.freeze([
   'NODE_ENV',
@@ -50,6 +51,7 @@ function hasOwn(source, name) {
 }
 
 function assertPrivexBetaRelease(config, source = {}) {
+  const deployment = REFERENCE_DEPLOYMENT_PROFILE;
   const issues = [];
   const missing = BETA_EXPLICIT_SETTINGS.filter((name) => !hasOwn(source, name));
   const suppliedHost = String(source.HIVE_BAR_HOST || '');
@@ -78,20 +80,20 @@ function assertPrivexBetaRelease(config, source = {}) {
   if (!publicHost || suppliedHost !== publicHost) {
     issues.push('HIVE_BAR_HOST must be a canonical DNS hostname without a scheme, port, or path');
   }
-  if (publicHost && publicHost !== RELEASE_PUBLIC_HOST) {
-    issues.push(`HIVE_BAR_HOST must be exactly ${RELEASE_PUBLIC_HOST}`);
+  if (publicHost && publicHost !== deployment.release.publicHost) {
+    issues.push(`HIVE_BAR_HOST must be exactly ${deployment.release.publicHost}`);
   }
   if (config.auth.appOrigin !== `https://${publicHost}`) {
     issues.push('APP_ORIGIN must exactly match https://HIVE_BAR_HOST');
   }
-  if (config.server.bindHost !== '127.0.0.1') {
-    issues.push('BIND_HOST must be 127.0.0.1 behind the local Caddy proxy');
+  if (config.server.bindHost !== deployment.topology.application.bindHost) {
+    issues.push(`BIND_HOST must be ${deployment.topology.application.bindHost} behind the local Caddy proxy`);
   }
-  if (config.server.port !== 3000) {
-    issues.push('PORT must be 3000 to match the reviewed Caddy and health-check assets');
+  if (config.server.port !== deployment.topology.application.port) {
+    issues.push(`PORT must be ${deployment.topology.application.port} to match the reviewed Caddy and health-check assets`);
   }
-  if (config.server.trustProxy !== 'loopback') {
-    issues.push('TRUST_PROXY must be exactly loopback so only the local Caddy peer is trusted');
+  if (config.server.trustProxy !== deployment.topology.application.trustProxy) {
+    issues.push(`TRUST_PROXY must be exactly ${deployment.topology.application.trustProxy} so only the local Caddy peer is trusted`);
   }
   if (config.hive.rpcNodes.length < 3) issues.push('at least three distinct Hive RPC nodes are required');
   if (
@@ -163,10 +165,10 @@ function assertPrivexBetaRelease(config, source = {}) {
   }
 
   return Object.freeze({
-    profile: 'privex-beta-self-signing',
+    profile: deployment.runtimeProfiles.acceptedBeta,
     environment: config.env,
-    provider: 'Privex',
-    topology: 'single-instance-cloudflare-caddy',
+    provider: deployment.provider.name,
+    topology: deployment.topology.label,
     publicHost,
     origin: config.auth.appOrigin,
     bindHost: config.server.bindHost,
