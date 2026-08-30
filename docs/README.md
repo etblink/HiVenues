@@ -17,19 +17,23 @@ These documents govern current interpretation and sequencing:
 - `HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_ACCEPTANCE_0_1_0.md` — accepted HV-3 implementation and qualification record.
 - `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-4 prospective contract.
 - `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted HV-4 implementation and qualification record.
-- `POST_HV4_SEQUENCING_DECISION_0_1_0.md` — accepted Project Lead sequencing decision selecting the canonical venue-authoring contract as the next lane.
+- `POST_HV4_SEQUENCING_DECISION_0_1_0.md` — historical accepted Project Lead sequencing decision that selected the canonical venue-authoring contract.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen HV-5 prospective implementation contract.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md` — Project Lead acceptance of the HV-5 preregistration.
-- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — explicit bounded authorization for the offline HV-5 core implementation.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — historical bounded authorization for the offline HV-5 core implementation.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_0_1_0.md` — accepted HV-5 implementation/operator contract.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_REVIEW_0_1_0.md` — historical pre-acceptance Project Lead implementation review.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — permanent accepted HV-5 implementation/qualification record.
+- `POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — neutral current-state reconciliation after HV-5 acceptance.
 - `HISTORICAL_REF_ARCHIVE_0_1_0.md` — bounded archive policy and provenance for divergent historical refs.
 
-`POST_HV2_SEQUENCING_DECISION_0_1_0.md` and `POST_HV3_SEQUENCING_DECISION_0_1_0.md` remain immutable historical sequencing records. They correctly selected HV-3 and HV-4 at their respective boundaries but no longer govern current routing.
+`POST_HV2_SEQUENCING_DECISION_0_1_0.md`, `POST_HV3_SEQUENCING_DECISION_0_1_0.md`, and `POST_HV4_SEQUENCING_DECISION_0_1_0.md` remain immutable historical sequencing records. They correctly selected HV-3, HV-4, and HV-5 at their respective boundaries but no longer govern current routing.
 
 Living documents must be updated when their current-state or routing claims become stale. Historical records must not be rewritten to make old authorization boundaries look current.
 
 ## Current successor interpretation
 
-HV-1, HV-2, HV-3, and HV-4 are accepted. HV-5 is **authorized for bounded implementation but is not yet accepted**. The accepted near-term composition remains:
+HV-1 through HV-5 are accepted. The accepted near-term composition is:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -43,30 +47,29 @@ VENUE_PACKAGE
 DEPLOYMENT_PROFILE
 +
 BOOTSTRAP_COMPOSITION_BINDINGS
++
+CANONICAL_AUTHORING_CONTRACT
 =
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-HV-4 proves deterministic, secret-safe offline composition and review of one isolated venue without a source fork. It does not admit a real second venue, change Fourth Street production, or establish shared-runtime tenancy.
+HV-4 proves deterministic, secret-safe offline composition and review of one isolated venue without a source fork. HV-5 adds one editor-independent canonical authoring document and an executable ownership/ordinary-edit boundary without creating a second venue/package/deployment authority.
 
-Current routing is:
+Current routing is deliberately neutral:
 
 ```text
-POST_HV4_SEQUENCING_DECISION = ACCEPTED
-SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT
-PROPOSED_MILESTONE = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION
-HV5_PREREGISTRATION = ACCEPTED
-HV5_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
-HV5_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
-NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV5_BOUNDARY
+HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED
+POST_HV5_SEQUENCING_DECISION = PENDING
+SELECTED_NEXT_LANE = NONE
+NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-HV-5 remains intentionally narrower than “build a no-code editor.” Its core implementation must establish one editor-independent canonical authoring representation, ownership classes, deterministic serialization/compilation, ordinary-operator patch enforcement, secret/private rejection, and a source/code escape hatch. GrapesJS is a later visual-adapter evaluation candidate, not an HV-5 dependency or configuration authority.
+No later lane is selected by this reconciliation. GrapesJS/WYSIWYG, a real isolated second-venue pilot, optional starter archetypes, successor developer/package identity cleanup, CID/IPFS/IPNS publication, 3Speak/SPK media, and fleet tooling are candidate lanes only. Helia/OrbitDB mutable replication and shared-runtime multi-tenancy remain deferred absent a concrete bounded need.
 
-Optional bar/band/streamer/news/store/hybrid starters remain non-authoritative convenience layers. The core remains **venue-type neutral**. A real isolated second venue remains unauthorized and should be strongly reassessed after HV-5 acceptance or through an explicit sequencing reopening if a concrete pilot opportunity materially changes the decision boundary.
+The core remains **venue-type neutral**. Optional bar/band/streamer/news/store/hybrid starters may later be useful conveniences or evidence packs but are not a mandatory platform taxonomy.
 
-CID publication, IPNS mutable naming, 3Speak/SPK media, fleet tooling, Helia/OrbitDB replication, and shared-runtime multi-tenancy remain downstream or deferred exactly as recorded in the accepted sequencing/preregistration/authorization records; naming them here does not authorize implementation.
+A real isolated second venue is still unauthorized. HV-5 has removed the previous authoring-contract prerequisite, so a real pilot is now eligible for fresh sequencing consideration, not automatically authorized.
 
 ## Current Fourth Street operating documentation
 
@@ -110,13 +113,15 @@ For current project status, read in this order:
 
 1. `../README.md`
 2. `ROADMAP.md`
-3. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
-4. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md`
-5. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_0_1_0.md`
-6. `POST_HV4_SEQUENCING_DECISION_0_1_0.md`
-7. `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md`
-8. `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
-9. relevant current operating documentation if production is involved
-10. historical milestone/preregistration/sequencing/acceptance evidence only as needed for provenance or inherited invariants.
+3. `POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+5. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_0_1_0.md`
+6. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_REVIEW_0_1_0.md`
+7. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
+8. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md`
+9. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION_0_1_0.md`
+10. `POST_HV4_SEQUENCING_DECISION_0_1_0.md` for the historical decision that selected HV-5
+11. relevant current operating documentation if production is involved
+12. earlier historical milestone/preregistration/sequencing/acceptance evidence only as needed for provenance or inherited invariants.
 
-Prior accepted routing records remain intentionally frozen. The project is now at the bounded HV-5 implementation boundary: implementation is authorized within the exact frozen contract, but HV-5 itself is not yet accepted and no later lane is selected.
+Prior accepted routing records remain intentionally frozen. The current boundary is **Post-HV-5 Sequencing Decision pending**. No substantive post-HV-5 implementation is authorized by the acceptance record or this navigation reconciliation.
