@@ -6,6 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
+const referenceManifest = require('../ops/privex/manifest.json');
 const {
   VenueBootstrapError,
   composeVenueBootstrap,
@@ -56,6 +57,7 @@ test('HV-4 deterministically composes the Lantern Room through the authoritative
 });
 
 test('HV-4 fails closed when required bootstrap input is absent or an unsupported venue type is injected', () => {
+  expectInvalid((input) => { delete input.bindings; }, /Venue bootstrap invalid: input does not match schema version 1/);
   expectInvalid((input) => { delete input.deploymentManifest; }, /Venue bootstrap invalid: input does not match schema version 1/);
   expectInvalid((input) => { input.venueType = 'bar'; }, /Venue bootstrap invalid: input does not match schema version 1/);
 });
@@ -66,10 +68,32 @@ test('HV-4 delegates malformed venue, package, and deployment facts to the exist
   expectInvalid((input) => { input.deploymentManifest.release.root = 'relative/releases'; }, /Deployment profile invalid:/);
 });
 
-test('HV-4 rejects cross-venue package pairing', () => {
+test('HV-4 rejects cross-venue package pairing before composition', () => {
   expectInvalid(
     (input) => { input.venuePackage.venueId = 'fourth-street-bar'; },
     /is bound to fourth-street-bar, not lantern-room-fixture/,
+  );
+});
+
+test('HV-4 requires declared venue, package, and deployment identities to match validated inputs', () => {
+  expectInvalid(
+    (input) => { input.bindings.venueId = 'another-venue'; },
+    /bindings\.venueId expects another-venue, but validated input resolves to lantern-room-fixture/,
+  );
+  expectInvalid(
+    (input) => { input.bindings.packageId = 'another-package'; },
+    /bindings\.packageId expects another-package, but validated input resolves to lantern-room-fixture-package/,
+  );
+  expectInvalid(
+    (input) => { input.bindings.deploymentId = 'another-deployment'; },
+    /bindings\.deploymentId expects another-deployment, but validated input resolves to lantern-room-offline-deployment/,
+  );
+});
+
+test('HV-4 rejects a valid Fourth Street deployment manifest when the bootstrap declares Lantern Room deployment identity', () => {
+  expectInvalid(
+    (input) => { input.deploymentManifest = clone(referenceManifest); },
+    /bindings\.deploymentId expects lantern-room-offline-deployment, but validated input resolves to fourth-street-privex/,
   );
 });
 
