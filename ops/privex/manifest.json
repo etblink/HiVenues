@@ -1,5 +1,8 @@
 {
   "schemaVersion": 1,
+  "deployment": {
+    "id": "fourth-street-privex"
+  },
   "provider": "Privex",
   "package": "V1-US-NVME",
   "region": "US West",
@@ -44,6 +47,14 @@
     "exactCommitRequired": true,
     "lastGoodPath": "/opt/hive-bar/last-good",
     "lastGoodPolicy": "previous-validated-current-before-switch"
+  },
+  "storage": {
+    "paymentDatabase": "/var/lib/hive-bar/payments/receipts.sqlite3",
+    "onboardingDatabase": "/var/lib/hive-bar/onboarding/onboarding.sqlite3"
+  },
+  "provenance": {
+    "commitFilename": ".hive-bar-commit",
+    "treeFilename": ".hive-bar-tree"
   },
   "retention": {
     "journalDays": 7,
