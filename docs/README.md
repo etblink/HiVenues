@@ -94,13 +94,22 @@ The existing Fourth Street deployment carries its own installed release identity
 
 A source commit in Hive-Venues never authorizes a live deployment by itself.
 
-## Historical Hive-Bar and successor evidence
+## Historical Hive-Bar evidence
 
-Historical milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, release qualification files, preregistrations, decisions, and reconciliations remain authoritative for what those bounded operations established at the time.
+All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence for the operations they document.
+
+Earlier successor milestone/preregistration/acceptance/decision/reconciliation records likewise remain historical evidence once superseded for current routing. Historical evidence remains authoritative for what the bounded operation established at the time.
+
+Use historical evidence to answer questions such as:
+
+- what behavior or safety invariant was originally accepted;
+- why a transaction/payment/deployment rule exists;
+- what exact source or deployment was qualified at a historical gate;
+- what visual or operational evidence supported an accepted milestone.
 
 The original Git object graph is preserved in this repository, and `etblink/Hive-Bar` remains independently available as the source-lineage repository.
 
-Historical evidence may be **retired from the living `main` tree** only under a separately accepted main-tree retirement/archive policy that preserves an exact pre-retirement checkpoint ref plus per-path provenance. Removing a historical file from current `main` must never be treated as deleting or repudiating its evidence.
+Historical evidence may be **retired from the living `main` tree** only under a separately accepted main-tree retirement/archive policy that preserves an exact pre-retirement checkpoint ref plus per-path provenance. Removing a historical file from current `main` must never be treated as deleting, repudiating, or superseding its evidence.
 
 ## Current navigation rule
 
