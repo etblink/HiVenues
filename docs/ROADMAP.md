@@ -17,9 +17,12 @@ POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV4_SEQUENCING_DECISION = ACCEPTED
 SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT
 PROPOSED_MILESTONE = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION
-NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-GRAPESJS = EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY
+HV5_PREREGISTRATION = ACCEPTED
+HV5_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV5_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
+NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV5_BOUNDARY
+GRAPESJS = POST_HV5_ADAPTER_CANDIDATE__NOT_HV5_DEPENDENCY
 OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE
 SECOND_REAL_VENUE = DEFERRED_ONE_GATE
 SECOND_REAL_VENUE_AUTHORIZED = NO
@@ -78,16 +81,7 @@ QUALIFICATION_CI_RUN = 33334114135
 ACCEPTANCE_RECORD_TREE = 1113150e749c1071809d7b10af953c9f965e1b47
 ```
 
-HV-4 established a strict offline bootstrap envelope that:
-
-- delegates venue, package, and deployment validation to the accepted HV-1/HV-3/HV-2 authorities rather than creating parallel domain schemas;
-- requires explicit venue/package/deployment composition bindings and fails closed on mismatch;
-- rejects secret-bearing fields, recognizable private-key material, URL userinfo credentials, and sensitive URL query-parameter names before review output;
-- emits deeply immutable composition and deterministic canonical review JSON;
-- proves a meaningfully non-bar Lantern Room isolated composition with one test-only deployment and no source fork;
-- proves that the valid Fourth Street deployment manifest cannot be silently paired with Lantern Room under conflicting bindings;
-- preserves Fourth Street production compatibility paths, service names, storage locations, provenance names, host/application identity, and runtime semantics;
-- changes no production system and admits no real second venue.
+HV-4 established a strict offline bootstrap envelope that delegates venue, package, and deployment validation to the accepted authorities; requires explicit three-way identity bindings; rejects secret/private and credential-bearing material; emits deterministic canonical review JSON; proves a non-bar Lantern Room isolated composition; and preserves Fourth Street production compatibility without source forks, production mutation, or a real second venue.
 
 Acceptance details live in `HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_ACCEPTANCE_0_1_0.md`.
 
@@ -109,75 +103,72 @@ BOOTSTRAP_COMPOSITION_BINDINGS
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-The core ownership seams and deterministic bootstrap composition exist. The accepted Post-HV-4 Sequencing Decision identifies the next uncertainty as **authoring ownership**: what an operator may edit, what is derived, what is platform/deployment/security authority, and how multiple authoring surfaces converge on one canonical validated representation.
+The core ownership seams and deterministic bootstrap composition exist. The accepted Post-HV-4 Sequencing Decision identified the next uncertainty as **authoring ownership**: what an operator may edit, what is derived, what is platform/deployment/security authority, and how multiple authoring surfaces converge on one canonical validated representation.
 
-## Post-HV-3 Sequencing Decision — COMPLETE / HISTORICAL
+## Post-HV-4 Sequencing Decision — COMPLETE
 
-The accepted Post-HV-3 decision correctly selected isolated-venue bootstrap and successor DX, leading to HV-4. That decision is preserved in `POST_HV3_SEQUENCING_DECISION_0_1_0.md` but is superseded for current routing.
-
-It must not be rewritten to pretend it anticipated or selected the post-HV-4 lane.
-
-## Post-HV-4 Sequencing Decision — COMPLETE / CURRENT
-
-The accepted decision is preserved in `POST_HV4_SEQUENCING_DECISION_0_1_0.md`.
-
-It selects:
+The accepted decision is preserved in `POST_HV4_SEQUENCING_DECISION_0_1_0.md` and selected:
 
 ```text
 SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT
 PROPOSED_MILESTONE = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION
-NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-The selected lane is deliberately narrower than “build a visual editor.” HV-5 must define the canonical, editor-independent authoring contract first. GrapesJS is an evaluation candidate for a later adapter, not a selected dependency or source of truth.
+That sequencing choice has now progressed through preregistration, Project Lead preregistration acceptance, and explicit bounded implementation authorization. The historical decision file remains frozen; current routing is carried here.
 
-## Venue-category boundary after HV-4
+## HV-5 — Venue Authoring Contract Foundation — IMPLEMENTATION AUTHORIZED
 
-Hive-Venues is intended to support independently branded venue applications beyond Fourth Street. Current evidence still does **not** provide a canonical exhaustive venue taxonomy.
+Canonical prospective/governance sequence:
 
-Therefore the platform core remains venue-type neutral:
+```text
+PREREGISTRATION_COMMIT = f54a2a198ca5f9c37d5d78f6f97d06211a5d2869
+PREREGISTRATION_TREE = 74e7a4c76dc00f208bc24eef464fb8c104ff87ba
+PREREGISTRATION_ACCEPTANCE_COMMIT = 57f6292f411c5fae656e0b097ef0e75f1eff30e7
+IMPLEMENTATION_AUTHORIZATION_COMMIT = 2ae7dcefec4d499d6ba4bef462c8003945b40d0f
+IMPLEMENTATION_AUTHORIZATION_TREE = c4532fc69600807158a2cb4a9b0cc16ed6b58669
+```
+
+HV-5 core implementation is now authorized only within the exact accepted preregistration and authorization records.
+
+The implementation must establish:
+
+- one strict schema-version-1 canonical JSON authoring envelope;
+- the accepted HV-1 `venueContext` and HV-3 `venuePackage` shapes as the domain authorities, not duplicated schemas;
+- `deploymentRef.id` only, with the deployment manifest/profile remaining separately owned;
+- an executable ownership model assigning every v1 path to exactly one class;
+- ordinary-operator patch enforcement that cannot alter protected identity, Hive/payment, deployment, schema, derived, secret, or executable authority;
+- deterministic HV-4-compatible canonical JSON bytes across Ubuntu and Windows;
+- secret/private-material rejection at least as strict as HV-4;
+- a direct source/code validation path that requires no visual editor or network access;
+- Fourth Street semantic-equivalence evidence;
+- Lantern Room non-bar evidence through the same generic code path;
+- compatibility with the existing HV-4 bootstrap boundary when deployment authority is separately supplied.
+
+The implementation is **not** authorized to add GrapesJS core or Studio SDK, build a browser WYSIWYG editor, introduce a freeform page tree, create a mandatory venue taxonomy, admit a real second venue, mutate production, publish CID/IPNS state, integrate 3Speak/SPK, add Helia/OrbitDB, build fleet operations, or enable shared-runtime tenancy.
+
+HV-5 itself remains unaccepted until a qualified implementation passes all preregistered gates and Project Lead human authoring review.
+
+## Venue-category boundary
+
+Current evidence still does **not** establish a canonical exhaustive venue taxonomy. Therefore:
 
 - no mandatory `bar | restaurant | club | cafe | band | streamer | news | store | ...` enum is inferred merely for abstraction;
 - generic platform/security code must not depend on bar-specific nouns or category branching;
-- venue package content may provide authentic operator/staff/customer vocabulary where it genuinely differs;
-- starter archetypes may be evaluated as optional authoring conveniences or capability bundles rather than platform identity;
+- venue-package content may provide authentic operator/staff/customer vocabulary where it genuinely differs;
+- starter archetypes may later be optional authoring conveniences or capability bundles rather than platform identity;
 - hybrid real-world entities are expected to cross category boundaries, which argues against making a starter taxonomy authoritative.
 
-## HV-5 — Venue Authoring Contract Foundation — PREREGISTRATION NEXT
+## Candidate-lane dispositions after HV-5
 
-The next bounded operation is only:
-
-```text
-HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION
-```
-
-The preregistration must freeze at least:
-
-- one versioned canonical persisted authoring representation independent of any particular editor framework;
-- stable schema/component identities and future migration policy;
-- explicit ownership classes for operator-authored, derived, platform-fixed, deployment-owned, security-privileged, and secret/private-forbidden values;
-- deterministic compilation through the existing HV-1 venue-context, HV-3 venue-package, and HV-4 bootstrap authorities rather than parallel validators;
-- deployment-profile treatment as deployment authority/reference by default, not ordinary visual-editor state;
-- deterministic serialization and round-trip meaning preservation;
-- preview that renders only validated canonical state and does not create a second configuration authority;
-- an advanced source/code escape hatch using the same canonical representation and validators;
-- a component/capability contract that forbids arbitrary executable script injection;
-- at least one meaningfully non-bar fixture;
-- optional starter archetypes as non-authoritative convenience evidence;
-- an explicit GrapesJS evaluation gate distinguishing core GrapesJS from Studio SDK and addressing persistence, licensing/deployment, component constraints, assets, sanitization, accessibility, and editor-state authority.
-
-Freezing the preregistration does **not** authorize substantive HV-5 implementation.
-
-## Candidate-lane dispositions after the Post-HV-4 decision
+These are not selected now. Successful HV-5 acceptance must be followed by a fresh sequencing decision.
 
 ### Real isolated second-venue pilot — DEFERRED ONE GATE
 
-A real second venue remains the strongest downstream falsification test. It is deferred only because no suitable real venue is currently identified/authorized and the operator authoring boundary is still implicit. After HV-5, the next sequencing decision should strongly prefer a real pilot if one is available. If a suitable real pilot becomes concretely available before HV-5 implementation begins, sequencing may be reopened rather than forcing an artificial delay.
+A real second venue remains the strongest downstream falsification test. After HV-5, the next sequencing decision should strongly prefer a real pilot if a suitable venue is available.
 
-### GrapesJS / WYSIWYG — EVALUATION CANDIDATE, NOT SELECTED DEPENDENCY
+### GrapesJS / WYSIWYG — POST-HV-5 ADAPTER CANDIDATE
 
-The desired dependency direction is:
+The desired dependency direction remains:
 
 ```text
 HIVE_VENUES_CANONICAL_AUTHORING_CONTRACT
@@ -193,7 +184,7 @@ EDITOR_INTERNAL_MODEL
 -> becomes platform source of truth
 ```
 
-GrapesJS may be evaluated only under the HV-5 preregistration contract.
+HV-5 core therefore does not install GrapesJS.
 
 ### Optional archetype/capability starters — SUPPORTING FIXTURES
 
@@ -201,11 +192,11 @@ Bar, band, streamer/influencer, news, digital store, and hybrid examples remain 
 
 ### Successor package/developer identity cleanup — ELIGIBLE ADJACENT MAINTENANCE
 
-Developer-facing inherited `hive-bar` package metadata remains a known mismatch. It is distinct from Fourth Street's intentionally preserved production compatibility namespace and may be corrected in bounded maintenance when proven safe.
+Developer-facing inherited `hive-bar` package metadata remains a known mismatch. It is distinct from Fourth Street's intentionally preserved production compatibility namespace and is not part of the authorized HV-5 implementation.
 
 ### CID / IPFS / IPNS publication — ELIGIBLE DOWNSTREAM
 
-The preferred future provenance model remains:
+Preferred future provenance model:
 
 ```text
 GIT_COMMIT_SHA = source/provenance event
@@ -215,7 +206,7 @@ CID = immutable content-addressed publication identity
 IPNS = optional mutable name pointing to successive immutable CIDs
 ```
 
-A publication operation must first define the exact deterministic public artifact. IPNS does not replace Git source identity and its signing-key custody requires a separate operational boundary.
+A later publication operation must define the exact deterministic public artifact first. IPNS does not replace Git source identity and its signing-key custody requires a separate operational boundary.
 
 ### 3Speak / SPKNetwork — ELIGIBLE DOWNSTREAM
 
@@ -223,23 +214,15 @@ Interesting as a venue/creator media capability, storage, encoding, or delivery 
 
 ### Fleet operations — DEFERRED
 
-Fleet tooling should follow a stable authoring contract and preferably at least one real second-venue deployment rather than automate a still-developer-oriented workflow prematurely.
+Fleet tooling should follow a stable accepted authoring contract and preferably at least one real second-venue deployment.
 
 ### Helia + OrbitDB replicated state — DEFERRED
 
-Requires a concrete non-authoritative mutable data domain with explicit privacy, access-control, conflict-resolution, and product-value justification. Canonical Hive state, payment receipts, auth/session authority, and onboarding credential custody are not candidates by default.
+Requires a concrete non-authoritative mutable data domain with explicit privacy, access-control, conflict-resolution, and product-value justification.
 
 ### Shared-runtime multi-tenancy — DEFERRED
 
 No current evidence justifies weakening one-isolated-venue-per-runtime. Payment, moderation, onboarding, session/preflight, secret, replay/idempotency, and observability ownership are not tenant-migrated.
-
-### Continuity branch-to-tag migration — OPTIONAL MAINTENANCE
-
-The four `continuity/*` refs remain out of the substantive roadmap. They may later become milestone tags after exact semantic verification.
-
-### Shared product quality — PERSISTENT TRACK
-
-Accessibility, responsive behavior, navigation, social/profile composition, payment safety communication, onboarding clarity, and reference-venue quality remain continuous acceptance concerns.
 
 ## Production lineage boundary
 
@@ -257,12 +240,4 @@ They are no longer the living successor sequence. New work is governed by HV mil
 
 ## Historical routing rule
 
-Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-4 at its boundary, and `POST_HV4_SEQUENCING_DECISION_0_1_0.md` now governs the current lane.
-
-Current routing is:
-
-```text
-SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT
-NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-```
+Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` correctly selected HV-4 at its boundary, and `POST_HV4_SEQUENCING_DECISION_0_1_0.md` correctly selected the HV-5 lane. Current execution routing is the authorized HV-5 implementation described above.
