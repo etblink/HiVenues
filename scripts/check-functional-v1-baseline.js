@@ -89,9 +89,12 @@ function assertFunctionalV1Baseline() {
     [/^POST_HV4_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must bind accepted post-HV-4 sequencing'],
     [/^SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT$/m, 'living roadmap must select the canonical venue-authoring contract'],
     [/^PROPOSED_MILESTONE = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION$/m, 'living roadmap must identify proposed HV-5'],
-    [/^NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION$/m, 'living roadmap must route to HV-5 preregistration'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep substantive implementation unauthorized'],
-    [/^GRAPESJS = EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m, 'living roadmap must keep GrapesJS non-authoritative'],
+    [/^HV5_PREREGISTRATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-5 preregistration'],
+    [/^HV5_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-5 implementation authorization'],
+    [/^HV5_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED$/m, 'living roadmap must distinguish authorization from HV-5 acceptance'],
+    [/^NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION$/m, 'living roadmap must route to bounded HV-5 implementation'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV5_BOUNDARY$/m, 'living roadmap must bind the bounded HV-5 authorization'],
+    [/^GRAPESJS = POST_HV5_ADAPTER_CANDIDATE__NOT_HV5_DEPENDENCY$/m, 'living roadmap must keep GrapesJS outside HV-5 core'],
     [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep production mutation unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
@@ -128,7 +131,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION',
+    successorRouting: 'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_IMPLEMENTATION',
   });
 }
 
