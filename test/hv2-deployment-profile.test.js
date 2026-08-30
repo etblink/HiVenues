@@ -37,7 +37,8 @@ function syntheticManifest() {
   manifest.topology.applicationTrustProxy = 'loopback';
   manifest.topology.visitorIpHeader = 'X-Test-Visitor-IP';
   manifest.topology.originIngress = 'test-only';
-  manifest.topology.cloudflareTlsMode = 'synthetic-strict';
+  delete manifest.topology.cloudflareTlsMode;
+  manifest.topology.tlsMode = 'synthetic-strict';
   manifest.release.root = '/tmp/hive-venues-synthetic';
   manifest.release.service = 'hive-venues-synthetic.service';
   manifest.release.publicHost = 'venue.example.invalid';
@@ -85,6 +86,7 @@ test('HV-2 compiles the reviewed Fourth Street manifest into the exact immutable
   assert.equal(deployment.topology.instances, 1);
   assert.equal(deployment.topology.edgeProxy, 'Cloudflare');
   assert.equal(deployment.topology.reverseProxy, 'Caddy');
+  assert.equal(deployment.topology.tlsMode, 'full-strict');
   assert.deepEqual(deployment.topology.application, {
     address: '127.0.0.1:3000',
     bindHost: '127.0.0.1',
@@ -130,14 +132,17 @@ test('HV-2 compatibility aliases resolve from the reference deployment profile w
   assert.equal(DEFAULT_ONBOARDING_DB_PATH, REFERENCE_DEPLOYMENT_PROFILE.storage.onboardingDatabase);
 });
 
-test('HV-2 compiles a fully synthetic deployment offline without changing the venue package', () => {
+test('HV-2 compiles a provider-neutral synthetic deployment offline without changing the venue package', () => {
   const venueIdentityBefore = JSON.stringify(FOURTH_STREET_REFERENCE_VENUE);
-  const deployment = compileDeploymentProfile(syntheticManifest());
+  const manifest = syntheticManifest();
+  const deployment = compileDeploymentProfile(manifest);
 
+  assert.equal(Object.hasOwn(manifest.topology, 'cloudflareTlsMode'), false);
   assert.equal(deployment.id, 'synthetic-offline-deployment');
   assert.equal(deployment.provider.name, 'Example Provider');
   assert.equal(deployment.release.publicHost, 'venue.example.invalid');
   assert.equal(deployment.topology.application.port, 4100);
+  assert.equal(deployment.topology.tlsMode, 'synthetic-strict');
   assert.equal(deployment.storage.paymentDatabase, '/tmp/hive-venues-synthetic/payments.sqlite3');
   assert.equal(deployment.runtimeProfiles.acceptedBeta, 'synthetic-beta');
   assert.equal(Object.isFrozen(deployment), true);
@@ -151,10 +156,16 @@ test('HV-2 rejects malformed deployment manifests before release consumers can u
   expectInvalid((manifest) => { manifest.topology.applicationAddress = '127.0.0.1'; }, /host:port form/);
   expectInvalid((manifest) => { manifest.topology.applicationAddress = '127.0.0.1:70000'; }, /between 1 and 65535/);
   expectInvalid((manifest) => { manifest.release.root = 'relative/releases'; }, /normalized absolute POSIX path/);
+  expectInvalid((manifest) => { manifest.release.root = '/tmp/hive\\venues'; }, /normalized absolute POSIX path/);
   expectInvalid((manifest) => { manifest.storage.paymentDatabase = '../payments.sqlite3'; }, /normalized absolute POSIX path/);
+  expectInvalid((manifest) => { manifest.release.readinessPath = '/ready\\internal'; }, /absolute application path/);
   expectInvalid((manifest) => { manifest.release.automaticDeploys = 'false'; }, /must be a boolean/);
-  expectInvalid((manifest) => { manifest.provenance.commitFilename = 'nested\/commit'; }, /filename without path separators/);
+  expectInvalid((manifest) => { manifest.provenance.commitFilename = 'nested/commit'; }, /filename without path separators/);
+  expectInvalid((manifest) => { manifest.provenance.commitFilename = 'nested\\commit'; }, /filename without path separators/);
   expectInvalid((manifest) => { manifest.runtime.sha256 = 'not-a-sha'; }, /64 lowercase hexadecimal characters/);
+  expectInvalid((manifest) => {
+    manifest.topology.cloudflareTlsMode = 'conflicting-provider-specific-mode';
+  }, /tlsMode and topology\.cloudflareTlsMode must agree/);
 });
 
 test('HV-2 removes deployment-owned literals from migrated generic consumers while retaining venue-owned merchant policy', () => {
