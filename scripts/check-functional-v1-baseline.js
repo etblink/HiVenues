@@ -68,9 +68,8 @@ function assertFunctionalV1Baseline() {
     throw new Error('M17.4 must publish the reviewed last-good update policy');
   }
 
-  // M17.4 is historical evidence in the successor repository. The living roadmap
-  // should route current HV work, while this check reads the preserved milestone
-  // document for the functional-V1 contract it is responsible for protecting.
+  // M17.4 remains historical evidence. Current successor routing is asserted
+  // separately from the preserved functional-V1 contract below.
   if (!/^# M17\.4 Functional V1 Baseline$/m.test(m17Baseline)) {
     throw new Error('historical M17.4 functional baseline evidence is missing or malformed');
   }
@@ -80,24 +79,21 @@ function assertFunctionalV1Baseline() {
   if (!/production remaining beta until separately authorized/i.test(m17Baseline)) {
     throw new Error('historical M17.4 evidence must retain beta-until-authorized semantics');
   }
-  if (!/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must preserve accepted HV-1');
+
+  for (const [pattern, message] of [
+    [/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-1'],
+    [/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-2'],
+    [/^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-3'],
+    [/^POST_HV3_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must preserve accepted post-HV-3 sequencing'],
+    [/^SELECTED_NEXT_LANE = ISOLATED_VENUE_BOOTSTRAP_AND_SUCCESSOR_DX$/m, 'living roadmap must select bootstrap/DX'],
+    [/^NEXT_OPERATION = HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION$/m, 'living roadmap must route to HV-4 preregistration'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must not pre-authorize HV-4 implementation'],
+    [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
+    [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
+  ]) {
+    if (!pattern.test(roadmap)) throw new Error(message);
   }
-  if (!/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must preserve accepted HV-2');
-  }
-  if (!/^POST_HV2_SEQUENCING_DECISION = ACCEPTED$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must preserve the accepted post-HV-2 sequencing decision');
-  }
-  if (!/^NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must route current work to HV-3 venue-package preregistration');
-  }
-  if (!/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must not pre-authorize HV-3 implementation');
-  }
-  if (!/^HV3_IMPLEMENTATION_STARTED = NO$/m.test(roadmap)) {
-    throw new Error('living successor roadmap must record that HV-3 implementation has not started');
-  }
+
   if (!/last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/.test(operations)) {
     throw new Error('production operations must retain M19.2 as the historical accepted M19.1 deployment event');
   }
@@ -126,7 +122,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION',
+    successorRouting: 'HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION_PREREGISTRATION',
   });
 }
 
