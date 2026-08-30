@@ -86,9 +86,12 @@ function assertFunctionalV1Baseline() {
     [/^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-3'],
     [/^HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-4'],
     [/^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'living roadmap must preserve post-HV-3 sequencing as historical'],
-    [/^SELECTED_NEXT_LANE = NONE_PENDING_POST_HV4_SEQUENCING_DECISION$/m, 'living roadmap must not preselect a post-HV-4 lane'],
-    [/^NEXT_OPERATION = POST_HV4_SEQUENCING_DECISION__READ_ONLY$/m, 'living roadmap must route to post-HV-4 sequencing'],
+    [/^POST_HV4_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must bind accepted post-HV-4 sequencing'],
+    [/^SELECTED_NEXT_LANE = CANONICAL_VENUE_AUTHORING_CONTRACT$/m, 'living roadmap must select the canonical venue-authoring contract'],
+    [/^PROPOSED_MILESTONE = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION$/m, 'living roadmap must identify proposed HV-5'],
+    [/^NEXT_OPERATION = HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION$/m, 'living roadmap must route to HV-5 preregistration'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep substantive implementation unauthorized'],
+    [/^GRAPESJS = EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m, 'living roadmap must keep GrapesJS non-authoritative'],
     [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep production mutation unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
@@ -125,7 +128,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'POST_HV4_SEQUENCING_DECISION__READ_ONLY',
+    successorRouting: 'HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_PREREGISTRATION',
   });
 }
 
