@@ -25,6 +25,8 @@ function assertReleaseCoherence() {
   const readme = read('README.md');
   const docsReadme = read('docs/README.md');
   const roadmap = read('docs/ROADMAP.md');
+  const architectureDecision = read('docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md');
+  const hv2Preregistration = read('docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
   if (pkg.version !== PACKAGE_VERSION) throw new Error('package version source is inconsistent');
@@ -44,21 +46,109 @@ function assertReleaseCoherence() {
 
   requireMatch(workflow, /uses:\s+actions\/checkout@[0-9a-f]{40}(?:\s+#.*)?$/m, 'checkout must be pinned by full commit SHA');
   requireMatch(workflow, /uses:\s+actions\/setup-node@[0-9a-f]{40}(?:\s+#.*)?$/m, 'setup-node must be pinned by full commit SHA');
-  requireMatch(readme, /Node\.js `24\.19\.0`/, 'README must state the pinned Node runtime');
-  requireMatch(readme, /M17 is complete/, 'README must identify M17 as complete');
-  requireMatch(readme, /Canonical integrated source is `main`/, 'README must identify main as the moving canonical integrated source');
-  requireMatch(docsReadme, /Canonical integrated source is `main`/, 'documentation index must identify main as the moving canonical integrated source');
-  requireMatch(roadmap, /Canonical repository source: `main`/, 'roadmap must identify main as the moving canonical integrated source');
-  requireMatch(operations, /Runtime source identity: `\/healthz` publishes the exact deployed beta build label, commit, and tree/, 'operations must define runtime source identity through healthz');
-  requireMatch(roadmap, /### M17\.4 — Functional V1 baseline[\s\S]*?\*\*Accepted\.\*\*/, 'roadmap must identify M17.4 as accepted');
-  requireMatch(roadmap, /### M18\.1–M18\.3[\s\S]*?\*\*Accepted in source\.\*\*/, 'roadmap must identify M18.1–M18.3 as accepted in source');
-  requireMatch(roadmap, /### M18\.4 — Beta-readiness closure[\s\S]*?\*\*Accepted in source\.\*\*/, 'roadmap must identify M18.4 as accepted in source');
-  requireMatch(roadmap, /### M19\.1 — Copy and onboarding readiness[\s\S]*?\*\*Accepted\.\*\*/, 'roadmap must identify M19.1 as accepted');
-  requireMatch(roadmap, /### M19\.2 — Controlled beta deployment[\s\S]*?\*\*Accepted\.\*\*/, 'roadmap must identify M19.2 as accepted');
-  requireMatch(roadmap, /### M19\.3 — In-person Hive onboarding[\s\S]*?\*\*Current\.\*\*/, 'roadmap must identify M19.3 as current');
+
+  // Living successor documents must describe the moving source and current routing,
+  // without pretending historical Fourth Street production evidence is current source identity.
+  requireMatch(readme, /^# Hive-Venues$/m, 'README must identify the successor product as Hive-Venues');
+  requireMatch(readme, /Node\.js\s+24\.19\.0/, 'README must state the pinned Node runtime');
+  requireMatch(readme, /npm\s+11\.17\.0/, 'README must state the pinned npm runtime');
+  requireMatch(
+    readme,
+    /Canonical source is the `main` branch of `etblink\/Hive-Venues`/,
+    'README must identify Hive-Venues main as the moving canonical source',
+  );
+  requireMatch(
+    readme,
+    /HV-1, the Venue Context Foundation, is accepted and canonical/,
+    'README must identify HV-1 as accepted',
+  );
+  requireMatch(
+    readme,
+    /next bounded implementation operation is \*\*HV-2: Reference Deployment Profile Extraction\*\*/i,
+    'README must route to HV-2 deployment profile extraction',
+  );
+
+  requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
+  requireMatch(
+    docsReadme,
+    /Canonical integrated source is `main` in `etblink\/Hive-Venues`/,
+    'documentation index must identify Hive-Venues main as canonical source',
+  );
+  requireMatch(
+    docsReadme,
+    /historical Hive-Bar milestone evidence/i,
+    'documentation index must preserve historical Hive-Bar evidence as historical',
+  );
+
+  requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
+  requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
+  requireMatch(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'roadmap must bind accepted HV-1');
+  requireMatch(
+    roadmap,
+    /^NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m,
+    'roadmap must route to the preregistered HV-2 operation',
+  );
+  requireMatch(
+    roadmap,
+    /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m,
+    'roadmap must not imply shared-runtime tenancy is already accepted',
+  );
+  requireMatch(
+    roadmap,
+    /The last recorded accepted production transition in the inherited roadmap is M19\.2/,
+    'roadmap must preserve the historical M19.2 production boundary',
+  );
+
+  requireMatch(
+    architectureDecision,
+    /^STATUS = ACCEPTED_SUCCESSOR_ARCHITECTURE_DECISION$/m,
+    'architecture decision must remain accepted',
+  );
+  requireMatch(
+    architectureDecision,
+    /^SHARED_RUNTIME_MULTI_TENANCY_AUTHORIZED = NO$/m,
+    'architecture decision must keep shared-runtime tenancy unauthorized',
+  );
+  requireMatch(
+    architectureDecision,
+    /^LIVE_PRODUCTION_MUTATION_AUTHORIZED = NO$/m,
+    'architecture decision must keep production mutation unauthorized',
+  );
+  requireMatch(
+    architectureDecision,
+    /HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION/,
+    'architecture decision must route to HV-2',
+  );
+
+  requireMatch(
+    hv2Preregistration,
+    /^OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m,
+    'HV-2 preregistration must bind the intended operation',
+  );
+  requireMatch(
+    hv2Preregistration,
+    /^STATUS = FROZEN_PREREGISTRATION__IMPLEMENTATION_NOT_STARTED$/m,
+    'HV-2 preregistration must remain frozen before implementation acceptance',
+  );
+  requireMatch(
+    hv2Preregistration,
+    /^LIVE_PRODUCTION_MUTATION = FORBIDDEN$/m,
+    'HV-2 preregistration must keep live production mutation forbidden',
+  );
+
+  requireMatch(
+    operations,
+    /Runtime source identity: `\/healthz` publishes the exact deployed beta build label, commit, and tree/,
+    'operations must define runtime source identity through healthz',
+  );
   requireMatch(operations, /last-good.*M17\.3/i, 'operations must retain M17.3 as the last-good boundary');
-  requireMatch(operations, /in-person onboarding: not production-activated/, 'operations must distinguish M19.3 source from onboarding activation');
-  if (/Canonical `main` and production are aligned on accepted M19\.1/.test(readme + docsReadme)) {
+  requireMatch(
+    operations,
+    /in-person onboarding: not production-activated/,
+    'operations must distinguish onboarding source capability from production activation',
+  );
+
+  if (/Canonical `main` and production are aligned on accepted M19\.1/.test(readme + docsReadme + roadmap)) {
     throw new Error('living documentation must not pin moving main to the historical M19.1 production event');
   }
   if (/\bMIT License\b/i.test(readme)) {
@@ -91,6 +181,10 @@ function assertReleaseCoherence() {
     'docs/README.md',
     'docs/ROADMAP.md',
     'docs/PRODUCTION_OPERATIONS.md',
+    'docs/HIVE_VENUES_SUCCESSOR_BASELINE_0_1_0.md',
+    'docs/HV1_VENUE_CONTEXT_FOUNDATION_PREREGISTRATION_0_1_0.md',
+    'docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md',
+    'docs/HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md',
     'docs/M17_1_V1_PRODUCT_BOUNDARY.md',
     'docs/M17_2_SOURCE_OF_TRUTH_AND_V1_GATE.md',
     'docs/M17_3_RUNTIME_V1_WIRING_AND_OPERATIONAL_ACCEPTANCE.md',
@@ -104,9 +198,11 @@ function assertReleaseCoherence() {
   }
 
   return Object.freeze({
+    product: 'Hive-Venues',
     packageVersion: PACKAGE_VERSION,
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
+    nextOperation: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
   });
 }
 
@@ -114,7 +210,7 @@ if (require.main === module) {
   try {
     process.stdout.write(`${JSON.stringify(assertReleaseCoherence())}\n`);
   } catch (error) {
-    process.stderr.write(`Hive-Bar release coherence refused: ${error.message}\n`);
+    process.stderr.write(`Hive-Venues release coherence refused: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

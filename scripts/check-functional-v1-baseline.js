@@ -32,6 +32,7 @@ function assertFunctionalV1Baseline() {
   assertReleaseCoherence();
 
   const manifest = JSON.parse(read('ops/privex/manifest.json'));
+  const m17Baseline = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const deploy = read('ops/privex/bin/hive-bar-deploy');
@@ -66,8 +67,24 @@ function assertFunctionalV1Baseline() {
   if (manifest.release?.lastGoodPolicy !== 'previous-validated-current-before-switch') {
     throw new Error('M17.4 must publish the reviewed last-good update policy');
   }
-  if (!/### M17\.4 — Functional V1 baseline[\s\S]*?\*\*Accepted\.\*\*/.test(roadmap)) {
-    throw new Error('living roadmap must identify M17.4 as accepted');
+
+  // M17.4 is historical evidence in the successor repository. The living roadmap
+  // should route current HV work, while this check reads the preserved milestone
+  // document for the functional-V1 contract it is responsible for protecting.
+  if (!/^# M17\.4 Functional V1 Baseline$/m.test(m17Baseline)) {
+    throw new Error('historical M17.4 functional baseline evidence is missing or malformed');
+  }
+  if (!/## Functional baseline identity/.test(m17Baseline)) {
+    throw new Error('historical M17.4 evidence must retain its functional baseline identity contract');
+  }
+  if (!/production remaining beta until separately authorized/i.test(m17Baseline)) {
+    throw new Error('historical M17.4 evidence must retain beta-until-authorized semantics');
+  }
+  if (!/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must preserve accepted HV-1');
+  }
+  if (!/^NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION$/m.test(roadmap)) {
+    throw new Error('living successor roadmap must route current work to HV-2');
   }
   if (!/last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/.test(operations)) {
     throw new Error('production operations must retain M19.2 as the historical accepted M19.1 deployment event');
@@ -97,6 +114,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
+    successorRouting: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
   });
 }
 
@@ -104,7 +122,7 @@ if (require.main === module) {
   try {
     process.stdout.write(`${JSON.stringify(assertFunctionalV1Baseline())}\n`);
   } catch (error) {
-    process.stderr.write(`Hive-Bar M17.4 functional baseline refused: ${error.message}\n`);
+    process.stderr.write(`Hive-Venues inherited functional V1 baseline refused: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

@@ -117,10 +117,12 @@ test('runs the dormant V1 release check without network access or server startup
   assert.equal(result.stdout.includes(sessionSecret), false);
 });
 
-test('release and living-document sources are mechanically coherent', () => {
+test('release and successor living-document sources are mechanically coherent', () => {
   assert.deepEqual(assertReleaseCoherence(), {
+    product: 'Hive-Venues',
     packageVersion: '0.1.0',
     appTag: 'fourth-street-bar-app/0.1.0',
     v1ActionCount: 12,
+    nextOperation: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
   });
 });

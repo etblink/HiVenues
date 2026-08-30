@@ -94,13 +94,26 @@ test('M18.4 distinguishes future sign-in-required follow copy from unavailable c
   assert.match(profile, /Following isn’t available here yet\./);
 });
 
-test('M18.4 historical acceptance remains bound after M19.2 deploys later source', () => {
-  for (const relative of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) {
-    const content = read(relative);
-    assert.match(content, /M18\.4/);
-    assert.match(content, /e01407f5f29e3d0a1d41fe33fca129399b4cd2d4/);
-    assert.match(content, /M19\.3|in-person Hive onboarding/i);
-  }
+test('M18.4 historical acceptance remains bound after the successor documentation transition', () => {
+  const roadmap = read('docs/ROADMAP.md');
+  const index = read('docs/README.md');
+  const operations = read('docs/PRODUCTION_OPERATIONS.md');
+  const workflow = read('.github/workflows/ci.yml');
+
+  assert.match(roadmap, /## Historical Hive-Bar line/);
+  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
+  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
+
+  assert.match(index, /All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence/);
+  assert.match(index, /what visual or operational evidence supported an accepted milestone/);
+
+  assert.match(
+    operations,
+    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
+  );
+  assert.match(operations, /Production remains beta until a separately authorized transition/);
+
+  assert.match(workflow, /M18\.4 beta-readiness patron visual acceptance \(Ubuntu \/ pinned Chromium\)/);
 });
 
 test('M18.4 live qualification explicitly reads both social-graph directions without writes', () => {

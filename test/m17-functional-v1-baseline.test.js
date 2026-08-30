@@ -61,6 +61,7 @@ test('C2-A exposes the reviewed profile action in beta while preserving the pre-
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
+    successorRouting: 'HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION',
   });
 });
 
@@ -82,31 +83,36 @@ test('M17.4 last-good bookkeeping is atomic and does not weaken explicit rollbac
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('accepted M17 invariants coexist with historical M19.2 deployment evidence and current beta living documentation', () => {
+test('accepted M17 invariants coexist with historical M19.2 deployment evidence and successor living documentation', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const index = read('docs/README.md');
   const milestone = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
 
-  assert.match(readme, /M17 is complete/);
-  assert.match(readme, /M19\.2 remains the historical deployment event/);
-  assert.match(readme, /e01407f5f29e3d0a1d41fe33fca129399b4cd2d4/);
-  assert.match(roadmap, /Persistent production runtime: accepted beta self-signing profile\./);
-  assert.match(roadmap, /### M17\.4 — Functional V1 baseline\r?\n\r?\n\*\*Accepted\.\*\*/);
-  assert.match(roadmap, /### M18\.1–M18\.3\r?\n\r?\n\*\*Accepted in source\.\*\*/);
-  assert.match(roadmap, /### M18\.4 — Beta-readiness closure\r?\n\r?\n\*\*Accepted in source\.\*\*/);
-  assert.match(roadmap, /### M19\.3 — In-person Hive onboarding\r?\n\r?\n\*\*Current\.\*\*/);
+  assert.match(readme, /^# Hive-Venues$/m);
+  assert.match(readme, /HV-1, the Venue Context Foundation, is accepted and canonical/);
+  assert.match(readme, /last recorded accepted production transition in the inherited record is M19\.2/);
+  assert.match(readme, /No successor source refactor by itself authorizes a production deployment/);
+
+  assert.match(roadmap, /HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED/);
+  assert.match(roadmap, /NEXT_OPERATION = HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION/);
+  assert.match(roadmap, /## Historical Hive-Bar line/);
+  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
+  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
+
   assert.match(
     operations,
-    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/,
+    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
   );
   assert.match(operations, /canonical repository source: moving branch `main`/);
   assert.match(operations, /Production remains beta until a separately authorized transition/);
   assert.match(operations, /last-good.*M17\.3/i);
-  assert.match(index, /M17_4_FUNCTIONAL_V1_BASELINE\.md/);
-  assert.match(index, /M19_1_COPY_AND_ONBOARDING_READINESS\.md/);
-  assert.match(index, /M19_3_IN_PERSON_HIVE_ONBOARDING\.md/);
+
+  assert.match(index, /## Historical Hive-Bar evidence/);
+  assert.match(index, /All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence/);
+  assert.match(index, /original Git object graph is preserved/);
+
   assert.match(milestone, /No cosmetic redesign is required for M17\.4 acceptance/);
   assert.match(milestone, /canonicalization is not part of this source-qualification authorization/);
 });

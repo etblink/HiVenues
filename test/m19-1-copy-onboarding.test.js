@@ -76,20 +76,27 @@ test('M19.1 presents an ordinary-language 404 without exposing route implementat
   assert.doesNotMatch(missing.text, /No route matches|GET \/m19-1-missing-page/);
 });
 
-test('M19.1 remains accepted historical source after the controlled beta deployment', () => {
-  for (const relative of ['README.md', 'docs/README.md', 'docs/ROADMAP.md', 'docs/PRODUCTION_OPERATIONS.md']) {
-    const content = read(relative);
-    assert.match(content, /e01407f5f29e3d0a1d41fe33fca129399b4cd2d4/);
-    assert.match(content, /1a4bb993ad59ca67032997d8938696a079a71e1f/);
-  }
-
+test('M19.1 remains accepted historical source after the successor documentation transition', () => {
+  const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const roadmap = read('docs/ROADMAP.md');
-  assert.match(roadmap, /### M18\.4 — Beta-readiness closure[\s\S]*?\*\*Accepted in source\.\*\*/);
-  assert.match(roadmap, /### M19\.1 — Copy and onboarding readiness[\s\S]*?\*\*Accepted\.\*\*/);
-  assert.match(roadmap, /### M19\.2 — Controlled beta deployment[\s\S]*?\*\*Accepted\.\*\*/);
-  assert.match(roadmap, /### M19\.3 — In-person Hive onboarding[\s\S]*?\*\*Current\.\*\*/);
-
+  const index = read('docs/README.md');
   const milestone = read('docs/M19_1_COPY_AND_ONBOARDING_READINESS.md');
+
+  assert.match(
+    operations,
+    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
+  );
+  assert.match(operations, /M19\.2 followed this invariant to deploy exact M19\.1/);
+  assert.match(operations, /Production remains beta until a separately authorized transition/);
+  assert.match(operations, /in-person onboarding: not production-activated; M19\.3 is source-only/);
+
+  assert.match(roadmap, /## Historical Hive-Bar line/);
+  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
+  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
+
+  assert.match(index, /## Historical Hive-Bar evidence/);
+  assert.match(index, /what exact source or deployment was qualified at a historical gate/);
+
   assert.match(milestone, /M19\.1 is source-only/);
   assert.match(milestone, /must not expand capabilities/);
   assert.match(milestone, /Acceptance of M19\.1 authorizes no deployment/);
