@@ -30,6 +30,7 @@ jobs:
         working-directory: candidate
         run: |
           node ../automation/tools/hv1-build-candidate.js
+          node ../automation/tools/hv1-build-repair.js
           npm run release:check:runtime
           npm ci --ignore-scripts --no-fund
           npx --no-install patch-package
