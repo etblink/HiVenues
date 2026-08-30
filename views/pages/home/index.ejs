@@ -18,10 +18,10 @@
       <div class="app-content-frame home-section">
         <header class="home-section-heading home-pathways__heading">
           <div>
-            <p class="home-kicker">In Reno and online</p>
-            <h2 id="home-pathways-heading">Two ways to pull up a stool</h2>
+            <p class="home-kicker"><%= venuePackage.home.pathways.kicker %></p>
+            <h2 id="home-pathways-heading"><%= venuePackage.home.pathways.heading %></h2>
           </div>
-          <p>Come through the front door or join the conversation from wherever you are.</p>
+          <p><%= venuePackage.home.pathways.intro %></p>
         </header>
         <div class="home-pathways__grid">
           <%- include('partials/visit') %>

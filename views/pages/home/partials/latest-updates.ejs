@@ -5,8 +5,8 @@
   <div class="app-content-frame home-section">
     <header class="home-section-heading home-updates__heading">
       <div>
-        <p class="home-kicker">From 4th Street Bar</p>
-        <h2 id="latest-updates-heading">Latest from the bar</h2>
+        <p class="home-kicker">From <%= siteName %></p>
+        <h2 id="latest-updates-heading"><%= venuePackage.home.updates.heading %></h2>
       </div>
       <a href="/community" class="home-text-link">See the community <span aria-hidden="true">→</span></a>
     </header>
@@ -18,11 +18,11 @@
             <article class="home-update">
               <p class="home-update__identity">Official update</p>
               <h3>
-                <a href="/post/<%= post.author %>/<%= post.permlink %>"><%= post.title || 'Update from 4th Street Bar' %></a>
+                <a href="/post/<%= post.author %>/<%= post.permlink %>"><%= post.title || `Update from ${siteName}` %></a>
               </h3>
               <p class="home-update__excerpt"><%= post.excerpt || 'Read the full update in the community.' %></p>
               <a class="home-update__link" href="/post/<%= post.author %>/<%= post.permlink %>">
-                Read update<span class="sr-only">: <%= post.title || 'Update from 4th Street Bar' %></span>
+                Read update<span class="sr-only">: <%= post.title || `Update from ${siteName}` %></span>
                 <span aria-hidden="true">→</span>
               </a>
             </article>
@@ -32,12 +32,12 @@
     <% } else if (officialUpdates.status === 'unavailable') { %>
       <div class="home-updates-note home-updates-note--unavailable" role="status">
         <span class="home-updates-note__mark" aria-hidden="true"></span>
-        <p><strong>Latest updates are temporarily unavailable.</strong> The bar and community pages are still ready to explore.</p>
+        <p><strong><%= venuePackage.home.updates.unavailableLead %></strong> <%= venuePackage.home.updates.unavailableBody %></p>
       </div>
     <% } else { %>
       <div class="home-updates-note home-updates-note--empty">
         <span class="home-updates-note__mark" aria-hidden="true"></span>
-        <p><strong>No official updates yet.</strong> New posts from the bar will appear here.</p>
+        <p><strong><%= venuePackage.home.updates.emptyLead %></strong> <%= venuePackage.home.updates.emptyBody %></p>
       </div>
     <% } %>
   </div>

@@ -10,6 +10,7 @@ const { KeychainAuthService } = require('./auth/keychain-auth');
 const { isBetaAction } = require('./beta/actions');
 const { loadConfig } = require('./config');
 const { withVenueContext } = require('./venue/context');
+const { selectVenuePackage } = require('./venue/package-selection');
 const { PostingAuthorityVerifier } = require('./hive/posting-authority');
 const { HiveReadService } = require('./hive/read-service');
 const { HiveRpcPool } = require('./hive/rpc-pool');
@@ -68,6 +69,7 @@ function createApp(options = {}) {
   const baseConfig = options.config || loadConfig();
   const config = options.venue ? withVenueContext(baseConfig, options.venue) : baseConfig;
   const venue = config.venue;
+  const venuePackage = selectVenuePackage(venue, options.venuePackage);
   const logger = options.logger || createLogger(config);
   const deploymentIdentity =
     options.deploymentIdentity || readDeploymentIdentity({ rootDir: options.releaseRoot });
@@ -198,6 +200,7 @@ function createApp(options = {}) {
 
   app.locals.config = config;
   app.locals.venue = venue;
+  app.locals.venuePackage = venuePackage;
   app.locals.onboardingConfig = onboardingConfig;
   app.locals.siteName = venue.displayName;
   app.locals.business = venue.business;

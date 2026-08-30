@@ -1,7 +1,7 @@
 <article id="visit" class="home-pathway home-pathway--visit" aria-labelledby="visit-heading">
-  <p class="home-kicker">At the bar</p>
-  <h3 id="visit-heading">Make your way to East 4th Street</h3>
-  <p class="home-pathway__lede">The essentials for finding 4th Street Bar and planning a visit.</p>
+  <p class="home-kicker"><%= venuePackage.home.visit.kicker %></p>
+  <h3 id="visit-heading"><%= venuePackage.home.visit.heading %></h3>
+  <p class="home-pathway__lede"><%= venuePackage.home.visit.lede %></p>
 
   <dl class="home-visit-facts">
     <div>
@@ -21,5 +21,5 @@
   <div class="home-pathway__actions">
     <a href="<%= business.mapUrl %>" target="_blank" rel="noopener noreferrer" class="button-primary">Get directions</a>
   </div>
-  <p class="home-pathway__note">Holiday hours may vary; call the bar if you’re planning around a holiday.</p>
+  <p class="home-pathway__note"><%= venuePackage.home.visit.note %></p>
 </article>

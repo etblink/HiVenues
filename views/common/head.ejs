@@ -3,7 +3,7 @@
   const resolvedDescription =
     typeof socialDescription === 'string' && socialDescription.trim()
       ? socialDescription.trim()
-      : `Visit ${siteName} in Reno and browse its public Hive community.`;
+      : venuePackage.seo.defaultDescription;
   const resolvedCanonicalUrl =
     typeof canonicalUrl === 'string' && canonicalUrl.trim() ? canonicalUrl.trim() : '';
   const resolvedSocialTitle =
