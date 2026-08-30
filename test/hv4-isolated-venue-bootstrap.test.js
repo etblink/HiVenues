@@ -110,6 +110,37 @@ test('HV-4 rejects secret-bearing fields and recognizable private key material b
   );
 });
 
+test('HV-4 rejects credentials embedded in URLs before domain validators can preserve them', () => {
+  const userinfoSecret = 'fixture-password-that-must-not-echo';
+  const querySecret = 'fixture-query-token-that-must-not-echo';
+
+  for (const [source, pattern, secret] of [
+    [
+      `https://fixture-user:${userinfoSecret}@runtime.example.invalid/node.tar.xz`,
+      /runtime\.source contains URL userinfo credentials/,
+      userinfoSecret,
+    ],
+    [
+      `https://runtime.example.invalid/node.tar.xz?access_token=${querySecret}`,
+      /runtime\.source contains a secret-bearing URL query parameter/,
+      querySecret,
+    ],
+  ]) {
+    const input = clone(HV4_SYNTHETIC_BOOTSTRAP_INPUT);
+    input.deploymentManifest.runtime.source = source;
+
+    assert.throws(
+      () => composeVenueBootstrap(input),
+      (error) => {
+        assert.equal(error instanceof VenueBootstrapError, true);
+        assert.match(error.message, pattern);
+        assert.doesNotMatch(error.message, new RegExp(secret));
+        return true;
+      },
+    );
+  }
+});
+
 test('HV-4 generic bootstrap code is venue-neutral and does not fork on Fourth Street', () => {
   const source = fs.readFileSync(path.join(ROOT, 'src/venue/bootstrap.js'), 'utf8');
 
