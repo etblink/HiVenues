@@ -13,6 +13,7 @@ These documents govern current successor interpretation and sequencing:
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted hybrid preservation/reconstruction architecture and isolated-venue runtime decision.
 - `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_PREREGISTRATION_0_1_0.md` — frozen prospective HV-2 contract.
 - `HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION_ACCEPTANCE_0_1_0.md` — Project Lead HV-2 acceptance, qualification, non-effects, and post-HV-2 routing record.
+- `POST_HV2_SEQUENCING_DECISION_0_1_0.md` — accepted Project Lead lane selection: venue packaging, with only HV-3 preregistration authorized next.
 
 Living documents must be updated when their current-state or routing claims become stale. They must not silently rewrite the meaning of historical evidence.
 
@@ -68,7 +69,9 @@ ONE_ISOLATED_VENUE_RUNTIME
 
 The venue-context seam introduced by HV-1 and the deployment-profile seam accepted in HV-2 do not mean the application is already shared-runtime multi-tenant. Payment, moderation, onboarding, and other durable state remain venue-local until explicitly migrated.
 
-Venue-specific editorial content and assets are first-class product material. The platform should enable distinct venue products, not force every venue into generic copy or imagery.
+Venue-specific editorial content and assets are first-class product material. The accepted Post-HV-2 Sequencing Decision selects venue packaging as the next lane precisely because Fourth Street's strong content, authentic media, local framing, and venue-facing product expression remain comparatively distributed through application and presentation surfaces.
+
+The next operation is preregistration for the proposed HV-3 Reference Venue Package Extraction. No HV-3 implementation, second real venue, production mutation, or shared-runtime tenancy is authorized by that routing decision.
 
 ## Navigation rule
 
@@ -77,9 +80,16 @@ For current project status, read in this order:
 1. `../README.md`
 2. `ROADMAP.md`
 3. `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
-4. the current acceptance/sequencing record governing the next operation
+4. `POST_HV2_SEQUENCING_DECISION_0_1_0.md`
 5. the preregistration for a currently authorized implementation operation, when one exists
 6. relevant current operating documentation if production is involved
 7. historical milestone evidence only as needed for provenance or inherited invariants.
 
-After accepted HV-2 integration, the next authorized operation is a fresh `POST_HV2_SEQUENCING_DECISION`. No substantive implementation lane is authorized until that decision is separately made and recorded.
+The accepted Post-HV-2 Sequencing Decision authorizes only the next governance operation:
+
+```text
+NEXT_OPERATION = HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION_PREREGISTRATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
+```
+
+No HV-3 implementation may begin until the prospective preregistration is separately frozen and qualified.
