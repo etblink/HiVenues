@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
-const hiveUri = require('hive-uri');
+const { encodeOp } = require('./support/hive-signing-uri-fixtures');
 const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { configFrom, logger } = require('./support/test-app');
@@ -17,7 +17,7 @@ const SESSION_SECRET = 'test-session-secret-that-is-at-least-32-bytes';
 const v4vBlankPayerInvoice = fs.readFileSync(path.join(__dirname, 'fixtures', 'payments', 'v4v-hbd-blank-payer.txt'), 'utf8').trim();
 
 function invoice({ account = 'etblink', memo = 'v4v-pos:tab-123', amount = '0.001 HBD', merchant = 'fourthstreetbar' } = {}) {
-  return hiveUri.encodeOp(['transfer', { from: '__signer', to: merchant, amount, memo }], { signer: account, authority: 'active' });
+  return encodeOp(['transfer', { from: '__signer', to: merchant, amount, memo }], { signer: account, authority: 'active' });
 }
 
 function betaPayApp({ account = 'etblink', configOverrides = {}, paymentObserver, now } = {}) {

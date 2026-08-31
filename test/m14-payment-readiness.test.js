@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
-const hiveUri = require('hive-uri');
+const { encodeOp } = require('./support/hive-signing-uri-fixtures');
 const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { loadConfig } = require('../src/config');
@@ -57,7 +57,7 @@ function configFrom(source) {
 }
 
 function invoice() {
-  return hiveUri.encodeOp([
+  return encodeOp([
     'transfer',
     { from: '__signer', to: 'fourthstreetbar', amount: '0.100 HBD', memo: 'm14-test' },
   ], { signer: 'etblink', authority: 'active' });

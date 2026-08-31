@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
-const hiveUri = require('hive-uri');
+const { encodeOp } = require('./support/hive-signing-uri-fixtures');
 const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { configFrom, logger } = require('./support/test-app');
@@ -19,7 +19,7 @@ const v4vBlankPayerInvoice = fs.readFileSync(
 ).trim();
 
 function invoice(memo = 'v4v-pos:tab-123') {
-  return hiveUri.encodeOp([
+  return encodeOp([
     'transfer',
     {
       from: '__signer',

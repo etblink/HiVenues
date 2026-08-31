@@ -5,13 +5,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const hiveUri = require('hive-uri');
+const { encodeOp } = require('./support/hive-signing-uri-fixtures');
 const { decodeHivePaymentInvoice } = require('../src/payments/invoice-decoder');
 const { RECEIPT_STATES, ReceiptStore } = require('../src/payments/receipt-store');
 
 function envelope(memo = 'v4v-pos:tab-123', amount = '0.001 HBD', account = 'etblink') {
   return decodeHivePaymentInvoice(
-    hiveUri.encodeOp([
+    encodeOp([
       'transfer',
       { from: '__signer', to: 'fourthstreetbar', amount, memo },
     ], { signer: account, authority: 'active' }),

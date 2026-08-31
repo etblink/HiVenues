@@ -15,6 +15,16 @@ function canonicalLf(value) {
   return String(value).replace(/\r\n?/g, '\n');
 }
 
+function jsFilesUnder(directory) {
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...jsFilesUnder(absolute));
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(absolute);
+  }
+  return files;
+}
+
 function assertScriptDisabledInstallsNeedNoPatch(workflow) {
   const normalized = canonicalLf(workflow);
   const installs = normalized.match(/run: npm ci --ignore-scripts --no-fund/g) || [];
@@ -62,6 +72,19 @@ test('binds the source-owned payment URI decoder and retired dependency provenan
 
   assert.equal(fs.existsSync(path.join(root, 'patches', 'hive-uri+0.2.8.patch')), false);
   assert.equal(fs.existsSync(path.join(root, 'test', 'hive-signing-uri-compat.test.js')), false);
+});
+
+test('executable test sources do not import the retired hive-uri package', () => {
+  const thisFile = path.resolve(__filename);
+  for (const filename of jsFilesUnder(path.join(root, 'test'))) {
+    if (path.resolve(filename) === thisFile) continue;
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.doesNotMatch(
+      source,
+      /require\(\s*['"]hive-uri['"]\s*\)|from\s+['"]hive-uri['"]/,
+      `${path.relative(root, filename)} must use source-owned or test-only Hive URI helpers`,
+    );
+  }
 });
 
 test('keeps CI installs immutable without post-install patch mutation', () => {

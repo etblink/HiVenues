@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
-const hiveUri = require('hive-uri');
+const { encodeOp } = require('./support/hive-signing-uri-fixtures');
 const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { loadConfig } = require('../src/config');
@@ -42,7 +42,7 @@ test('the historical controlled single-payer payment release profile is no longe
 });
 
 function invoice(account = 'etblink') {
-  return hiveUri.encodeOp(['transfer', { from: '__signer', to: 'fourthstreetbar', amount: '0.100 HBD', memo: 'c2-g1-test' }], { signer: account, authority: 'active' });
+  return encodeOp(['transfer', { from: '__signer', to: 'fourthstreetbar', amount: '0.100 HBD', memo: 'c2-g1-test' }], { signer: account, authority: 'active' });
 }
 
 function authorized(builder, fixture) {
