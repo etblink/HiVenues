@@ -195,6 +195,10 @@ jobs:
         env:
           HV6_NATIVE_VISUAL_OUTPUT: artifacts/hv6-native-visual
         run: npm run test:visual:hv6-native
+      - name: Capture and qualify HV-7 Juniper Works second-venue candidate
+        env:
+          HV7_JUNIPER_VISUAL_OUTPUT: artifacts/hv7-juniper-visual
+        run: npm run test:visual:hv7-juniper
       - name: Capture and qualify UX-1E Wall and Inbox states
         env:
           UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual

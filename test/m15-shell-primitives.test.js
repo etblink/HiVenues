@@ -148,15 +148,16 @@ test('M15.2 uses the exact owner-supplied local 4th Street Bar logo', async () =
   dom.window.close();
 });
 
-test('M15.2 keeps venue identity above technology attribution and does not surface future mockup concepts', async () => {
+test('M15.2 keeps venue identity above successor technology attribution and does not surface future mockup concepts', async () => {
   const { app } = createFixtureApp();
   const response = await request(app).get('/').expect(200);
   const dom = new JSDOM(response.text);
   const { document } = dom.window;
 
   assert.match(document.querySelector('.app-brand')?.textContent || '', /4th Street Bar/);
-  assert.match(document.querySelector('.app-brand')?.textContent || '', /Hive-Bar/);
+  assert.match(document.querySelector('.app-brand')?.textContent || '', /Hive-Venues/);
   assert.match(document.querySelector('.app-technology-attribution')?.textContent || '', /Powered by Hive/);
+  assert.doesNotMatch(document.querySelector('.app-technology-attribution')?.textContent || '', /Hive-Bar/);
 
   const navText = document.querySelector('.app-primary-nav')?.textContent || '';
   assert.doesNotMatch(navText, /\bLive\b/);

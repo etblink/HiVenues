@@ -46,7 +46,7 @@ function createJuniperWorksPackageInput() {
         lede: 'A member-run workshop and tool library for learning, making, and maintaining shared equipment.',
         footnote: 'Synthetic fixture only. No real venue, account, community, or deployment is represented.',
         image: {
-          src: '/fixtures/juniper-works/workshop.jpg',
+          src: '/fixtures/juniper-works/workshop.svg',
           alt: 'Synthetic community workshop with shared work tables',
           width: 1600,
           height: 1000,
@@ -146,9 +146,9 @@ function createJuniperWorksPackageInput() {
         heading: 'A bounded project showcase',
         intro: 'Synthetic examples demonstrate venue-specific media without changing generic platform source.',
         items: [
-          { src: '/fixtures/juniper-works/project-a.jpg', alt: 'Synthetic wooden project', width: 900, height: 1200, caption: 'Fixture project A' },
-          { src: '/fixtures/juniper-works/project-b.jpg', alt: 'Synthetic metal project', width: 900, height: 1200, caption: 'Fixture project B' },
-          { src: '/fixtures/juniper-works/project-c.jpg', alt: 'Synthetic textile project', width: 900, height: 1200, caption: 'Fixture project C' },
+          { src: '/fixtures/juniper-works/project-a.svg', alt: 'Synthetic wooden project', width: 900, height: 1200, caption: 'Fixture project A' },
+          { src: '/fixtures/juniper-works/project-b.svg', alt: 'Synthetic metal project', width: 900, height: 1200, caption: 'Fixture project B' },
+          { src: '/fixtures/juniper-works/project-c.svg', alt: 'Synthetic textile project', width: 900, height: 1200, caption: 'Fixture project C' },
         ],
       },
     },

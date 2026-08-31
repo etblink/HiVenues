@@ -28,7 +28,7 @@ function documentFor(html) {
   return new JSDOM(html).window.document;
 }
 
-test('M15.3 Home remains venue-led and uses only current capabilities after UX-1F', async () => {
+test('M15.3 Home remains venue-led and preserves the Fourth Street reference topology after the additive HV7 capability extension', async () => {
   const { app } = createFixtureApp();
   const response = await request(app).get('/').expect(200);
   const document = documentFor(response.text);
@@ -41,7 +41,12 @@ test('M15.3 Home remains venue-led and uses only current capabilities after UX-1
   assert.match(main.querySelector('h1')?.textContent || '', /4th Street Bar/);
 
   const links = Array.from(document.querySelectorAll('head link[rel="stylesheet"]')).map((link) => link.getAttribute('href'));
-  assert.deepEqual(links, ['/css/style.css', '/css/m15-social.css', '/css/ux-1f-home.css']);
+  assert.deepEqual(links, [
+    '/css/style.css',
+    '/css/m15-social.css',
+    '/css/ux-1f-home.css',
+    '/css/hv7-structured-home.css',
+  ]);
 
   const children = Array.from(main.children);
   assert.deepEqual(children.map((element) => element.classList[0]), [
@@ -51,6 +56,8 @@ test('M15.3 Home remains venue-led and uses only current capabilities after UX-1
     'home-gallery',
   ]);
   assert.ok(main.querySelector('.home-pathways #visit'));
+  assert.equal(main.querySelector('[data-hv7-programs]'), null);
+  assert.equal(main.querySelector('[data-hv7-equipment-status]'), null);
 
   assert.doesNotMatch(main.textContent, /\bLive\b|\bEvents?\b|\bNearby\b|\bFor You\b/);
   assert.equal(main.querySelector('input[type="search"]'), null);
