@@ -130,14 +130,19 @@ test('M18.2 visual fixture renders real signed-out and fixture-authenticated she
   );
 });
 
-test('M18.2 CI retains dual-OS source qualification and pinned consolidated visual evidence', () => {
+test('M18.2 CI keeps dual-OS qualification and positively scoped UI/UX visual evidence', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-m18-visual.js'), 'utf8');
   const visualJob = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
 
   assert.match(workflow, /os:\s*[\s\S]*ubuntu-latest[\s\S]*windows-latest/);
+  assert.match(workflow, /visual=false/);
+  assert.match(workflow, /views\/\*\|public\/\*\|src\/input\.css/);
+  assert.match(workflow, /scripts\/capture-\*-visual\.js/);
+  assert.match(workflow, /workflow_dispatch[\s\S]*?visual=true/);
+  assert.doesNotMatch(workflow, /\.github\/workflows\/\*[^\n]*visual=true/);
   assert.ok(visualJob);
-  assert.match(visualJob, /name: Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(visualJob, /name: UI\/UX visual evidence \(Ubuntu \/ pinned Chromium\)/);
   assert.match(visualJob, /needs:\n\s+- scope\n\s+- verify/);
   assert.match(visualJob, /if: needs\.scope\.outputs\.visual == 'true'/);
   assert.match(visualJob, /runs-on:\s*ubuntu-latest/);
@@ -152,6 +157,8 @@ test('M18.2 CI retains dual-OS source qualification and pinned consolidated visu
     /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
   );
   assert.match(visualJob, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
+  assert.match(visualJob, /It does not by itself constitute Project Lead visual approval\./);
+  assert.match(visualJob, /inspect the preserved artifact before approving the UI\/UX result\./);
   assert.match(capture, /M18 visual qualification forbids Keychain access/);
   assert.match(capture, /method !== 'GET' && method !== 'HEAD'/);
   assert.match(capture, /assert\.deepEqual\(network\.violations, \[\]\)/);
