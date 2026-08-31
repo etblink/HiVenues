@@ -4,7 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY';
+const NEXT_SUCCESSOR_OPERATION = 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -44,14 +44,23 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'Post-HV7 sequencing decision must be accepted'],
     [/^SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE$/m, 'reference deployment convergence must remain selected'],
     [/^PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS$/m, 'HV-8 readiness milestone must remain selected'],
-    [/^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'post-HV7 sequencing route must now be historical'],
+    [/^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'post-HV7 sequencing route must be historical'],
     [/^HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE$/m, 'HV-8 readiness audit must be complete'],
     [/^HV8_SOURCE_READINESS = PASS$/m, 'HV-8 source readiness must pass'],
-    [/^HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD$/m, 'HV-8 production compatibility must preserve identity hold'],
-    [/^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m, 'deployment preregistration must remain on hold'],
-    [/^HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED$/m, 'identity hold reason must remain exact'],
-    [/^HV8_READINESS_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m, 'HV-8 readiness routing reconciliation must be complete'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be exact read-only production identity observation'],
+    [/^HV8_PRODUCTION_COMPATIBILITY = PASS$/m, 'HV-8 production compatibility must pass after exact observation'],
+    [/^HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION = COMPLETE__PASS$/m, 'exact running identity observation must pass'],
+    [/^HV8_CURRENT_RUNNING_BUILD = beta-fdb5b5b$/m, 'current running build must remain exactly observed'],
+    [/^HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e$/m, 'current running commit must remain exactly observed'],
+    [/^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m, 'current running tree must remain exactly observed'],
+    [/^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m, 'current running write mode must remain beta'],
+    [/^HV8_CURRENT_RUNNING_READY = ready$/m, 'current running readiness must remain ready'],
+    [/^HV8_READINESS_IDENTITY_HOLD = CLEARED$/m, 'HV-8 identity hold must remain cleared'],
+    [/^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = PASS$/m, 'deployment preregistration readiness must pass'],
+    [/^HV8_DEPLOYMENT_PREREGISTRATION_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'deployment preregistration decision must be accepted'],
+    [/^HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0$/m, 'deployment preregistration must be frozen'],
+    [/^HV8_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m, 'preregistration living routing must be complete'],
+    [/^HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN$/m, 'deploy candidate must not be silently selected'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be offline candidate freeze and qualification'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain unselected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -66,6 +75,10 @@ function assertCurrentRoutingBlock(relativePath) {
   for (const [pattern, message] of required) requireMatch(block, pattern, `${relativePath}: ${message}`);
 
   const obsolete = [
+    /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY$/m,
+    /^HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD$/m,
+    /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m,
+    /^HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED$/m,
     /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m,
     /^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m,
     /^NEXT_OPERATION = POST_HV7_SEQUENCING_DECISION__READ_ONLY$/m,
@@ -73,10 +86,6 @@ function assertCurrentRoutingBlock(relativePath) {
     /^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m,
     /^HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE$/m,
     /^HV7_PRE_ACCEPTANCE_QUALIFICATION = REQUIRED_ON_EXACT_FINAL_HEAD$/m,
-    /^NEXT_OPERATION = HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION$/m,
-    /^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m,
-    /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m,
-    /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m,
   ];
   if (obsolete.some((pattern) => pattern.test(block)) || /AUTHORIZED__NOT_YET_ACCEPTED/.test(block)) {
     throw new Error(`${relativePath}: superseded lifecycle routing leaked into current routing`);
@@ -87,20 +96,20 @@ function assertCurrentRoutingBlock(relativePath) {
 function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /^# Hive-Venues$/m, 'README must identify Hive-Venues');
   requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve Fourth Street roles');
-  requireMatch(readme, /frozen 24-requirement product packet passed at \*\*Tier-A product-and-architecture evidence\*\*/i, 'README must preserve HV-7 evidence result');
-  requireMatch(readme, /HV-8 read-only readiness audit is complete/i, 'README must record completed HV-8 audit');
-  requireMatch(readme, /full installed tree.*not directly re-observed/i, 'README must preserve exact identity hold');
-  requireMatch(readme, /Canonical source is the moving `main` branch of `etblink\/Hive-Venues`/, 'README must identify moving source');
+  requireMatch(readme, /24 frozen requirements passed at \*\*Tier-A product-and-architecture evidence\*\*/i, 'README must preserve HV-7 evidence result');
+  requireMatch(readme, /direct public `\/healthz` observation cleared that hold/i, 'README must record direct full identity observation');
+  requireMatch(readme, /Production deployment is still not authorized/i, 'README must preserve deployment boundary');
+  requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'docs index must identify Hive-Venues');
-  requireMatch(docsReadme, /HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY/, 'docs index must route to exact identity observation');
-  requireMatch(docsReadme, /FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED/, 'docs index must preserve identity hold reason');
-  requireMatch(docsReadme, /Canonical integrated source is moving `main` in `etblink\/Hive-Venues`/, 'docs index must identify moving source');
+  requireMatch(docsReadme, /HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION/, 'docs index must route to candidate qualification');
+  requireMatch(docsReadme, /HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0/, 'docs index must preserve preregistration freeze');
+  requireMatch(docsReadme, /Canonical integrated source is moving `main` in `etblink\/Hive-Venues`|moving `main` in `etblink\/Hive-Venues`/, 'docs index must identify moving source');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind repository');
-  requireMatch(roadmap, /HV-8 readiness audit — COMPLETE/i, 'roadmap must record completed HV-8 audit');
-  requireMatch(roadmap, /exact identity observation/i, 'roadmap must record the next read-only observation');
+  requireMatch(roadmap, /HV-8 deployment preregistration — FROZEN/i, 'roadmap must record frozen preregistration');
+  requireMatch(roadmap, /candidate freeze and qualification/i, 'roadmap must record current offline operation');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
