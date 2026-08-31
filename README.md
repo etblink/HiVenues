@@ -25,10 +25,10 @@ SELECTED_ADAPTER = NATIVE_EXISTING_STACK
 HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
 HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
 POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
-POST_HV6_SEQUENCING_DECISION = PENDING
-SELECTED_NEXT_LANE = NONE
-PROPOSED_NEXT_MILESTONE = NONE
-NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY
+POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
+SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
+PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
+NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
@@ -39,9 +39,9 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The next product-governance operation is a fresh **Post-HV-6 Sequencing Decision**. No new substantive implementation is currently authorized. Separately bounded repository housekeeping may proceed without selecting or prejudging a product lane.
+The Post-HV-6 Sequencing Decision is accepted. The selected next product lane is a **real isolated second-venue pilot**, with the proposed milestone `HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT`. The next operation is preregistration only; no substantive HV-7 implementation is currently authorized.
 
-A real isolated second venue remains unauthorized and is a high-priority candidate for fresh sequencing because it is the strongest direct falsification test of the accepted abstractions. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
+Selecting that lane does not admit or authorize a real venue. No specific second venue is selected by current routing, and production mutation remains unauthorized. The pilot is intended as the strongest direct falsification test of the accepted abstractions before broader venue reuse is trusted. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected as product lanes. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
 
 ## Accepted architecture
 
@@ -140,9 +140,9 @@ For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+3. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md`
 4. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
 5. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
 6. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
-Superseded wording and prior routing remain recoverable from Git commit history. Living documents do not duplicate old routing snapshots merely to preserve history.
+`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains the truthful historical record of the neutral pre-decision boundary. Superseded wording and prior routing remain recoverable from Git commit history. Living documents do not duplicate old routing snapshots merely to preserve history.

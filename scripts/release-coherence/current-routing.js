@@ -24,9 +24,10 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m, 'HV-6 must be accepted'],
     [/^SELECTED_ADAPTER = NATIVE_EXISTING_STACK$/m, 'native existing stack must remain selected'],
     [/^HV6_PHASE_C_IMPLEMENTATION = ACCEPTED$/m, 'Phase C implementation must be accepted'],
-    [/^POST_HV6_SEQUENCING_DECISION = PENDING$/m, 'Post-HV-6 sequencing must remain pending'],
-    [/^SELECTED_NEXT_LANE = NONE$/m, 'no post-HV-6 lane may be preselected'],
-    [/^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m, 'next product operation must be read-only sequencing'],
+    [/^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'Post-HV-6 sequencing decision must be accepted'],
+    [/^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'real isolated second-venue pilot must be the selected next lane'],
+    [/^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m, 'HV-7 pre-admission pilot must be the proposed next milestone'],
+    [/^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m, 'next product operation must be HV-7 preregistration'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -39,8 +40,11 @@ function assertCurrentRoutingBlock(relativePath) {
 
   if (/HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/.test(block) ||
       /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/.test(block) ||
-      /AUTHORIZED__NOT_YET_ACCEPTED/.test(block)) {
-    throw new Error(`${relativePath}: superseded HV-6 routing leaked into the current-routing block`);
+      /AUTHORIZED__NOT_YET_ACCEPTED/.test(block) ||
+      /^POST_HV6_SEQUENCING_DECISION = PENDING$/m.test(block) ||
+      /^SELECTED_NEXT_LANE = NONE$/m.test(block) ||
+      /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m.test(block)) {
+    throw new Error(`${relativePath}: superseded routing leaked into the current-routing block`);
   }
   return block;
 }

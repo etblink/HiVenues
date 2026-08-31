@@ -33,9 +33,10 @@ function assertCurrentPostHv6Block(relativePath) {
     [/^HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE$/m, 'Phase B must remain complete'],
     [/^SELECTED_ADAPTER = NATIVE_EXISTING_STACK$/m, 'native existing stack must remain selected'],
     [/^HV6_PHASE_C_IMPLEMENTATION = ACCEPTED$/m, 'Phase C implementation must be accepted'],
-    [/^POST_HV6_SEQUENCING_DECISION = PENDING$/m, 'Post-HV-6 sequencing must remain pending'],
-    [/^SELECTED_NEXT_LANE = NONE$/m, 'no next product lane may be preselected'],
-    [/^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m, 'next product operation must be read-only sequencing'],
+    [/^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'Post-HV-6 sequencing must be accepted'],
+    [/^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'real isolated second-venue pilot must be selected'],
+    [/^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m, 'HV-7 pre-admission pilot must be proposed'],
+    [/^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m, 'next product operation must be HV-7 preregistration'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'no post-HV-6 implementation may be implicitly authorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -49,6 +50,9 @@ function assertCurrentPostHv6Block(relativePath) {
   const secondVenueMatches = [...block.matchAll(SECOND_VENUE_ROUTE)];
   assert.equal(secondVenueMatches.length, 1, `${relativePath}: exactly one recognized real-second-venue authorization key must remain NO`);
 
+  assert.doesNotMatch(block, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m, `${relativePath}: neutral pre-decision routing must be superseded`);
+  assert.doesNotMatch(block, /^SELECTED_NEXT_LANE = NONE$/m, `${relativePath}: selected lane must not regress to NONE`);
+  assert.doesNotMatch(block, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m, `${relativePath}: read-only sequencing must not remain current after acceptance`);
   assert.doesNotMatch(block, /HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/, `${relativePath}: current routing must not route back to Phase B`);
   assert.doesNotMatch(block, /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/, `${relativePath}: current routing must not route back to Phase C`);
   assert.doesNotMatch(block, /AUTHORIZED__NOT_YET_ACCEPTED/, `${relativePath}: current routing must not describe accepted Phase C as pending`);
@@ -56,7 +60,7 @@ function assertCurrentPostHv6Block(relativePath) {
   return block;
 }
 
-test('living current-routing blocks agree on accepted HV-6 and neutral post-HV-6 sequencing', () => {
+test('living current-routing blocks agree on accepted Post-HV-6 sequencing and bounded HV-7 preregistration', () => {
   const readme = assertCurrentPostHv6Block('README.md');
   const docsIndex = assertCurrentPostHv6Block('docs/README.md');
   const roadmap = assertCurrentPostHv6Block('docs/ROADMAP.md');
@@ -69,30 +73,30 @@ test('living current-routing blocks agree on accepted HV-6 and neutral post-HV-6
   assert.match(readme, /^POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
 });
 
-test('current routing is bound to the exact HV-6 acceptance and post-HV-6 reconciliation', () => {
+test('current routing is bound to the exact Post-HV-6 sequencing decision while preserving the prior neutral record as history', () => {
   const acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md');
-  const reconciliation = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const priorReconciliation = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const decision = read('docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md');
 
   assert.match(acceptance, /^STATUS = PROJECT_LEAD_ACCEPTED$/m);
   assert.match(acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = 3b774468ff1ed347a35500f2a29062a63ed62621$/m);
-  assert.match(acceptance, /^ACCEPTED_IMPLEMENTATION_TREE = 5cde834eaf267aef8e6e824fd13b75e54045bb2c$/m);
-  assert.match(acceptance, /^QUALIFICATION_CI_RUN = 33359910931$/m);
   assert.match(acceptance, /^SELECTED_ADAPTER = NATIVE_EXISTING_STACK$/m);
-  assert.match(acceptance, /^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m);
-  assert.match(acceptance, /^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m);
-  assert.match(acceptance, /^PUBLIC_PRODUCTION_AUTHORING_ROUTE = NOT_AUTHORIZED$/m);
   assert.match(acceptance, /^REAL_SECOND_VENUE_ADMISSION = NOT_AUTHORIZED$/m);
 
-  assert.match(reconciliation, /^OPERATION = POST_HV6_LIVING_ROUTING_RECONCILIATION$/m);
-  assert.match(reconciliation, /^CANONICAL_ACCEPTANCE_BASE_COMMIT = 6ad7c55a4e02a126d6d91f07847d76cfd33b8b8d$/m);
-  assert.match(reconciliation, /^CANONICAL_ACCEPTANCE_BASE_TREE = 58df05137560873463fc0cd2dc634f967677bee5$/m);
-  assert.match(reconciliation, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m);
-  assert.match(reconciliation, /^SELECTED_NEXT_LANE = NONE$/m);
-  assert.match(reconciliation, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m);
-  assert.match(reconciliation, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
-  assert.match(reconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m);
-  assert.match(reconciliation, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
-  assert.match(reconciliation, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+  assert.match(priorReconciliation, /^OPERATION = POST_HV6_LIVING_ROUTING_RECONCILIATION$/m);
+  assert.match(priorReconciliation, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m);
+  assert.match(priorReconciliation, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
+
+  assert.match(decision, /^OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m);
+  assert.match(decision, /^CANONICAL_READ_ONLY_BASE_COMMIT = c43e18b7b02f77a71d019aeb3066d7726da0aa7e$/m);
+  assert.match(decision, /^CANONICAL_READ_ONLY_BASE_TREE = a824027539d5cda9eaf0e21018e67f69e8784b78$/m);
+  assert.match(decision, /^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
+  assert.match(decision, /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m);
+  assert.match(decision, /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m);
+  assert.match(decision, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m);
+  assert.match(decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+  assert.match(decision, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
+  assert.match(decision, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {
