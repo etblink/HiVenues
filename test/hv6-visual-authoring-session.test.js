@@ -2,7 +2,12 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { OWNERSHIP, buildOwnershipMap, serializeVenueAuthoringReview } = require('../src/venue/authoring');
+const {
+  OWNERSHIP,
+  applyOrdinaryOperatorEdit,
+  buildOwnershipMap,
+  serializeVenueAuthoringReview,
+} = require('../src/venue/authoring');
 const {
   SESSION_STATE,
   VisualAuthoringSessionError,
@@ -13,6 +18,38 @@ const {
   FOURTH_STREET_AUTHORING_INPUT,
   LANTERN_ROOM_AUTHORING_INPUT,
 } = require('./support/hv5-authoring-fixtures');
+
+function representativeEdits(input) {
+  const fourthStreet = input.venueContext.id === FOURTH_STREET_AUTHORING_INPUT.venueContext.id;
+  return [
+    ['/venueContext/displayName', fourthStreet ? 'Fourth Street Social' : 'Lantern Room Commons'],
+    ['/venueContext/business/phone', fourthStreet ? '(775) 555-0144' : '(555) 010-4343'],
+    [
+      '/venuePackage/home/hero/lede',
+      fourthStreet
+        ? 'A refreshed neighborhood gathering place with a community that continues online.'
+        : 'A refreshed fictional reading room for book notes and quiet conversation.',
+    ],
+    [
+      '/venuePackage/home/hero/image/src',
+      fourthStreet ? '/images/fourth-street-bar-logo.jpg' : '/fixtures/lantern-room/logo.svg',
+    ],
+    [
+      '/venuePackage/home/hero/image/alt',
+      fourthStreet ? 'Fourth Street Social venue mark' : 'Lantern Room fixture venue mark',
+    ],
+    [
+      '/venuePackage/home/hero/image/caption',
+      fourthStreet ? 'Fourth Street Social · refreshed preview' : 'Lantern Room Commons · fixture preview',
+    ],
+    [
+      '/venuePackage/home/gallery/items/0/caption',
+      fourthStreet ? 'Refreshed fixed-slot pool-table caption' : 'Refreshed fixed-slot bookshelf caption',
+    ],
+    ['/venuePackage/onboarding/operatorNoun', fourthStreet ? 'neighborhood bar' : 'reading salon'],
+    ['/venuePackage/onboarding/staffRole', fourthStreet ? 'host' : 'curator'],
+  ];
+}
 
 test('HV-6 derives its editable registry exclusively from accepted HV-5 ownership', () => {
   for (const input of [FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT]) {
@@ -173,10 +210,64 @@ test('HV-6 semantic field controls provide no arbitrary HTML or script authority
   assert.equal(fields.some((field) => forbiddenKinds.has(field.controlKind)), false);
   assert.equal(fields.some((field) => forbiddenPointerSegment.test(field.pointer)), false);
 
-  // Operator copy remains plain semantic text. Existing EJS templates escape it;
-  // the adapter does not create a distinct raw-HTML or executable-script channel.
   const session = createVisualAuthoringSession(FOURTH_STREET_AUTHORING_INPUT);
   session.edit('/venuePackage/home/hero/lede', '<script>alert("not executable")</script>');
   assert.equal(session.previewProjection().venuePackage.home.hero.lede, '<script>alert("not executable")</script>');
   assert.doesNotThrow(() => session.apply());
+});
+
+test('HV-6 representative positive edit matrix passes for both venue fixtures', () => {
+  for (const input of [FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT]) {
+    const session = createVisualAuthoringSession(input);
+    const original = session.canonicalAccepted();
+
+    for (const [pointer, value] of representativeEdits(input)) session.edit(pointer, value);
+
+    assert.equal(session.status().dirty, true);
+    assert.notEqual(session.canonicalProposal(), original);
+    const accepted = session.apply();
+
+    for (const [pointer, value] of representativeEdits(input)) {
+      const segments = pointer.slice(1).split('/');
+      let cursor = accepted;
+      for (const segment of segments) cursor = cursor[segment];
+      assert.equal(cursor, value, pointer);
+    }
+
+    const reloaded = createVisualAuthoringSession(accepted);
+    assert.equal(reloaded.canonicalAccepted(), session.canonicalAccepted());
+    assert.deepEqual(reloaded.previewProjection(), session.previewProjection());
+  }
+});
+
+test('HV-6 repeated projections and edit sequences are deterministic for both venue fixtures', () => {
+  for (const input of [FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT]) {
+    const left = createVisualAuthoringSession(input);
+    const right = createVisualAuthoringSession(input);
+
+    assert.deepEqual(left.previewProjection(), right.previewProjection());
+    for (const [pointer, value] of representativeEdits(input)) {
+      left.edit(pointer, value);
+      right.edit(pointer, value);
+    }
+
+    assert.equal(left.canonicalProposal(), right.canonicalProposal());
+    assert.deepEqual(left.previewProjection(), right.previewProjection());
+  }
+});
+
+test('HV-6 crafted protected proposal is rejected by HV-5 with accepted base unchanged', () => {
+  for (const input of [FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT]) {
+    const baseCanonical = serializeVenueAuthoringReview(input);
+    const proposed = structuredClone(input);
+    proposed.venueContext.hive.communityId = proposed.venueContext.hive.communityId === 'hive-654321'
+      ? 'hive-654322'
+      : 'hive-108591';
+
+    assert.throws(
+      () => applyOrdinaryOperatorEdit(input, proposed),
+      /ordinary operator edit denied|OPERATOR_AUTHORED/i,
+    );
+    assert.equal(serializeVenueAuthoringReview(input), baseCanonical);
+  }
 });
