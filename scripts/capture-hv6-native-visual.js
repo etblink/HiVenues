@@ -16,6 +16,13 @@ const { createHv6NativeEditorFixture } = require('../test/support/hv6-native-edi
 const ROOT = path.join(__dirname, '..');
 const OUTPUT = path.resolve(ROOT, process.env.HV6_NATIVE_VISUAL_OUTPUT || 'artifacts/hv6-native-visual');
 const SHOTS = path.join(OUTPUT, 'screenshots');
+const LANTERN_EVALUATION_ASSETS = new Set([
+  '/fixtures/lantern-room/logo.svg',
+  '/fixtures/lantern-room/hero.svg',
+  '/fixtures/lantern-room/shelves.svg',
+  '/fixtures/lantern-room/tea.svg',
+  '/fixtures/lantern-room/corner.svg',
+]);
 const SCENARIOS = Object.freeze([
   {
     id: 'fourth-street-desktop',
@@ -60,6 +67,11 @@ function getAtPointer(document, pointer) {
   let cursor = document;
   for (const segment of pointer.slice(1).split('/')) cursor = cursor[segment];
   return cursor;
+}
+
+function lanternEvaluationSvg(pathname) {
+  const label = path.basename(pathname, '.svg').replaceAll('-', ' ');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Lantern Room fixture ${label}"><rect width="1200" height="800" fill="#18181b"/><circle cx="600" cy="330" r="150" fill="#f5f5f4"/><path d="M525 480h150l-28 145h-94z" fill="#f5f5f4"/><text x="600" y="730" text-anchor="middle" font-family="system-ui,sans-serif" font-size="54" fill="#f5f5f4">Lantern Room · ${label}</text></svg>`;
 }
 
 function representativeBrowserEdits(scenario) {
@@ -287,11 +299,20 @@ async function runScenario(browser, scenario) {
   const context = await browser.newContext({ viewport: { width: scenario.width, height: scenario.height } });
   const page = await context.newPage();
   const consoleErrors = [];
+  const fixtureAssetRequests = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url());
+    if (url.hostname === '127.0.0.1' && LANTERN_EVALUATION_ASSETS.has(url.pathname)) {
+      fixtureAssetRequests.push(url.pathname);
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml; charset=utf-8',
+        body: lanternEvaluationSvg(url.pathname),
+      });
+    }
     if (url.hostname === '127.0.0.1') return route.continue();
     return route.abort('blockedbyclient');
   });
@@ -341,6 +362,12 @@ async function runScenario(browser, scenario) {
 
     assert.equal(fixture.rpcPool.calls.length, 0, JSON.stringify(fixture.rpcPool.calls));
     assert.ok(fixture.hiveReadService.calls.length >= 1);
+    assert.deepEqual(consoleErrors, [], JSON.stringify(consoleErrors));
+    if (scenario.input.venueContext.id === LANTERN_ROOM_AUTHORING_INPUT.venueContext.id) {
+      assert.ok(fixtureAssetRequests.length >= LANTERN_EVALUATION_ASSETS.size, JSON.stringify(fixtureAssetRequests));
+    } else {
+      assert.equal(fixtureAssetRequests.length, 0, JSON.stringify(fixtureAssetRequests));
+    }
 
     return {
       id: scenario.id,
@@ -359,6 +386,7 @@ async function runScenario(browser, scenario) {
       rpcCalls: fixture.rpcPool.calls.length,
       deterministicReadCalls: fixture.hiveReadService.calls.length,
       consoleErrors,
+      fixtureAssetRequests,
       acceptedCanonicalSha256: authoringEvidence.acceptedCanonicalSha256,
       representativeEdits: authoringEvidence.representativeEdits,
     };
