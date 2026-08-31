@@ -40,7 +40,7 @@ jobs:
 
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "visual=true" >> "$GITHUB_OUTPUT"
-            echo "Manual qualification: exhaustive visual suite selected."
+            echo "Manual qualification: exhaustive UI/UX visual evidence selected."
             exit 0
           fi
 
@@ -57,19 +57,33 @@ jobs:
           changed="$(git diff --name-only "$base" HEAD)"
           printf 'Changed paths:\n%s\n' "$changed"
 
+          # Screenshot capture is UI/UX evidence, not a generic repository
+          # qualification tax. Keep this as a positive selector. Changes that
+          # do not plausibly affect rendered user experience still receive the
+          # universal deterministic Ubuntu/Windows gates below. If a normally
+          # non-visual change needs deliberate visual review, workflow_dispatch
+          # selects the exhaustive suite explicitly.
           visual=false
           while IFS= read -r path; do
             [[ -z "$path" ]] && continue
             case "$path" in
-              README.md|docs/*)
+              views/*|public/*|src/input.css|src/app.js|routes/*|src/routes/*)
+                visual=true
+                break
                 ;;
-              test/*.test.js)
+              src/content/*|src/onboarding/*|src/moderation/*|src/payments/*)
+                visual=true
+                break
                 ;;
-              scripts/check-release-coherence.js|scripts/check-functional-v1-baseline.js)
+              src/venue/native-authoring-surface.js|src/venue/visual-authoring-session.js|src/venue/context.js|src/venue/package.js|src/venue/package-selection.js|src/venue/reference/*)
+                visual=true
+                break
                 ;;
-              src/venue/bootstrap.js|scripts/validate-venue-bootstrap.js|test/support/hv4-synthetic-bootstrap.js)
+              scripts/capture-*-visual.js)
+                visual=true
+                break
                 ;;
-              *)
+              test/support/*visual*|test/support/hv6-native-editor-fixture.js)
                 visual=true
                 break
                 ;;
@@ -77,7 +91,7 @@ jobs:
           done <<< "$changed"
 
           echo "visual=$visual" >> "$GITHUB_OUTPUT"
-          echo "Visual qualification required: $visual"
+          echo "UI/UX visual evidence required: $visual"
 
   verify:
     name: Node 24.19.0 / npm 11.17.0 verification (${{ matrix.os }})
@@ -109,7 +123,7 @@ jobs:
         run: npm run check
 
   visual-acceptance:
-    name: Consolidated visual acceptance (Ubuntu / pinned Chromium)
+    name: UI/UX visual evidence (Ubuntu / pinned Chromium)
     needs:
       - scope
       - verify
@@ -190,7 +204,19 @@ jobs:
           UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
         run: node scripts/capture-ux-1e-visual.js
 
-      - name: Preserve consolidated rendered evidence
+      - name: Explain visual-evidence review boundary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## UI/UX visual evidence'
+            echo
+            echo 'A green capture job means the screenshots and automated browser assertions were produced successfully.'
+            echo 'It does not by itself constitute Project Lead visual approval.'
+            echo 'When visual evidence is material to acceptance, inspect the preserved artifact before approving the UI/UX result.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve consolidated UI/UX visual evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
