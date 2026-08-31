@@ -93,7 +93,9 @@ test('Juniper renders through the real shared application path with structured v
     assert.match(html, /member/i);
     assert.match(html, /Hive-Venues/);
     assert.match(html, /data-hv7-venue-theme/);
-    assert.match(html, /--venue-accent:\s*#b86f00/);
+    assert.match(html, /--venue-accent:\s*#945500/);
+    assert.match(html, /--venue-on-accent:\s*#f4f1e8/);
+    assert.match(html, /\.home-gallery\s*\{\s*background:\s*#f4f1e8;/s);
     assert.match(html, /data-program-id="orientation-101"/);
     assert.match(html, /data-equipment-id="laser-cutter"/);
     assert.doesNotMatch(visibleText, /\b(?:bar|beer|bartender|patron)\b/i);
