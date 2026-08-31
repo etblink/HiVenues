@@ -44,6 +44,10 @@ test('application route modules are source-owned under src/routes', () => {
   assert.match(appSource, /require\('\.\/routes\/profile'\)/);
   assert.match(appSource, /require\('\.\/routes\/common'\)/);
   assert.match(appSource, /require\('\.\/routes\/api'\)/);
+
+  const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.match(packageJson.scripts.lint, /(?:^|\s)src(?:\s|$)/);
+  assert.doesNotMatch(packageJson.scripts.lint, /(?:^|\s)routes(?:\s|$)/);
 });
 
 test('route relocation preserves the public mount contract in src/app.js', () => {
