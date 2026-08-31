@@ -2,7 +2,7 @@
 
 Hive-Venues is a successor platform for independently branded venue-native community and social applications on Hive. It preserves the strongest security, payment, social, accessibility, release, and operating work from the original Hive-Bar application while separating reusable platform machinery from venue identity, authored venue expression, and deployment policy.
 
-**Fourth Street Bar in Reno is the sole real client and reference deployment.** It is not the platform identity. The platform does not currently require a universal venue-type taxonomy; venue-specific vocabulary belongs in venue-owned configuration rather than a guessed platform enum.
+**Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment.** It is currently the sole real client, but client status, nominee status, and deployment status are distinct product concepts. Fourth Street is not the platform identity. The platform does not currently require a universal venue-type taxonomy; venue-specific vocabulary belongs in venue-owned configuration rather than a guessed platform enum.
 
 ## Current successor state
 
@@ -28,9 +28,19 @@ POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
 HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
 POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
-FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT
+FOURTH_STREET_VENUE_STATUS = REAL_VENUE
+FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
+FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
+FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
+HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
+HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
 SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
+HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
+HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
+HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED
+HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
@@ -46,9 +56,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment supersedes the narrow real-only interpretation for **current routing**: the current lane is an **adversarial isolated second-venue pilot**, real or synthetic candidates are allowed, and the Project Lead has selected a **synthetic adversarial** candidate-design path for the next experiment.
+The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment supersedes the narrow real-only interpretation for **current routing**: HV-7 is establishing a **second venue nominee**, real or synthetic nominees are allowed, and the Project Lead has selected a **synthetic adversarial** evidence mode for the next product-design experiment.
 
-A synthetic HV-7 candidate is valid Tier-A evidence for architectural falsification but is not evidence of real-client adoption, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. The next operation is read-only candidate design and requirement freeze; no substantive HV-7 implementation is currently authorized.
+Here, **adversarial** means that the nominee must be capable of exposing bad abstractions; it does not mean maximizing incompatibility or inventing an edge case for its own sake. The nominee must be product-credible, internally coherent, meaningfully different from Fourth Street, desirable for Hive-Venues to support, and realistic as a future client type. Project Lead design is architecture-aware: existing source and accepted architecture may be inspected and used normally. The protection against confirmation bias is to design the venue on its own terms, freeze those authentic requirements before implementation, and then refuse to rewrite them merely to make Hive-Venues pass.
+
+A synthetic HV-7 nominee is valid Tier-A evidence for architectural falsification and a serious product instance, but it is not evidence of another real client, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No substantive HV-7 implementation is currently authorized.
 
 No real second venue is required or authorized, and no venue outreach is authorized. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected as product lanes. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
 
