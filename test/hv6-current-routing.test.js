@@ -9,25 +9,29 @@ const { NEXT_SUCCESSOR_OPERATION, assertCurrentRoutingBlock } = require('../scri
 const root = path.join(__dirname, '..');
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), 'utf8'); }
 
-test('living current-routing blocks agree on accepted Post-HV7 sequencing and HV8 read-only audit', () => {
+test('living current-routing blocks agree on completed HV8 audit and exact identity observation', () => {
   const readme = assertCurrentRoutingBlock('README.md');
   const docsIndex = assertCurrentRoutingBlock('docs/README.md');
   const roadmap = assertCurrentRoutingBlock('docs/ROADMAP.md');
 
-  assert.equal(NEXT_SUCCESSOR_OPERATION, 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT');
+  assert.equal(NEXT_SUCCESSOR_OPERATION, 'HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY');
   assert.match(readme, /^POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
   assert.match(readme, /^SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE$/m);
-  assert.match(docsIndex, /^PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS$/m);
+  assert.match(docsIndex, /^HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE$/m);
+  assert.match(docsIndex, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
+  assert.match(roadmap, /^HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED$/m);
   assert.match(roadmap, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m);
 });
 
-test('current sequencing advances without rewriting preserved HV7 history', () => {
+test('current sequencing advances without rewriting preserved HV7 and Post-HV7 history', () => {
   const requirements = read('docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md');
   const confrontation = read('docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md');
   const acceptance = read('docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md');
   const neutralPostHv7 = read('docs/POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
   const decision = read('docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md');
-  const current = read('docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const postHv7Routing = read('docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const hv8Audit = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md');
+  const hv8Routing = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
 
   assert.match(requirements, /^HV7_REQUIREMENT_COUNT = 24$/m);
   assert.match(confrontation, /HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION/);
@@ -35,8 +39,11 @@ test('current sequencing advances without rewriting preserved HV7 history', () =
   assert.match(neutralPostHv7, /^NEXT_OPERATION = POST_HV7_SEQUENCING_DECISION__READ_ONLY$/m);
   assert.match(decision, /^POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
   assert.match(decision, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m);
-  assert.match(current, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m);
-  assert.match(current, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+  assert.match(postHv7Routing, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m);
+  assert.match(hv8Audit, /^HV8_READ_ONLY_AUDIT = COMPLETE$/m);
+  assert.match(hv8Audit, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
+  assert.match(hv8Routing, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY$/m);
+  assert.match(hv8Routing, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {
