@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { LEGACY_FOURTH_STREET_DEPLOYMENT } = require('../platform/identity');
 
 function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChecks = [] }) {
   const router = express.Router();
@@ -8,7 +9,7 @@ function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChec
   router.get('/healthz', (_req, res) => {
     const body = {
       status: 'ok',
-      service: 'hive-bar',
+      service: LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName,
       environment: config.env,
       writeMode: config.hive.writeMode,
     };

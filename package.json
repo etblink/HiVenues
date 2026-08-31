@@ -1,7 +1,7 @@
 {
   "name": "hive-bar",
   "version": "0.1.0",
-  "description": "A focused Hive community experience for 4th Street Bar.",
+  "description": "A multi-venue community and social platform powered by Hive, with Fourth Street Bar as the reference deployment.",
   "private": true,
   "main": "src/server.js",
   "engines": { "node": ">=24.15 <25", "npm": ">=11" },

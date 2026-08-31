@@ -6,12 +6,17 @@ const { loadConfig } = require('./config');
 const { applyReadConsistencyHardening } = require('./hive/read-consistency');
 const { HiveRpcPool } = require('./hive/rpc-pool');
 const { createLogger } = require('./lib/logger');
+const {
+  LEGACY_FOURTH_STREET_DEPLOYMENT,
+  PLATFORM_NAME,
+} = require('./platform/identity');
 const { readDeploymentIdentity } = require('./release/deployment-identity');
 const { createStaticAssetUrl } = require('./release/static-assets');
 
 function isInstalledPrivexRelease(rootDir) {
   const normalized = path.posix.normalize(String(rootDir).replace(/\\/g, '/'));
-  return normalized === '/opt/hive-bar/current' || normalized.startsWith('/opt/hive-bar/releases/');
+  const releaseRoot = LEGACY_FOURTH_STREET_DEPLOYMENT.releaseRoot;
+  return normalized === `${releaseRoot}/current` || normalized.startsWith(`${releaseRoot}/releases/`);
 }
 
 function startServer(options = {}) {
@@ -69,12 +74,12 @@ function startServer(options = {}) {
         commit: deploymentIdentity.commit,
         tree: deploymentIdentity.tree,
       },
-      'Hive-Bar server started',
+      `${PLATFORM_NAME} server started`,
     );
   });
 
   server.on('error', (error) => {
-    logger.fatal({ err: error, port: config.server.port }, 'Hive-Bar server failed');
+    logger.fatal({ err: error, port: config.server.port }, `${PLATFORM_NAME} server failed`);
     process.exitCode = 1;
   });
 
@@ -91,7 +96,7 @@ function startServer(options = {}) {
       try {
         resource?.close?.();
       } catch (error) {
-        logger.error({ err: error }, `Hive-Bar ${name} store shutdown failed`);
+        logger.error({ err: error }, `${PLATFORM_NAME} ${name} store shutdown failed`);
         process.exitCode = 1;
       }
     }
@@ -100,7 +105,7 @@ function startServer(options = {}) {
   function shutdown(signal) {
     if (closing) return;
     closing = true;
-    logger.info({ signal }, 'Hive-Bar server shutting down');
+    logger.info({ signal }, `${PLATFORM_NAME} server shutting down`);
 
     const forceTimer = setTimeout(() => {
       logger.fatal('Graceful shutdown timed out');
@@ -112,7 +117,7 @@ function startServer(options = {}) {
     server.close((error) => {
       clearTimeout(forceTimer);
       if (error) {
-        logger.error({ err: error }, 'Hive-Bar shutdown failed');
+        logger.error({ err: error }, `${PLATFORM_NAME} shutdown failed`);
         process.exitCode = 1;
       }
     });
@@ -130,7 +135,7 @@ if (require.main === module) {
   try {
     startServer();
   } catch (error) {
-    process.stderr.write(`Hive-Bar failed to start: ${error.message}\n`);
+    process.stderr.write(`${PLATFORM_NAME} failed to start: ${error.message}\n`);
     process.exitCode = 1;
   }
 }
