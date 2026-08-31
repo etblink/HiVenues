@@ -113,7 +113,11 @@ function canonicalIfValid(documentInput) {
   }
 }
 
-function createVisualAuthoringSession(baseInput) {
+function createVisualAuthoringSessionInternal(baseInput, applyGate) {
+  if (typeof applyGate !== 'function') {
+    throw new VisualAuthoringSessionError('apply gate must be a function');
+  }
+
   let accepted = createVenueAuthoringDocument(baseInput);
   let acceptedCanonical = serializeVenueAuthoringReview(accepted);
   let proposal = cloneJson(accepted);
@@ -186,8 +190,8 @@ function createVisualAuthoringSession(baseInput) {
     state = SESSION_STATE.VALIDATING;
     lastError = null;
     try {
-      const nextAccepted = applyOrdinaryOperatorEdit(accepted, proposal);
-      accepted = nextAccepted;
+      const nextAccepted = applyGate(accepted, proposal);
+      accepted = createVenueAuthoringDocument(nextAccepted);
       acceptedCanonical = serializeVenueAuthoringReview(accepted);
       proposal = cloneJson(accepted);
       state = SESSION_STATE.ACCEPTED;
@@ -227,11 +231,25 @@ function createVisualAuthoringSession(baseInput) {
   });
 }
 
+function createVisualAuthoringSession(baseInput) {
+  return createVisualAuthoringSessionInternal(baseInput, applyOrdinaryOperatorEdit);
+}
+
+// Test-only proof seam. Ordinary authoring code must use createVisualAuthoringSession,
+// which is permanently wired to the real HV-5 gate above. This factory exists only
+// so Phase-C tests can force an Apply-time refusal and prove the rejected-state/base-
+// unchanged contract without exposing raw proposal replacement or alternate authority
+// to the operator-facing surface.
+function createVisualAuthoringSessionForTest(baseInput, { applyGate } = {}) {
+  return createVisualAuthoringSessionInternal(baseInput, applyGate);
+}
+
 module.exports = {
   SESSION_STATE,
   VisualAuthoringSessionError,
   controlKindForPointer,
   createVisualAuthoringSession,
+  createVisualAuthoringSessionForTest,
   editableFieldDescriptors,
   semanticSectionForPointer,
 };

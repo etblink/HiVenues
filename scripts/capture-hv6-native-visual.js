@@ -7,6 +7,7 @@ const path = require('node:path');
 const axe = require('axe-core');
 const { chromium } = require('playwright');
 const playwrightPackage = require('playwright/package.json');
+const { SAFE_EDIT_ERROR } = require('../src/venue/native-authoring-surface');
 const {
   FOURTH_STREET_AUTHORING_INPUT,
   LANTERN_ROOM_AUTHORING_INPUT,
@@ -279,10 +280,9 @@ async function exerciseAuthoringProof(page, fixture, scenario) {
   assert.equal(fixture.session.canonicalAccepted(), acceptedCanonical);
   assert.equal(fixture.session.acceptedDocument.venuePackage.home.hero.image.src, currentImage);
   assert.equal(await preview.locator('.home-hero__image').getAttribute('src'), currentImage);
-  assert.match(
-    (await page.locator('[role="status"]').textContent()).trim(),
-    /Venue media must use an absolute same-origin path/,
-  );
+  const safeError = (await page.locator('[role="status"]').textContent()).trim();
+  assert.equal(safeError, SAFE_EDIT_ERROR);
+  assert.doesNotMatch(safeError, /absolute same-origin path|Venue package invalid|Visual authoring session invalid/i);
 
   return {
     revisedName,
@@ -404,7 +404,8 @@ async function main() {
     const scenarios = [];
     for (const scenario of SCENARIOS) scenarios.push(await runScenario(browser, scenario));
     const evidence = {
-      candidate: 'HV6_NATIVE_SEMANTIC_INSPECTOR_REAL_RENDERER',
+      candidate: 'HV6_NATIVE_FOUNDATION_REAL_RENDERER',
+      phase: 'C',
       playwrightVersion: playwrightPackage.version,
       browserVersion: browser.version(),
       scenarios,
