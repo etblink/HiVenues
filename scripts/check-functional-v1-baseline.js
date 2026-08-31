@@ -91,9 +91,13 @@ function assertFunctionalV1Baseline() {
     [/^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must bind accepted post-HV-5 sequencing'],
     [/^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m, 'living roadmap must select the operator visual-authoring adapter'],
     [/^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m, 'living roadmap must identify proposed HV-6'],
-    [/^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m, 'living roadmap must route to HV-6 preregistration'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep HV-6 implementation unauthorized'],
-    [/^GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY$/m, 'living roadmap must keep GrapesJS unselected as a dependency'],
+    [/^HV6_PREREGISTRATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-6 preregistration'],
+    [/^HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-6 implementation authorization'],
+    [/^HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION$/m, 'living roadmap must bind bounded HV-6 implementation state'],
+    [/^NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION$/m, 'living roadmap must route to bounded HV-6 dual-candidate implementation/evaluation'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY$/m, 'living roadmap must authorize only bounded HV-6 evaluation implementation'],
+    [/^TECHNOLOGY_SELECTED = NO$/m, 'living roadmap must keep technology selection open'],
+    [/^GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY$/m, 'living roadmap must keep GrapesJS unselected as a production dependency'],
     [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep production mutation unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
@@ -130,7 +134,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION',
+    successorRouting: 'HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION',
   });
 }
 
