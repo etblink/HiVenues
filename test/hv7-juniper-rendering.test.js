@@ -132,6 +132,33 @@ test('Juniper shared FAQ uses venue-neutral platform language without losing Hiv
   }
 });
 
+test('Juniper direct Pay route remains dormant and does not imply a merchant capability', async () => {
+  const app = createJuniperApp();
+  try {
+    const response = await request(app).get('/pay').expect(200);
+    const html = response.text;
+    const visibleDom = new JSDOM(html);
+    const { document } = visibleDom.window;
+    const visibleText = document.body.textContent || '';
+
+    assert.equal(document.title, 'Pay — Juniper Works Cooperative');
+    assert.match(visibleText, /Payments aren’t available at Juniper Works Cooperative/);
+    assert.match(visibleText, /Juniper Works Cooperative does not currently offer payments through Hive-Venues/);
+    assert.equal(document.querySelector('[data-pay-form]'), null);
+    assert.equal(document.querySelector('[data-pay-receipt]'), null);
+    assert.equal(document.querySelector('script[src*="pay-tab.js"]'), null);
+    assert.equal(document.querySelector('script[src*="zxing-browser.min.js"]'), null);
+    assert.doesNotMatch(visibleText, /Pay with HBD|Pay your tab|Sign in to pay|Verified destination|Scan QR|merchant|cashback/i);
+    assert.doesNotMatch(visibleText, /\bHive-Bar\b|4th Street Bar/i);
+    assert.doesNotMatch(html, /fourthstreetbar|hive-108590|fourthst\.threads/i);
+    visibleDom.window.close();
+
+    await assertAccessibleHtml(html, 'https://juniper-works.example/pay');
+  } finally {
+    app.locals.services.receiptStore?.close?.();
+  }
+});
+
 test('Juniper onboarding preserves custody semantics while using venue/successor identity instead of Hive-Bar', async () => {
   const app = createJuniperApp();
   try {
