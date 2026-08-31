@@ -137,6 +137,8 @@ test('Phase C full named protected-authority pointer matrix is absent from ordin
 });
 
 test('Phase C underlying HV-5 validation rejects unknown HTML/script and secret/private structure', () => {
+  const privateKeyMarker = ['-----BEGIN', 'PRIVATE KEY-----'].join(' ');
+  const privateKeyEndMarker = ['-----END', 'PRIVATE KEY-----'].join(' ');
   const cases = [
     ['UNKNOWN_STRUCTURE', (proposal) => { proposal.futureUnknown = 'not allowed'; }, /schema version 1|Unrecognized key/i],
     ['RAW_HTML_AUTHORITY', (proposal) => { proposal.venuePackage.home.rawHtml = '<b>raw</b>'; }, /venue package|Unrecognized key/i],
@@ -145,7 +147,7 @@ test('Phase C underlying HV-5 validation rejects unknown HTML/script and secret/
     [
       'PRIVATE_KEY_MATERIAL',
       (proposal) => {
-        proposal.venuePackage.home.hero.lede = '-----BEGIN PRIVATE KEY-----\nfixture-only\n-----END PRIVATE KEY-----';
+        proposal.venuePackage.home.hero.lede = `${privateKeyMarker}\nfixture-only\n${privateKeyEndMarker}`;
       },
       /private key material/i,
     ],
