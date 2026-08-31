@@ -1,5 +1,6 @@
 'use strict';
 
+const { createHash } = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
 const request = require('supertest');
@@ -22,11 +23,44 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function humanizePointer(pointer) {
-  const segment = pointer.split('/').filter(Boolean).at(-1) || 'field';
+function humanizeSegment(segment) {
   return segment
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/^./, (value) => value.toUpperCase());
+}
+
+function fieldLabel(pointer) {
+  const exact = {
+    '/venueContext/displayName': 'Venue name',
+    '/venueContext/business/address': 'Address',
+    '/venueContext/business/phone': 'Phone',
+    '/venueContext/business/hours': 'Hours',
+    '/venueContext/business/websiteUrl': 'Website',
+    '/venueContext/business/mapUrl': 'Map link',
+    '/venuePackage/brand/logo/src': 'Logo image path',
+    '/venuePackage/seo/defaultDescription': 'Search description',
+    '/venuePackage/home/hero/lede': 'Hero introduction',
+    '/venuePackage/home/hero/footnote': 'Hero note',
+    '/venuePackage/home/hero/image/src': 'Hero image path',
+    '/venuePackage/home/hero/image/alt': 'Hero image alternative text',
+    '/venuePackage/home/hero/image/caption': 'Hero image caption',
+    '/venuePackage/onboarding/operatorNoun': 'Venue noun',
+    '/venuePackage/onboarding/staffRole': 'Staff role',
+  };
+  if (exact[pointer]) return exact[pointer];
+
+  const gallery = pointer.match(/^\/venuePackage\/home\/gallery\/items\/(\d+)\/(src|alt|caption)$/);
+  if (gallery) {
+    const suffix = {
+      src: 'image path',
+      alt: 'alternative text',
+      caption: 'caption',
+    }[gallery[2]];
+    return `Gallery item ${Number(gallery[1]) + 1} ${suffix}`;
+  }
+
+  const segment = pointer.split('/').filter(Boolean).at(-1) || 'field';
+  return humanizeSegment(segment);
 }
 
 function sectionLabel(section) {
@@ -37,9 +71,16 @@ function sectionLabel(section) {
 }
 
 function previewCoverage(section) {
-  if (section === 'onboarding') return 'Rendered on another product surface; editable here but not visible in this home-page preview.';
-  if (section === 'seo') return 'Rendered in document metadata rather than visible page copy.';
-  return 'Visible in the real home-page application preview when its current state is present.';
+  if (section === 'onboarding') return 'Used on onboarding surfaces; editable here but not visible in the home-page preview.';
+  if (section === 'seo') return 'Used in document metadata rather than visible page copy.';
+  return 'Visible in the real home-page preview when its current state is present.';
+}
+
+function controlKindLabel(kind) {
+  if (kind === 'asset-path') return 'Local image path';
+  if (kind === 'multiline-text') return 'Long text';
+  if (kind === 'url') return 'Web address';
+  return 'Text';
 }
 
 function inputFor(field, id) {
@@ -49,6 +90,10 @@ function inputFor(field, id) {
   }
   const type = field.controlKind === 'url' ? 'url' : 'text';
   return `<input ${common} type="${type}" value="${escapeHtml(field.value)}">`;
+}
+
+function proposalToken(session) {
+  return createHash('sha256').update(session.canonicalProposal()).digest('hex').slice(0, 16);
 }
 
 function renderEditorDocument({ session, notice, venueLabel }) {
@@ -63,26 +108,31 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     ? `<p class="notice notice--${escapeHtml(notice.kind)}" role="status">${escapeHtml(notice.text)}</p>`
     : '';
 
-  const sectionMarkup = Array.from(groups.entries(), ([section, sectionFields], sectionIndex) => {
+  const groupEntries = Array.from(groups.entries());
+  const sectionNavigation = groupEntries
+    .map(([section], sectionIndex) => `<a href="#section-${sectionIndex}">${escapeHtml(sectionLabel(section))}</a>`)
+    .join('');
+
+  const sectionMarkup = groupEntries.map(([section, sectionFields], sectionIndex) => {
     const controls = sectionFields.map((field, fieldIndex) => {
       const id = `field-${sectionIndex}-${fieldIndex}`;
       return `
         <form class="field-card" method="post" action="${EDITOR_PATH}/proposal" data-field-pointer="${escapeHtml(field.pointer)}">
           <input type="hidden" name="pointer" value="${escapeHtml(field.pointer)}">
-          <label for="${id}">${escapeHtml(humanizePointer(field.pointer))}</label>
+          <label for="${id}">${escapeHtml(fieldLabel(field.pointer))}</label>
           ${inputFor(field, id)}
           <div class="field-card__footer">
-            <code>${escapeHtml(field.pointer)}</code>
+            <span class="field-meta">${escapeHtml(controlKindLabel(field.controlKind))} · Operator-owned</span>
             <button type="submit">Update preview</button>
           </div>
         </form>`;
     }).join('');
     return `
-      <section class="editor-section" aria-labelledby="section-${sectionIndex}">
+      <section class="editor-section" id="section-${sectionIndex}" aria-labelledby="section-heading-${sectionIndex}">
         <header>
           <div>
-            <p class="eyebrow">Semantic section</p>
-            <h2 id="section-${sectionIndex}">${escapeHtml(sectionLabel(section))}</h2>
+            <p class="eyebrow">Editable section</p>
+            <h2 id="section-heading-${sectionIndex}">${escapeHtml(sectionLabel(section))}</h2>
           </div>
           <p>${escapeHtml(previewCoverage(section))}</p>
         </header>
@@ -90,6 +140,7 @@ function renderEditorDocument({ session, notice, venueLabel }) {
       </section>`;
   }).join('');
 
+  const token = proposalToken(session);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -106,7 +157,6 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
     input, textarea { width: 100%; border: 1px solid #a8a29e; border-radius: 10px; padding: 10px 12px; background: white; color: #18181b; }
     textarea { resize: vertical; }
-    code { overflow-wrap: anywhere; color: #57534e; }
     .skip-link { position: absolute; left: 12px; top: -60px; z-index: 10; background: white; padding: 10px; }
     .skip-link:focus { top: 12px; }
     .shell { max-width: 1680px; margin: 0 auto; padding: 18px; }
@@ -114,7 +164,7 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     .topbar h1 { margin: 0 0 6px; font-size: clamp(1.35rem, 2vw, 2rem); }
     .topbar p { margin: 0; max-width: 70ch; color: #57534e; }
     .status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
-    .status span { border: 1px solid #d6d3d1; border-radius: 999px; padding: 8px 10px; background: white; }
+    .status > span { border: 1px solid #d6d3d1; border-radius: 999px; padding: 8px 10px; background: white; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .actions form { margin: 0; }
     .actions .secondary { background: white; color: #292524; }
@@ -122,13 +172,15 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     .notice--error { border-color: #991b1b; }
     .workspace { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(0, 1.18fr); gap: 18px; align-items: start; }
     .inspector { min-width: 0; }
+    .section-nav { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; padding: 12px; border: 1px solid #d6d3d1; border-radius: 14px; background: white; }
+    .section-nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 11px; border: 1px solid #d6d3d1; border-radius: 999px; color: #292524; text-decoration: none; }
     .preview { position: sticky; top: 14px; min-width: 0; }
     .preview-card, .editor-section { border: 1px solid #d6d3d1; border-radius: 14px; background: white; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); }
     .preview-card { overflow: hidden; }
     .preview-card__head { padding: 12px 14px; border-bottom: 1px solid #e7e5e4; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
     .preview-card__head p { margin: 0; color: #57534e; }
     iframe { display: block; width: 100%; height: min(78vh, 920px); border: 0; background: white; }
-    .editor-section { margin-bottom: 14px; padding: 14px; }
+    .editor-section { margin-bottom: 14px; padding: 14px; scroll-margin-top: 16px; }
     .editor-section > header { display: grid; grid-template-columns: minmax(150px, 0.55fr) minmax(0, 1.45fr); gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #e7e5e4; }
     .editor-section h2, .editor-section p { margin: 0; }
     .editor-section header > p { color: #57534e; font-size: 0.92rem; }
@@ -137,7 +189,7 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     .field-card { display: grid; gap: 7px; padding: 12px; border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9; }
     .field-card label { font-weight: 650; }
     .field-card__footer { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-    .field-card__footer code { font-size: 0.72rem; }
+    .field-meta { color: #57534e; font-size: 0.82rem; }
     @media (max-width: 860px) {
       .shell { padding: 12px; }
       .topbar, .workspace { display: block; }
@@ -158,7 +210,7 @@ function renderEditorDocument({ session, notice, venueLabel }) {
       <div>
         <p class="eyebrow">HV-6 Candidate B · evaluation only</p>
         <h1>Semantic inspector + real application preview</h1>
-        <p>Every control is derived from HV-5 operator ownership. Updating a field changes only the ephemeral proposal. Apply is a separate HV-5-gated acceptance action; Discard rebuilds from the accepted document.</p>
+        <p>Choose an editable section, update only venue-owned content, and review it in the real application. Preview updates remain unsaved until Apply; Discard restores the accepted document.</p>
       </div>
       <div class="status" aria-label="Authoring status">
         <span data-session-state>${escapeHtml(status.state)}</span>
@@ -171,14 +223,17 @@ function renderEditorDocument({ session, notice, venueLabel }) {
     </header>
     ${noticeMarkup}
     <div class="workspace">
-      <div class="inspector" id="editor-fields">${sectionMarkup}</div>
+      <div class="inspector" id="editor-fields">
+        <nav class="section-nav" aria-label="Editable sections">${sectionNavigation}</nav>
+        ${sectionMarkup}
+      </div>
       <aside class="preview" aria-label="Live visual context">
         <div class="preview-card">
           <div class="preview-card__head">
             <div><strong>${escapeHtml(venueLabel)}</strong><p>Rendered by the existing Hive-Venues application path.</p></div>
             <span aria-hidden="true">↗</span>
           </div>
-          <iframe title="Real Hive-Venues home-page preview" src="${PREVIEW_PATH}"></iframe>
+          <iframe title="Real Hive-Venues home-page preview" src="${PREVIEW_PATH}?proposal=${token}"></iframe>
         </div>
       </aside>
     </div>
@@ -264,7 +319,7 @@ function createHv6NativeEditorFixture(authoringInput) {
     const value = typeof req.body.value === 'string' ? req.body.value : '';
     try {
       session.edit(pointer, value);
-      notice = { kind: 'success', text: `Preview updated for ${pointer}. The accepted document is unchanged.` };
+      notice = { kind: 'success', text: `${fieldLabel(pointer)} preview updated. The accepted document is unchanged.` };
     } catch (error) {
       notice = { kind: 'error', text: error instanceof Error ? error.message : String(error) };
     }
