@@ -45,7 +45,12 @@ HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
 SELECTED_ADAPTER = NATIVE_EXISTING_STACK
 HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
 HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
-NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
+HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY
+HV7_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION = ACCEPTED
+HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE
+HV7_PRE_ACCEPTANCE_QUALIFICATION = REQUIRED_ON_EXACT_FINAL_HEAD
+NEXT_OPERATION = HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
@@ -113,7 +118,7 @@ FOURTH_STREET_BAR = REFERENCE_DEPLOYMENT
 HV7_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
 ```
 
-## Juniper Works Cooperative — SECOND VENUE NOMINEE SELECTED
+## Juniper Works Cooperative — synthetic second venue nominee
 
 Juniper Works Cooperative is the selected synthetic second venue nominee. It is a member-run fabrication workshop and tool library chosen as a desirable, credible future client type rather than an artificial edge case.
 
@@ -121,24 +126,9 @@ Its frozen product packet is:
 
 `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
 
-The packet freezes 24 requirements before implementation. Important product-natural pressure includes:
+The packet froze 24 requirements before implementation, including independent identity and vocabulary; visit/orientation semantics; structured programs and equipment status with ordinary-steward lifecycle authority; source-backed showcase media; Hive community continuity; accessible independent brand expression; HV-5/HV-6 typed authoring; source independence; no venue fork; isolated-runtime sufficiency; payment-disabled composition; compatibility-seam containment; and preserved security/custody/accessibility/failure-state invariants.
 
-- independent workshop/member/steward vocabulary and venue identity;
-- first-visit/orientation guidance;
-- structured upcoming classes, orientations, open-shop sessions, repair events, and similar programs;
-- ordinary-steward lifecycle authority for program items;
-- structured advisory equipment status and ordinary-steward lifecycle authority for it;
-- project/workshop showcase media;
-- existing Hive community/social continuity;
-- independent accessible venue brand expression;
-- HV-5 ownership and HV-6 typed visual authoring generality;
-- no venue-specific generic source fork;
-- isolated-runtime sufficiency;
-- payment-disabled venue operation;
-- compatibility-seam containment;
-- preserved security/custody/accessibility/failure-state invariants.
-
-The packet also explicitly rejects artificial scope expansion into physical access control, machine interlocks, training-record custody, waivers, telemetry/IoT, reservations, membership billing, class payments, ERP, CRM, staff scheduling, POS, real Hive onboarding, shared-runtime tenancy, or production deployment.
+The packet explicitly rejects artificial scope expansion into physical access control, machine interlocks, training-record custody, waivers, telemetry/IoT, reservations, membership billing, class payments, ERP, CRM, staff scheduling, POS, real Hive onboarding, shared-runtime tenancy, or production deployment.
 
 ### Controlling honesty rule
 
@@ -151,17 +141,30 @@ DESIGN_A_COHERENT_VENUE_ON_ITS_OWN_TERMS
 
 “Adversarial” remains an evidence property: the nominee must be capable of falsifying bad abstractions, but product design does not maximize incompatibility for its own sake.
 
-## Next operation — ARCHITECTURE CONFRONTATION
+## Architecture confrontation — COMPLETE
+
+The read-only `HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION` is complete and remains a historical scientific/product-adjudication record. It classified all `JW-R001` through `JW-R024`, exposed bounded platform-generality failures, and left one accessibility/usability requirement dependent on repaired rendered proof.
+
+The subsequent platform-generality repair was separately preregistered and authorized. A bounded candidate now exists on PR #91. The implementation must not be treated as accepted merely because it exists or because an intermediate qualification run is green.
+
+## Current operation — PRE-ACCEPTANCE QUALIFICATION AND PROJECT LEAD DECISION
 
 ```text
-HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
+HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION
 ```
 
-The next operation must inspect current repository evidence and classify every `JW-R001` through `JW-R024` without changing implementation. The frozen disposition taxonomy includes supported-as-is/configuration/integration outcomes plus venue-context, package, deployment, bootstrap, authoring-ownership, visual-adapter, compatibility, integration-prerequisite, and broader platform-generality findings.
+Before acceptance or canonical integration, the exact final candidate head must:
 
-This confrontation may use the full accumulated Hive-Venues architecture and source. Artificial blindness is not required. It must not repair a finding while scoring it, and it must not rewrite a Juniper requirement merely because current schema v1 lacks a convenient representation.
+1. pass deterministic qualification on Ubuntu and Windows;
+2. pass the complete required pinned-Chromium chain, including inherited suites, HV-6 authoring, and HV-7 Juniper public/authoring evidence;
+3. preserve a correctly skipped live-Hive smoke when no live read configuration is authorized;
+4. produce and preserve all four final Juniper screenshots plus the manifest;
+5. receive manual Project Lead inspection of those artifacts; and
+6. receive final frozen-requirement adjudication for `JW-R001` through `JW-R024` at the synthetic Tier-A evidence ceiling.
 
-No substantive HV-7 implementation is authorized until the confrontation is complete and Project Lead sequencing selects any bounded repair/implementation work.
+PR #91 remains draft and unmerged until that adjudication is complete. The next action after a clean qualification is an explicit Project Lead acceptance/canonical-integration decision, not an automatic merge.
+
+No further substantive HV-7 implementation is authorized at this boundary unless qualification exposes a bounded defect requiring separately justified repair.
 
 ## Real second venue — OPTIONAL LATER EVIDENCE TIER
 
@@ -181,4 +184,4 @@ Successor source changes do not authorize deployment, account creation, delegati
 
 ## History and retirement policy
 
-The historical Post-HV-6 decision, original real-only preregistration, accepted evidence amendment, pre-selection living reconciliation, and Juniper requirement freeze remain preserved records. `HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls the current transition into architecture confrontation.
+The historical Post-HV-6 decision, original real-only preregistration, accepted evidence amendment, pre-selection living reconciliation, Juniper requirement freeze, post-freeze confrontation routing, architecture confrontation, repair preregistration, and implementation authorization remain preserved records. `HV7_JUNIPER_WORKS_PRE_ACCEPTANCE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls the current transition into exact-candidate qualification and Project Lead acceptance adjudication.

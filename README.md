@@ -45,8 +45,13 @@ HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
 HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
 HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE
 HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
+HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY
+HV7_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION = ACCEPTED
+HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE
+HV7_PRE_ACCEPTANCE_QUALIFICATION = REQUIRED_ON_EXACT_FINAL_HEAD
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
-NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
+NEXT_OPERATION = HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
@@ -60,11 +65,13 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment superseded the narrow real-only interpretation for current routing, and the product-first candidate-design step has now selected **Juniper Works Cooperative** as Hive-Venues' synthetic second venue nominee.
+The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment superseded the narrow real-only interpretation for current routing, and the product-first candidate-design step selected **Juniper Works Cooperative** as Hive-Venues' synthetic second venue nominee.
 
-Juniper Works is a member-run fabrication workshop and tool library: a serious, credible future client type rather than an artificial stress vector. Its 24 authentic product requirements are frozen in `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` before implementation. The next operation is a read-only architecture confrontation against those requirements. The requirements may not be rewritten merely to improve Hive-Venues' score.
+Juniper Works is a member-run fabrication workshop and tool library: a serious, credible future client type rather than an artificial stress vector. Its 24 authentic product requirements were frozen in `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` before implementation and were not rewritten to improve platform fit.
 
-A synthetic HV-7 nominee is valid Tier-A evidence for architectural falsification and a serious product instance, but it is not evidence of another real client, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No substantive HV-7 implementation is currently authorized.
+The read-only architecture confrontation is complete. It exposed bounded platform-generality failures and one dependent accessibility/usability requirement. A separately preregistered and authorized repair candidate now exists on PR #91. That candidate must still pass exact-final-head dual-OS and pinned-Chromium qualification, final Juniper screenshot/manifest inspection, and Project Lead adjudication of `JW-R001` through `JW-R024` before acceptance or canonical integration. PR #91 must remain draft and unmerged through that adjudication.
+
+A synthetic HV-7 nominee is valid Tier-A evidence for architectural falsification and a serious product instance, but it is not evidence of another real client, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No further substantive HV-7 implementation is authorized at this boundary.
 
 No real second venue is required or authorized, and no venue outreach is authorized. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected as product lanes. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
 
@@ -165,14 +172,18 @@ For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
-4. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-5. `docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md` for the pre-selection routing transition
-6. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md`
-7. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md`
-8. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md` for the preserved historical lane decision
-9. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-10. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-11. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/HV7_JUNIPER_WORKS_PRE_ACCEPTANCE_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
+5. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION_0_1_0.md`
+6. `docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md` for the completed confrontation
+7. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+8. `docs/HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved historical transition into confrontation
+9. `docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md` for the pre-selection routing transition
+10. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md`
+11. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md`
+12. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md` for the preserved historical lane decision
+13. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+14. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+15. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
-`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md`, the historical Post-HV-6 decision, the original real-only HV-7 preregistration, and the pre-selection HV-7 living reconciliation remain truthful provenance records. Current living documents advance from those records without rewriting them.
+Historical decision, preregistration, confrontation-opening, and pre-selection reconciliation artifacts remain truthful provenance records. Current living documents advance from those records without rewriting them.
