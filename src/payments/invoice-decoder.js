@@ -1,10 +1,13 @@
 'use strict';
 
-const hiveUri = require('hive-uri');
 const { requireHiveAccount } = require('../http/validation');
 const { ValidationError } = require('../lib/errors');
 const { parseAsset } = require('../hive/assets');
 const { fingerprint } = require('../hive/social-operations');
+const {
+  decodeHiveSigningUri,
+  resolveHiveSigningTransaction,
+} = require('./hive-signing-uri');
 
 const MAX_INVOICE_BYTES = 16 * 1024;
 const MAX_MEMO_BYTES = 2048;
@@ -42,17 +45,17 @@ function requireInvoiceText(value) {
   return invoice;
 }
 
-function decodeLibraryUri(invoice) {
+function decodeSigningUri(invoice) {
   try {
-    return hiveUri.decode(invoice);
+    return decodeHiveSigningUri(invoice);
   } catch {
     throw new ValidationError('The Hive payment URI is malformed or unsupported');
   }
 }
 
-function resolveLibraryTransaction(decoded, account) {
+function resolveSigningTransaction(decoded, account) {
   try {
-    return hiveUri.resolveTransaction(decoded.tx, decoded.params || {}, {
+    return resolveHiveSigningTransaction(decoded.tx, decoded.params || {}, {
       ref_block_num: 0,
       ref_block_prefix: 0,
       expiration: '1970-01-01T00:00:00',
@@ -113,7 +116,7 @@ function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts
   }
 
   const invoice = requireInvoiceText(uri);
-  const decoded = decodeLibraryUri(invoice);
+  const decoded = decodeSigningUri(invoice);
   if (decoded.params?.no_broadcast) {
     throw new ValidationError('A no-broadcast URI cannot be used to pay a tab');
   }
@@ -123,7 +126,7 @@ function decodeHivePaymentInvoice(uri, { account: accountValue, merchantAccounts
   ) {
     throw new ValidationError('The Hive payment URI requests the wrong authority');
   }
-  const tx = resolveLibraryTransaction(decoded, account);
+  const tx = resolveSigningTransaction(decoded, account);
   const transfer = requireExactTransfer(tx);
   const from = resolveTransferSender(transfer.from, account);
   const to = canonicalAccount(transfer.to, 'Transfer recipient');

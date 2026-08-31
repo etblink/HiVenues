@@ -4,7 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const hiveUri = require('hive-uri');
+const {
+  encodeOp,
+  encodeOps,
+} = require('./support/hive-signing-uri-fixtures');
 const {
   MAX_INVOICE_BYTES,
   decodeHivePaymentInvoice,
@@ -40,9 +43,9 @@ function specializedMemo(value) {
     .replace(/=/g, '.');
 }
 
-test('decodes both required Hive URI forms through the pinned library and freezes one exact transfer', () => {
+test('decodes both required Hive URI forms through the source-owned boundary and freezes one exact transfer', () => {
   const specialized = `hive://sign/transfer/fourthstreetbar/0.001%20HBD/${specializedMemo('v4v-pos:tab-123')}?s=etblink&a=active`;
-  const encoded = hiveUri.encodeOp(transfer(), {
+  const encoded = encodeOp(transfer(), {
     signer: 'etblink',
     authority: 'active',
     callback: 'https://attacker.example/ignored',
@@ -90,7 +93,7 @@ test('binds the current V4V empty payer placeholder only to the verified session
 });
 
 test('accepts positive canonical HBD without an application-level maximum', () => {
-  const uri = hiveUri.encodeOp(transfer({ amount: '123456.789 HBD', memo: 'large legitimate tab' }));
+  const uri = encodeOp(transfer({ amount: '123456.789 HBD', memo: 'large legitimate tab' }));
   const envelope = decodeHivePaymentInvoice(uri, options);
   assert.equal(envelope.operations[0][1].amount, '123456.789 HBD');
   assert.equal(envelope.summary.amount, '123456.789 HBD');
@@ -107,21 +110,21 @@ test('rejects the deterministic negative invoice corpus closed', () => {
     ['hive://sign/op/%%%', /malformed or unsupported/],
     ['hive://sign/op/abc\ndef', /invalid control characters/],
     [`hive://sign/op/${'_w..'}`, /malformed or unsupported/],
-    [hiveUri.encodeOps([transfer(), transfer({ memo: 'other' })]), /exactly one operation/],
-    [hiveUri.encodeOp(['vote', {}]), /transfer operation/],
-    [hiveUri.encodeOp(transfer({ from: 'intruder' })), /sender does not match/],
-    [hiveUri.encodeOp(transfer({ from: ' ' })), /sender is invalid/],
-    [hiveUri.encodeOp(transfer({ to: 'othermerchant' })), /not an approved merchant/],
-    [hiveUri.encodeOp(transfer({ amount: '0.001 HIVE' })), /positive HBD/],
-    [hiveUri.encodeOp(transfer({ amount: '0.000 HBD' })), /positive HBD/],
-    [hiveUri.encodeOp(transfer({ amount: '-0.001 HBD' })), /positive HBD/],
-    [hiveUri.encodeOp(transfer({ amount: '0.0001 HBD' })), /positive HBD/],
-    [hiveUri.encodeOp(transfer({ memo: '' })), /memo is required/],
-    [hiveUri.encodeOp(['transfer', { ...transfer()[1], unexpected: true }]), /unsupported fields/],
-    [hiveUri.encodeOp(['transfer', polluted]), /transfer payload is invalid/],
-    [hiveUri.encodeOp(transfer(), { signer: 'intruder' }), /signer does not match/],
-    [hiveUri.encodeOp(transfer(), { no_broadcast: true }), /no-broadcast/],
-    [hiveUri.encodeOp(transfer(), { authority: 'posting' }), /wrong authority/],
+    [encodeOps([transfer(), transfer({ memo: 'other' })]), /exactly one operation/],
+    [encodeOp(['vote', {}]), /transfer operation/],
+    [encodeOp(transfer({ from: 'intruder' })), /sender does not match/],
+    [encodeOp(transfer({ from: ' ' })), /sender is invalid/],
+    [encodeOp(transfer({ to: 'othermerchant' })), /not an approved merchant/],
+    [encodeOp(transfer({ amount: '0.001 HIVE' })), /positive HBD/],
+    [encodeOp(transfer({ amount: '0.000 HBD' })), /positive HBD/],
+    [encodeOp(transfer({ amount: '-0.001 HBD' })), /positive HBD/],
+    [encodeOp(transfer({ amount: '0.0001 HBD' })), /positive HBD/],
+    [encodeOp(transfer({ memo: '' })), /memo is required/],
+    [encodeOp(['transfer', { ...transfer()[1], unexpected: true }]), /unsupported fields/],
+    [encodeOp(['transfer', polluted]), /transfer payload is invalid/],
+    [encodeOp(transfer(), { signer: 'intruder' }), /signer does not match/],
+    [encodeOp(transfer(), { no_broadcast: true }), /no-broadcast/],
+    [encodeOp(transfer(), { authority: 'posting' }), /wrong authority/],
     [`hive://sign/transfer/fourthstreetbar/0.001%20HBD/${specializedMemo('')}`, /malformed|memo/],
     ['x'.repeat(MAX_INVOICE_BYTES + 1), /16,384 UTF-8 bytes or fewer/],
   ];
@@ -133,11 +136,11 @@ test('rejects the deterministic negative invoice corpus closed', () => {
 
 test('requires canonical accounts and a configured merchant allowlist', () => {
   assert.throws(
-    () => decodeHivePaymentInvoice(hiveUri.encodeOp(transfer({ to: 'FourthStreetBar' })), options),
+    () => decodeHivePaymentInvoice(encodeOp(transfer({ to: 'FourthStreetBar' })), options),
     /canonical lowercase form/,
   );
   assert.throws(
-    () => decodeHivePaymentInvoice(hiveUri.encodeOp(transfer()), { ...options, merchantAccounts: [] }),
+    () => decodeHivePaymentInvoice(encodeOp(transfer()), { ...options, merchantAccounts: [] }),
     /merchant allowlist is not configured/,
   );
 });
