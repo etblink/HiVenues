@@ -122,7 +122,8 @@ test('M16.5 owner pages explain privacy and settings in ordinary language', asyn
     .set('cookie', owner.cookie)
     .expect(200);
   assert.match(inbox.text, /Your encrypted inbox/);
-  assert.match(inbox.text, /decrypted message is not sent back to Hive-Bar/);
+  assert.match(inbox.text, /decrypted message is not sent back to Hive-Venues/);
+  assert.doesNotMatch(inbox.text, /\bHive-Bar\b/);
   assert.match(inbox.text, /Transaction details/);
   assert.doesNotMatch(visibleText(inbox.text), FORBIDDEN_VISIBLE_COPY);
 });
