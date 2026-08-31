@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
-const { assertReleaseCoherence } = require('../scripts/check-release-coherence');
+const { NEXT_SUCCESSOR_OPERATION, assertReleaseCoherence } = require('../scripts/check-release-coherence');
 const { loadDormantV1Config } = require('../scripts/check-v1-release');
 const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../src/release/release-version');
 const { assertPrivexV1Release } = require('../src/release/v1-readiness');
@@ -115,6 +115,10 @@ test('release and successor living-document sources are mechanically coherent', 
     appTag: 'fourth-street-bar-app/0.1.0',
     v1ActionCount: 12,
     acceptedSuccessorMilestones: 6,
-    nextOperation: 'HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY',
+    nextOperation: NEXT_SUCCESSOR_OPERATION,
   });
+  assert.equal(
+    NEXT_SUCCESSOR_OPERATION,
+    'HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION',
+  );
 });
