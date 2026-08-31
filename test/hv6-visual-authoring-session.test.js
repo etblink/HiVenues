@@ -120,6 +120,22 @@ test('HV-6 UI edit API refuses protected, derived, container, and unknown author
   assert.deepEqual(session.status(), { state: SESSION_STATE.CLEAN, dirty: false, error: null });
 });
 
+test('HV-6 invalid semantic values are rejected transactionally before replacing the preview proposal', () => {
+  const session = createVisualAuthoringSession(FOURTH_STREET_AUTHORING_INPUT);
+  const accepted = session.canonicalAccepted();
+  const originalImage = session.previewProjection().venuePackage.home.hero.image.src;
+
+  assert.throws(
+    () => session.edit('/venuePackage/home/hero/image/src', 'https://evil.example/hero.jpg'),
+    /Venue media must use an absolute same-origin path/,
+  );
+
+  assert.equal(session.canonicalAccepted(), accepted);
+  assert.equal(session.canonicalProposal(), accepted);
+  assert.equal(session.previewProjection().venuePackage.home.hero.image.src, originalImage);
+  assert.deepEqual(session.status(), { state: SESSION_STATE.CLEAN, dirty: false, error: null });
+});
+
 test('HV-6 visual session exposes no raw document or gallery-topology mutation channel', () => {
   const session = createVisualAuthoringSession(FOURTH_STREET_AUTHORING_INPUT);
 
