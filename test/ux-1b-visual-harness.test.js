@@ -69,10 +69,10 @@ test('UX-1B pinned-Chromium contract covers five composer contexts at desktop an
   assert.match(capture, /duplicateIds/);
 });
 
-test('UX-1B remains in consolidated visual qualification with commit-bound evidence', () => {
+test('UX-1B remains in UI/UX visual evidence with commit-bound artifacts', () => {
   const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
-  assert.match(job, /Consolidated visual acceptance \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(job, /UI\/UX visual evidence \(Ubuntu \/ pinned Chromium\)/);
   assert.match(job, /npx --no-install playwright install --with-deps chromium/);
   assert.match(job, /UX_1A_VISUAL_OUTPUT: artifacts\/ux-1a-visual/);
   assert.match(job, /npm run test:visual:ux-1a/);
