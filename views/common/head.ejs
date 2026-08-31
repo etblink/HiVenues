@@ -47,9 +47,16 @@
     --venue-text-subtle: <%= venueTheme.mutedText %>;
     --venue-accent: <%= venueTheme.accent %>;
     --venue-accent-hover: <%= venueTheme.accentHover %>;
+    --venue-on-accent: <%= venueTheme.canvas %>;
   }
   .app-shell-header,
   .app-primary-nav {
+    background: <%= venueTheme.canvas %>;
+  }
+  .button-primary {
+    color: var(--venue-on-accent);
+  }
+  .home-gallery {
     background: <%= venueTheme.canvas %>;
   }
 </style>

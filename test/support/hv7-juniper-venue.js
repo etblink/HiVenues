@@ -34,8 +34,8 @@ function createJuniperWorksPackageInput() {
         border: '#8b8172',
         text: '#1d2620',
         mutedText: '#505a53',
-        accent: '#b86f00',
-        accentHover: '#bd7700',
+        accent: '#945500',
+        accentHover: '#844b00',
       },
     },
     seo: {

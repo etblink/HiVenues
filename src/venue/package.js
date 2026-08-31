@@ -93,10 +93,11 @@ const venueThemeSchema = z
       [theme.text, theme.surface, 4.5, 'text on surface'],
       [theme.mutedText, theme.canvas, 4.5, 'muted text on canvas'],
       [theme.mutedText, theme.surface, 4.5, 'muted text on surface'],
-      [theme.accent, '#000000', 4.5, 'black text on accent'],
-      [theme.accentHover, '#000000', 4.5, 'black text on accent hover'],
-      [theme.accent, theme.canvas, 3, 'accent against canvas'],
+      [theme.accent, theme.canvas, 4.5, 'accent text on canvas and canvas text on accent'],
+      [theme.accent, theme.surface, 4.5, 'accent text on surface'],
+      [theme.accentHover, theme.canvas, 4.5, 'canvas text on accent hover'],
       [theme.border, theme.canvas, 1.5, 'border against canvas'],
+      [theme.border, theme.surface, 1.5, 'border against surface'],
     ]) {
       if (contrastRatio(foreground, background) < minimum) {
         context.addIssue({ code: 'custom', message: `Theme contrast is insufficient for ${label}` });

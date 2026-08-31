@@ -57,9 +57,9 @@ test('visual session supports bounded collection lifecycle while accepted state 
     ['wood-shop', 'laser-cutter', 'electronics-bench'],
   );
 
-  session.edit('/venuePackage/brand/theme/accent', '#a96700');
+  session.edit('/venuePackage/brand/theme/accent', '#8a5000');
   session.apply();
-  assert.equal(session.acceptedDocument.venuePackage.brand.theme.accent, '#a96700');
+  assert.equal(session.acceptedDocument.venuePackage.brand.theme.accent, '#8a5000');
   assert.equal(session.acceptedDocument.venuePackage.home.programs.items.some((item) => item.id === 'safety-clinic'), true);
   assert.equal(session.status().dirty, false);
 

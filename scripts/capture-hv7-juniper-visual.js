@@ -80,23 +80,23 @@ async function exerciseCollectionAuthoring(page, fixture) {
   assert.match(await preview.locator('[data-program-id="repair-cafe"]').textContent(), /Repair café/);
 
   const accentForm = page.locator('form[data-field-pointer="/venuePackage/brand/theme/accent"]');
-  await accentForm.locator('[name="value"]').fill('#a96700');
+  await accentForm.locator('[name="value"]').fill('#8a5000');
   await submitAndWait(page, () => accentForm.locator('button[type="submit"]').click());
   preview = await getPreviewFrame(page);
   assert.equal(
     (await preview.locator('html').evaluate((node) => globalThis.getComputedStyle(node).getPropertyValue('--venue-accent'))).trim(),
-    '#a96700',
+    '#8a5000',
   );
 
   await submitAndWait(page, () => page.locator('[data-action="apply"]').click());
   assert.equal(fixture.session.status().dirty, false);
   assert.equal(fixture.session.acceptedDocument.venuePackage.home.programs.items.some((item) => item.id === 'repair-cafe'), true);
-  assert.equal(fixture.session.acceptedDocument.venuePackage.brand.theme.accent, '#a96700');
+  assert.equal(fixture.session.acceptedDocument.venuePackage.brand.theme.accent, '#8a5000');
 
   return {
     acceptedCanonicalSha256: sha256(fixture.session.canonicalAccepted()),
     addedProgramId: 'repair-cafe',
-    appliedAccent: '#a96700',
+    appliedAccent: '#8a5000',
   };
 }
 

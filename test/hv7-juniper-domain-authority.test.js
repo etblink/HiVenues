@@ -42,7 +42,7 @@ test('Juniper optional structured capabilities validate and programs canonicaliz
   );
   assert.equal(JUNIPER_WORKS_PACKAGE.home.programs.items[0].state, 'full');
   assert.equal(JUNIPER_WORKS_PACKAGE.home.equipmentStatus.items.length, 3);
-  assert.equal(JUNIPER_WORKS_PACKAGE.brand.theme.accent, '#b86f00');
+  assert.equal(JUNIPER_WORKS_PACKAGE.brand.theme.accent, '#945500');
 });
 
 test('structured collections reject duplicate identities and invalid time ranges', () => {
@@ -60,6 +60,15 @@ test('venue-owned theme fails closed when required contrast is insufficient', ()
   input.brand.theme.text = '#eeeeee';
   input.brand.theme.canvas = '#ffffff';
   assert.throws(() => createVenuePackage(input, JUNIPER_WORKS_VENUE), /Theme contrast is insufficient/i);
+});
+
+test('venue-owned accent fails closed when it cannot serve as small text on venue surfaces', () => {
+  const input = createJuniperWorksPackageInput();
+  input.brand.theme.accent = '#b86f00';
+  assert.throws(
+    () => createVenuePackage(input, JUNIPER_WORKS_VENUE),
+    /accent text on canvas|accent text on surface/i,
+  );
 });
 
 test('HV-5 explicitly admits lifecycle changes only for the two preregistered collections', () => {
