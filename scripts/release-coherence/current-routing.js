@@ -26,22 +26,26 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV6_PHASE_C_IMPLEMENTATION = ACCEPTED$/m, 'Phase C implementation must be accepted'],
     [/^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'historical Post-HV-6 sequencing decision must remain accepted'],
     [/^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m, 'HV-7 evidence-model amendment must be accepted'],
-    [/^POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT$/m, 'historical real-only lane label must be explicitly superseded for current routing'],
-    [/^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m, 'Fourth Street must be identified as a real venue'],
-    [/^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m, 'Fourth Street must be the first and currently sole real client'],
-    [/^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m, 'Fourth Street must be the first venue nominee'],
+    [/^POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT$/m, 'historical real-only lane label must remain superseded for current routing'],
+    [/^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m, 'Fourth Street must remain a real venue'],
+    [/^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m, 'Fourth Street must remain the first and currently sole real client'],
+    [/^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m, 'Fourth Street must remain the first venue nominee'],
     [/^FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT$/m, 'Fourth Street must remain the reference deployment'],
-    [/^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m, 'HV-7 must establish the second venue nominee'],
-    [/^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m, 'the second nominee must remain design-pending with synthetic allowed'],
-    [/^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'adversarial isolated second-venue pilot must be the selected current lane'],
-    [/^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m, 'synthetic adversarial mode must be selected'],
-    [/^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m, 'adversarial must mean product-credible falsification rather than contrived incompatibility'],
-    [/^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m, 'HV-7 design must be architecture-aware and product-first'],
+    [/^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m, 'HV-7 must retain the second-venue-nominee role'],
+    [/^HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE$/m, 'Juniper Works must be the selected second venue nominee'],
+    [/^HV7_SECOND_VENUE_NOMINEE_REALITY = SYNTHETIC$/m, 'Juniper Works must remain explicitly synthetic'],
+    [/^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m, 'Juniper Works requirements must be frozen'],
+    [/^HV7_REQUIREMENTS_PACKET = FROZEN_0_1_0$/m, 'the frozen 0.1.0 requirement packet must control'],
+    [/^HV7_REQUIREMENT_COUNT = 24$/m, 'the current packet must retain 24 frozen requirements'],
+    [/^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'adversarial isolated second-venue pilot must remain the selected lane'],
+    [/^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m, 'synthetic adversarial evidence mode must remain selected'],
+    [/^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m, 'adversarial must remain product-credible falsification'],
+    [/^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m, 'HV-7 must remain architecture-aware and product-first'],
     [/^HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED$/m, 'artificial blindness must not be required'],
-    [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m, 'nominee requirements must freeze before implementation'],
+    [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE$/m, 'requirements freeze must be complete before implementation'],
     [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'requirements may not be rewritten merely to force platform fit'],
-    [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must be proposed'],
-    [/^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m, 'next product operation must be read-only second-nominee candidate design'],
+    [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must remain current'],
+    [/^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m, 'next product operation must be the Juniper architecture confrontation'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -55,17 +59,25 @@ function assertCurrentRoutingBlock(relativePath) {
   ];
   for (const [pattern, message] of required) requireMatch(block, pattern, `${relativePath}: ${message}`);
 
-  if (/HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/.test(block) ||
-      /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/.test(block) ||
-      /AUTHORIZED__NOT_YET_ACCEPTED/.test(block) ||
-      /^POST_HV6_SEQUENCING_DECISION = PENDING$/m.test(block) ||
-      /^SELECTED_NEXT_LANE = NONE$/m.test(block) ||
-      /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m.test(block) ||
-      /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m.test(block) ||
-      /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m.test(block) ||
-      /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m.test(block) ||
-      /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m.test(block)) {
-    throw new Error(`${relativePath}: superseded or conflated routing leaked into the current-routing block`);
+  const obsolete = [
+    /^POST_HV6_SEQUENCING_DECISION = PENDING$/m,
+    /^SELECTED_NEXT_LANE = NONE$/m,
+    /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m,
+    /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m,
+    /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m,
+    /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m,
+    /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m,
+    /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m,
+    /^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m,
+    /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m,
+  ];
+  if (
+    obsolete.some((pattern) => pattern.test(block)) ||
+    /HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/.test(block) ||
+    /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/.test(block) ||
+    /AUTHORIZED__NOT_YET_ACCEPTED/.test(block)
+  ) {
+    throw new Error(`${relativePath}: superseded or pre-freeze routing leaked into the current-routing block`);
   }
   return block;
 }
@@ -75,11 +87,13 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /The first six successor architecture\/product-foundation milestones are accepted/i, 'README must identify six accepted successor milestones');
   requireMatch(readme, /Canonical source is the `main` branch of `etblink\/Hive-Venues`/, 'README must identify moving canonical source');
   requireMatch(readme, /platform does not currently require a universal venue-type taxonomy/i, 'README must preserve venue-type neutrality');
-  requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve distinct Fourth Street venue/client/nominee/deployment roles');
-  requireMatch(readme, /adversarial.*does not mean maximizing incompatibility/i, 'README must preserve product-credible adversarial interpretation');
-  requireMatch(readme, /Project Lead design is architecture-aware/i, 'README must permit architecture-aware nominee design');
+  requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve distinct Fourth Street roles');
+  requireMatch(readme, /Juniper Works Cooperative.*synthetic second venue nominee/i, 'README must identify the selected synthetic second venue nominee');
+  requireMatch(readme, /24 authentic product requirements are frozen/i, 'README must identify the frozen Juniper packet');
+  requireMatch(readme, /next operation is a read-only architecture confrontation/i, 'README must route to architecture confrontation');
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
   requireMatch(docsReadme, /Canonical integrated source is `main` in `etblink\/Hive-Venues`/, 'documentation index must identify canonical source');
+  requireMatch(docsReadme, /Juniper Works Cooperative is the selected \*\*synthetic second venue nominee\*\*/i, 'documentation index must identify Juniper as selected nominee');
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
 
