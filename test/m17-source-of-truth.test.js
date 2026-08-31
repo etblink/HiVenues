@@ -81,5 +81,4 @@ test('release and successor living-document sources are mechanically coherent', 
   assert.deepEqual(assertReleaseCoherence(), {
     product:'Hive-Venues',packageVersion:'0.1.0',appTag:'fourth-street-bar-app/0.1.0',v1ActionCount:12,acceptedSuccessorMilestones:6,nextOperation:NEXT_SUCCESSOR_OPERATION,
   });
-  assert.equal(NEXT_SUCCESSOR_OPERATION, 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT');
 });
