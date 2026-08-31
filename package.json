@@ -32,6 +32,7 @@
     "test:visual:ux-1c": "node scripts/capture-ux-1c-visual.js",
     "test:visual:ux-1d": "node scripts/capture-ux-1d-visual.js",
     "test:visual:ux-1f": "node scripts/capture-ux-1f-visual.js",
+    "test:visual:hv6-native": "node scripts/capture-hv6-native-visual.js",
     "test:visual:c2-e": "node scripts/capture-c2-e-visual.js",
     "test:visual:c2-f": "node scripts/capture-c2-f-visual.js",
     "rehearse:m9": "node --test --test-concurrency=1 test/m9-bounded-bar-publishing.test.js",
