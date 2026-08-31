@@ -42,7 +42,7 @@ function assertReleaseCoherence() {
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
     acceptedSuccessorMilestones: 6,
-    nextOperation: 'POST_HV6_SEQUENCING_DECISION__READ_ONLY',
+    nextOperation: 'HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION',
   });
 }
 
