@@ -12,11 +12,12 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out exact canonical audit baseline
+      - name: Check out exact canonical audit baseline with tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ea55ec0617ab63cd7ae9ff58d9dd91aa3223278e
-          fetch-depth: 1
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
 
       - name: Verify exact baseline and candidate custody
@@ -25,7 +26,6 @@ jobs:
           set -euo pipefail
           expected_commit='ea55ec0617ab63cd7ae9ff58d9dd91aa3223278e'
           expected_tree='e601feb1538b05ee5e238fa1cd8834030c3aa141'
-
           actual_commit="$(git rev-parse HEAD)"
           actual_tree="$(git rev-parse HEAD^{tree})"
           [[ "$actual_commit" == "$expected_commit" ]]
@@ -48,7 +48,6 @@ jobs:
 
           printf 'AUDIT_BASE_COMMIT=%s\n' "$actual_commit"
           printf 'AUDIT_BASE_TREE=%s\n' "$actual_tree"
-
           for entry in "${candidates[@]}"; do
             path="${entry%%|*}"
             expected_blob="${entry##*|}"
@@ -57,7 +56,44 @@ jobs:
             printf 'CANDIDATE path=%s blob=%s custody=PASS\n' "$path" "$actual_blob"
           done
 
-      - name: Fail on exact consumers outside the candidate cluster
+      - name: Fail on exact tracked-tree consumers outside the candidate cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidates=(
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
+            'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV4_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md'
+          )
+          excludes=()
+          for candidate in "${candidates[@]}"; do excludes+=(":(exclude)$candidate"); done
+
+          failed=0
+          for path in "${candidates[@]}"; do
+            name="${path##*/}"
+            path_hits="$(git grep -n -F "$path" -- . "${excludes[@]}" || true)"
+            name_hits="$(git grep -n -F "$name" -- . "${excludes[@]}" || true)"
+            if [[ -n "$path_hits" || -n "$name_hits" ]]; then
+              printf 'TRACKED_TREE_EXTERNAL_CONSUMER_FOUND path=%s\n' "$path" >&2
+              [[ -n "$path_hits" ]] && printf '%s\n' "$path_hits" >&2
+              [[ -n "$name_hits" ]] && printf '%s\n' "$name_hits" >&2
+              failed=1
+            else
+              printf 'NO_TRACKED_TREE_EXTERNAL_CONSUMER path=%s\n' "$path"
+            fi
+          done
+          [[ "$failed" -eq 0 ]]
+
+      - name: Fail on annotated tag provenance consumers
         shell: bash
         run: |
           set -euo pipefail
@@ -76,29 +112,19 @@ jobs:
             'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md'
           )
 
-          excludes=()
-          for candidate in "${candidates[@]}"; do
-            excludes+=(":(exclude)$candidate")
-          done
-
           failed=0
-          for path in "${candidates[@]}"; do
-            name="${path##*/}"
-            path_hits="$(git grep -n -F "$path" -- . "${excludes[@]}" || true)"
-            name_hits="$(git grep -n -F "$name" -- . "${excludes[@]}" || true)"
-            if [[ -n "$path_hits" || -n "$name_hits" ]]; then
-              printf 'EXTERNAL_CONSUMER_FOUND path=%s\n' "$path" >&2
-              [[ -n "$path_hits" ]] && printf '%s\n' "$path_hits" >&2
-              [[ -n "$name_hits" ]] && printf '%s\n' "$name_hits" >&2
-              failed=1
-            else
-              printf 'NO_EXACT_EXTERNAL_CONSUMER path=%s\n' "$path"
-            fi
-          done
-
-          if [[ "$failed" -ne 0 ]]; then
-            exit 1
-          fi
+          while read -r object_type object_sha refname; do
+            [[ "$object_type" == 'tag' ]] || continue
+            annotation="$(git cat-file tag "$object_sha")"
+            for path in "${candidates[@]}"; do
+              name="${path##*/}"
+              if grep -Fq "$path" <<< "$annotation" || grep -Fq "$name" <<< "$annotation"; then
+                printf 'ANNOTATED_TAG_CONSUMER_FOUND path=%s tag=%s object=%s\n' "$path" "$refname" "$object_sha" >&2
+                failed=1
+              fi
+            done
+          done < <(git for-each-ref --format='%(objecttype) %(objectname) %(refname)' refs/tags)
+          [[ "$failed" -eq 0 ]]
 
       - name: Report references within the proposed retirement cluster
         if: always()
@@ -119,8 +145,7 @@ jobs:
             'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
             'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md'
           )
-
-          printf 'INTERNAL_CLUSTER_REFERENCE_SCAN_BEGIN\n'
+          echo 'INTERNAL_CLUSTER_REFERENCE_SCAN_BEGIN'
           for path in "${candidates[@]}"; do
             name="${path##*/}"
             for source in "${candidates[@]}"; do
@@ -130,7 +155,7 @@ jobs:
               fi
             done
           done
-          printf 'INTERNAL_CLUSTER_REFERENCE_SCAN_END\n'
+          echo 'INTERNAL_CLUSTER_REFERENCE_SCAN_END'
 
       - name: Report generic documentation enumeration surfaces
         if: always()
