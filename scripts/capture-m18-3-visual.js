@@ -2,7 +2,6 @@
 
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const express = require('express');
@@ -12,8 +11,14 @@ const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { createStaticAssetUrl } = require('../src/release/static-assets');
 const { configFrom, logger } = require('../test/support/test-app');
+const {
+  createGitReader,
+  listenLoopback,
+  sha256,
+} = require('./support/visual-harness');
 
 const ROOT = path.join(__dirname, '..');
+const git = createGitReader(ROOT);
 const OUTPUT = path.resolve(ROOT, process.env.M18_3_VISUAL_OUTPUT || 'artifacts/m18-3-visual');
 const SHOTS = path.join(OUTPUT, 'screenshots');
 const ACCOUNT = 'etblink';
@@ -38,14 +43,6 @@ window.HiveBarKeychain = Object.freeze({
     async broadcast() { throw new Error('M18.3 visual qualification forbids Keychain signing'); }
   }
 });`;
-
-function git(...args) {
-  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
-}
 
 function createFixture() {
   const config = configFrom({
@@ -151,14 +148,6 @@ function createFixture() {
   });
   app.use(application);
   return { app, config, mutationAttempts, readCalls, rpcPool, token };
-}
-
-function listen(app) {
-  return new Promise((resolve, reject) => {
-    const server = app.listen(0, '127.0.0.1');
-    server.once('error', reject);
-    server.once('listening', () => resolve(server));
-  });
 }
 
 async function settle(page) {
@@ -431,7 +420,7 @@ async function main() {
 
   await fs.rm(OUTPUT, { recursive: true, force: true });
   await fs.mkdir(SHOTS, { recursive: true });
-  const server = await listen(current.app);
+  const server = await listenLoopback(current.app);
   const address = server.address();
   const baseUrl = `http://127.0.0.1:${address.port}`;
   const browser = await chromium.launch({ headless: true });
