@@ -181,6 +181,10 @@ jobs:
         env:
           UX_1F_VISUAL_OUTPUT: artifacts/ux-1f-visual
         run: npm run test:visual:ux-1f
+      - name: Capture and qualify HV-6 native visual authoring candidate
+        env:
+          HV6_NATIVE_VISUAL_OUTPUT: artifacts/hv6-native-visual
+        run: npm run test:visual:hv6-native
       - name: Capture and qualify UX-1E Wall and Inbox states
         env:
           UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
