@@ -9,6 +9,7 @@ This document records **current** successor state and current/next sequencing. S
 REPOSITORY = etblink/Hive-Venues
 PRODUCT = Hive-Venues
 REFERENCE_VENUE = Fourth Street Bar, Reno
+FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT
 SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
 HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
@@ -20,21 +21,28 @@ POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
 POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
 POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
-SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
-PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
+HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
+POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
+SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
+HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV6_PREREGISTRATION = ACCEPTED
 HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
 SELECTED_ADAPTER = NATIVE_EXISTING_STACK
 HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
 HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
-NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
+NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
 OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE
-SECOND_REAL_VENUE = SELECTED_LANE__SPECIFIC_VENUE_UNSELECTED__NOT_AUTHORIZED
+SECOND_REAL_VENUE = OPTIONAL_REAL_EVIDENCE_TIER__NOT_REQUIRED__NOT_AUTHORIZED
+REAL_SECOND_VENUE_REQUIRED = NO
 SECOND_REAL_VENUE_AUTHORIZED = NO
+VENUE_OUTREACH = NOT_AUTHORIZED
+SYNTHETIC_HV7_CANDIDATE = SELECTED_EXPERIMENT_MODE__TIER_A_ARCHITECTURAL_FALSIFICATION
+SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
 CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
 THREESPEAK_SPK_MEDIA = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
@@ -144,27 +152,56 @@ ONE_ISOLATED_VENUE_RUNTIME
 
 Visual tooling remains subordinate to the HV-5 domain model. Front-end visibility, arbitrary HTML/scripts, component trees, generated HTML/CSS, autosave state, and editor project state are not platform authority.
 
-## Post-HV-6 sequencing — ACCEPTED
+## Post-HV-6 sequencing — HISTORICAL DECISION PRESERVED, CURRENT INTERPRETATION AMENDED
 
-The Project Lead's independent read-only sequencing decision is frozen in `POST_HV6_SEQUENCING_DECISION_0_1_0.md`.
+The Project Lead's original independent read-only sequencing decision remains frozen in `POST_HV6_SEQUENCING_DECISION_0_1_0.md`:
 
 ```text
-SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
-PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
-NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
+HISTORICAL_SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
+HISTORICAL_PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
+HISTORICAL_NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
 ```
 
-The selection is based on falsification value and architectural information gain: a genuinely independent venue can expose venue-specific assumptions that Fourth Street plus synthetic fixtures cannot. This is a product-lane decision, not an admission of a specific venue.
+That decision was followed by the canonical 0.1.0 HV-7 preregistration. Before that preregistration was accepted, new authoritative product context established that Fourth Street Bar remains the sole real client/reference deployment and that architectural falsification does not require recruiting another real venue.
 
-No substantive HV-7 implementation is authorized by this roadmap. No real second venue is currently selected or authorized. Separately bounded repository housekeeping may still proceed without changing the selected product lane.
+The accepted 0.1.1 evidence-model amendment therefore supersedes the real-only interpretation for current routing without rewriting either historical artifact:
+
+```text
+CURRENT_SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
+CURRENT_HV7_CANDIDATE_UNIVERSE = REAL_OR_SYNTHETIC_ALLOWED
+PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+CURRENT_PROPOSED_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
+CURRENT_NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
+```
+
+No substantive HV-7 implementation is authorized by this roadmap.
 
 ## Candidate dispositions
 
-### Real isolated second venue — SELECTED NEXT LANE, NOT AUTHORIZED
+### Synthetic adversarial second venue — SELECTED EXPERIMENT MODE, DESIGN NEXT
 
-A real second venue is the strongest direct falsification test of whether the accepted identity/package/bootstrap/authoring/visual-adapter abstractions survive contact with an independently branded operator. The lane is selected; a specific venue, admission, and substantive implementation remain separately gated.
+A deliberately constructed synthetic venue is the selected next HV-7 experiment mode. It is valid Tier-A evidence for architectural falsification provided its requirement packet is frozen before implementation and is materially independent from Fourth Street.
 
-The intended HV-7 pre-admission pilot should try to break the architecture rather than merely demonstrate it. Authentic vocabulary and requirements should be allowed to expose generic-code assumptions, including inherited compatibility semantics, without weakening the venue-neutral platform boundary to make the pilot pass.
+The design must pressure multiple dimensions rather than merely reskinning the existing fixture:
+
+- vocabulary;
+- operating model;
+- content structure;
+- customer/member relationship;
+- operator needs;
+- Hive/deployment binding assumptions;
+- visual-authoring semantics;
+- compatibility-seam containment.
+
+Synthetic HV-7 may test venue neutrality, no Fourth Street/bar leakage, no generic source fork, HV-1/HV-2/HV-3/HV-4 composition generality, HV-5 ownership fit, HV-6 structural visual-authoring generality, isolated-runtime sufficiency, and compatibility boundaries.
+
+It may **not** establish real-client adoption, independent real-operator usability, real venue permission/admission, real-world operational fit, real Hive onboarding, or real deployment readiness.
+
+### Real second venue — OPTIONAL LATER EVIDENCE TIER, NOT REQUIRED OR AUTHORIZED
+
+A later real client/operator may provide a stronger Tier-B evidence layer if and when such evidence exists. HV-7 does not require real-venue research, recruitment, or outreach merely to continue architectural testing.
+
+No real second venue is currently authorized or admitted. Venue outreach remains unauthorized.
 
 ### Native existing-stack adapter — ACCEPTED
 
@@ -180,7 +217,7 @@ Developer-facing inherited `hive-bar` metadata remains a known mismatch distinct
 
 ### Optional archetypes — SUPPORTING, NONAUTHORITATIVE
 
-Bar, band, streamer/influencer, news, store, and hybrid examples may be useful convenience/evidence layers but are not a mandatory platform taxonomy.
+Examples may be useful convenience/evidence layers but are not a mandatory platform taxonomy. The synthetic HV-7 candidate is an adversarial experiment, not a canonical venue-type archetype.
 
 ### CID/IPFS/IPNS publication — ELIGIBLE DOWNSTREAM
 
@@ -194,19 +231,24 @@ Potential media/storage/delivery capability only. It must not become authority f
 
 Fleet tooling should follow observed multi-venue operations rather than hypothetical repetition. Replicated mutable state requires a concrete bounded domain. Shared runtime tenancy remains unjustified; one isolated venue per runtime remains the default.
 
-## HV-7 hard boundary before preregistration
+## HV-7 current hard boundary before candidate design
 
 ```text
-HV7_PREREGISTRATION = NOT_YET_EXECUTED
+HV7_HISTORICAL_PREREGISTRATION_0_1_0 = CANONICAL__REAL_ONLY_REQUIREMENTS_SUPERSEDED
+HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1 = ACCEPTED
+HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+HV7_SYNTHETIC_CANDIDATE_REQUIREMENT_PACKET = NOT_YET_FROZEN
 HV7_IMPLEMENTATION = NOT_AUTHORIZED
-REAL_SECOND_VENUE = UNSELECTED
-SECOND_REAL_VENUE_AUTHORIZED = NO
+REAL_SECOND_VENUE_REQUIRED = NO
+REAL_SECOND_VENUE_AUTHORIZED = NO
 REAL_SECOND_VENUE_ADMISSION = NOT_AUTHORIZED
+VENUE_OUTREACH = NOT_AUTHORIZED
+SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 ```
 
-The preregistration must define exact evidence, venue participation/consent, data and secret boundaries, staged/offline scope, failure criteria, and any later authorization gate before a real venue is admitted or external effects are allowed.
+The next read-only candidate-design operation may define and freeze the fictional venue concept and independent requirements. It may not implement the candidate or repair the platform in response to anticipated mismatches.
 
 ## Venue-category boundary
 
@@ -214,7 +256,7 @@ Current evidence still does **not** establish a canonical exhaustive venue taxon
 
 ## Production boundary
 
-Fourth Street remains the reference compatibility deployment. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
+Fourth Street remains the **sole real client and reference compatibility deployment**. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
 
 The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect installed release/build identity for operational decisions.
 
@@ -222,6 +264,6 @@ Successor source changes do not authorize deployment, account creation, delegati
 
 ## History and retirement policy
 
-`POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains a truthful historical record of the neutral boundary before this sequencing decision. Superseded roadmap text, removed documents, and prior routing remain recoverable from Git commit history. Living documents should not carry duplicate historical snapshots solely to preserve old wording.
+`POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains a truthful historical record of the neutral boundary before the original sequencing decision. `POST_HV6_SEQUENCING_DECISION_0_1_0.md` and `HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md` remain truthful historical records of the pre-amendment real-only path. The accepted 0.1.1 amendment and its living-routing reconciliation control current interpretation.
 
 Historical files currently present on `main` may be retired under a separately bounded housekeeping operation after reachability/recovery is verified. Deleting such a path from the current tree does not erase the underlying Git history.
