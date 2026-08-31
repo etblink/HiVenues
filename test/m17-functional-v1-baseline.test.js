@@ -63,7 +63,7 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('accepted and amended Post-HV-6 routing coexists with the unchanged production safety boundary', () => {
+test('amended HV7 second-nominee routing coexists with the unchanged production safety boundary', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const index = read('docs/README.md');
@@ -79,17 +79,29 @@ test('accepted and amended Post-HV-6 routing coexists with the unchanged product
   assert.match(readme, /first six successor architecture\/product-foundation milestones are accepted/i);
   assert.match(readme, /HV-6 is canonically accepted/i);
   assert.match(readme, /historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded/i);
-  assert.match(readme, /current lane is an \*\*adversarial isolated second-venue pilot\*\*/i);
-  assert.match(readme, /synthetic adversarial.*candidate-design path/i);
+  assert.match(readme, /HV-7 is establishing a \*\*second venue nominee\*\*/i);
+  assert.match(readme, /adversarial.*does not mean maximizing incompatibility/i);
+  assert.match(readme, /Project Lead design is architecture-aware/i);
+  assert.match(readme, /freeze those authentic requirements before implementation/i);
   assert.match(readme, /no substantive HV-7 implementation is currently authorized/i);
 
   for (const source of [roadmap, index]) {
     assert.match(source, /^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m);
     assert.match(source, /^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
     assert.match(source, /^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m);
-    assert.match(source, /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m);
+    assert.match(source, /^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m);
+    assert.match(source, /^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m);
+    assert.match(source, /^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m);
+    assert.match(source, /^FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT$/m);
+    assert.match(source, /^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m);
+    assert.match(source, /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m);
     assert.match(source, /^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
     assert.match(source, /^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
+    assert.match(source, /^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m);
+    assert.match(source, /^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m);
+    assert.match(source, /^HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED$/m);
+    assert.match(source, /^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m);
+    assert.match(source, /^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m);
     assert.match(source, /^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
     assert.match(source, /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m);
     assert.match(source, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
