@@ -1,0 +1,9 @@
+{
+  "name": "hv6-grapesjs-core-evaluation",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated evaluation-only dependency boundary for HV-6 GrapesJS Core candidate.",
+  "dependencies": {
+    "grapesjs": "0.23.6"
+  }
+}

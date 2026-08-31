@@ -1,0 +1,62 @@
+name: HV-6 GrapesJS candidate evaluation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hv6-grapesjs-evaluation.yml
+      - scripts/capture-hv6-grapesjs-visual.js
+      - src/venue/visual-authoring-session.js
+      - test/support/hv6-grapesjs-editor-fixture.js
+      - test/support/hv6-grapesjs-eval-package/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hv6-grapesjs-evaluation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    name: GrapesJS Core 0.23.6 bounded adapter / pinned Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install ordinary repository dependencies without GrapesJS
+        run: npm ci --ignore-scripts --no-fund
+      - name: Apply pinned ordinary dependency patch
+        run: npx --no-install patch-package
+      - name: Build exact presentation assets
+        run: npm run build
+      - name: Install isolated exact GrapesJS evaluation closure
+        run: npm ci --prefix test/support/hv6-grapesjs-eval-package --ignore-scripts --no-fund
+      - name: Verify isolated GrapesJS dependency tree
+        run: npm ls --prefix test/support/hv6-grapesjs-eval-package --all
+      - name: Audit isolated GrapesJS evaluation closure
+        run: npm audit --prefix test/support/hv6-grapesjs-eval-package --audit-level=high
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Capture and qualify constrained GrapesJS candidate
+        env:
+          HV6_GRAPESJS_VISUAL_OUTPUT: artifacts/hv6-grapesjs-visual
+        run: node scripts/capture-hv6-grapesjs-visual.js
+      - name: Preserve GrapesJS evaluation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: hv6-grapesjs-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/hv6-grapesjs-visual
+          if-no-files-found: warn
+          retention-days: 90
