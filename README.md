@@ -2,22 +2,24 @@
 
 Hive-Venues is a successor platform for independently branded venue-native community and social applications on Hive. It preserves the strongest security, payment, social, accessibility, release, and operating work from the original Hive-Bar application while separating reusable platform machinery from venue identity, authored venue expression, and deployment policy.
 
-**Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment.** It remains the sole real client. Client status, nominee status, and deployment status are distinct product concepts; Fourth Street is not the platform identity. The platform still does not require a universal venue-type taxonomy.
+**Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment.** It remains the sole real client. Fourth Street is not the platform identity, and Hive-Venues still does not require a universal venue-type taxonomy.
 
 ## Current successor state
 
-The first six successor architecture/product-foundation milestones are accepted:
+HV-1 through HV-6 are accepted foundations. HV-7 validated **Juniper Works Cooperative** as a serious synthetic second-venue nominee: all 24 frozen requirements passed at **Tier-A product-and-architecture evidence** after bounded reusable repairs. Juniper remains synthetic evidence, not another real client or deployment.
 
-- **HV-1 — Venue Context Foundation**
-- **HV-2 — Reference Deployment Profile Extraction**
-- **HV-3 — Reference Venue Package Extraction**
-- **HV-4 — Isolated Venue Bootstrap Foundation**
-- **HV-5 — Venue Authoring Contract Foundation**
-- **HV-6 — Operator Visual Authoring Adapter Foundation**
+HV-8 has now completed its read-only reference-deployment readiness work. The initial audit correctly held on the full installed tree rather than inferring it. A later direct public `/healthz` observation cleared that hold and bound the real running Fourth Street release exactly as:
 
-HV-7 completed its synthetic adversarial second-venue validation. **Juniper Works Cooperative** remains explicitly synthetic, but its frozen 24-requirement product packet passed at **Tier-A product-and-architecture evidence** after bounded platform-generality repairs. The result validates the isolated architecture against one real reference venue and one serious synthetic second venue nominee without creating a venue-specific source fork or new security, Hive, payment, or tenancy authority.
+```text
+BUILD = beta-fdb5b5b
+COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
+TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
+ENVIRONMENT = production
+WRITE_MODE = beta
+READY = ready
+```
 
-The accepted Post-HV-7 sequencing decision selected **Fourth Street reference-deployment successor convergence** as the next learning lane. The **HV-8 read-only readiness audit is complete**: source/architecture readiness passed and production compatibility passed subject to one exact-identity observation hold. Fresh public evidence shows tester build `beta-fdb5b5b`, resolving to deployed commit `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`, which is a strict ancestor of the audited successor source. The **full installed tree was not directly re-observed**, so deployment preregistration remains on hold rather than being inferred from repository history.
+GitHub resolves that exact commit to that exact tree. The Project Lead therefore accepted deployment-preregistration readiness and froze a successor-convergence deployment preregistration. **Production deployment is still not authorized.** The next operation is offline candidate freeze and qualification.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -65,11 +67,20 @@ PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
 POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
 HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE
 HV8_SOURCE_READINESS = PASS
-HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD
-HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD
-HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED
-HV8_READINESS_LIVING_ROUTING_RECONCILIATION = COMPLETE
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY
+HV8_PRODUCTION_COMPATIBILITY = PASS
+HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION = COMPLETE__PASS
+HV8_CURRENT_RUNNING_BUILD = beta-fdb5b5b
+HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
+HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
+HV8_CURRENT_RUNNING_WRITE_MODE = beta
+HV8_CURRENT_RUNNING_READY = ready
+HV8_READINESS_IDENTITY_HOLD = CLEARED
+HV8_DEPLOYMENT_PREREGISTRATION_READINESS = PASS
+HV8_DEPLOYMENT_PREREGISTRATION_DECISION = PROJECT_LEAD_ACCEPTED
+HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
+HV8_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION = COMPLETE
+HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
@@ -83,15 +94,21 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The permanent HV-7 acceptance record is `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`. The permanent Post-HV-7 sequencing decision is `docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md`. The completed HV-8 readiness audit is `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`.
+## Current operation
 
-HV-8 established that the publicly visible Fourth Street generation is ancestral to current source and that the successor preserves the reference deployment's compatibility, release, rollback, beta-action, dormant-capability, and custody boundaries. The remaining blocker is deliberately epistemic: the full installed tree value must be observed from `/healthz` or operator-side release identity rather than reconstructed from the repository.
+```text
+HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+```
 
-The next operation is therefore read-only exact identity observation. No source deployment, service restart, environment change, symlink/release-root mutation, Hive/Keychain write, payment or onboarding activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized.
+The candidate must be one exact immutable commit/tree selected only after the preregistration and this living reconciliation are integrated and qualified. Qualification must consider the **full deployed-to-candidate delta**. Because that delta includes substantial presentation and venue-generality work, pinned-Chromium rendered evidence is mandatory even if the final candidate-freeze commit itself is governance-only.
+
+Operator-side `last-good` identity and protected environment hashes have not yet been re-observed. They are hard Phase-A gates before any later production-mutation authorization, not fields to infer from history.
+
+No source deployment, service restart, environment change, current/last-good mutation, Hive/Keychain write, payment/Distriator/onboarding/moderation/V1 activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized.
 
 ## Accepted architecture
 
-The current one-isolated-venue composition remains:
+The current composition remains:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -113,25 +130,26 @@ NATIVE_VISUAL_AUTHORING_ADAPTER
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-HV-5 remains the editor-independent canonical authoring authority. HV-6 remains subordinate to it. The HV-7 repair adds only bounded structured collection and validated theme authority; protected identity, Hive/security/payment/deployment authority and gallery topology remain outside ordinary editing.
+HV-5 remains the editor-independent canonical authoring authority. HV-6 remains subordinate to it. HV-7 adds bounded structured collection and validated theme authority. Protected identity, Hive/security/payment/deployment authority and gallery topology remain outside ordinary venue editing.
 
 ## Preserved assurance boundary
 
 - Hive Keychain remains the user-side signing/custody boundary.
-- The server does not hold Hive private keys and has no Hive broadcast RPC implementation.
+- The server holds no Hive private keys and has no Hive broadcast RPC implementation.
 - User-owned writes require explicit review before signing.
 - Ambiguous post-Keychain acceptance is never automatically rebroadcast.
 - Payment replay/idempotency/receipt/confirmation boundaries remain fail-closed.
 - Release identity and rollback remain exact.
-- Source advancement does not imply production activation.
+- Source capability presence does not imply production activation.
+- Source advancement does not imply production deployment.
 
 ## Source identity versus production identity
 
-Canonical source is the moving `main` branch of `etblink/Hive-Venues`; resolve its exact commit/tree at qualification or release time.
+Canonical source is moving `main` in `etblink/Hive-Venues`; any deploy candidate must instead be an exact frozen commit/tree.
 
-The Fourth Street production installation intentionally retains provenance-bearing Hive-Bar-era names such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, the Fourth Street host, and its Hive application tag. HV-8 confirmed these remain compatibility facts rather than source-name debt.
+Fourth Street intentionally retains provenance-bearing Hive-Bar-era names such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, the Fourth Street host, and its Hive application tag. HV-8 found no reason to cosmetically rename those compatibility seams.
 
-Fresh public evidence currently exposes build `beta-fdb5b5b`; that build strongly binds the installed commit to `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`. The repository tree for that commit is known, but the installed `.hive-bar-tree` value remains deliberately unclaimed until directly observed.
+The running production process is currently bound by direct health evidence to `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`, tree `6420f0ca2392ec4ed968bc2e928151870c3b591c`.
 
 ## Development
 
@@ -156,16 +174,17 @@ For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
-4. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`
-5. `docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved route into the audit
-6. `docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md`
-7. `docs/POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved pre-decision boundary
-8. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
-9. `docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md`
-10. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-11. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-12. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-13. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md`
+5. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_DECISION_0_1_0.md`
+6. `docs/HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md`
+7. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved pre-observation route
+8. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`
+9. `docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md`
+10. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
+11. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+12. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+13. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+14. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
 Older decisions and routing reconciliations remain truthful provenance and are not rewritten to imitate current state.
