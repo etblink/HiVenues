@@ -28,8 +28,7 @@ function v1Source(overrides = {}) {
     HIVE_COMMUNITY_ID: 'hive-108590',
     HIVE_OFFICIAL_BAR_ACCOUNT: 'fourthstreetbar',
     THREADS_CONTAINER_ACCOUNT: 'fourthst.threads',
-    HIVE_RPC_NODES:
-      'https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network',
+    HIVE_RPC_NODES: 'https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network',
     HIVE_WRITE_MODE: 'production',
     HIVE_SIGNER_MODE: 'keychain',
     HIVE_CONTROLLED_ACCOUNTS: '',
@@ -49,18 +48,10 @@ function v1Source(overrides = {}) {
   };
 }
 
-test('M20.2 supersedes the exact M17.1 V1 self-signing manifest', () => {
+test('V1 action manifest remains the accepted twelve-action boundary', () => {
   assert.deepEqual(V1_POSTING_ACTIONS, [
-    'post',
-    'thread',
-    'comment',
-    'vote',
-    'follow',
-    'unfollow',
-    'subscribe',
-    'unsubscribe',
-    'profile',
-    'claim-rewards',
+    'post', 'thread', 'comment', 'vote', 'follow', 'unfollow',
+    'subscribe', 'unsubscribe', 'profile', 'claim-rewards',
   ]);
   assert.deepEqual(V1_ACTIVE_ACTIONS, ['wall', 'inbox']);
   assert.deepEqual(V1_ACTIONS, [...V1_POSTING_ACTIONS, ...V1_ACTIVE_ACTIONS]);
@@ -123,7 +114,7 @@ test('release and successor living-document sources are mechanically coherent', 
     packageVersion: '0.1.0',
     appTag: 'fourth-street-bar-app/0.1.0',
     v1ActionCount: 12,
-    acceptedSuccessorMilestones: 5,
-    nextOperation: 'HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION',
+    acceptedSuccessorMilestones: 6,
+    nextOperation: 'POST_HV6_SEQUENCING_DECISION__READ_ONLY',
   });
 });
