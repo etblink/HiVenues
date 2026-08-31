@@ -212,19 +212,32 @@ function createHv6NativeEditorFixture(authoringInput) {
   };
   let notice = null;
 
-  async function renderPreview() {
+  const initialProjection = session.previewProjection();
+  const previewApplication = createApp({
+    config,
+    logger,
+    rpcPool,
+    hiveReadService,
+    venue: initialProjection.venueContext,
+    venuePackage: initialProjection.venuePackage,
+  });
+  previewApplication.locals.assetUrl = createStaticAssetUrl(PUBLIC_ROOT);
+  previewApplication.locals.currentYear = 2026;
+
+  function bindPreviewProjection() {
     const projection = session.previewProjection();
-    const application = createApp({
-      config,
-      logger,
-      rpcPool,
-      hiveReadService,
-      venue: projection.venueContext,
-      venuePackage: projection.venuePackage,
-    });
-    application.locals.assetUrl = createStaticAssetUrl(PUBLIC_ROOT);
-    application.locals.currentYear = 2026;
-    const response = await request(application).get('/').expect(200);
+    previewApplication.locals.venue = projection.venueContext;
+    previewApplication.locals.venuePackage = projection.venuePackage;
+    previewApplication.locals.siteName = projection.siteName;
+    previewApplication.locals.business = projection.business;
+    previewApplication.locals.communityId = projection.venueContext.hive.communityId;
+    previewApplication.locals.threadsContainerAccount = projection.venueContext.hive.threadsContainerAccount;
+    return projection;
+  }
+
+  async function renderPreview() {
+    bindPreviewProjection();
+    const response = await request(previewApplication).get('/').expect(200);
     return response.text;
   }
 
@@ -286,6 +299,7 @@ function createHv6NativeEditorFixture(authoringInput) {
   return {
     app,
     editorPath: EDITOR_PATH,
+    previewApplication,
     previewPath: PREVIEW_PATH,
     hiveReadService,
     rpcPool,
