@@ -4,7 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT';
+const NEXT_SUCCESSOR_OPERATION = 'HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -42,10 +42,16 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT = ACCEPTED__SYNTHETIC_TIER_A$/m, 'HV-7 pilot must remain accepted at Tier-A only'],
     [/^POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'neutral post-HV7 route must be historical for current routing'],
     [/^POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'Post-HV7 sequencing decision must be accepted'],
-    [/^SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE$/m, 'reference deployment convergence must be selected'],
-    [/^PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS$/m, 'HV-8 readiness must be proposed next milestone'],
-    [/^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m, 'post-HV7 sequencing routing reconciliation must be complete'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the HV-8 read-only readiness audit'],
+    [/^SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE$/m, 'reference deployment convergence must remain selected'],
+    [/^PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS$/m, 'HV-8 readiness milestone must remain selected'],
+    [/^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'post-HV7 sequencing route must now be historical'],
+    [/^HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE$/m, 'HV-8 readiness audit must be complete'],
+    [/^HV8_SOURCE_READINESS = PASS$/m, 'HV-8 source readiness must pass'],
+    [/^HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD$/m, 'HV-8 production compatibility must preserve identity hold'],
+    [/^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m, 'deployment preregistration must remain on hold'],
+    [/^HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED$/m, 'identity hold reason must remain exact'],
+    [/^HV8_READINESS_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m, 'HV-8 readiness routing reconciliation must be complete'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be exact read-only production identity observation'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain unselected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -60,6 +66,8 @@ function assertCurrentRoutingBlock(relativePath) {
   for (const [pattern, message] of required) requireMatch(block, pattern, `${relativePath}: ${message}`);
 
   const obsolete = [
+    /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m,
+    /^POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m,
     /^NEXT_OPERATION = POST_HV7_SEQUENCING_DECISION__READ_ONLY$/m,
     /^POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = COMPLETE$/m,
     /^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m,
@@ -80,19 +88,19 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /^# Hive-Venues$/m, 'README must identify Hive-Venues');
   requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve Fourth Street roles');
   requireMatch(readme, /frozen 24-requirement product packet passed at \*\*Tier-A product-and-architecture evidence\*\*/i, 'README must preserve HV-7 evidence result');
-  requireMatch(readme, /first HV-8 operation is a \*\*read-only reference-deployment readiness audit\*\*/i, 'README must identify HV-8 read-only audit');
-  requireMatch(readme, /Historical M19\.2 deployment evidence is not current installed identity/i, 'README must preserve installed-identity epistemic rule');
+  requireMatch(readme, /HV-8 read-only readiness audit is complete/i, 'README must record completed HV-8 audit');
+  requireMatch(readme, /full installed tree.*not directly re-observed/i, 'README must preserve exact identity hold');
   requireMatch(readme, /Canonical source is the moving `main` branch of `etblink\/Hive-Venues`/, 'README must identify moving source');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'docs index must identify Hive-Venues');
-  requireMatch(docsReadme, /HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT/, 'docs index must route to HV-8');
-  requireMatch(docsReadme, /HISTORICAL_M19_2_DEPLOYMENT_RECORD != CURRENT_INSTALLED_IDENTITY/, 'docs index must preserve epistemic rule');
+  requireMatch(docsReadme, /HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY/, 'docs index must route to exact identity observation');
+  requireMatch(docsReadme, /FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED/, 'docs index must preserve identity hold reason');
   requireMatch(docsReadme, /Canonical integrated source is moving `main` in `etblink\/Hive-Venues`/, 'docs index must identify moving source');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind repository');
-  requireMatch(roadmap, /Post-HV-7 sequencing — ACCEPTED/i, 'roadmap must record accepted sequencing');
-  requireMatch(roadmap, /HV-8 — reference deployment successor readiness/i, 'roadmap must record HV-8');
+  requireMatch(roadmap, /HV-8 readiness audit — COMPLETE/i, 'roadmap must record completed HV-8 audit');
+  requireMatch(roadmap, /exact identity observation/i, 'roadmap must record the next read-only observation');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
