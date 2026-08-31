@@ -2,12 +2,15 @@
 /* global document */
 
 const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const express = require('express');
 const { chromium } = require('playwright');
+const {
+  createGitReader,
+  listenLoopback,
+  sha256,
+} = require('./support/visual-harness');
 const { createApp } = require('../src/app');
 const { SessionStore } = require('../src/auth/session-store');
 const { HiveReadService } = require('../src/hive/read-service');
@@ -16,6 +19,7 @@ const { configFrom, logger } = require('../test/support/test-app');
 const { createFixtureRpc } = require('../test/support/fixture-rpc');
 
 const ROOT = path.join(__dirname, '..');
+const git = createGitReader(ROOT);
 const OUTPUT = path.resolve(ROOT, process.env.M18_4_VISUAL_OUTPUT || 'artifacts/m18-4-visual');
 const SHOTS = path.join(OUTPUT, 'screenshots');
 const ACCOUNT = 'etblink';
@@ -32,9 +36,6 @@ const SCENARIOS = Object.freeze([
 ]);
 const KEYCHAIN_STUB = `'use strict'; Object.defineProperty(window, '__M18_4_KEYCHAIN_DISABLED__', { value: true }); window.HiveBarKeychain = Object.freeze({ KeychainAdapter: class { async broadcast() { throw new Error('M18.4 visual qualification forbids Keychain signing'); } async decodeMemo() { throw new Error('M18.4 visual qualification forbids Keychain use'); } } });`;
 const IMAGE_PLACEHOLDER = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
-
-function git(...args) { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim(); }
-function sha256(value) { return createHash('sha256').update(value).digest('hex'); }
 
 function createFixture() {
   const config = configFrom({ HIVE_WRITE_MODE: 'beta', HIVE_SIGNER_MODE: 'keychain', RATE_LIMIT_MAX: '10000', SESSION_SECRET: 'm18-4-visual-session-secret-32-bytes-minimum' });
@@ -70,14 +71,6 @@ function createFixture() {
   });
   app.use(application);
   return { app, config, mutationAttempts, readCalls, rpcPool, token };
-}
-
-function listen(app) {
-  return new Promise((resolve, reject) => {
-    const server = app.listen(0, '127.0.0.1');
-    server.once('error', reject);
-    server.once('listening', () => resolve(server));
-  });
 }
 
 async function capture({ browser, baseUrl, scenario, token, width }) {
@@ -145,7 +138,7 @@ async function main() {
   assert.equal(current.config.hive.signerMode, 'keychain');
   await fs.rm(OUTPUT, { recursive: true, force: true });
   await fs.mkdir(SHOTS, { recursive: true });
-  const server = await listen(current.app);
+  const server = await listenLoopback(current.app);
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ headless: true });
   const manifest = { schemaVersion: 1, result: 'running', git: { commit: git('rev-parse', 'HEAD'), tree: git('rev-parse', 'HEAD^{tree}') }, widths: WIDTHS, scenarios: SCENARIOS.map(({ id }) => id), captures: [] };
