@@ -10,11 +10,14 @@ These documents govern current interpretation and sequencing:
 - `ROADMAP.md` — the only living current/next successor milestone roadmap.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted hybrid preservation/reconstruction architecture and isolated-venue runtime decision.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — permanent accepted HV-5 implementation/qualification record.
-- `POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — historical neutral reconciliation immediately after HV-5 acceptance.
 - `POST_HV5_SEQUENCING_DECISION_0_1_0.md` — accepted Project Lead sequencing decision selecting the operator visual-authoring-adapter lane and proposing HV-6.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen prospective HV-6 product, authority, evidence, and technology-evaluation contract.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md` — accepted Project Lead review of the HV-6 prospective contract.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — canonical bounded offline dual-candidate implementation/evaluation authorization.
+- `HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — current routing boundary from authorization into bounded implementation/evaluation once canonical.
 - `HISTORICAL_REF_ARCHIVE_0_1_0.md` — established archive-tag policy for divergent historical branch refs.
 
-Earlier HV preregistrations, acceptance records, sequencing decisions, and reconciliation records remain immutable historical evidence. They preserve the exact authorization and provenance boundary that existed at the time, but they no longer define current routing when superseded by a later accepted decision.
+Earlier HV preregistrations, acceptance records, sequencing decisions, and reconciliation records remain immutable historical evidence. They preserve the exact authorization and provenance boundary that existed at the time, but they no longer define current routing when superseded by a later accepted decision or authorization.
 
 Living documents must be updated when current-state or routing claims become stale. Historical records must not be rewritten to make old authorization boundaries look current.
 
@@ -47,27 +50,43 @@ HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED
 POST_HV5_SEQUENCING_DECISION = ACCEPTED
 SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
 PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
-NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY
-GRAPESJS_STUDIO_SDK = SECONDARY_REFERENCE__NOT_SELECTED_DEPENDENCY
+HV6_PREREGISTRATION = ACCEPTED
+HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION
+NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY
+TECHNOLOGY_SELECTED = NO
+GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY
+GRAPESJS_STUDIO_SDK = REFERENCE_ONLY__NOT_SELECTED_DEPENDENCY
 REAL_SECOND_VENUE_AUTHORIZED = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 
-HV-6 is intentionally an **adapter-foundation** milestone, not permission to make an editor's internal project format authoritative. Its preregistration must freeze the canonical direction:
+HV-6 is intentionally an **adapter-foundation** milestone, not permission to make an editor's internal project format authoritative. The canonical direction is:
 
 ```text
-HV5_CANONICAL_AUTHORING_DOCUMENT
--> VISUAL_ADAPTER
--> PROPOSED_OPERATOR_EDIT
--> HV5_OPERATOR_EDIT_GATE
--> VALIDATED_HV5_CANONICAL_AUTHORING_DOCUMENT
+ACCEPTED_HV5_DOCUMENT
+-> VISUAL_ADAPTER_PROJECTION
+-> OPERATOR_INTERACTION
+-> PROPOSED_HV5_DOCUMENT
+-> applyOrdinaryOperatorEdit(base, proposed)
+-> ACCEPTED_HV5_DOCUMENT
+-> CANONICAL_SERIALIZATION
 ```
 
-GrapesJS Core is a serious primary evaluation candidate but is not selected merely because it is feature-rich. A minimal native/existing-stack adapter must be compared against it before dependency selection. The direct JSON/source authoring path remains mandatory.
+The authorized implementation is a bounded comparison of thin vertical slices:
+
+```text
+CANDIDATE_A = GRAPESJS_CORE_ADAPTER
+CANDIDATE_B = MINIMAL_NATIVE_EXISTING_STACK_ADAPTER
+TECHNOLOGY_WINNER_PRESELECTED = NO
+```
+
+GrapesJS Core is a serious evaluation candidate but is not selected merely because it is feature-rich. If Candidate A needs Core, the evaluated version must be refreshed from official upstream sources and pinned exactly. Studio SDK remains reference-only. A minimal native/existing-stack adapter must be compared on actual operator usability, authority preservation, round-trip behavior, accessibility, responsive quality, maintenance burden, and venue neutrality.
+
+The direct JSON/source authoring path remains mandatory. Editor project JSON, component trees, generated HTML/CSS, autosave state, front-end visibility, arbitrary scripts, or generic page-builder topology may not replace the HV-5 authoring authority.
 
 A real isolated second venue remains the strongest eventual falsification test and is high priority after this bounded operator-usability gate. It remains unauthorized unless separately selected/preregistered/authorized, or sequencing is explicitly reopened because a concrete pilot becomes available earlier.
 
@@ -109,7 +128,7 @@ Use historical evidence to answer questions such as:
 
 The original Git object graph is preserved in this repository, and `etblink/Hive-Bar` remains independently available as the source-lineage repository.
 
-Historical evidence may be **retired from the living `main` tree** only under a separately accepted main-tree retirement/archive policy that preserves an exact pre-retirement checkpoint ref plus per-path provenance. Removing a historical file from current `main` must never be treated as deleting, repudiating, or superseding its evidence.
+Historical evidence may be **retired from the living `main` tree** only under the accepted main-tree retirement/archive policy that preserves an exact pre-retirement checkpoint ref plus per-path provenance. Removing a historical file from current `main` must never be treated as deleting, repudiating, or superseding its evidence.
 
 ## Current navigation rule
 
@@ -117,10 +136,13 @@ For current project status, read in this order:
 
 1. `../README.md`
 2. `ROADMAP.md`
-3. `POST_HV5_SEQUENCING_DECISION_0_1_0.md`
-4. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-5. relevant accepted HV-5 implementation/preregistration records only when the exact authoring contract or provenance is needed
-6. relevant current operating documentation if production is involved
-7. earlier historical milestone/preregistration/sequencing/acceptance/reconciliation evidence only as needed for provenance or inherited invariants.
+3. `HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md`
+4. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
+5. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md`
+6. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md`
+7. `POST_HV5_SEQUENCING_DECISION_0_1_0.md`
+8. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+9. relevant current operating documentation if production is involved
+10. earlier historical milestone/preregistration/sequencing/acceptance/reconciliation evidence only as needed for provenance or inherited invariants.
 
-The current boundary is **HV-6 preregistration next**. No HV-6 substantive implementation is authorized by the Post-HV-5 decision alone.
+The current boundary is **HV-6 bounded dual-candidate implementation and evaluation next**. That authorization does not select a technology, deploy an editor, admit a real second venue, mutate live Fourth Street, or alter Hive/payment/key authority.
