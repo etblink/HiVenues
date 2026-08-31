@@ -32,10 +32,6 @@ jobs:
           [[ "$actual_tree" == "$expected_tree" ]]
 
           candidates=(
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md|f3954d477a9448b14bfa6557921ac5e72606073c'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md|6ed21c5f89f0da9245a34d1d39aca0a14eba2c1b'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md|4f6b7bffb9a818f4900734dde703640436ac6bd3'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md|a9def8eb08ab46f0a81df509bf088c787e81a3ec'
             'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md|f02e95413ad94e8e048c448dc8c8746854963c68'
             'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md|4505a18f28202ffd865389a2f04f3a00ff42056a'
             'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md|6889b996bbaaedfee9922b4106452c4d3ef2f45a'
@@ -61,10 +57,6 @@ jobs:
         run: |
           set -euo pipefail
           candidates=(
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
             'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
             'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
             'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
@@ -98,10 +90,6 @@ jobs:
         run: |
           set -euo pipefail
           candidates=(
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
             'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
             'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
             'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
@@ -132,10 +120,6 @@ jobs:
         run: |
           set -euo pipefail
           candidates=(
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
-            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
             'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
             'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
             'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
