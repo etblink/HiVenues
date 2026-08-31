@@ -4,6 +4,8 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
+const NEXT_SUCCESSOR_OPERATION =
+  'HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -45,8 +47,13 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE$/m, 'requirements freeze must be complete before implementation'],
     [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'requirements may not be rewritten merely to force platform fit'],
     [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must remain current'],
-    [/^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m, 'next product operation must be the Juniper architecture confrontation'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
+    [/^HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY$/m, 'the architecture confrontation must remain complete and read-only'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION = ACCEPTED$/m, 'the repair preregistration must remain accepted'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m, 'the repair implementation authorization must remain accepted'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE$/m, 'the repair must remain a pre-acceptance candidate'],
+    [/^HV7_PRE_ACCEPTANCE_QUALIFICATION = REQUIRED_ON_EXACT_FINAL_HEAD$/m, 'exact-final-head qualification must remain required'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next product operation must be the Juniper repair Project Lead acceptance decision'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'further substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
     [/^REAL_SECOND_VENUE_REQUIRED = NO$/m, 'a real second venue must not be required'],
@@ -67,6 +74,7 @@ function assertCurrentRoutingBlock(relativePath) {
     /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m,
     /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m,
     /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m,
+    /^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m,
     /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m,
     /^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m,
     /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m,
@@ -77,7 +85,7 @@ function assertCurrentRoutingBlock(relativePath) {
     /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/.test(block) ||
     /AUTHORIZED__NOT_YET_ACCEPTED/.test(block)
   ) {
-    throw new Error(`${relativePath}: superseded or pre-freeze routing leaked into the current-routing block`);
+    throw new Error(`${relativePath}: superseded or pre-acceptance routing leaked into the current-routing block`);
   }
   return block;
 }
@@ -89,13 +97,18 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /platform does not currently require a universal venue-type taxonomy/i, 'README must preserve venue-type neutrality');
   requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve distinct Fourth Street roles');
   requireMatch(readme, /Juniper Works Cooperative.*synthetic second venue nominee/i, 'README must identify the selected synthetic second venue nominee');
-  requireMatch(readme, /24 authentic product requirements are frozen/i, 'README must identify the frozen Juniper packet');
-  requireMatch(readme, /next operation is a read-only architecture confrontation/i, 'README must route to architecture confrontation');
+  requireMatch(readme, /24 authentic product requirements were frozen in `docs\/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0\.md`/i, 'README must identify the frozen Juniper Works requirements packet');
+  requireMatch(readme, /read-only architecture confrontation is complete/i, 'README must identify the completed architecture confrontation');
+  requireMatch(readme, /repair candidate now exists on PR #91/i, 'README must identify the implemented repair candidate');
+  requireMatch(readme, /PR #91 must remain draft and unmerged through that adjudication/i, 'README must preserve the pre-acceptance merge boundary');
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'documentation index must identify Hive-Venues');
   requireMatch(docsReadme, /Canonical integrated source is `main` in `etblink\/Hive-Venues`/, 'documentation index must identify canonical source');
   requireMatch(docsReadme, /Juniper Works Cooperative is the selected \*\*synthetic second venue nominee\*\*/i, 'documentation index must identify Juniper as selected nominee');
+  requireMatch(docsReadme, /current operation is `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION`/i, 'documentation index must identify the pre-acceptance Project Lead decision route');
+  requireMatch(docsReadme, /PR #91 remains draft and unmerged until that adjudication is complete/i, 'documentation index must preserve the merge boundary');
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify the successor roadmap');
   requireMatch(roadmap, /^REPOSITORY = etblink\/Hive-Venues$/m, 'roadmap must bind the successor repository');
+  requireMatch(roadmap, /Current operation — PRE-ACCEPTANCE QUALIFICATION AND PROJECT LEAD DECISION/i, 'roadmap must identify the pre-acceptance decision phase');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
@@ -108,6 +121,7 @@ function assertLivingDocumentGuardrails({ readme, docsReadme, roadmap }) {
 }
 
 module.exports = {
+  NEXT_SUCCESSOR_OPERATION,
   assertCurrentRoutingBlock,
   assertLivingDocumentGuardrails,
   assertLivingRoutingCoherence,
