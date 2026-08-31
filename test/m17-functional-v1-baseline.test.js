@@ -29,7 +29,6 @@ test('functional V1 remains pre-final while successor routing advances independe
     finalRelease: false,
     successorRouting: NEXT_SUCCESSOR_OPERATION,
   });
-  assert.equal(NEXT_SUCCESSOR_OPERATION, 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT');
 });
 
 test('last-good bookkeeping is atomic and explicit rollback stays explicit', () => {
@@ -48,16 +47,20 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('HV8 read-only readiness routing preserves production safety and historical identity humility', () => {
+test('HV8 identity-observation routing preserves production safety and historical identity humility', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const decision = read('docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md');
-  const current = read('docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const preservedPreAuditRoute = read('docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const audit = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md');
+  const current = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
 
-  assert.match(readme, /Historical M19\.2 deployment evidence is not current installed identity/i);
-  assert.match(roadmap, /HISTORICAL_DEPLOYMENT_RECORD != CURRENT_INSTALLED_IDENTITY/);
+  assert.match(readme, /full installed tree was not directly re-observed/i);
+  assert.match(roadmap, /REPOSITORY_TREE_FOR_COMMIT != DIRECTLY_OBSERVED_INSTALLED_TREE/);
   assert.match(decision, /^FOURTH_STREET_DEPLOYMENT = NOT_AUTHORIZED$/m);
+  assert.match(preservedPreAuditRoute, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m);
+  assert.match(audit, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
   assert.match(current, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
   assert.match(operations, /last recorded accepted production transition: M19\.2/i);
   assert.match(operations, /Do not infer current production source/i);
