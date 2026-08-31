@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
-const { NEXT_SUCCESSOR_OPERATION, assertReleaseCoherence } = require('../scripts/check-release-coherence');
+const { assertReleaseCoherence } = require('../scripts/check-release-coherence');
+const { NEXT_SUCCESSOR_OPERATION } = require('../scripts/release-coherence/current-routing');
 const { loadDormantV1Config } = require('../scripts/check-v1-release');
 const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../src/release/release-version');
 const { assertPrivexV1Release } = require('../src/release/v1-readiness');
@@ -117,8 +118,5 @@ test('release and successor living-document sources are mechanically coherent', 
     acceptedSuccessorMilestones: 6,
     nextOperation: NEXT_SUCCESSOR_OPERATION,
   });
-  assert.equal(
-    NEXT_SUCCESSOR_OPERATION,
-    'HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION',
-  );
+  assert.equal(NEXT_SUCCESSOR_OPERATION, 'POST_HV7_SEQUENCING_DECISION__READ_ONLY');
 });
