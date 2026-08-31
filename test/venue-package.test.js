@@ -164,6 +164,8 @@ test('HV-3 synthetic fixture renders through the shared platform path without ne
   assert.match(home.text, /Anyone can browse the public community/);
   assert.match(home.text, /Your private keys stay in Keychain/);
   assert.doesNotMatch(home.text, /4th Street Bar|fourth-street-bar-|1114 East 4th Street/i);
+  assert.match(home.text, /Hive-Venues/);
+  assert.doesNotMatch(home.text, /\bHive-Bar\b/);
   assert.deepEqual(calls, [{ account: 'lanternroom', community: 'hive-654321', limit: 3 }]);
 
   const onboarding = await request(app).get('/create-account').expect(200);
@@ -172,13 +174,14 @@ test('HV-3 synthetic fixture renders through the shared platform path without ne
   assert.match(onboarding.text, /The reading room remains the owner of the delegated Hive Power/);
   assert.match(onboarding.text, /Never enter a Hive private key into The Lantern Room \(Fixture\)/);
   assert.match(onboarding.text, /Hive Keychain keeps your Hive credentials on your device/);
-  assert.doesNotMatch(onboarding.text, /4th Street Bar|bartender/);
+  assert.doesNotMatch(onboarding.text, /4th Street Bar|bartender|\bHive-Bar\b/);
 
   const onboardingSource = fs.readFileSync(
     path.join(ROOT, 'views/pages/onboarding/index.ejs'),
     'utf8',
   );
-  assert.match(onboardingSource, /Hive-Bar receives only the four public keys/);
+  assert.match(onboardingSource, /Hive-Venues receives only the four public keys/);
+  assert.doesNotMatch(onboardingSource, /\bHive-Bar\b/);
 
   app.locals.services.receiptStore?.close?.();
 });
@@ -193,6 +196,8 @@ test('HV-3 generic consumers contain no unclassified Fourth Street venue literal
     'views/pages/home/index.ejs',
     'views/pages/home/partials/hero.ejs',
     'views/pages/home/partials/latest-updates.ejs',
+    'views/pages/home/partials/programs.ejs',
+    'views/pages/home/partials/equipment-status.ejs',
     'views/pages/home/partials/photos.ejs',
     'views/pages/home/partials/visit.ejs',
     'views/pages/home/partials/community.ejs',

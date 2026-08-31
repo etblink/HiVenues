@@ -260,7 +260,8 @@ test('allows a same-account pending receipt to be safely rechecked after write m
     .get('/pay')
     .set('cookie', `hive_bar_session=${token}`)
     .expect(200);
-  assert.match(page.text, /Payments aren’t available right now/);
+  assert.match(page.text, /Payments aren’t available at 4th Street Bar/);
+  assert.match(page.text, /existing receipt can still be checked/i);
   assert.match(page.text, /data-pay-receipt hidden/);
   assert.match(page.text, /src="\/js\/pay-tab\.js"/);
   assert.doesNotMatch(page.text, /src="\/vendor\/zxing/);
@@ -303,13 +304,15 @@ test('renders the neutral post-confirmation Distriator handoff independent of th
       .expect(200);
     assert.match(page.text, /@fourthstreetbar/);
     assert.doesNotMatch(page.text, /Maximum payment/);
-    assert.match(page.text, /Use the HBD payment QR provided by the bar; Lightning and LNURL invoices are not supported here/);
+    assert.match(page.text, /Use the HBD payment QR provided by 4th Street Bar; Lightning and LNURL invoices are not supported here/);
     assert.match(page.text, /data-distriator-handoff hidden/);
     assert.match(page.text, /data-distriator-handoff-link/);
     assert.match(page.text, /href="https:\/\/distriator\.com\/#\/claim"/);
     assert.match(page.text, /target="_blank" rel="noopener noreferrer"/);
     assert.match(page.text, /Distriator is a separate service that may recognize qualifying purchases/);
-    assert.match(page.text, /does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+    assert.match(page.text, /Hive-Venues does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+    assert.match(page.text, /4th Street Bar’s own records remain the final source of truth for the underlying purchase/);
+    assert.doesNotMatch(page.text, /\bHive-Bar\b/);
     if (historicalFlag === 'true') assert.match(page.text, /data-distriator-claim/);
     else assert.doesNotMatch(page.text, /data-distriator-claim/);
   }

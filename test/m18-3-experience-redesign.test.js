@@ -172,7 +172,7 @@ test('M18.3 Pay is task-first without changing payment hooks or no-retry semanti
   const pay = document.querySelector('main[data-m18-3-surface="pay"]');
 
   assert.ok(pay);
-  assert.match(pay.querySelector('h1')?.textContent || '', /Pay your tab with HBD/);
+  assert.match(pay.querySelector('h1')?.textContent || '', /Pay with HBD/);
   assert.equal(pay.querySelector('.pay-merchant-logo')?.getAttribute('src'), '/images/fourth-street-bar-logo.jpg');
   assert.doesNotMatch(pay.textContent, /Maximum payment/i);
 
@@ -193,12 +193,12 @@ test('M18.3 Pay is task-first without changing payment hooks or no-retry semanti
   assert.match(pay.textContent, /Paid means confirmed/);
   assert.match(pay.textContent, /independent Hive nodes confirm the same transfer is final/);
   assert.match(pay.textContent, /If confirmation is unclear, don’t pay again/);
-  assert.match(pay.textContent, /Keychain approval can happen before Hive-Bar sees final confirmation/);
+  assert.match(pay.textContent, /Keychain approval can happen before Hive-Venues sees final confirmation/);
   assert.doesNotMatch(pay.textContent, /\bUSD\b|subtotal|line item|suggested tip/i);
   assert.equal(pay.querySelector('[data-distriator-claim]'), null);
 });
 
-test('M18.3 signed-out Pay remains a sign-in gate with no payment form', async () => {
+test('M18.3 signed-out disabled Pay remains unavailable with no payment form', async () => {
   const { app } = createFixtureApp({
     configOverrides: {
       HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
@@ -209,10 +209,10 @@ test('M18.3 signed-out Pay remains a sign-in gate with no payment form', async (
   const pay = document.querySelector('main[data-m18-3-surface="pay"]');
 
   assert.ok(pay);
-  assert.match(pay.textContent, /Sign in to pay/);
-  assert.match(pay.textContent, /does not send a transaction/);
+  assert.match(pay.textContent, /Payments aren’t available at 4th Street Bar/);
+  assert.match(pay.textContent, /4th Street Bar does not currently offer payments through Hive-Venues/);
   assert.equal(pay.querySelector('[data-pay-form]'), null);
-  assert.match(pay.textContent, /If confirmation is unclear, don’t pay again/);
+  assert.doesNotMatch(pay.textContent, /Sign in to pay|If confirmation is unclear, don’t pay again/);
 });
 
 test('M18.3 source contracts retain dynamic fees and every accepted write/payment hook', () => {

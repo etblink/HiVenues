@@ -93,7 +93,8 @@ test('C2-B.3 Inbox presents a recognizable message-list hierarchy while keeping 
   assert.match(inbox, /Decrypt with Keychain/);
   assert.doesNotMatch(inbox, /<svg\b/);
   assert.match(inbox, /Hive Keychain uses your Memo key in this browser/);
-  assert.match(inbox, /decrypted message is not sent back to Hive-Bar/);
+  assert.match(inbox, /decrypted message is not sent back to Hive-Venues/);
+  assert.doesNotMatch(inbox, /\bHive-Bar\b/);
   assert.match(inbox, /Wall fee ·/);
   assert.match(messages, /\.message-entry__decrypt \{[\s\S]*background:\s*transparent/);
   assert.match(messages, /\.message-entry__activity--inbox/);

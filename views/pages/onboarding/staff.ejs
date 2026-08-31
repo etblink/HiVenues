@@ -11,7 +11,7 @@
     data-m19-3-surface="staff-onboarding"
     <% if (request) { %>data-onboarding-staff data-request-id="<%= request.id %>" data-creator="<%= onboarding.creator %>"<% } %>>
     <header class="mx-auto max-w-3xl">
-      <p class="app-kicker">Bartender account setup</p>
+      <p class="app-kicker"><%= venuePackage.onboarding.staffRole %> account setup</p>
       <h1 class="app-page-title mt-2"><%= request ? `Create @${request.username}` : 'Onboarding unavailable' %></h1>
       <p class="mt-4 text-lg leading-8 text-gray-300">One durable request, one exact Active-authority Keychain gate, then read-only Hive observation.</p>
     </header>
@@ -75,7 +75,7 @@
             <summary class="cursor-pointer font-bold text-gray-200">Technical fingerprint</summary>
             <code class="mt-3 block break-all rounded-lg bg-gray-950 p-3 text-xs text-gray-300" data-onboarding-fingerprint></code>
           </details>
-          <p class="mt-4 text-sm leading-6 text-amber-200"><strong>One approval only.</strong> After Hive-Bar locks this request into signing, any ambiguous outcome is observation-only and must never be automatically rebroadcast.</p>
+          <p class="mt-4 text-sm leading-6 text-amber-200"><strong>One approval only.</strong> After Hive-Venues locks this request into signing, any ambiguous outcome is observation-only and must never be automatically rebroadcast.</p>
           <button class="button-primary mt-5" type="button" hidden disabled data-onboarding-keychain>Continue to Keychain</button>
         </section>
       <% } %>

@@ -1,10 +1,12 @@
 'use strict';
 
 const {
+  OPERATOR_COLLECTIONS,
   OWNERSHIP,
   applyOrdinaryOperatorEdit,
   buildOwnershipMap,
   createVenueAuthoringDocument,
+  operatorCollectionDefinition,
   ownershipForPath,
   serializeVenueAuthoringReview,
 } = require('./authoring');
@@ -31,7 +33,7 @@ function cloneJson(value) {
 
 function decodePointer(pointer) {
   if (typeof pointer !== 'string' || !pointer.startsWith('/') || pointer === '/') {
-    throw new VisualAuthoringSessionError('field pointer must identify a document leaf');
+    throw new VisualAuthoringSessionError('field pointer must identify a document value');
   }
   return pointer
     .slice(1)
@@ -69,10 +71,13 @@ function writeAtPointer(document, pointer, value) {
 function semanticSectionForPointer(pointer) {
   if (pointer === '/venueContext/displayName') return 'identity';
   if (pointer.startsWith('/venueContext/business/')) return 'business';
+  if (pointer.startsWith('/venuePackage/brand/theme/')) return 'theme';
   if (pointer.startsWith('/venuePackage/brand/')) return 'brand';
   if (pointer.startsWith('/venuePackage/seo/')) return 'seo';
   if (pointer.startsWith('/venuePackage/home/hero/')) return 'hero';
   if (pointer.startsWith('/venuePackage/home/updates/')) return 'updates';
+  if (pointer.startsWith('/venuePackage/home/programs/')) return 'programs';
+  if (pointer.startsWith('/venuePackage/home/equipmentStatus/')) return 'equipment-status';
   if (pointer.startsWith('/venuePackage/home/pathways/')) return 'pathways';
   if (pointer.startsWith('/venuePackage/home/visit/')) return 'visit';
   if (pointer.startsWith('/venuePackage/home/community/')) return 'community';
@@ -82,12 +87,36 @@ function semanticSectionForPointer(pointer) {
 }
 
 function controlKindForPointer(pointer) {
+  if (/\/brand\/theme\/(?:canvas|surface|border|text|mutedText|accent|accentHover)$/.test(pointer)) return 'color';
+  if (/\/items\/\d+\/state$/.test(pointer)) return 'select';
+  if (/\/items\/\d+\/(?:startAt|endAt|lastUpdated)$/.test(pointer)) return 'datetime-offset';
+  if (/\/items\/\d+\/link$/.test(pointer)) return 'optional-url';
   if (/\/(?:websiteUrl|mapUrl)$/.test(pointer)) return 'url';
   if (/\/src$/.test(pointer)) return 'asset-path';
-  if (/\/(?:lede|intro|note|defaultDescription|unavailableBody|emptyBody)$/.test(pointer)) {
+  if (/\/(?:lede|intro|note|description|accessNote|defaultDescription|unavailableBody|emptyBody)$/.test(pointer)) {
     return 'multiline-text';
   }
   return 'text';
+}
+
+function controlOptionsForPointer(pointer) {
+  if (/\/home\/programs\/items\/\d+\/state$/.test(pointer)) {
+    return Object.freeze(['scheduled', 'full', 'cancelled']);
+  }
+  if (/\/home\/equipmentStatus\/items\/\d+\/state$/.test(pointer)) {
+    return Object.freeze(['available', 'limited', 'maintenance', 'offline']);
+  }
+  return Object.freeze([]);
+}
+
+function isOptionalPointer(pointer) {
+  return /\/home\/programs\/items\/\d+\/link$/.test(pointer)
+    || /\/home\/equipmentStatus\/items\/\d+\/group$/.test(pointer);
+}
+
+function normalizeEditedValue(pointer, value) {
+  if (isOptionalPointer(pointer) && (value === '' || value === null || value === undefined)) return null;
+  return value;
 }
 
 function editableFieldDescriptors(documentInput) {
@@ -100,9 +129,36 @@ function editableFieldDescriptors(documentInput) {
       ownership: OWNERSHIP.OPERATOR_AUTHORED,
       semanticSection: semanticSectionForPointer(pointer),
       controlKind: controlKindForPointer(pointer),
+      options: controlOptionsForPointer(pointer),
+      required: !isOptionalPointer(pointer),
       value: readAtPointer(document, pointer),
     }))
     .sort((left, right) => left.pointer.localeCompare(right.pointer));
+}
+
+function editableCollectionDescriptors(documentInput) {
+  const document = createVenueAuthoringDocument(documentInput);
+  const descriptors = [];
+  for (const [pointer, definition] of Object.entries(OPERATOR_COLLECTIONS)) {
+    try {
+      const items = readAtPointer(document, pointer);
+      descriptors.push(Object.freeze({
+        pointer,
+        kind: definition.kind,
+        maxItems: definition.maxItems,
+        count: items.length,
+        items: Object.freeze(items.map((item, index) => Object.freeze({
+          id: item.id,
+          index,
+          label: item.title || item.name || item.id,
+        }))),
+      }));
+    } catch {
+      // Optional capabilities that are not present in a v1 document expose no
+      // collection authority and therefore no visual collection controls.
+    }
+  }
+  return Object.freeze(descriptors);
 }
 
 function canonicalIfValid(documentInput) {
@@ -146,11 +202,71 @@ function createVisualAuthoringSessionInternal(baseInput, applyGate) {
     return Object.freeze(editableFieldDescriptors(validProposal));
   }
 
-  // HV-6 intentionally exposes only semantic leaf edits already classified
-  // OPERATOR_AUTHORED by HV-5. There is no raw full-document replacement,
-  // array-topology, HTML, script, or component-tree mutation channel here.
-  // This is especially important for schema-v1 gallery arrays, whose items do
-  // not have stable item identities independent of their fixed array indices.
+  function listEditableCollections() {
+    const validProposal = createVenueAuthoringDocument(proposal);
+    return editableCollectionDescriptors(validProposal);
+  }
+
+  function validateCollectionPointer(pointer) {
+    const definition = operatorCollectionDefinition(pointer);
+    if (!definition || ownershipForPath(pointer) !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+      throw new VisualAuthoringSessionError(`ordinary visual collection edit denied at ${pointer}`);
+    }
+    return definition;
+  }
+
+  function mutateCollection(pointer, mutator) {
+    validateCollectionPointer(pointer);
+    const next = cloneJson(proposal);
+    const collection = readAtPointer(next, pointer);
+    if (!Array.isArray(collection)) {
+      throw new VisualAuthoringSessionError(`collection does not exist at ${pointer}`);
+    }
+    mutator(collection);
+    createVenueAuthoringDocument(next);
+    proposal = next;
+    lastError = null;
+    refreshDirtyState();
+    return status();
+  }
+
+  function addCollectionItem(pointer, item) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new VisualAuthoringSessionError('collection item must be an object');
+    }
+    return mutateCollection(pointer, (items) => {
+      if (items.some((existing) => existing.id === item.id)) {
+        throw new VisualAuthoringSessionError(`collection item id already exists: ${item.id}`);
+      }
+      items.push(cloneJson(item));
+    });
+  }
+
+  function removeCollectionItem(pointer, itemId) {
+    return mutateCollection(pointer, (items) => {
+      const index = items.findIndex((item) => item.id === itemId);
+      if (index < 0) throw new VisualAuthoringSessionError(`collection item does not exist: ${itemId}`);
+      items.splice(index, 1);
+    });
+  }
+
+  function moveCollectionItem(pointer, itemId, direction) {
+    const definition = validateCollectionPointer(pointer);
+    if (definition.kind !== 'equipment-status') {
+      throw new VisualAuthoringSessionError(`${definition.kind} uses canonical ordering and cannot be manually reordered`);
+    }
+    if (direction !== 'up' && direction !== 'down') {
+      throw new VisualAuthoringSessionError('collection move direction must be up or down');
+    }
+    return mutateCollection(pointer, (items) => {
+      const index = items.findIndex((item) => item.id === itemId);
+      if (index < 0) throw new VisualAuthoringSessionError(`collection item does not exist: ${itemId}`);
+      const target = direction === 'up' ? index - 1 : index + 1;
+      if (target < 0 || target >= items.length) return;
+      [items[index], items[target]] = [items[target], items[index]];
+    });
+  }
+
   function edit(pointer, value) {
     const ownership = ownershipForPath(pointer);
     if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
@@ -158,18 +274,13 @@ function createVisualAuthoringSessionInternal(baseInput, applyGate) {
         `ordinary visual edit denied at ${pointer} (${ownership || 'UNCLASSIFIED'})`,
       );
     }
-    const acceptedOwnership = buildOwnershipMap(accepted)[pointer];
+    const acceptedOwnership = buildOwnershipMap(createVenueAuthoringDocument(proposal))[pointer];
     if (acceptedOwnership !== OWNERSHIP.OPERATOR_AUTHORED) {
-      throw new VisualAuthoringSessionError(`field does not exist in the accepted document at ${pointer}`);
+      throw new VisualAuthoringSessionError(`field does not exist in the proposal document at ${pointer}`);
     }
     const next = cloneJson(proposal);
-    writeAtPointer(next, pointer, value);
-
-    // Keep the visual projection reconstructable after every UI transaction.
-    // Invalid values are rejected before they can replace the current proposal;
-    // this does not bypass Apply, which still crosses the HV-5 ordinary-edit gate.
+    writeAtPointer(next, pointer, normalizeEditedValue(pointer, value));
     createVenueAuthoringDocument(next);
-
     proposal = next;
     lastError = null;
     refreshDirtyState();
@@ -220,13 +331,17 @@ function createVisualAuthoringSessionInternal(baseInput, applyGate) {
     get state() {
       return state;
     },
+    addCollectionItem,
     apply,
     canonicalAccepted: () => acceptedCanonical,
     canonicalProposal: () => serializeVenueAuthoringReview(proposal),
     discard,
     edit,
+    listEditableCollections,
     listEditableFields,
+    moveCollectionItem,
     previewProjection,
+    removeCollectionItem,
     status,
   });
 }
@@ -235,11 +350,6 @@ function createVisualAuthoringSession(baseInput) {
   return createVisualAuthoringSessionInternal(baseInput, applyOrdinaryOperatorEdit);
 }
 
-// Test-only proof seam. Ordinary authoring code must use createVisualAuthoringSession,
-// which is permanently wired to the real HV-5 gate above. This factory exists only
-// so Phase-C tests can force an Apply-time refusal and prove the rejected-state/base-
-// unchanged contract without exposing raw proposal replacement or alternate authority
-// to the operator-facing surface.
 function createVisualAuthoringSessionForTest(baseInput, { applyGate } = {}) {
   return createVisualAuthoringSessionInternal(baseInput, applyGate);
 }
@@ -248,8 +358,10 @@ module.exports = {
   SESSION_STATE,
   VisualAuthoringSessionError,
   controlKindForPointer,
+  controlOptionsForPointer,
   createVisualAuthoringSession,
   createVisualAuthoringSessionForTest,
+  editableCollectionDescriptors,
   editableFieldDescriptors,
   semanticSectionForPointer,
 };

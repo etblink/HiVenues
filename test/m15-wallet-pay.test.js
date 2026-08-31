@@ -67,18 +67,33 @@ test('M15.4 Wallet retains the exact owner reward-claim gate', async () => {
   assert.match(response.text, /checks your current rewards again before Keychain asks for approval/i);
 });
 
-test('M15.4 Pay presents merchant identity and the no-duplicate-payment model before sign-in', async () => {
+test('M15.4 disabled Pay is explicit before sign-in and exposes no new-payment workflow', async () => {
   const { app } = createFixtureApp();
   const response = await request(app).get('/pay').expect(200);
 
   assert.match(response.text, /data-m15-surface="pay"/);
+  assert.match(response.text, /Payments aren’t available at 4th Street Bar/);
+  assert.match(response.text, /4th Street Bar does not currently offer payments through Hive-Venues/);
+  assert.doesNotMatch(response.text, /Pay with HBD/);
+  assert.doesNotMatch(response.text, /Verified destination/);
+  assert.doesNotMatch(response.text, /Sign in to pay/);
+  assert.doesNotMatch(response.text, /data-pay-form/);
+  assert.doesNotMatch(response.text, /zxing-browser\.min\.js/);
+  assert.doesNotMatch(response.text, /\/js\/pay-tab\.js/);
+});
+
+test('M15.4 explicitly enabled Pay presents venue identity and the no-duplicate-payment model before sign-in', async () => {
+  const fixture = controlledApp({ payment: true });
+  const response = await request(fixture.app).get('/pay').expect(200);
+
+  assert.match(response.text, /data-m15-surface="pay"/);
   assert.match(response.text, /src="\/images\/fourth-street-bar-logo\.jpg"/);
   assert.match(response.text, /Pay at 4th Street Bar/);
-  assert.match(response.text, /Pay your tab with HBD/);
+  assert.match(response.text, /Pay with HBD/);
   assert.match(response.text, /Paid means confirmed/);
   assert.match(response.text, /independent Hive nodes confirm the same transfer is final/);
   assert.match(response.text, /If confirmation is unclear, don’t pay again/);
-  assert.match(response.text, /Keychain approval can happen before Hive-Bar sees final confirmation/);
+  assert.match(response.text, /Keychain approval can happen before Hive-Venues sees final confirmation/);
   assert.match(response.text, /Sign in to pay/);
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
@@ -90,6 +105,7 @@ test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundar
     .set('cookie', fixture.cookie)
     .expect(200);
 
+  assert.match(response.text, /Pay at 4th Street Bar/);
   assert.match(response.text, /data-pay-form/);
   assert.match(response.text, /data-pay-camera-start/);
   assert.match(response.text, /data-pay-camera-stop/);
@@ -100,7 +116,9 @@ test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundar
   assert.match(response.text, /data-pay-receipt-state/);
   assert.match(response.text, /data-pay-recheck/);
   assert.match(response.text, /Check payment details/);
-  assert.match(response.text, /Hive-Bar checks the payment and shows you exactly what will be sent/);
+  assert.match(response.text, /HBD payment QR provided by 4th Street Bar/);
+  assert.match(response.text, /Hive-Venues checks the payment and shows you exactly what will be sent/);
+  assert.match(response.text, /Hive-Venues never receives your private keys/);
   assert.match(response.text, /data-distriator-handoff hidden/);
   assert.match(response.text, /data-distriator-handoff-link/);
   assert.match(response.text, /href="https:\/\/distriator\.com\/#\/claim"/);
@@ -108,6 +126,22 @@ test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundar
   assert.match(response.text, /does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
   assert.doesNotMatch(response.text, /data-distriator-claim/);
   assert.doesNotMatch(response.text, /Maximum payment/i);
+  assert.doesNotMatch(response.text, /Hive-Bar/);
+});
+
+test('M15.4 disabled merchant-bound state preserves existing receipt recovery without preparing a new payment', async () => {
+  const fixture = controlledApp();
+  const response = await request(fixture.app)
+    .get('/pay')
+    .set('cookie', fixture.cookie)
+    .expect(200);
+
+  assert.match(response.text, /Payments aren’t available at 4th Street Bar/);
+  assert.match(response.text, /existing receipt can still be checked/i);
+  assert.match(response.text, /data-pay-receipt/);
+  assert.match(response.text, /\/js\/pay-tab\.js/);
+  assert.doesNotMatch(response.text, /data-pay-form/);
+  assert.doesNotMatch(response.text, /zxing-browser\.min\.js/);
 });
 
 test('M15.4 preserves the accepted browser payment state machine source', () => {

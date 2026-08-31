@@ -76,7 +76,9 @@ test('C2-G.1c-R5.1 always renders the safe external claim link and describes Dis
   assert.match(receiptTemplate, /href="<%= distriator\.claimUrl %>"/);
   assert.match(receiptTemplate, /target="_blank" rel="noopener noreferrer"/);
   assert.match(receiptTemplate, /Distriator is a separate service that may recognize qualifying purchases/);
-  assert.match(receiptTemplate, /Hive-Bar does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+  assert.match(receiptTemplate, /Hive-Venues does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+  assert.match(receiptTemplate, /<%= siteName %>’s own records remain the final source of truth for the underlying purchase/);
+  assert.doesNotMatch(receiptTemplate, /\bHive-Bar\b|The bar’s point-of-sale system|final record for your tab/);
   assert.doesNotMatch(
     receiptTemplate,
     /if \(distriator\.enabled\)[\s\S]{0,120}<div class="pay-external-claim"/,
@@ -85,14 +87,17 @@ test('C2-G.1c-R5.1 always renders the safe external claim link and describes Dis
   const disabledHtml = ejs.render(receiptTemplate, {
     receiptClass: '',
     distriator: handoffConfig(false).distriator,
+    siteName: '4th Street Bar',
   });
   assert.match(disabledHtml, /href="https:\/\/distriator\.com\/#\/claim"/);
   assert.match(disabledHtml, /data-distriator-handoff-link/);
+  assert.match(disabledHtml, /4th Street Bar’s own records remain the final source of truth for the underlying purchase/);
   assert.doesNotMatch(disabledHtml, /data-distriator-claim/);
 
   const legacyEnabledHtml = ejs.render(receiptTemplate, {
     receiptClass: '',
     distriator: handoffConfig(true).distriator,
+    siteName: '4th Street Bar',
   });
   assert.match(legacyEnabledHtml, /href="https:\/\/distriator\.com\/#\/claim"/);
   assert.match(legacyEnabledHtml, /data-distriator-handoff-link/);

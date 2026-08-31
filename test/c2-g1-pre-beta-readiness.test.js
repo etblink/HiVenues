@@ -115,7 +115,8 @@ test('signed-in beta documents retain structural and serious accessibility gates
     assert.equal(blocking.length, 0, `${route}\n${JSON.stringify(blocking.map((item) => item.id))}`);
   }
   const pay = await request(fixture.app).get('/pay').set('cookie', `hive_bar_session=${fixture.token}`).expect(200);
-  assert.match(pay.text, /Payments aren’t available right now/);
+  assert.match(pay.text, /Payments aren’t available at 4th Street Bar/);
+  assert.doesNotMatch(pay.text, /Sign in to pay|data-pay-form/);
   assert.doesNotMatch(pay.text, /<span class="app-nav-label">Pay<\/span>/);
 });
 

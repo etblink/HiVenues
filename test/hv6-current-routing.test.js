@@ -9,6 +9,8 @@ const root = path.join(__dirname, '..');
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
 const SECOND_VENUE_ROUTE = /^(?:SECOND_REAL_VENUE_AUTHORIZED|REAL_SECOND_VENUE_AUTHORIZED) = NO$/gm;
+const NEXT_SUCCESSOR_OPERATION =
+  'HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR__PROJECT_LEAD_ACCEPTANCE_DECISION';
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -53,8 +55,13 @@ function assertCurrentPostHv6Block(relativePath) {
     [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE$/m, 'requirements freeze must be complete'],
     [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'requirement rewriting to force a pass must remain forbidden'],
     [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must remain current'],
-    [/^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m, 'next operation must be the Juniper architecture confrontation'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
+    [/^HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY$/m, 'architecture confrontation must remain complete and read-only'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION = ACCEPTED$/m, 'repair preregistration must remain accepted'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m, 'repair implementation authorization must remain accepted'],
+    [/^HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE$/m, 'repair implementation must remain pre-acceptance'],
+    [/^HV7_PRE_ACCEPTANCE_QUALIFICATION = REQUIRED_ON_EXACT_FINAL_HEAD$/m, 'exact-final-head qualification must remain required'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the Project Lead acceptance decision'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'further substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
     [/^REAL_SECOND_VENUE_REQUIRED = NO$/m, 'a real second venue must not be required'],
@@ -74,6 +81,7 @@ function assertCurrentPostHv6Block(relativePath) {
     /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m,
     /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m,
     /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m,
+    /^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m,
     /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m,
     /^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m,
     /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m,
@@ -83,7 +91,7 @@ function assertCurrentPostHv6Block(relativePath) {
   return block;
 }
 
-test('living current-routing blocks agree on frozen Juniper Works second-nominee state', () => {
+test('living current-routing blocks agree on Juniper pre-acceptance repair state', () => {
   const readme = assertCurrentPostHv6Block('README.md');
   const docsIndex = assertCurrentPostHv6Block('docs/README.md');
   const roadmap = assertCurrentPostHv6Block('docs/ROADMAP.md');
@@ -96,7 +104,7 @@ test('living current-routing blocks agree on frozen Juniper Works second-nominee
   assert.match(readme, /^POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
 });
 
-test('current routing preserves pre-freeze history while binding the Juniper freeze and confrontation route', () => {
+test('current routing preserves pre-freeze and confrontation history while advancing the live route', () => {
   const decision = read('docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md');
   const historicalPreregistration = read('docs/HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md');
   const amendment = read('docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md');
@@ -104,6 +112,8 @@ test('current routing preserves pre-freeze history while binding the Juniper fre
   const preSelectionRouting = read('docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md');
   const requirements = read('docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md');
   const postFreezeRouting = read('docs/HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const confrontation = read('docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md');
+  const currentReconciliation = read('docs/HV7_JUNIPER_WORKS_PRE_ACCEPTANCE_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
 
   assert.match(decision, /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m);
   assert.match(decision, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m);
@@ -121,6 +131,11 @@ test('current routing preserves pre-freeze history while binding the Juniper fre
   assert.match(postFreezeRouting, /^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m);
   assert.match(postFreezeRouting, /^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m);
   assert.match(postFreezeRouting, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+
+  assert.match(confrontation, /HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION/);
+  assert.match(currentReconciliation, /^ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY$/m);
+  assert.match(currentReconciliation, /^PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = CANDIDATE_IMPLEMENTED__PRE_ACCEPTANCE$/m);
+  assert.match(currentReconciliation, new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'));
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {

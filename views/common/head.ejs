@@ -12,10 +12,11 @@
     typeof socialType === 'string' && socialType.trim() ? socialType.trim() : 'website';
   const resolvedSocialImage =
     typeof socialImage === 'string' && socialImage.trim() ? socialImage.trim() : '';
+  const venueTheme = venuePackage.brand.theme || null;
 %>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="<%= venueTheme ? 'light dark' : 'dark' %>">
 <meta name="description" content="<%= resolvedDescription %>">
 <title><%= resolvedTitle %></title>
 <% if (resolvedCanonicalUrl) { %>
@@ -33,3 +34,28 @@
 <% } %>
 <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/style.css') : '/css/style.css' %>">
 <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/m15-social.css') : '/css/m15-social.css' %>">
+<% if (venueTheme) { %>
+<style data-hv7-venue-theme>
+  :root {
+    --venue-canvas: <%= venueTheme.canvas %>;
+    --venue-surface-1: <%= venueTheme.surface %>;
+    --venue-surface-2: <%= venueTheme.surface %>;
+    --venue-surface-3: <%= venueTheme.surface %>;
+    --venue-border: <%= venueTheme.border %>;
+    --venue-text: <%= venueTheme.text %>;
+    --venue-text-muted: <%= venueTheme.mutedText %>;
+    --venue-text-subtle: <%= venueTheme.mutedText %>;
+    --venue-accent: <%= venueTheme.accent %>;
+    --venue-accent-hover: <%= venueTheme.accentHover %>;
+    --venue-on-accent: <%= venueTheme.canvas %>;
+    --venue-gallery-bg: <%= venueTheme.canvas %>;
+  }
+  .app-shell-header,
+  .app-primary-nav {
+    background: <%= venueTheme.canvas %>;
+  }
+  .button-primary {
+    color: var(--venue-on-accent);
+  }
+</style>
+<% } %>

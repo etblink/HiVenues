@@ -5,6 +5,7 @@ const { V1_ACTIONS } = require('../src/v1/actions');
 const { assertAcceptedGovernanceBindings } = require('./release-coherence/accepted-governance');
 const { loadDocumentContext, loadManifestContext } = require('./release-coherence/context');
 const {
+  NEXT_SUCCESSOR_OPERATION,
   assertLivingDocumentGuardrails,
   assertLivingRoutingCoherence,
 } = require('./release-coherence/current-routing');
@@ -19,8 +20,6 @@ const {
   assertV1ManifestCoherence,
 } = require('./release-coherence/reference-deployment');
 const { assertRequiredLivingReleaseDocuments } = require('./release-coherence/required-documents');
-
-const NEXT_SUCCESSOR_OPERATION = 'HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY';
 
 function assertReleaseCoherence() {
   const manifestContext = loadManifestContext();

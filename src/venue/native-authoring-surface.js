@@ -10,7 +10,7 @@ const SAFE_EDIT_ERROR = 'That change could not be previewed. The accepted venue 
 const SAFE_APPLY_ERROR = 'These changes could not be applied. The accepted venue remains unchanged.';
 
 function escapeHtml(value) {
-  return String(value)
+  return String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -41,6 +41,13 @@ function fieldLabel(pointer) {
     '/venuePackage/home/hero/image/caption': 'Hero image caption',
     '/venuePackage/onboarding/operatorNoun': 'Venue noun',
     '/venuePackage/onboarding/staffRole': 'Staff role',
+    '/venuePackage/brand/theme/canvas': 'Canvas color',
+    '/venuePackage/brand/theme/surface': 'Surface color',
+    '/venuePackage/brand/theme/border': 'Border color',
+    '/venuePackage/brand/theme/text': 'Primary text color',
+    '/venuePackage/brand/theme/mutedText': 'Muted text color',
+    '/venuePackage/brand/theme/accent': 'Accent color',
+    '/venuePackage/brand/theme/accentHover': 'Accent hover color',
   };
   if (exact[pointer]) return exact[pointer];
 
@@ -53,6 +60,11 @@ function fieldLabel(pointer) {
     }[gallery[2]];
     return `Gallery item ${Number(gallery[1]) + 1} ${suffix}`;
   }
+
+  const program = pointer.match(/^\/venuePackage\/home\/programs\/items\/(\d+)\/(.+)$/);
+  if (program) return `Program ${Number(program[1]) + 1} ${humanizeSegment(program[2])}`;
+  const equipment = pointer.match(/^\/venuePackage\/home\/equipmentStatus\/items\/(\d+)\/(.+)$/);
+  if (equipment) return `Equipment item ${Number(equipment[1]) + 1} ${humanizeSegment(equipment[2])}`;
 
   const segment = pointer.split('/').filter(Boolean).at(-1) || 'field';
   return humanizeSegment(segment);
@@ -70,31 +82,107 @@ function previewCoverage(section) {
     return 'Used on onboarding surfaces; editable here but not visible in the home-page preview.';
   }
   if (section === 'seo') return 'Used in document metadata rather than visible page copy.';
+  if (section === 'theme') return 'Validated venue colors are applied to the real application preview.';
+  if (section === 'programs' || section === 'equipment-status') {
+    return 'Structured venue information rendered by the real shared home-page path.';
+  }
   return 'Visible in the real home-page preview when its current state is present.';
 }
 
 function controlKindLabel(kind) {
   if (kind === 'asset-path') return 'Local image path';
   if (kind === 'multiline-text') return 'Long text';
-  if (kind === 'url') return 'Web address';
+  if (kind === 'url' || kind === 'optional-url') return 'Web address';
+  if (kind === 'color') return 'Validated color';
+  if (kind === 'select') return 'Structured state';
+  if (kind === 'datetime-offset') return 'ISO date/time with offset';
   return 'Text';
 }
 
 function inputFor(field, id) {
-  const common = `id="${id}" name="value" required maxlength="1200"`;
+  const required = field.required ? ' required' : '';
+  const common = `id="${id}" name="value"${required} maxlength="1200"`;
+  const value = field.value ?? '';
   if (field.controlKind === 'multiline-text') {
-    return `<textarea ${common} rows="4">${escapeHtml(field.value)}</textarea>`;
+    return `<textarea ${common} rows="4">${escapeHtml(value)}</textarea>`;
   }
-  const type = field.controlKind === 'url' ? 'url' : 'text';
-  return `<input ${common} type="${type}" value="${escapeHtml(field.value)}">`;
+  if (field.controlKind === 'select') {
+    const options = field.options
+      .map((option) => `<option value="${escapeHtml(option)}"${option === value ? ' selected' : ''}>${escapeHtml(humanizeSegment(option))}</option>`)
+      .join('');
+    return `<select ${common}>${options}</select>`;
+  }
+  if (field.controlKind === 'color') {
+    return `<input ${common} type="color" value="${escapeHtml(value)}">`;
+  }
+  const type = field.controlKind === 'url' || field.controlKind === 'optional-url' ? 'url' : 'text';
+  const hint = field.controlKind === 'datetime-offset' ? ' placeholder="2026-09-10T18:00:00-07:00"' : '';
+  return `<input ${common} type="${type}" value="${escapeHtml(value)}"${hint}>`;
 }
 
 function proposalToken(session) {
   return createHash('sha256').update(session.canonicalProposal()).digest('hex').slice(0, 16);
 }
 
+function collectionAddFields(collection) {
+  if (collection.kind === 'programs') {
+    return `
+      <label>Stable item ID<input name="id" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80"></label>
+      <label>Title<input name="title" required maxlength="240"></label>
+      <label>Starts at<input name="startAt" required placeholder="2026-09-10T18:00:00-07:00"></label>
+      <label>Ends at<input name="endAt" required placeholder="2026-09-10T19:00:00-07:00"></label>
+      <label>Description<textarea name="description" required rows="3" maxlength="1200"></textarea></label>
+      <label>Access / audience note<textarea name="accessNote" required rows="2" maxlength="240"></textarea></label>
+      <label>Public state<select name="state" required><option value="scheduled">Scheduled</option><option value="full">Full</option><option value="cancelled">Cancelled</option></select></label>
+      <label>Optional HTTPS link<input name="link" type="url" maxlength="240"></label>`;
+  }
+  return `
+    <label>Stable item ID<input name="id" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80"></label>
+    <label>Equipment / area name<input name="name" required maxlength="240"></label>
+    <label>Advisory state<select name="state" required><option value="available">Available</option><option value="limited">Limited</option><option value="maintenance">Maintenance</option><option value="offline">Offline</option></select></label>
+    <label>Advisory note<textarea name="note" required rows="2" maxlength="240"></textarea></label>
+    <label>Orientation / access note<textarea name="accessNote" required rows="2" maxlength="240"></textarea></label>
+    <label>Last updated<input name="lastUpdated" required placeholder="2026-09-09T16:30:00-07:00"></label>
+    <label>Optional group<input name="group" maxlength="240"></label>`;
+}
+
+function collectionMarkup(collection, editorPath) {
+  const noun = collection.kind === 'programs' ? 'program' : 'equipment item';
+  const rows = collection.items.length
+    ? collection.items.map((item) => `
+      <li class="collection-item">
+        <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.id)}</span></div>
+        <div class="collection-actions">
+          ${collection.kind === 'equipment-status' ? `
+          <form method="post" action="${editorPath}/collection"><input type="hidden" name="pointer" value="${escapeHtml(collection.pointer)}"><input type="hidden" name="itemId" value="${escapeHtml(item.id)}"><button class="secondary" name="operation" value="move-up" type="submit" aria-label="Move ${escapeHtml(item.label)} up">↑</button></form>
+          <form method="post" action="${editorPath}/collection"><input type="hidden" name="pointer" value="${escapeHtml(collection.pointer)}"><input type="hidden" name="itemId" value="${escapeHtml(item.id)}"><button class="secondary" name="operation" value="move-down" type="submit" aria-label="Move ${escapeHtml(item.label)} down">↓</button></form>` : ''}
+          <form method="post" action="${editorPath}/collection"><input type="hidden" name="pointer" value="${escapeHtml(collection.pointer)}"><input type="hidden" name="itemId" value="${escapeHtml(item.id)}"><button class="secondary" name="operation" value="remove" type="submit">Remove</button></form>
+        </div>
+      </li>`).join('')
+    : '<li class="collection-empty">No items in this collection. An intentional empty state is valid.</li>';
+
+  return `
+    <section class="collection-card" data-collection-pointer="${escapeHtml(collection.pointer)}">
+      <div class="collection-card__heading">
+        <div><p class="eyebrow">Structured venue content</p><h3>${escapeHtml(sectionLabel(collection.kind))}</h3></div>
+        <span>${collection.count} / ${collection.maxItems}</span>
+      </div>
+      <ul class="collection-list">${rows}</ul>
+      <details class="collection-add">
+        <summary>Add ${escapeHtml(noun)}</summary>
+        <form method="post" action="${editorPath}/collection" class="collection-add__form">
+          <input type="hidden" name="pointer" value="${escapeHtml(collection.pointer)}">
+          <input type="hidden" name="operation" value="add">
+          ${collectionAddFields(collection)}
+          <button type="submit">Add to preview</button>
+        </form>
+      </details>
+    </section>`;
+}
+
 function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath, previewPath }) {
   const fields = session.listEditableFields();
+  const collections = session.listEditableCollections();
   const groups = new Map();
   for (const field of fields) {
     if (!groups.has(field.semanticSection)) groups.set(field.semanticSection, []);
@@ -110,6 +198,7 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
     .map(([section], index) => `<a href="#section-${index}">${escapeHtml(sectionLabel(section))}</a>`)
     .join('');
 
+  const collectionBySection = new Map(collections.map((collection) => [collection.kind, collection]));
   const sectionMarkup = groupEntries.map(([section, sectionFields], sectionIndex) => {
     const controls = sectionFields.map((field, fieldIndex) => {
       const id = `field-${sectionIndex}-${fieldIndex}`;
@@ -124,6 +213,7 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
           </div>
         </form>`;
     }).join('');
+    const collection = collectionBySection.get(section);
     return `
       <section class="editor-section" id="section-${sectionIndex}" aria-labelledby="section-heading-${sectionIndex}">
         <header>
@@ -133,6 +223,7 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
           </div>
           <p>${escapeHtml(previewCoverage(section))}</p>
         </header>
+        ${collection ? collectionMarkup(collection, editorPath) : ''}
         <div class="field-stack">${controls}</div>
       </section>`;
   }).join('');
@@ -148,10 +239,12 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
     :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #f5f5f4; }
     * { box-sizing: border-box; }
     body { margin: 0; }
-    button, input, textarea { font: inherit; min-height: 44px; }
-    button { border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: #292524; color: white; cursor: pointer; }
-    button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
-    input, textarea { width: 100%; border: 1px solid #a8a29e; border-radius: 10px; padding: 10px 12px; background: white; color: #18181b; }
+    button, input, textarea, select, summary { font: inherit; min-height: 44px; }
+    button, summary { border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: #292524; color: white; cursor: pointer; }
+    button.secondary { background: white; color: #292524; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+    input, textarea, select { width: 100%; border: 1px solid #a8a29e; border-radius: 10px; padding: 10px 12px; background: white; color: #18181b; }
+    input[type="color"] { min-height: 52px; padding: 5px; }
     textarea { resize: vertical; }
     .skip-link { position: absolute; left: 12px; top: -60px; z-index: 10; background: white; padding: 10px; }
     .skip-link:focus { top: 12px; }
@@ -162,8 +255,7 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
     .status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
     .status > span { border: 1px solid #d6d3d1; border-radius: 999px; padding: 8px 10px; background: white; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .actions form { margin: 0; }
-    .actions .secondary { background: white; color: #292524; }
+    .actions form, .collection-actions form { margin: 0; }
     .notice { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #a8a29e; border-radius: 10px; background: white; }
     .notice--error { border-color: #991b1b; }
     .workspace { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(0, 1.18fr); gap: 18px; align-items: start; }
@@ -183,9 +275,20 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
     .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: #78716c; margin-bottom: 3px !important; }
     .field-stack { display: grid; gap: 12px; padding-top: 12px; }
     .field-card { display: grid; gap: 7px; padding: 12px; border: 1px solid #e7e5e4; border-radius: 12px; background: #fafaf9; }
-    .field-card label { font-weight: 650; }
+    .field-card label, .collection-add label { font-weight: 650; display: grid; gap: 6px; }
     .field-card__footer { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
     .field-meta { color: #57534e; font-size: 0.82rem; }
+    .collection-card { margin-top: 14px; border: 1px solid #d6d3d1; border-radius: 12px; padding: 12px; background: #fafaf9; }
+    .collection-card__heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .collection-card__heading h3 { margin: 0; }
+    .collection-list { display: grid; gap: 8px; list-style: none; margin: 12px 0; padding: 0; }
+    .collection-item { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid #e7e5e4; border-radius: 10px; padding: 10px; background: white; }
+    .collection-item strong, .collection-item span { display: block; }
+    .collection-item span, .collection-empty { color: #57534e; font-size: 0.82rem; }
+    .collection-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .collection-actions button { min-width: 44px; padding-inline: 10px; }
+    .collection-add summary { width: fit-content; }
+    .collection-add__form { display: grid; gap: 10px; margin-top: 10px; }
     @media (max-width: 860px) {
       .shell { padding: 12px; }
       .topbar, .workspace { display: block; }
@@ -195,7 +298,7 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
       .preview { order: -1; width: 100%; }
       iframe { height: 64vh; min-height: 520px; }
       .editor-section > header { grid-template-columns: 1fr; }
-      .field-card__footer { align-items: stretch; flex-direction: column; }
+      .field-card__footer, .collection-item { align-items: stretch; flex-direction: column; }
     }
   </style>
 </head>
@@ -238,6 +341,30 @@ function renderNativeAuthoringDocument({ session, notice, venueLabel, editorPath
 </html>`;
 }
 
+function buildCollectionItem(kind, body) {
+  if (kind === 'programs') {
+    return {
+      id: body.id,
+      title: body.title,
+      startAt: body.startAt,
+      endAt: body.endAt,
+      description: body.description,
+      accessNote: body.accessNote,
+      state: body.state,
+      link: body.link || null,
+    };
+  }
+  return {
+    id: body.id,
+    name: body.name,
+    state: body.state,
+    note: body.note,
+    accessNote: body.accessNote,
+    lastUpdated: body.lastUpdated,
+    group: body.group || null,
+  };
+}
+
 function createOfflineNativeAuthoringSurface({
   authoringInput,
   renderPreviewHtml,
@@ -255,7 +382,7 @@ function createOfflineNativeAuthoringSurface({
   const router = express.Router();
   let notice = null;
 
-  router.use(express.urlencoded({ extended: false, limit: '32kb' }));
+  router.use(express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 80 }));
 
   router.get(editorPath, (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -279,6 +406,31 @@ function createOfflineNativeAuthoringSurface({
       notice = {
         kind: 'success',
         text: `${fieldLabel(pointer)} preview updated. The accepted document is unchanged.`,
+      };
+    } catch {
+      notice = { kind: 'error', text: SAFE_EDIT_ERROR };
+    }
+    res.redirect(303, editorPath);
+  });
+
+  router.post(`${editorPath}/collection`, (req, res) => {
+    const pointer = typeof req.body.pointer === 'string' ? req.body.pointer : '';
+    const operation = typeof req.body.operation === 'string' ? req.body.operation : '';
+    try {
+      const collection = session.listEditableCollections().find((entry) => entry.pointer === pointer);
+      if (!collection) throw new TypeError('unknown collection');
+      if (operation === 'add') {
+        session.addCollectionItem(pointer, buildCollectionItem(collection.kind, req.body));
+      } else if (operation === 'remove') {
+        session.removeCollectionItem(pointer, req.body.itemId);
+      } else if (operation === 'move-up' || operation === 'move-down') {
+        session.moveCollectionItem(pointer, req.body.itemId, operation === 'move-up' ? 'up' : 'down');
+      } else {
+        throw new TypeError('unknown collection operation');
+      }
+      notice = {
+        kind: 'success',
+        text: 'Structured venue content preview updated. The accepted document is unchanged.',
       };
     } catch {
       notice = { kind: 'error', text: SAFE_EDIT_ERROR };

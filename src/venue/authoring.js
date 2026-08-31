@@ -13,6 +13,8 @@ const DEPLOYMENT_REFERENCE_ID = z.string().trim().min(1).max(120);
 
 const OWNERSHIP = Object.freeze({
   OPERATOR_AUTHORED: 'OPERATOR_AUTHORED',
+  OPERATOR_AUTHORED_COLLECTION: 'OPERATOR_AUTHORED_COLLECTION',
+  OPERATOR_COLLECTION_ID: 'OPERATOR_COLLECTION_ID',
   INTEGRATION_OWNED: 'INTEGRATION_OWNED',
   DERIVED: 'DERIVED',
   PLATFORM_FIXED: 'PLATFORM_FIXED',
@@ -20,6 +22,17 @@ const OWNERSHIP = Object.freeze({
   SECURITY_PRIVILEGED: 'SECURITY_PRIVILEGED',
   SECRET_OR_PRIVATE__FORBIDDEN_FROM_AUTHORING_DOCUMENT:
     'SECRET_OR_PRIVATE__FORBIDDEN_FROM_AUTHORING_DOCUMENT',
+});
+
+const OPERATOR_COLLECTIONS = Object.freeze({
+  '/venuePackage/home/programs/items': Object.freeze({
+    kind: 'programs',
+    maxItems: 12,
+  }),
+  '/venuePackage/home/equipmentStatus/items': Object.freeze({
+    kind: 'equipment-status',
+    maxItems: 20,
+  }),
 });
 
 class VenueAuthoringError extends Error {
@@ -81,8 +94,6 @@ function createVenueAuthoringDocument(input) {
     venuePackage,
   });
 
-  // Completeness is fail-closed: every path present in a valid v1 document must
-  // resolve to exactly one ownership class before the document is accepted.
   buildOwnershipMap(document);
   return document;
 }
@@ -93,6 +104,14 @@ function escapePointerSegment(segment) {
 
 function joinPointer(base, segment) {
   return `${base}/${escapePointerSegment(segment)}`;
+}
+
+function isOperatorCollectionPath(pointer) {
+  return Object.prototype.hasOwnProperty.call(OPERATOR_COLLECTIONS, pointer);
+}
+
+function operatorCollectionDefinition(pointer) {
+  return OPERATOR_COLLECTIONS[pointer] || null;
 }
 
 function ownershipForPath(pointer) {
@@ -123,14 +142,33 @@ function ownershipForPath(pointer) {
     return OWNERSHIP.SECURITY_PRIVILEGED;
   }
 
+  if (isOperatorCollectionPath(pointer)) return OWNERSHIP.OPERATOR_AUTHORED_COLLECTION;
+
+  if (
+    /^\/venuePackage\/home\/(?:programs|equipmentStatus)\/items\/\d+$/.test(pointer)
+  ) {
+    return OWNERSHIP.OPERATOR_AUTHORED_COLLECTION;
+  }
+
+  if (
+    /^\/venuePackage\/home\/(?:programs|equipmentStatus)\/items\/\d+\/id$/.test(pointer)
+  ) {
+    return OWNERSHIP.OPERATOR_COLLECTION_ID;
+  }
+
   if (
     pointer === '/venueContext/displayName' ||
     /^\/venueContext\/business\/(?:address|phone|hours|websiteUrl|mapUrl)$/.test(pointer) ||
     pointer === '/venuePackage/brand/logo/src' ||
+    /^\/venuePackage\/brand\/theme\/(?:canvas|surface|border|text|mutedText|accent|accentHover)$/.test(pointer) ||
     pointer === '/venuePackage/seo/defaultDescription' ||
     /^\/venuePackage\/home\/hero\/(?:lede|footnote)$/.test(pointer) ||
     /^\/venuePackage\/home\/hero\/image\/(?:src|alt|caption)$/.test(pointer) ||
     /^\/venuePackage\/home\/updates\/(?:heading|unavailableLead|unavailableBody|emptyLead|emptyBody)$/.test(pointer) ||
+    /^\/venuePackage\/home\/programs\/(?:kicker|heading|intro|emptyLead|emptyBody)$/.test(pointer) ||
+    /^\/venuePackage\/home\/programs\/items\/\d+\/(?:title|startAt|endAt|description|accessNote|state|link)$/.test(pointer) ||
+    /^\/venuePackage\/home\/equipmentStatus\/(?:kicker|heading|intro|emptyLead|emptyBody)$/.test(pointer) ||
+    /^\/venuePackage\/home\/equipmentStatus\/items\/\d+\/(?:name|state|note|accessNote|lastUpdated|group)$/.test(pointer) ||
     /^\/venuePackage\/home\/pathways\/(?:kicker|heading|intro)$/.test(pointer) ||
     /^\/venuePackage\/home\/visit\/(?:kicker|heading|lede|note)$/.test(pointer) ||
     /^\/venuePackage\/home\/community\/(?:kicker|heading|lede)$/.test(pointer) ||
@@ -149,10 +187,6 @@ function ownershipForPath(pointer) {
     return OWNERSHIP.DERIVED;
   }
 
-  // Containers are deliberately protected from ordinary replacement. This
-  // keeps v1 edits leaf-oriented and prevents an editor from gaining implicit
-  // authority over array cardinality, object structure, or mixed-ownership
-  // subtrees merely by replacing a parent value.
   if (
     pointer === '/venueContext' ||
     pointer === '/venueContext/business' ||
@@ -160,11 +194,14 @@ function ownershipForPath(pointer) {
     pointer === '/venuePackage' ||
     pointer === '/venuePackage/brand' ||
     pointer === '/venuePackage/brand/logo' ||
+    pointer === '/venuePackage/brand/theme' ||
     pointer === '/venuePackage/seo' ||
     pointer === '/venuePackage/home' ||
     pointer === '/venuePackage/home/hero' ||
     pointer === '/venuePackage/home/hero/image' ||
     pointer === '/venuePackage/home/updates' ||
+    pointer === '/venuePackage/home/programs' ||
+    pointer === '/venuePackage/home/equipmentStatus' ||
     pointer === '/venuePackage/home/pathways' ||
     pointer === '/venuePackage/home/visit' ||
     pointer === '/venuePackage/home/community' ||
@@ -206,8 +243,14 @@ function buildOwnershipMap(documentInput) {
   return deepFreeze(entries);
 }
 
+function valuesEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function collectChangedPaths(base, proposed, pointer = '') {
-  if (Object.is(base, proposed)) return [];
+  if (Object.is(base, proposed) || valuesEqual(base, proposed)) return [];
+
+  if (isOperatorCollectionPath(pointer)) return [pointer];
 
   const baseObject = base && typeof base === 'object';
   const proposedObject = proposed && typeof proposed === 'object';
@@ -231,6 +274,39 @@ function collectChangedPaths(base, proposed, pointer = '') {
   );
 }
 
+function itemIdSet(items, pointer) {
+  const ids = new Set();
+  for (const item of items) {
+    if (!item || typeof item.id !== 'string') {
+      throw new VenueAuthoringError(`operator collection item at ${pointer} requires a stable id`);
+    }
+    if (ids.has(item.id)) {
+      throw new VenueAuthoringError(`operator collection item ids must be unique at ${pointer}`);
+    }
+    ids.add(item.id);
+  }
+  return ids;
+}
+
+function assertOperatorCollectionTransition(baseItems, proposedItems, pointer) {
+  const definition = operatorCollectionDefinition(pointer);
+  if (!definition || !Array.isArray(baseItems) || !Array.isArray(proposedItems)) {
+    throw new VenueAuthoringError(`ordinary operator collection edit denied at ${pointer}`);
+  }
+  if (proposedItems.length > definition.maxItems) {
+    throw new VenueAuthoringError(`ordinary operator collection exceeds maxItems at ${pointer}`);
+  }
+  itemIdSet(baseItems, pointer);
+  itemIdSet(proposedItems, pointer);
+}
+
+function readPointer(root, pointer) {
+  return pointer
+    .split('/')
+    .slice(1)
+    .reduce((cursor, segment) => cursor?.[segment.replace(/~1/g, '/').replace(/~0/g, '~')], root);
+}
+
 function applyOrdinaryOperatorEdit(baseInput, proposedInput) {
   const base = createVenueAuthoringDocument(baseInput);
   const proposed = createVenueAuthoringDocument(proposedInput);
@@ -238,6 +314,10 @@ function applyOrdinaryOperatorEdit(baseInput, proposedInput) {
 
   for (const pointer of changedPaths) {
     const ownership = ownershipForPath(pointer);
+    if (ownership === OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+      assertOperatorCollectionTransition(readPointer(base, pointer), readPointer(proposed, pointer), pointer);
+      continue;
+    }
     if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
       throw new VenueAuthoringError(
         `ordinary operator edit denied at ${pointer || '/'} (${ownership || 'UNCLASSIFIED'})`,
@@ -280,12 +360,16 @@ function composeVenueBootstrapFromAuthoring(
 }
 
 module.exports = {
+  OPERATOR_COLLECTIONS,
   OWNERSHIP,
   VenueAuthoringError,
   applyOrdinaryOperatorEdit,
   buildOwnershipMap,
+  collectChangedPaths,
   composeVenueBootstrapFromAuthoring,
   createVenueAuthoringDocument,
+  isOperatorCollectionPath,
+  operatorCollectionDefinition,
   ownershipForPath,
   serializeVenueAuthoringReview,
 };
