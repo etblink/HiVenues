@@ -64,9 +64,10 @@ async function assertAccessibleHtml(html, url) {
   });
   dom.window.close();
   const blocking = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
-  assert.deepEqual(
-    blocking.map((violation) => ({ id: violation.id, impact: violation.impact })),
-    [],
+  assert.equal(
+    blocking.length,
+    0,
+    JSON.stringify(blocking.map((violation) => ({ id: violation.id, impact: violation.impact }))),
   );
 }
 
@@ -102,6 +103,30 @@ test('Juniper renders through the real shared application path with structured v
     visibleDom.window.close();
 
     await assertAccessibleHtml(html, 'https://juniper-works.example/');
+  } finally {
+    app.locals.services.receiptStore?.close?.();
+  }
+});
+
+test('Juniper shared FAQ uses venue-neutral platform language without losing Hive safety guidance', async () => {
+  const app = createJuniperApp();
+  try {
+    const response = await request(app).get('/faq').expect(200);
+    const html = response.text;
+    const visibleDom = new JSDOM(html);
+    const visibleText = visibleDom.window.document.body.textContent || '';
+
+    assert.match(visibleText, /use Juniper Works Cooperative/);
+    assert.match(visibleText, /workshop temporarily delegates Hive Power/i);
+    assert.match(visibleText, /give it to the steward/i);
+    assert.match(visibleText, /Hive-Venues/);
+    assert.match(visibleText, /Using the community/);
+    assert.doesNotMatch(visibleText, /\b(?:bar|beer|bartender|patron)\b/i);
+    assert.doesNotMatch(visibleText, /\bHive-Bar\b/i);
+    assert.doesNotMatch(html, /Fourth Street|fourthstreetbar|hive-108590|fourthst\.threads/i);
+    visibleDom.window.close();
+
+    await assertAccessibleHtml(html, 'https://juniper-works.example/faq');
   } finally {
     app.locals.services.receiptStore?.close?.();
   }
