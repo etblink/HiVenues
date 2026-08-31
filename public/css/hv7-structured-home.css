@@ -1,0 +1,138 @@
+/* HV-7 structured venue-information presentation.
+ * Shared by any venue package that opts into the bounded program/equipment capabilities.
+ */
+
+.home-structured {
+  border-bottom: 1px solid var(--hb-border);
+  background: var(--hb-bg);
+  color: var(--hb-text);
+}
+
+.home-structured:nth-of-type(even) {
+  background: var(--hb-surface);
+}
+
+.home-structured-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-structured-card {
+  min-width: 0;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-panel);
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+  background: var(--hb-surface);
+}
+
+.home-structured-card__topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  color: var(--hb-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.home-structured-card h3 {
+  margin-top: 0.85rem;
+  color: var(--hb-text);
+  font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+  font-weight: 830;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.home-structured-card__body,
+.home-structured-card__note,
+.home-structured-card__time,
+.home-structured-disclaimer,
+.home-structured-empty p {
+  color: var(--hb-text-muted);
+  line-height: 1.65;
+}
+
+.home-structured-card__body {
+  margin-top: 0.7rem;
+}
+
+.home-structured-card__note,
+.home-structured-card__time {
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+}
+
+.home-structured-card__note strong,
+.home-structured-card__time strong,
+.home-structured-empty strong {
+  color: var(--hb-text);
+}
+
+.home-structured-card__group {
+  color: var(--hb-text-muted);
+  font-weight: 700;
+}
+
+.home-state-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  border: 1px solid var(--hb-border);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  background: var(--hb-surface-raised);
+  color: var(--hb-text);
+  font-size: 0.74rem;
+  font-weight: 820;
+  letter-spacing: 0.03em;
+}
+
+.home-state-chip[data-program-state="scheduled"],
+.home-state-chip[data-equipment-state="available"] {
+  border-color: var(--venue-success);
+}
+
+.home-state-chip[data-program-state="full"],
+.home-state-chip[data-equipment-state="limited"] {
+  border-color: var(--venue-warning);
+}
+
+.home-state-chip[data-program-state="cancelled"],
+.home-state-chip[data-equipment-state="maintenance"],
+.home-state-chip[data-equipment-state="offline"] {
+  border-color: var(--venue-danger);
+}
+
+.home-structured-empty {
+  border: 1px dashed var(--hb-border);
+  border-radius: var(--hb-radius-panel);
+  padding: 1.15rem;
+  background: var(--hb-surface);
+}
+
+.home-structured-empty p {
+  margin-top: 0.35rem;
+}
+
+.home-structured-disclaimer {
+  max-width: 60rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+}
+
+@media (min-width: 760px) {
+  .home-structured-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1120px) {
+  .home-equipment-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

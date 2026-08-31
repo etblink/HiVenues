@@ -1,0 +1,48 @@
+<%
+  const equipmentStatus = venuePackage.home.equipmentStatus;
+  function formatVenueUpdatedTime(value) {
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?(Z|[+-]\d{2}:\d{2})$/);
+    if (!match) return String(value);
+    const [, year, month, day, hour, minute, offset] = match;
+    const pseudoUtc = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)));
+    const label = new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC',
+    }).format(pseudoUtc);
+    return `${label} ${offset === 'Z' ? 'UTC' : `UTC${offset.replace('-', '−')}`}`;
+  }
+%>
+<% if (equipmentStatus) { %>
+<section class="home-structured home-equipment" aria-labelledby="home-equipment-heading" data-hv7-equipment-status>
+  <div class="app-content-frame home-section">
+    <header class="home-section-heading">
+      <div>
+        <p class="home-kicker"><%= equipmentStatus.kicker %></p>
+        <h2 id="home-equipment-heading"><%= equipmentStatus.heading %></h2>
+      </div>
+      <p><%= equipmentStatus.intro %></p>
+    </header>
+    <% if (equipmentStatus.items.length) { %>
+      <ul class="home-structured-list home-equipment-list">
+        <% for (const item of equipmentStatus.items) { %>
+          <li class="home-structured-card" data-equipment-id="<%= item.id %>">
+            <div class="home-structured-card__topline">
+              <span class="home-state-chip" data-equipment-state="<%= item.state %>"><%= item.state.charAt(0).toUpperCase() + item.state.slice(1) %></span>
+              <% if (item.group) { %><span class="home-structured-card__group"><%= item.group %></span><% } %>
+            </div>
+            <h3><%= item.name %></h3>
+            <p class="home-structured-card__body"><%= item.note %></p>
+            <p class="home-structured-card__note"><strong>Orientation / access:</strong> <%= item.accessNote %></p>
+            <p class="home-structured-card__time"><strong>Advisory status updated:</strong> <time datetime="<%= item.lastUpdated %>"><%= formatVenueUpdatedTime(item.lastUpdated) %></time></p>
+          </li>
+        <% } %>
+      </ul>
+      <p class="home-structured-disclaimer">Equipment status is advisory public information. Follow posted safety rules and steward guidance at the venue.</p>
+    <% } else { %>
+      <div class="home-structured-empty" role="status">
+        <strong><%= equipmentStatus.emptyLead %></strong>
+        <p><%= equipmentStatus.emptyBody %></p>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } %>

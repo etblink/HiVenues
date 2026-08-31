@@ -1,0 +1,50 @@
+<%
+  const programs = venuePackage.home.programs;
+  function formatVenueWallTime(value) {
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?(Z|[+-]\d{2}:\d{2})$/);
+    if (!match) return String(value);
+    const [, year, month, day, hour, minute, offset] = match;
+    const pseudoUtc = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)));
+    const label = new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC',
+    }).format(pseudoUtc);
+    return `${label} ${offset === 'Z' ? 'UTC' : `UTC${offset.replace('-', '−')}`}`;
+  }
+%>
+<% if (programs) { %>
+<section class="home-structured home-programs" aria-labelledby="home-programs-heading" data-hv7-programs>
+  <div class="app-content-frame home-section">
+    <header class="home-section-heading">
+      <div>
+        <p class="home-kicker"><%= programs.kicker %></p>
+        <h2 id="home-programs-heading"><%= programs.heading %></h2>
+      </div>
+      <p><%= programs.intro %></p>
+    </header>
+    <% if (programs.items.length) { %>
+      <ol class="home-structured-list home-program-list">
+        <% for (const item of programs.items) { %>
+          <li class="home-structured-card" data-program-id="<%= item.id %>">
+            <div class="home-structured-card__topline">
+              <span class="home-state-chip" data-program-state="<%= item.state %>"><%= item.state.charAt(0).toUpperCase() + item.state.slice(1) %></span>
+              <time datetime="<%= item.startAt %>"><%= formatVenueWallTime(item.startAt) %></time>
+            </div>
+            <h3><%= item.title %></h3>
+            <p class="home-structured-card__body"><%= item.description %></p>
+            <p class="home-structured-card__note"><strong>Access:</strong> <%= item.accessNote %></p>
+            <p class="home-structured-card__time"><strong>Ends:</strong> <time datetime="<%= item.endAt %>"><%= formatVenueWallTime(item.endAt) %></time></p>
+            <% if (item.link) { %>
+              <a class="home-text-link" href="<%= item.link %>" rel="noopener noreferrer">Program information <span aria-hidden="true">→</span></a>
+            <% } %>
+          </li>
+        <% } %>
+      </ol>
+    <% } else { %>
+      <div class="home-structured-empty" role="status">
+        <strong><%= programs.emptyLead %></strong>
+        <p><%= programs.emptyBody %></p>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } %>

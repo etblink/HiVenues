@@ -3,6 +3,7 @@
 <head>
   <%- include('../../common/head') %>
   <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/ux-1f-home.css') : '/css/ux-1f-home.css' %>">
+  <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/hv7-structured-home.css') : '/css/hv7-structured-home.css' %>">
 </head>
 <body class="flex min-h-screen flex-col">
   <%- include('../../common/header') %>
@@ -14,6 +15,8 @@
     data-ux-1f-surface="home">
     <%- include('partials/hero') %>
     <%- include('partials/latest-updates', { officialUpdates }) %>
+    <%- include('partials/programs') %>
+    <%- include('partials/equipment-status') %>
     <section class="home-pathways" aria-labelledby="home-pathways-heading">
       <div class="app-content-frame home-section">
         <header class="home-section-heading home-pathways__heading">
