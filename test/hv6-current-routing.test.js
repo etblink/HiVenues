@@ -35,23 +35,26 @@ function assertCurrentPostHv6Block(relativePath) {
     [/^HV6_PHASE_C_IMPLEMENTATION = ACCEPTED$/m, 'Phase C implementation must be accepted'],
     [/^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'historical Post-HV-6 sequencing must remain accepted'],
     [/^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m, 'HV-7 evidence-model amendment must be accepted'],
-    [/^POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT$/m, 'historical real-only lane label must be superseded for current routing'],
-    [/^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m, 'Fourth Street must be a real venue'],
-    [/^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m, 'Fourth Street must be the first and currently sole real client'],
-    [/^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m, 'Fourth Street must be the first venue nominee'],
-    [/^FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT$/m, 'Fourth Street must be the reference deployment'],
-    [/^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m, 'HV-7 must establish the second venue nominee'],
-    [/^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m, 'second nominee must remain design-pending with synthetic allowed'],
-    [/^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'adversarial isolated second-venue pilot must be selected'],
-    [/^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m, 'synthetic adversarial candidate mode must be selected'],
-    [/^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m, 'adversarial must remain product-credible rather than contrived'],
-    [/^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m, 'design method must be architecture-aware and product-first'],
+    [/^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m, 'Fourth Street must remain a real venue'],
+    [/^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m, 'Fourth Street must remain the first and currently sole real client'],
+    [/^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m, 'Fourth Street must remain the first venue nominee'],
+    [/^FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT$/m, 'Fourth Street must remain the reference deployment'],
+    [/^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m, 'HV-7 must retain the second venue nominee role'],
+    [/^HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE$/m, 'Juniper Works must be selected'],
+    [/^HV7_SECOND_VENUE_NOMINEE_REALITY = SYNTHETIC$/m, 'Juniper Works must remain synthetic'],
+    [/^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m, 'Juniper Works requirements must be frozen'],
+    [/^HV7_REQUIREMENTS_PACKET = FROZEN_0_1_0$/m, 'the 0.1.0 requirement packet must control'],
+    [/^HV7_REQUIREMENT_COUNT = 24$/m, 'all 24 requirements must remain frozen'],
+    [/^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'adversarial isolated second-venue pilot must remain selected'],
+    [/^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m, 'synthetic adversarial evidence mode must remain selected'],
+    [/^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m, 'adversarial must remain product-credible'],
+    [/^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m, 'design method must remain architecture-aware and product-first'],
     [/^HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED$/m, 'artificial blindness must not be required'],
-    [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m, 'requirements must freeze before implementation'],
-    [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'post-freeze requirement rewriting to force a pass must be forbidden'],
-    [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must be proposed'],
-    [/^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m, 'next operation must be read-only second-nominee candidate design'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'no post-HV-6 implementation may be implicitly authorized'],
+    [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE$/m, 'requirements freeze must be complete'],
+    [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'requirement rewriting to force a pass must remain forbidden'],
+    [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must remain current'],
+    [/^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m, 'next operation must be the Juniper architecture confrontation'],
+    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'substantive implementation must remain unauthorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
     [/^REAL_SECOND_VENUE_REQUIRED = NO$/m, 'a real second venue must not be required'],
@@ -67,21 +70,20 @@ function assertCurrentPostHv6Block(relativePath) {
   const secondVenueMatches = [...block.matchAll(SECOND_VENUE_ROUTE)];
   assert.equal(secondVenueMatches.length, 1, `${relativePath}: exactly one recognized real-second-venue authorization key must remain NO`);
 
-  assert.doesNotMatch(block, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m, `${relativePath}: neutral pre-decision routing must be superseded`);
-  assert.doesNotMatch(block, /^SELECTED_NEXT_LANE = NONE$/m, `${relativePath}: selected lane must not regress to NONE`);
-  assert.doesNotMatch(block, /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m, `${relativePath}: obsolete real-only lane must not remain current`);
-  assert.doesNotMatch(block, /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m, `${relativePath}: obsolete real-only milestone must not remain current`);
-  assert.doesNotMatch(block, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m, `${relativePath}: integrated historical preregistration must not remain the next operation`);
-  assert.doesNotMatch(block, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m, `${relativePath}: read-only sequencing must not remain current after acceptance`);
-  assert.doesNotMatch(block, /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m, `${relativePath}: distinct Fourth Street roles must not be conflated`);
-  assert.doesNotMatch(block, /HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/, `${relativePath}: current routing must not route back to Phase B`);
-  assert.doesNotMatch(block, /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/, `${relativePath}: current routing must not route back to Phase C`);
-  assert.doesNotMatch(block, /AUTHORIZED__NOT_YET_ACCEPTED/, `${relativePath}: current routing must not describe accepted Phase C as pending`);
-  assert.doesNotMatch(block, /EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY/, `${relativePath}: GrapesJS must not reappear as an active candidate`);
+  for (const obsolete of [
+    /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m,
+    /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m,
+    /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m,
+    /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m,
+    /^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m,
+    /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m,
+  ]) {
+    assert.doesNotMatch(block, obsolete, `${relativePath}: obsolete or conflated current state must not return`);
+  }
   return block;
 }
 
-test('living current-routing blocks agree on accepted HV7 evidence amendment and second-nominee product semantics', () => {
+test('living current-routing blocks agree on frozen Juniper Works second-nominee state', () => {
   const readme = assertCurrentPostHv6Block('README.md');
   const docsIndex = assertCurrentPostHv6Block('docs/README.md');
   const roadmap = assertCurrentPostHv6Block('docs/ROADMAP.md');
@@ -94,45 +96,31 @@ test('living current-routing blocks agree on accepted HV7 evidence amendment and
   assert.match(readme, /^POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
 });
 
-test('current routing preserves historical decisions while binding amended evidence and nominee semantics', () => {
-  const acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md');
-  const priorReconciliation = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+test('current routing preserves pre-freeze history while binding the Juniper freeze and confrontation route', () => {
   const decision = read('docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md');
   const historicalPreregistration = read('docs/HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md');
   const amendment = read('docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md');
   const amendmentAcceptance = read('docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md');
-  const routingReconciliation = read('docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md');
+  const preSelectionRouting = read('docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md');
+  const requirements = read('docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md');
+  const postFreezeRouting = read('docs/HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
 
-  assert.match(acceptance, /^STATUS = PROJECT_LEAD_ACCEPTED$/m);
-  assert.match(acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = 3b774468ff1ed347a35500f2a29062a63ed62621$/m);
-  assert.match(acceptance, /^SELECTED_ADAPTER = NATIVE_EXISTING_STACK$/m);
-  assert.match(acceptance, /^REAL_SECOND_VENUE_ADMISSION = NOT_AUTHORIZED$/m);
-
-  assert.match(priorReconciliation, /^OPERATION = POST_HV6_LIVING_ROUTING_RECONCILIATION$/m);
-  assert.match(priorReconciliation, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m);
-  assert.match(priorReconciliation, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
-
-  assert.match(decision, /^OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m);
-  assert.match(decision, /^CANONICAL_READ_ONLY_BASE_COMMIT = c43e18b7b02f77a71d019aeb3066d7726da0aa7e$/m);
-  assert.match(decision, /^CANONICAL_READ_ONLY_BASE_TREE = a824027539d5cda9eaf0e21018e67f69e8784b78$/m);
-  assert.match(decision, /^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
   assert.match(decision, /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m);
-  assert.match(decision, /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m);
   assert.match(decision, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m);
-  assert.match(decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
-  assert.match(decision, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
-  assert.match(decision, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
-
   assert.match(historicalPreregistration, /^SPECIFIC_REAL_VENUE = UNSELECTED$/m);
   assert.match(amendment, /^HV7_SECOND_VENUE_CANDIDATE = REAL_OR_SYNTHETIC_ALLOWED$/m);
-  assert.match(amendment, /^REAL_SECOND_VENUE_REQUIRED = NO$/m);
-  assert.match(amendmentAcceptance, /^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m);
   assert.match(amendmentAcceptance, /^PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
-  assert.match(routingReconciliation, /^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m);
-  assert.match(routingReconciliation, /^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m);
-  assert.match(routingReconciliation, /^CURRENT_SELECTED_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
-  assert.match(routingReconciliation, /^CURRENT_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
-  assert.match(routingReconciliation, /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m);
+  assert.match(preSelectionRouting, /^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m);
+  assert.match(preSelectionRouting, /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m);
+
+  assert.match(requirements, /^SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE$/m);
+  assert.match(requirements, /^HV7_REQUIREMENT_COUNT = 24$/m);
+  assert.match(requirements, /^NEXT_OPERATION_AFTER_FREEZE = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m);
+
+  assert.match(postFreezeRouting, /^HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE$/m);
+  assert.match(postFreezeRouting, /^HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN$/m);
+  assert.match(postFreezeRouting, /^NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY$/m);
+  assert.match(postFreezeRouting, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {
