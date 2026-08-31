@@ -8,6 +8,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
+const SECOND_VENUE_ROUTE = /^(?:SECOND_REAL_VENUE_AUTHORIZED|REAL_SECOND_VENUE_AUTHORIZED) = NO$/gm;
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -36,20 +37,23 @@ function assertCurrentSelectedNativeBlock(relativePath) {
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY$/m, 'substantive work must remain inside Phase C'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain rejected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
-    [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'shared runtime tenancy must remain deferred'],
     [/^DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME$/m, 'isolated runtime must remain default'],
   ]) {
     assert.match(block, pattern, `${relativePath}: ${message}`);
   }
+
+  const secondVenueMatches = [...block.matchAll(SECOND_VENUE_ROUTE)];
+  assert.equal(secondVenueMatches.length, 1, `${relativePath}: exactly one recognized second-real-venue authorization key must remain NO`);
+
   assert.doesNotMatch(block, /^TECHNOLOGY_SELECTED = NO$/m, `${relativePath} current routing must not claim technology is unselected`);
   assert.doesNotMatch(block, /^NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION$/m, `${relativePath} current routing must not route back to Phase B`);
   assert.doesNotMatch(block, /EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY/, `${relativePath} current routing must not present GrapesJS as an active candidate`);
   return block;
 }
 
-test('living current-routing blocks agree on selected-native HV-6 Phase C', () => {
+test('living current-routing blocks agree semantically on selected-native HV-6 Phase C', () => {
   const readme = assertCurrentSelectedNativeBlock('README.md');
   const docsIndex = assertCurrentSelectedNativeBlock('docs/README.md');
   const roadmap = assertCurrentSelectedNativeBlock('docs/ROADMAP.md');
