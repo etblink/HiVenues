@@ -36,11 +36,21 @@ function assertCurrentPostHv6Block(relativePath) {
     [/^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m, 'historical Post-HV-6 sequencing must remain accepted'],
     [/^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m, 'HV-7 evidence-model amendment must be accepted'],
     [/^POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT$/m, 'historical real-only lane label must be superseded for current routing'],
-    [/^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m, 'Fourth Street must remain sole real client/reference deployment'],
+    [/^FOURTH_STREET_VENUE_STATUS = REAL_VENUE$/m, 'Fourth Street must be a real venue'],
+    [/^FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT$/m, 'Fourth Street must be the first and currently sole real client'],
+    [/^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m, 'Fourth Street must be the first venue nominee'],
+    [/^FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT$/m, 'Fourth Street must be the reference deployment'],
+    [/^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m, 'HV-7 must establish the second venue nominee'],
+    [/^HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED$/m, 'second nominee must remain design-pending with synthetic allowed'],
     [/^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'adversarial isolated second-venue pilot must be selected'],
     [/^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m, 'synthetic adversarial candidate mode must be selected'],
+    [/^HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY$/m, 'adversarial must remain product-credible rather than contrived'],
+    [/^HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST$/m, 'design method must be architecture-aware and product-first'],
+    [/^HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED$/m, 'artificial blindness must not be required'],
+    [/^HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED$/m, 'requirements must freeze before implementation'],
+    [/^HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN$/m, 'post-freeze requirement rewriting to force a pass must be forbidden'],
     [/^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m, 'amended HV-7 milestone must be proposed'],
-    [/^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m, 'next operation must be read-only adversarial candidate design'],
+    [/^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m, 'next operation must be read-only second-nominee candidate design'],
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m, 'no post-HV-6 implementation may be implicitly authorized'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain evaluated and not selected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
@@ -63,6 +73,7 @@ function assertCurrentPostHv6Block(relativePath) {
   assert.doesNotMatch(block, /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m, `${relativePath}: obsolete real-only milestone must not remain current`);
   assert.doesNotMatch(block, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m, `${relativePath}: integrated historical preregistration must not remain the next operation`);
   assert.doesNotMatch(block, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m, `${relativePath}: read-only sequencing must not remain current after acceptance`);
+  assert.doesNotMatch(block, /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m, `${relativePath}: distinct Fourth Street roles must not be conflated`);
   assert.doesNotMatch(block, /HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/, `${relativePath}: current routing must not route back to Phase B`);
   assert.doesNotMatch(block, /HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION/, `${relativePath}: current routing must not route back to Phase C`);
   assert.doesNotMatch(block, /AUTHORIZED__NOT_YET_ACCEPTED/, `${relativePath}: current routing must not describe accepted Phase C as pending`);
@@ -70,7 +81,7 @@ function assertCurrentPostHv6Block(relativePath) {
   return block;
 }
 
-test('living current-routing blocks agree on the accepted HV7 amendment and synthetic-adversarial next mode', () => {
+test('living current-routing blocks agree on accepted HV7 evidence amendment and second-nominee product semantics', () => {
   const readme = assertCurrentPostHv6Block('README.md');
   const docsIndex = assertCurrentPostHv6Block('docs/README.md');
   const roadmap = assertCurrentPostHv6Block('docs/ROADMAP.md');
@@ -83,7 +94,7 @@ test('living current-routing blocks agree on the accepted HV7 amendment and synt
   assert.match(readme, /^POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
 });
 
-test('current routing preserves the historical Post-HV-6 decision while binding the accepted HV7 evidence-model amendment', () => {
+test('current routing preserves historical decisions while binding amended evidence and nominee semantics', () => {
   const acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md');
   const priorReconciliation = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
   const decision = read('docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md');
@@ -117,6 +128,8 @@ test('current routing preserves the historical Post-HV-6 decision while binding 
   assert.match(amendment, /^REAL_SECOND_VENUE_REQUIRED = NO$/m);
   assert.match(amendmentAcceptance, /^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m);
   assert.match(amendmentAcceptance, /^PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
+  assert.match(routingReconciliation, /^FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE$/m);
+  assert.match(routingReconciliation, /^HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE$/m);
   assert.match(routingReconciliation, /^CURRENT_SELECTED_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
   assert.match(routingReconciliation, /^CURRENT_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
   assert.match(routingReconciliation, /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m);
