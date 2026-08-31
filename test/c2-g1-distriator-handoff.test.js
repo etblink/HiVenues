@@ -6,7 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 const ejs = require('ejs');
 const { JSDOM } = require('jsdom');
-const { responseRecord } = require('../routes/payments');
+const { responseRecord } = require('../src/routes/payments');
 const { configFrom } = require('./support/test-app');
 
 const root = path.join(__dirname, '..');
@@ -15,7 +15,7 @@ const receiptTemplate = fs.readFileSync(
   'utf8',
 );
 const clientSource = fs.readFileSync(path.join(root, 'public', 'js', 'pay-tab.js'), 'utf8');
-const routeSource = fs.readFileSync(path.join(root, 'routes', 'payments.js'), 'utf8');
+const routeSource = fs.readFileSync(path.join(root, 'src', 'routes', 'payments.js'), 'utf8');
 
 const NON_CONFIRMED_STATES = [
   'Validated',
