@@ -1,0 +1,21 @@
+'use strict';
+
+const { exists } = require('./io');
+
+const REQUIRED_LIVING_RELEASE_DOCUMENTS = Object.freeze([
+  'docs/README.md',
+  'docs/ROADMAP.md',
+  'docs/PRODUCTION_OPERATIONS.md',
+  'docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md',
+  'docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md',
+  'docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md',
+  'docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md',
+]);
+
+function assertRequiredLivingReleaseDocuments() {
+  for (const requiredPath of REQUIRED_LIVING_RELEASE_DOCUMENTS) {
+    if (!exists(requiredPath)) throw new Error(`required living/release document is missing: ${requiredPath}`);
+  }
+}
+
+module.exports = { assertRequiredLivingReleaseDocuments, REQUIRED_LIVING_RELEASE_DOCUMENTS };
