@@ -186,7 +186,7 @@ test('HV-3 synthetic fixture renders through the shared platform path without ne
 test('HV-3 generic consumers contain no unclassified Fourth Street venue literals or reference fork', () => {
   const genericConsumers = [
     'src/app.js',
-    'routes/index.js',
+    'src/routes/index.js',
     'views/common/head.ejs',
     'views/common/header.ejs',
     'views/common/footer.ejs',

@@ -75,7 +75,7 @@ test('loadConfig accepts an explicit venue without changing deployment safety se
 });
 
 test('generic app and primary route wiring contain no canonical Fourth Street identifiers', () => {
-  const files = ['src/app.js', 'routes/index.js'];
+  const files = ['src/app.js', 'src/routes/index.js'];
   const forbidden = /fourthstreetbar|fourthst\.threads|hive-108590|1114 E\. 4th Street|4thstreetbarreno\.com/i;
   for (const file of files) {
     const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');

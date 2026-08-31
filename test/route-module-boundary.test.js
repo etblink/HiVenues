@@ -21,6 +21,13 @@ const ROUTE_FILES = Object.freeze([
   'social.js',
 ]);
 
+function filesUnder(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    return entry.isDirectory() ? filesUnder(entryPath) : [entryPath];
+  });
+}
+
 test('application route modules are source-owned under src/routes', () => {
   assert.equal(fs.existsSync(path.join(ROOT, 'routes')), false);
 
@@ -48,6 +55,24 @@ test('application route modules are source-owned under src/routes', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.match(packageJson.scripts.lint, /(?:^|\s)src(?:\s|$)/);
   assert.doesNotMatch(packageJson.scripts.lint, /(?:^|\s)routes(?:\s|$)/);
+});
+
+test('test consumers do not depend on the removed root routes directory', () => {
+  const routeNames = ROUTE_FILES.map((filename) => filename.replace(/\.js$/u, '')).join('|');
+  const routeFiles = ROUTE_FILES.join('|').replace(/\./gu, '\\.');
+  const staleModuleImport = new RegExp(`require\\(['"]\\.\\.\\/routes\\/(?:${routeNames})['"]\\)`);
+  const staleRouteFile = new RegExp(`['"]routes\\/(?:${routeFiles})['"]`);
+  const staleRootTraversal = /filesUnder\(path\.join\([^,\n]+,\s*['"]routes['"]\)\)/;
+
+  const testFiles = filesUnder(path.join(ROOT, 'test'))
+    .filter((filename) => filename.endsWith('.js') && filename !== __filename);
+
+  for (const filename of testFiles) {
+    const source = fs.readFileSync(filename, 'utf8');
+    assert.doesNotMatch(source, staleModuleImport, `${filename} imports the removed root routes directory`);
+    assert.doesNotMatch(source, staleRouteFile, `${filename} inspects a removed root route file`);
+    assert.doesNotMatch(source, staleRootTraversal, `${filename} traverses the removed root routes directory`);
+  }
 });
 
 test('route relocation preserves the public mount contract in src/app.js', () => {

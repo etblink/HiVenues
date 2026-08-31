@@ -138,7 +138,7 @@ test('UX-1F empty and unavailable update states stay compact while retaining the
 test('UX-1F is a registered homepage-only presentation layer and preserves the fail-open route contract', () => {
   const indexSource = fs.readFileSync(path.join(ROOT, 'views/pages/home/index.ejs'), 'utf8');
   const headSource = fs.readFileSync(path.join(ROOT, 'views/common/head.ejs'), 'utf8');
-  const routeSource = fs.readFileSync(path.join(ROOT, 'routes/index.js'), 'utf8');
+  const routeSource = fs.readFileSync(path.join(ROOT, 'src/routes/index.js'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'public/css/ux-1f-home.css'), 'utf8');
 
   assert.match(indexSource, /assetUrl\('\/css\/ux-1f-home\.css'\)/);

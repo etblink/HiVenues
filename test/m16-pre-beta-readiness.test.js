@@ -14,8 +14,8 @@ const { SessionStore } = require('../src/auth/session-store');
 const { BETA_SELF_ACTIONS, loadConfig } = require('../src/config');
 const { ACTIONS } = require('../src/hive/social-operations');
 const { assertPrivexBetaRelease } = require('../src/release/beta-readiness');
-const { BETA_M16_4_ACTIONS } = require('../routes/m4');
-const { BETA_M16_3_ACTIONS } = require('../routes/social');
+const { BETA_M16_4_ACTIONS } = require('../src/routes/m4');
+const { BETA_M16_3_ACTIONS } = require('../src/routes/social');
 const { configFrom, logger } = require('./support/test-app');
 const { createFixtureRpc } = require('./support/fixture-rpc');
 

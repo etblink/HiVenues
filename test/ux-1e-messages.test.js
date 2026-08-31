@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const ejs = require('ejs');
-const { messageProfilesForPage } = require('../routes/profile');
+const { messageProfilesForPage } = require('../src/routes/profile');
 
 const ROOT = path.resolve(__dirname, '..');
 

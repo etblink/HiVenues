@@ -79,10 +79,8 @@ test('M3 identity and social clients never derive identity from browser storage'
 
 test('server sources contain no private-key or Hive broadcast implementation', () => {
   const root = path.join(__dirname, '..');
-  const serverFiles = [
-    ...filesUnder(path.join(root, 'src')),
-    ...filesUnder(path.join(root, 'routes')),
-  ].filter((file) => file.endsWith('.js'));
+  const serverFiles = filesUnder(path.join(root, 'src'))
+    .filter((file) => file.endsWith('.js'));
 
   for (const filename of serverFiles) {
     const source = fs.readFileSync(filename, 'utf8');
