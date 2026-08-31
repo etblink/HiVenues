@@ -1,7 +1,6 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const axe = require('axe-core');
@@ -13,6 +12,11 @@ const {
   LANTERN_ROOM_AUTHORING_INPUT,
 } = require('../test/support/hv5-authoring-fixtures');
 const { createHv6NativeEditorFixture } = require('../test/support/hv6-native-editor-fixture');
+const {
+  closeServer: close,
+  listenLoopback: listen,
+  sha256,
+} = require('./support/visual-harness');
 
 const ROOT = path.join(__dirname, '..');
 const OUTPUT = path.resolve(ROOT, process.env.HV6_NATIVE_VISUAL_OUTPUT || 'artifacts/hv6-native-visual');
@@ -47,22 +51,6 @@ const SCENARIOS = Object.freeze([
     exerciseAuthoring: false,
   },
 ]);
-
-function listen(app) {
-  return new Promise((resolve, reject) => {
-    const server = app.listen(0, '127.0.0.1');
-    server.once('error', reject);
-    server.once('listening', () => resolve(server));
-  });
-}
-
-function close(server) {
-  return new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
-}
 
 function getAtPointer(document, pointer) {
   let cursor = document;

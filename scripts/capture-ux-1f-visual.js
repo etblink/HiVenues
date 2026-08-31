@@ -2,15 +2,20 @@
 
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const axe = require('axe-core');
 const { chromium } = require('playwright');
 const playwrightPackage = require('playwright/package.json');
 const { createUx1fVisualFixture } = require('../test/support/ux-1f-fixture');
+const {
+  createGitReader,
+  listenLoopback: listen,
+  sha256,
+} = require('./support/visual-harness');
 
 const ROOT = path.join(__dirname, '..');
+const git = createGitReader(ROOT);
 const OUTPUT = path.resolve(ROOT, process.env.UX_1F_VISUAL_OUTPUT || 'artifacts/ux-1f-visual');
 const SHOTS = path.join(OUTPUT, 'screenshots');
 const READY_WIDTHS = Object.freeze([360, 390, 768, 1024, 1440, 1600]);
@@ -31,27 +36,11 @@ window.HiveBarKeychain = Object.freeze({
   }
 });`;
 
-function git(...args) {
-  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
-}
-
 function heightFor(width) {
   if (width === 360) return 800;
   if (width === 390) return 844;
   if (width < 1200) return 900;
   return 1000;
-}
-
-function listen(app) {
-  return new Promise((resolve, reject) => {
-    const server = app.listen(0, '127.0.0.1');
-    server.once('error', reject);
-    server.once('listening', () => resolve(server));
-  });
 }
 
 async function settle(page) {
