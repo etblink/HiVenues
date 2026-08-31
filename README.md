@@ -18,11 +18,30 @@ The first five successor architecture milestones are accepted:
 
 HV-5 is canonically accepted. The accepted **Post-HV-5 Sequencing Decision** selected the **operator visual authoring adapter** lane and proposed **HV-6 — Operator Visual Authoring Adapter Foundation**. The HV-6 prospective contract has since been preregistered and accepted, and its bounded implementation authorization is now canonical.
 
-The next operation is **HV-6 bounded dual-candidate implementation and evaluation**. This authorizes thin offline vertical slices of a constrained GrapesJS Core adapter and a minimal native/existing-stack adapter. No technology winner is selected. GrapesJS Core may be pinned only as an evaluation dependency after fresh official upstream verification; it is not a selected production dependency. Studio SDK is not selected.
+Phase B of HV-6 is complete. The bounded dual-candidate evaluation selected the **native existing stack** and rejected GrapesJS Core as the production/foundation choice. GrapesJS Studio SDK remains unselected. The selected-native Phase-C source-foundation implementation authorization is now canonical.
 
-HV-6 remains subordinate to the HV-5 canonical authoring document and `applyOrdinaryOperatorEdit(base, proposed)`. Editor project JSON, component trees, exported HTML/CSS, autosave state, or UI visibility rules may not become platform authority.
+<!-- HV6_CURRENT_ROUTING_START -->
+```text
+HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
+SELECTED_ADAPTER = NATIVE_EXISTING_STACK
+HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_PHASE_C_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
+NEXT_OPERATION = HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY
+GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
+GRAPESJS_STUDIO_SDK = NOT_SELECTED
+REAL_SECOND_VENUE_AUTHORIZED = NO
+LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
+SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
+```
+<!-- HV6_CURRENT_ROUTING_END -->
 
-A real isolated second venue remains unauthorized but high-priority after this bounded operator-usability gate, or earlier through an explicit sequencing reopening if a concrete pilot becomes available. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
+The next operation is **HV-6 selected-native Phase-C implementation and qualification**. This is source-foundation work only: it may complete the reusable native authoring surface and proof matrix, but it does not authorize a public production authoring route or a live Fourth Street deployment.
+
+HV-6 remains subordinate to the HV-5 canonical authoring document and `applyOrdinaryOperatorEdit(base, proposed)`. Front-end visibility, component state, generated HTML/CSS, autosave state, or any equivalent shadow model may not become platform authority.
+
+A real isolated second venue remains unauthorized but high-priority after the current HV-6 foundation gate, or earlier only through an explicit sequencing reopening if a concrete pilot becomes available. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
 
 The near-term runtime model remains:
 
@@ -71,7 +90,7 @@ HV-1 made the runtime consume a validated venue context instead of relying on hi
 
 HV-5 adds the authoring authority layer without replacing those domain authorities. The canonical authoring document contains the accepted venue context and venue package plus only a deployment-profile ID reference. Its ownership registry separates operator-authored leaves from platform, integration, deployment, security, derived, and forbidden private authority. Ordinary edits fail closed outside the allowed authored leaves, and direct source/code authoring remains available without a visual editor.
 
-Together HV-1 through HV-5 establish a reproducible, editor-independent one-isolated-venue composition and authoring contract. HV-6 now tests the usability of that contract through bounded optional visual adapters while preserving the direct source/code path and preventing editor state from becoming authoritative.
+Together HV-1 through HV-5 establish a reproducible, editor-independent one-isolated-venue composition and authoring contract. HV-6 Phase B established that the native semantic-inspector + real-renderer approach can provide useful visual authoring while keeping that contract authoritative; Phase C now completes and qualifies the selected foundation.
 
 ## Source identity versus production identity
 
@@ -150,13 +169,13 @@ HV-4 provides the strict offline bootstrap envelope that delegates domain valida
 
 HV-5 provides the accepted editor-independent authoring envelope and executable ownership model through `src/venue/authoring.js`, with direct offline validation through `scripts/validate-venue-authoring.js`. HV-5 and HV-4 share the same secret/private-material and canonical-document utility rather than maintaining divergent safety implementations.
 
-HV-6 is now authorized as a bounded offline adapter evaluation. Both candidate slices must project from accepted HV-5 state, propose edits back into HV-5 state, apply through the HV-5 ordinary-operator gate, prove deterministic no-op/allowed-edit round trips and reload, reject protected authority, preserve direct source mode, and provide enough visual/accessibility/responsive evidence for an evidence-based technology decision.
+HV-6 Phase B selected the native existing-stack adapter after a bounded comparison with GrapesJS Core. The selected Phase-C implementation must preserve HV-5-derived editable ownership, the explicit Apply/Discard state model, canonical no-op/edited round trips, reload from accepted state only, protected-authority rejection, direct-source independence, real-renderer preview truth, accessibility/responsive evidence, and venue neutrality.
 
 ## Distributed publication and replication research
 
 Content-addressed publication remains an eligible downstream lane. A bounded future experiment may pair Git commit/tree provenance with a deterministic artifact digest and CID. IPNS may be evaluated as a mutable naming/pointer layer over successive immutable publication CIDs; it does not replace Git commit/tree identity for source provenance.
 
-Helia/OrbitDB replication remains deferred until the project can name a concrete non-authoritative data domain whose product value justifies replicated mutable state, privacy/access-control rules, and conflict-resolution complexity.
+Helia/OrbitDB replication remains deferred until the project can name a concrete non-authoritative mutable data domain whose product value justifies replicated mutable state, privacy/access-control rules, and conflict-resolution complexity.
 
 3Speak/SPKNetwork remains an eligible downstream media/content lane rather than an auth, payment, onboarding-custody, or other private-state authority. Any adoption requires a separately selected and preregistered use case.
 
@@ -172,8 +191,18 @@ Living successor documents:
 - `docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md` — accepted decision selecting the HV-6 visual-authoring lane;
 - `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen prospective HV-6 product/evidence contract;
 - `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md` — Project Lead acceptance of that prospective contract;
-- `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — canonical bounded dual-candidate implementation authorization;
-- `docs/HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — current pre-implementation routing boundary once accepted;
+- `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — historical bounded dual-candidate implementation authorization;
+- `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_TECHNOLOGY_SELECTION_0_1_0.md` — canonical Phase-B technology selection and comparative evidence;
+- `docs/HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — canonical selected-native Phase-C implementation authorization;
+- `docs/HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — current routing boundary once this reconciliation is canonical;
 - `docs/PRODUCTION_OPERATIONS.md` — current Fourth Street production operating model until superseded.
 
-Historical Hive-Bar milestones, prior HV preregistrations/decisions, and earlier routing reconciliations remain provenance. They are not rewritten to sound current and do not override the living routing surfaces.
+Historical Hive-Bar milestones, prior HV preregistrations/decisions, and earlier routing reconciliations remain provenance. They are not rewritten to sound current and do not override the explicitly marked current-routing surfaces.
+
+## Historical bounded-evaluation routing snapshot — not current
+
+This block preserves the exact previous living-boundary literals for inherited compatibility checks. It is historical evidence and **must not be used for current sequencing**:
+
+> The next operation is **HV-6 bounded dual-candidate implementation and evaluation**. No technology winner is selected. GrapesJS Core may be pinned only as an evaluation dependency after fresh official upstream verification.
+>
+> HV-6 is now authorized as a bounded offline adapter evaluation.

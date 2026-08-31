@@ -13,11 +13,14 @@ These documents govern current interpretation and sequencing:
 - `POST_HV5_SEQUENCING_DECISION_0_1_0.md` — accepted Project Lead sequencing decision selecting the operator visual-authoring-adapter lane and proposing HV-6.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md` — frozen prospective HV-6 product, authority, evidence, and technology-evaluation contract.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md` — accepted Project Lead review of the HV-6 prospective contract.
-- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — canonical bounded offline dual-candidate implementation/evaluation authorization.
-- `HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — current routing boundary from authorization into bounded implementation/evaluation once canonical.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — historical bounded offline dual-candidate implementation/evaluation authorization.
+- `HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — historical routing boundary into the completed Phase-B dual-candidate evaluation.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_TECHNOLOGY_SELECTION_0_1_0.md` — canonical Phase-B comparison and Project Lead selection of the native existing stack.
+- `HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AUTHORIZATION_0_1_0.md` — canonical selected-native Phase-C source-foundation implementation authorization.
+- `HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md` — current routing boundary into selected-native Phase C once canonical.
 - `HISTORICAL_REF_ARCHIVE_0_1_0.md` — established archive-tag policy for divergent historical branch refs.
 
-Earlier HV preregistrations, acceptance records, sequencing decisions, and reconciliation records remain immutable historical evidence. They preserve the exact authorization and provenance boundary that existed at the time, but they no longer define current routing when superseded by a later accepted decision or authorization.
+Earlier HV preregistrations, acceptance records, sequencing decisions, implementation authorizations, technology evaluations, and reconciliation records remain immutable historical evidence. They preserve the exact authorization and provenance boundary that existed at the time, but they no longer define current routing when superseded by a later accepted decision or authorization.
 
 Living documents must be updated when current-state or routing claims become stale. Historical records must not be rewritten to make old authorization boundaries look current.
 
@@ -43,6 +46,7 @@ CANONICAL_AUTHORING_CONTRACT
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
+<!-- HV6_CURRENT_ROUTING_START -->
 Current routing is:
 
 ```text
@@ -51,24 +55,27 @@ POST_HV5_SEQUENCING_DECISION = ACCEPTED
 SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
 PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
 HV6_PREREGISTRATION = ACCEPTED
-HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
-HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION
-NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY
-TECHNOLOGY_SELECTED = NO
-GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY
-GRAPESJS_STUDIO_SDK = REFERENCE_ONLY__NOT_SELECTED_DEPENDENCY
+HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
+SELECTED_ADAPTER = NATIVE_EXISTING_STACK
+HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_PHASE_C_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
+NEXT_OPERATION = HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY
+TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
+GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
+GRAPESJS_STUDIO_SDK = NOT_SELECTED
 REAL_SECOND_VENUE_AUTHORIZED = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
+<!-- HV6_CURRENT_ROUTING_END -->
 
-HV-6 is intentionally an **adapter-foundation** milestone, not permission to make an editor's internal project format authoritative. The canonical direction is:
+HV-6 remains intentionally an **adapter-foundation** milestone, not permission to make a front-end or editor-internal model authoritative. The canonical direction is:
 
 ```text
 ACCEPTED_HV5_DOCUMENT
--> VISUAL_ADAPTER_PROJECTION
+-> NATIVE_VISUAL_ADAPTER_PROJECTION
 -> OPERATOR_INTERACTION
 -> PROPOSED_HV5_DOCUMENT
 -> applyOrdinaryOperatorEdit(base, proposed)
@@ -76,19 +83,21 @@ ACCEPTED_HV5_DOCUMENT
 -> CANONICAL_SERIALIZATION
 ```
 
-The authorized implementation is a bounded comparison of thin vertical slices:
+The completed Phase-B comparison evaluated:
 
 ```text
 CANDIDATE_A = GRAPESJS_CORE_ADAPTER
 CANDIDATE_B = MINIMAL_NATIVE_EXISTING_STACK_ADAPTER
-TECHNOLOGY_WINNER_PRESELECTED = NO
+SELECTED_ADAPTER = NATIVE_EXISTING_STACK
 ```
 
-GrapesJS Core is a serious evaluation candidate but is not selected merely because it is feature-rich. If Candidate A needs Core, the evaluated version must be refreshed from official upstream sources and pinned exactly. Studio SDK remains reference-only. A minimal native/existing-stack adapter must be compared on actual operator usability, authority preservation, round-trip behavior, accessibility, responsive quality, maintenance burden, and venue neutrality.
+GrapesJS Core remains preserved as evaluated-and-not-selected evidence. Studio SDK remains unselected. No GrapesJS evaluation package is part of the selected canonical Phase-B tree.
 
-The direct JSON/source authoring path remains mandatory. Editor project JSON, component trees, generated HTML/CSS, autosave state, front-end visibility, arbitrary scripts, or generic page-builder topology may not replace the HV-5 authoring authority.
+The selected native implementation derives ordinary editable controls from HV-5 ownership, uses semantic sections and typed controls as presentation metadata only, and uses the real application renderer for truthful review preview. Phase C must complete the full protected-authority, rejected-state, direct-source, round-trip, accessibility/responsive, venue-neutral, and dependency-independence proof matrix before HV-6 can be accepted.
 
-A real isolated second venue remains the strongest eventual falsification test and is high priority after this bounded operator-usability gate. It remains unauthorized unless separately selected/preregistered/authorized, or sequencing is explicitly reopened because a concrete pilot becomes available earlier.
+The direct JSON/source authoring path remains mandatory. Front-end visibility, arbitrary HTML/scripts, component trees, generated HTML/CSS, autosave state, or generic page-builder topology may not replace the HV-5 authoring authority.
+
+A real isolated second venue remains the strongest eventual falsification test and is high priority after the current HV-6 foundation gate. It remains unauthorized unless separately selected/preregistered/authorized, or sequencing is explicitly reopened because a concrete pilot becomes available earlier.
 
 CID/IPFS/IPNS publication, 3Speak/SPK media, optional starter archetypes, successor package/developer identity cleanup, and fleet tooling remain downstream or adjacent candidates. Helia/OrbitDB mutable replication and shared-runtime multi-tenancy remain deferred absent a concrete bounded need.
 
@@ -136,13 +145,34 @@ For current project status, read in this order:
 
 1. `../README.md`
 2. `ROADMAP.md`
-3. `HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md`
-4. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
-5. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md`
+3. `HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md`
+4. `HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
+5. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_TECHNOLOGY_SELECTION_0_1_0.md`
 6. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md`
-7. `POST_HV5_SEQUENCING_DECISION_0_1_0.md`
-8. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-9. relevant current operating documentation if production is involved
-10. earlier historical milestone/preregistration/sequencing/acceptance/reconciliation evidence only as needed for provenance or inherited invariants.
+7. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+8. relevant current operating documentation if production is involved
+9. earlier historical milestone/preregistration/sequencing/acceptance/reconciliation evidence only as needed for provenance or inherited invariants.
 
-The current boundary is **HV-6 bounded dual-candidate implementation and evaluation next**. That authorization does not select a technology, deploy an editor, admit a real second venue, mutate live Fourth Street, or alter Hive/payment/key authority.
+The current boundary is **selected-native HV-6 Phase-C implementation and qualification next**. That authorization does not deploy an authoring UI, admit a real second venue, mutate live Fourth Street, or alter Hive/payment/key authority.
+
+## Historical bounded-evaluation routing snapshot — not current
+
+The following exact values preserve the prior living boundary for inherited historical-coherence checks. They are **not current routing**:
+
+```text
+HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION
+NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY
+TECHNOLOGY_SELECTED = NO
+GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY
+GRAPESJS_STUDIO_SDK = REFERENCE_ONLY__NOT_SELECTED_DEPENDENCY
+```
+
+The prior authorized implementation was a bounded comparison of thin vertical slices:
+
+```text
+CANDIDATE_A = GRAPESJS_CORE_ADAPTER
+CANDIDATE_B = MINIMAL_NATIVE_EXISTING_STACK_ADAPTER
+TECHNOLOGY_WINNER_PRESELECTED = NO
+```
