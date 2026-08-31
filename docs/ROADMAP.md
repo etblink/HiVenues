@@ -58,8 +58,14 @@ POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUP
 POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
 SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
 PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
-POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT
+POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
+HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE
+HV8_SOURCE_READINESS = PASS
+HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD
+HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD
+HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED
+HV8_READINESS_LIVING_ROUTING_RECONCILIATION = COMPLETE
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
@@ -104,49 +110,86 @@ The permanent decision is `POST_HV7_SEQUENCING_DECISION_0_1_0.md`.
 ```text
 SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
 PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT
 ```
 
-The rationale is that the major Post-HV-6 cross-venue abstraction uncertainty has now been materially reduced, while the accepted successor source has advanced substantially beyond the last recorded production transition. The highest-value remaining question is whether the successor can safely meet the one real reference deployment without disturbing its exact release/provenance/rollback and capability-activation boundaries.
+The rationale was that the major Post-HV-6 cross-venue abstraction uncertainty had been materially reduced, while the accepted successor source had advanced substantially beyond the last recorded production transition. The highest-value remaining question became whether the successor could safely meet the one real reference deployment without disturbing exact release/provenance/rollback and capability-activation boundaries.
 
-## HV-8 — reference deployment successor readiness
+## HV-8 readiness audit — COMPLETE
 
-The first operation is read-only. It should establish:
+Permanent audit record:
 
-- exact canonical source identity at audit time;
-- exact present installed Fourth Street source identity from read-only evidence rather than historical inference;
-- source-to-deployment ancestry/delta;
-- provenance-bearing production compatibility names and paths;
-- which accepted source capabilities must remain dormant in production;
-- any persistent-state/migration exposure;
-- release/rollback prerequisites for a later candidate;
-- the exact qualification envelope for any later deployment preregistration;
-- blockers that require bounded source/operations repair before deployment can even be proposed.
+```text
+docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md
+```
 
-The controlling epistemic rule is:
+The audit established:
+
+- canonical audit-base source `9cc96ae11980eb574495d08950bee960155cf0f2`, tree `e1df0c4477268430af5273a5cf90eaf538984ef5`;
+- fresh public Fourth Street build evidence `beta-fdb5b5b`;
+- unique deployed-commit resolution `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`;
+- strict ancestry from that production generation to audit-base source: 135 commits ahead, zero behind, merge base equal to the deployed commit;
+- preserved Fourth Street production compatibility namespace and environment adapter;
+- byte-identical core deployment and rollback helpers across the observed deployed generation and successor source;
+- unchanged beta action manifest across those two generations;
+- no implicit Pay/Distriator, onboarding, moderation, controlled/delegated, or public visual-authoring activation from successor source;
+- no demonstrated source-required production namespace or durable-state migration.
+
+The audit did **not** directly re-observe the installed `.hive-bar-tree` value. Repository knowledge of the tree corresponding to the resolved commit is not promoted into direct production observation.
+
+Therefore:
+
+```text
+HV8_SOURCE_READINESS = PASS
+HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD
+HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD
+HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED
+```
+
+This is an epistemic hold, not a platform incompatibility finding.
+
+## Next operation — exact identity observation
+
+```text
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY
+```
+
+The smallest next operation should observe, without mutation:
+
+- `/opt/hive-bar/current` target;
+- current `.hive-bar-commit`;
+- current `.hive-bar-tree`;
+- `/healthz` build, commit, tree, environment, and write mode;
+- `/readyz` status;
+- `/opt/hive-bar/last-good` target;
+- environment-file hashes if safely available, never secret contents.
+
+If these agree with the resolved `fdb5b5b...` production generation and accepted beta boundary, the Project Lead may then make a fresh decision about whether a bounded deployment preregistration is warranted. If they disagree, stop and investigate before proposing mutation.
+
+## Controlling epistemic rules
 
 ```text
 HISTORICAL_DEPLOYMENT_RECORD != CURRENT_INSTALLED_IDENTITY
 CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
 SOURCE_CAPABILITY_PRESENT != PRODUCTION_CAPABILITY_ENABLED
+REPOSITORY_TREE_FOR_COMMIT != DIRECTLY_OBSERVED_INSTALLED_TREE
 DEPLOYMENT_ELIGIBLE != DEPLOYMENT_AUTHORIZED
 READINESS_FINDING != DEPLOYMENT_DECISION
 ```
 
 ## Deferred / non-selected lanes
 
-A real second venue/operator, package/developer identity cleanup, CID/IPFS, 3Speak/SPK, and production visual authoring remain eligible or potentially useful, but are not selected before reference-deployment readiness is understood.
+A real second venue/operator, package/developer identity cleanup, CID/IPFS, 3Speak/SPK, and production visual authoring remain eligible or potentially useful, but are not selected before reference-deployment convergence is resolved.
 
 Fleet operations, Helia/OrbitDB replication, and shared-runtime multi-tenancy remain deferred.
 
-No substantive HV-8 implementation or production mutation is authorized by the sequencing decision.
+No substantive HV-8 implementation or production mutation is authorized.
 
 ## Production boundary
 
 Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag until a separately accepted migration changes them.
 
-The last recorded accepted production transition is M19.2. That is historical evidence, not a statement of current installed identity. HV-8 must observe the present identity before making readiness claims.
+Fresh public evidence now binds the visible generation to `beta-fdb5b5b`; historical M19.2 remains historical evidence, not the current identity claim. Exact installed tree/rollback/environment observations remain required before any production-transition proposal.
 
 ## History and retirement policy
 
-The HV-7 requirement freeze, confrontation, repair preregistration/authorization, pre-acceptance reconciliation, acceptance record, post-acceptance neutral reconciliation, and Post-HV-7 sequencing decision remain preserved. `POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls current routing.
+The HV-7 requirement freeze, confrontation, repair preregistration/authorization, pre-acceptance reconciliation, acceptance record, post-acceptance neutral reconciliation, Post-HV-7 sequencing decision, route into HV-8, and completed HV-8 audit remain preserved. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls current routing.
