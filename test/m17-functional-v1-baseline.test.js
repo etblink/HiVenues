@@ -47,21 +47,27 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('HV8 identity-observation routing preserves production safety and historical identity humility', () => {
+test('HV8 preserves the historical identity hold while current evidence advances independently', () => {
   const readme = read('README.md');
-  const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const decision = read('docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md');
   const preservedPreAuditRoute = read('docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
   const audit = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md');
-  const current = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const preservedHoldRoute = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
+  const identity = read('docs/HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md');
+  const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
 
-  assert.match(readme, /full installed tree was not directly re-observed/i);
-  assert.match(roadmap, /REPOSITORY_TREE_FOR_COMMIT != DIRECTLY_OBSERVED_INSTALLED_TREE/);
+  assert.match(audit, /full installed tree.*not directly re-observed/i);
+  assert.match(audit, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
+  assert.match(preservedHoldRoute, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
+  assert.match(preservedHoldRoute, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY$/m);
+  assert.match(identity, /^HV8_READINESS_IDENTITY_HOLD = CLEARED$/m);
+  assert.match(identity, /^CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m);
+  assert.match(readme, /^HV8_READINESS_IDENTITY_HOLD = CLEARED$/m);
+  assert.match(readme, /^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m);
   assert.match(decision, /^FOURTH_STREET_DEPLOYMENT = NOT_AUTHORIZED$/m);
   assert.match(preservedPreAuditRoute, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT$/m);
-  assert.match(audit, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
-  assert.match(current, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+  assert.match(preregistration, /^PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
   assert.match(operations, /last recorded accepted production transition: M19\.2/i);
   assert.match(operations, /Do not infer current production source/i);
 });
