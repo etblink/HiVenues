@@ -1,6 +1,6 @@
 # Hive-Venues Living Roadmap
 
-This document records **current** successor state and current/next sequencing. Superseded roadmap text remains recoverable from Git history and is not copied forward as a historical snapshot.
+This document records **current** successor state and current/next sequencing. Superseded roadmap states remain recoverable from Git history and preserved transition artifacts.
 
 ## Current state
 
@@ -27,13 +27,17 @@ POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
 HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
 POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
 HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
-HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
+HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE
+HV7_SECOND_VENUE_NOMINEE_REALITY = SYNTHETIC
+HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN
+HV7_REQUIREMENTS_PACKET = FROZEN_0_1_0
+HV7_REQUIREMENT_COUNT = 24
 SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
 HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
 HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
 HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
-HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED
+HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE
 HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV6_PREREGISTRATION = ACCEPTED
@@ -41,7 +45,7 @@ HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
 SELECTED_ADAPTER = NATIVE_EXISTING_STACK
 HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
 HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
-NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
+NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
@@ -51,7 +55,7 @@ SECOND_REAL_VENUE = OPTIONAL_REAL_EVIDENCE_TIER__NOT_REQUIRED__NOT_AUTHORIZED
 REAL_SECOND_VENUE_REQUIRED = NO
 SECOND_REAL_VENUE_AUTHORIZED = NO
 VENUE_OUTREACH = NOT_AUTHORIZED
-SYNTHETIC_HV7_CANDIDATE = SELECTED_EXPERIMENT_MODE__TIER_A_ARCHITECTURAL_FALSIFICATION
+SYNTHETIC_HV7_CANDIDATE = JUNIPER_WORKS_COOPERATIVE__TIER_A_ARCHITECTURAL_FALSIFICATION
 SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
 CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
@@ -69,76 +73,9 @@ Canonical source moves independently of milestone identities. Resolve exact curr
 
 ## Accepted successor foundation
 
-### HV-1 — Venue Context Foundation — COMPLETE
+HV-1 through HV-6 are complete. Together they establish validated venue context, provider-neutral deployment profiles, authored venue packages, deterministic isolated bootstrap composition, an editor-independent HV-5 authoring/ownership contract, and the accepted native HV-6 visual-authoring adapter.
 
-Established validated venue identity, public business facts, Hive bindings, and merchant identity as explicit runtime input.
-
-### HV-2 — Reference Deployment Profile Extraction — COMPLETE
-
-Separated deployment identity and Fourth Street/Privex compatibility facts from generic platform code while preserving provenance-bearing production names.
-
-### HV-3 — Reference Venue Package Extraction — COMPLETE
-
-Separated authored venue expression and media from generic platform machinery and proved a meaningfully different fictional venue can use the same generic application path offline.
-
-### HV-4 — Isolated Venue Bootstrap Foundation — COMPLETE
-
-Established deterministic, secret-safe one-venue composition across venue context, venue package, deployment profile, and explicit identity bindings.
-
-### HV-5 — Venue Authoring Contract Foundation — COMPLETE
-
-Established one strict editor-independent canonical authoring envelope, executable ownership classes, fail-closed ordinary-operator editing, deterministic serialization, direct source/code authoring, and projection back into the accepted isolated-runtime boundary.
-
-### HV-6 — Operator Visual Authoring Adapter Foundation — COMPLETE
-
-HV-6 accepted a native existing-stack visual adapter under the HV-5 authority model.
-
-Current accepted implementation identity:
-
-```text
-IMPLEMENTATION_COMMIT = 3b774468ff1ed347a35500f2a29062a63ed62621
-IMPLEMENTATION_TREE = 5cde834eaf267aef8e6e824fd13b75e54045bb2c
-IMPLEMENTATION_PARENT = edd7dbc32204115c2326f431e278860de2d748af
-QUALIFICATION_PR = 55
-QUALIFICATION_HEAD = 3a432687518a961da219f763efe2333b4dca55d8
-QUALIFICATION_CI_RUN = 33359910931
-RENDERED_ARTIFACT_ID = 9746470417
-RENDERED_ARTIFACT_SHA256 = b6fedcb4c11e1b508fa3747591d41c2e537c91497336cdf07ba1324e95788a11
-ACCEPTANCE_COMMIT = 6ad7c55a4e02a126d6d91f07847d76cfd33b8b8d
-ACCEPTANCE_TREE = 58df05137560873463fc0cd2dc634f967677bee5
-ACCEPTANCE_PR = 56
-ACCEPTANCE_CI_RUN = 33360515127
-SELECTED_ADAPTER = NATIVE_EXISTING_STACK
-GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
-```
-
-The accepted authority flow is:
-
-```text
-ACCEPTED_HV5_DOCUMENT
--> NATIVE_VISUAL_ADAPTER_PROJECTION
--> OPERATOR_INTERACTION
--> PROPOSED_HV5_DOCUMENT
--> applyOrdinaryOperatorEdit(base, proposed)
--> ACCEPTED_HV5_DOCUMENT
--> CANONICAL_SERIALIZATION
-```
-
-The accepted implementation shape is:
-
-```text
-SEMANTIC_SECTION_NAVIGATOR
-+
-TYPED_FIELD_INSPECTOR_DERIVED_FROM_HV5_OWNERSHIP
-+
-TRUTHFUL_REVIEW_PREVIEW_FROM_PROPOSED_HV5_STATE
-```
-
-The selected foundation keeps editable authority derived from HV-5, provides real-renderer review preview, preserves Apply/Discard/reload semantics, protects non-operator authority, preserves direct-source independence, remains venue-neutral, and has cross-platform/rendered evidence. The schema-v1 gallery stable-identity limitation remains explicit rather than hidden behind heuristics.
-
-A source authoring foundation is not a production authoring mount. Any later live authoring operation must separately establish operator authentication, session/CSRF/origin ownership, persistence destination, deployment behavior, and production authorization.
-
-## Current architecture baseline
+The current architecture baseline remains:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -160,53 +97,50 @@ NATIVE_VISUAL_AUTHORING_ADAPTER
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-Visual tooling remains subordinate to the HV-5 domain model. Front-end visibility, arbitrary HTML/scripts, component trees, generated HTML/CSS, autosave state, and editor project state are not platform authority.
+HV-6 remains subordinate to HV-5. Editable controls derive from HV-5 ownership; proposed state is previewed through the real renderer; Apply remains atomic through `applyOrdinaryOperatorEdit`; Discard restores accepted state; and direct source authoring remains independent. No source authoring foundation is automatically a production authoring mount.
 
-## Post-HV-6 sequencing — HISTORICAL DECISION PRESERVED, CURRENT INTERPRETATION AMENDED
+## HV-7 evidence model and nomination history
 
-The Project Lead's original independent read-only sequencing decision remains frozen in `POST_HV6_SEQUENCING_DECISION_0_1_0.md`:
+The original Post-HV-6 decision and real-only 0.1.0 preregistration remain preserved historical records. Before the real-only preregistration was accepted, authoritative product context established that architectural falsification may use a synthetic second venue and does not require client recruitment. The accepted 0.1.1 evidence amendment therefore allows real or synthetic candidates with explicit evidence ceilings.
 
-```text
-HISTORICAL_SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
-HISTORICAL_PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
-HISTORICAL_NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
-```
-
-That decision was followed by the canonical 0.1.0 HV-7 preregistration. Before that preregistration was accepted, new authoritative product context established that Fourth Street Bar remains the sole real client/reference deployment and that architectural falsification does not require recruiting another real venue.
-
-Current product interpretation now adds a separate nomination layer: Fourth Street is a real venue, first real client, **first venue nominee**, and reference deployment. HV-7 is establishing the **second venue nominee**. Nomination is a product role; it does not imply real-client adoption or deployment.
-
-The accepted 0.1.1 evidence-model amendment therefore supersedes the real-only interpretation for current routing without rewriting either historical artifact:
+A later product clarification established the nomination layer explicitly:
 
 ```text
-CURRENT_SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
-CURRENT_HV7_CANDIDATE_UNIVERSE = REAL_OR_SYNTHETIC_ALLOWED
-CURRENT_HV7_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
-PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
-CURRENT_PROPOSED_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
-CURRENT_NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
+FOURTH_STREET_BAR = REAL_VENUE
+FOURTH_STREET_BAR = FIRST_REAL_CLIENT
+FOURTH_STREET_BAR = FIRST_VENUE_NOMINEE
+FOURTH_STREET_BAR = REFERENCE_DEPLOYMENT
+HV7_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
 ```
 
-No substantive HV-7 implementation is authorized by this roadmap.
+## Juniper Works Cooperative — SECOND VENUE NOMINEE SELECTED
 
-## Second venue nominee — PRODUCT DESIGN NEXT
+Juniper Works Cooperative is the selected synthetic second venue nominee. It is a member-run fabrication workshop and tool library chosen as a desirable, credible future client type rather than an artificial edge case.
 
-The selected next experiment is to design one coherent synthetic **second venue nominee**. It is a serious product instance: something Hive-Venues would plausibly be willing to support for a real venue of that kind someday.
+Its frozen product packet is:
 
-The nominee must be:
+`HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
 
-```text
-PRODUCT_CREDIBLE
-INTERNALLY_COHERENT
-MEANINGFULLY_DIFFERENT_FROM_FOURTH_STREET
-DESIRABLE_TO_SUPPORT
-REALISTIC_AS_A_FUTURE_CLIENT_TYPE
-CAPABLE_OF_FALSIFYING_BAD_ABSTRACTIONS
-```
+The packet freezes 24 requirements before implementation. Important product-natural pressure includes:
 
-“Adversarial” is an evidence property, not a mandate to maximize incompatibility. The nominee should not be bizarre merely to break the architecture. Its falsification pressure should arise from authentic product differences.
+- independent workshop/member/steward vocabulary and venue identity;
+- first-visit/orientation guidance;
+- structured upcoming classes, orientations, open-shop sessions, repair events, and similar programs;
+- ordinary-steward lifecycle authority for program items;
+- structured advisory equipment status and ordinary-steward lifecycle authority for it;
+- project/workshop showcase media;
+- existing Hive community/social continuity;
+- independent accessible venue brand expression;
+- HV-5 ownership and HV-6 typed visual authoring generality;
+- no venue-specific generic source fork;
+- isolated-runtime sufficiency;
+- payment-disabled venue operation;
+- compatibility-seam containment;
+- preserved security/custody/accessibility/failure-state invariants.
 
-The Project Lead may inspect and use the accumulated Hive-Venues architecture, source, accepted schemas, tests, and implementation knowledge during nominee design. Artificial blindness is neither required nor desirable. The anti-confirmation-bias control is instead:
+The packet also explicitly rejects artificial scope expansion into physical access control, machine interlocks, training-record custody, waivers, telemetry/IoT, reservations, membership billing, class payments, ERP, CRM, staff scheduling, POS, real Hive onboarding, shared-runtime tenancy, or production deployment.
+
+### Controlling honesty rule
 
 ```text
 DESIGN_A_COHERENT_VENUE_ON_ITS_OWN_TERMS
@@ -215,82 +149,36 @@ DESIGN_A_COHERENT_VENUE_ON_ITS_OWN_TERMS
 -> DO_NOT_REWRITE_THE_REQUIREMENTS_MERELY_TO_MAKE_THE_PLATFORM_PASS
 ```
 
-The design should differ materially from Fourth Street across vocabulary, operating model, content structure, customer/member relationship, operator needs, Hive/deployment binding assumptions, visual-authoring semantics, and compatibility pressure where those differences arise naturally from the product.
+“Adversarial” remains an evidence property: the nominee must be capable of falsifying bad abstractions, but product design does not maximize incompatibility for its own sake.
 
-Synthetic HV-7 may test venue neutrality, no Fourth Street/bar leakage, no generic source fork, HV-1/HV-2/HV-3/HV-4 composition generality, HV-5 ownership fit, HV-6 structural visual-authoring generality, isolated-runtime sufficiency, and compatibility boundaries.
-
-It may **not** establish another real client, independent real-operator usability, real venue permission/admission, real-world operational fit, real Hive onboarding, or real deployment readiness.
-
-### Real second venue — OPTIONAL LATER EVIDENCE TIER, NOT REQUIRED OR AUTHORIZED
-
-A later real client/operator may provide a stronger Tier-B evidence layer if and when such evidence exists. HV-7 does not require real-venue research, recruitment, or outreach merely to continue architectural testing.
-
-No real second venue is currently authorized or admitted. Venue outreach remains unauthorized.
-
-### Native existing-stack adapter — ACCEPTED
-
-The existing EJS/HTMX/vanilla-JS/Tailwind/Express stack plus HV-5 authoring functions is the accepted visual-authoring foundation.
-
-### GrapesJS Core — EVALUATED, NOT SELECTED
-
-The losing evaluation remains available in Git history and existing evidence until separately retired. It is not a selected production or foundation dependency. Studio SDK remains unselected.
-
-### Successor package/developer identity cleanup — ELIGIBLE ADJACENT MAINTENANCE
-
-Developer-facing inherited `hive-bar` metadata remains a known mismatch distinct from the intentionally preserved Fourth Street production compatibility namespace. It is not selected as the next product lane.
-
-### Optional archetypes — SUPPORTING, NONAUTHORITATIVE
-
-Examples may be useful convenience/evidence layers but are not a mandatory platform taxonomy. The synthetic HV-7 nominee is a product instance under test, not a canonical venue-type archetype.
-
-### CID/IPFS/IPNS publication — ELIGIBLE DOWNSTREAM
-
-Git commit/tree identity remains source provenance. Any content-addressed publication operation must separately define its deterministic artifact and digest/CID construction profile. IPNS would be an optional mutable pointer, not source identity.
-
-### 3Speak/SPK media — ELIGIBLE DOWNSTREAM
-
-Potential media/storage/delivery capability only. It must not become authority for private keys, authentication, payments, or onboarding custody.
-
-### Fleet operations, Helia/OrbitDB, shared-runtime multi-tenancy — DEFERRED
-
-Fleet tooling should follow observed multi-venue operations rather than hypothetical repetition. Replicated mutable state requires a concrete bounded domain. Shared runtime tenancy remains unjustified; one isolated venue per runtime remains the default.
-
-## HV-7 current hard boundary before second-nominee design
+## Next operation — ARCHITECTURE CONFRONTATION
 
 ```text
-HV7_HISTORICAL_PREREGISTRATION_0_1_0 = CANONICAL__REAL_ONLY_REQUIREMENTS_SUPERSEDED
-HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1 = ACCEPTED
-FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
-HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
-HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
-HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
-HV7_SYNTHETIC_CANDIDATE_REQUIREMENT_PACKET = NOT_YET_FROZEN
-HV7_IMPLEMENTATION = NOT_AUTHORIZED
-REAL_SECOND_VENUE_REQUIRED = NO
-REAL_SECOND_VENUE_AUTHORIZED = NO
-REAL_SECOND_VENUE_ADMISSION = NOT_AUTHORIZED
-VENUE_OUTREACH = NOT_AUTHORIZED
-SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
-LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
-SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
 ```
 
-The next read-only candidate-design operation may inspect the existing architecture and source, define the fictional nominee on its own product terms, and freeze its independent requirements. “Read-only” here means no platform implementation, repair, production mutation, or external effect; it does **not** require ignorance of the existing platform.
+The next operation must inspect current repository evidence and classify every `JW-R001` through `JW-R024` without changing implementation. The frozen disposition taxonomy includes supported-as-is/configuration/integration outcomes plus venue-context, package, deployment, bootstrap, authoring-ownership, visual-adapter, compatibility, integration-prerequisite, and broader platform-generality findings.
+
+This confrontation may use the full accumulated Hive-Venues architecture and source. Artificial blindness is not required. It must not repair a finding while scoring it, and it must not rewrite a Juniper requirement merely because current schema v1 lacks a convenient representation.
+
+No substantive HV-7 implementation is authorized until the confrontation is complete and Project Lead sequencing selects any bounded repair/implementation work.
+
+## Real second venue — OPTIONAL LATER EVIDENCE TIER
+
+A future real client/operator may provide stronger evidence if and when such evidence exists. HV-7 does not require venue research, recruitment, or outreach merely to continue architectural testing. No real second venue is currently authorized or admitted, and venue outreach remains unauthorized.
+
+Synthetic Juniper evidence cannot establish another real client, independent real-operator usability, real venue permission/admission, real Hive onboarding, or real deployment readiness.
 
 ## Venue-category boundary
 
-Current evidence still does **not** establish a canonical exhaustive venue taxonomy. Generic platform/security code must remain venue-neutral. Authentic operator/staff/customer vocabulary belongs to venue-owned configuration. Optional starter archetypes may compose convenience defaults but do not define platform identity.
+Current evidence does **not** establish a canonical exhaustive venue taxonomy. Generic platform/security code remains venue-neutral; authentic venue vocabulary belongs to venue-owned configuration. Juniper Works is a product nominee, not a mandatory platform archetype.
 
 ## Production boundary
 
-Fourth Street remains the **first real client, first venue nominee, and reference compatibility deployment**, and it is currently the sole real client. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
-
-The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect installed release/build identity for operational decisions.
+Fourth Street remains the first real client, first venue nominee, and reference compatibility deployment, and it is currently the sole real client. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
 
 Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
 
 ## History and retirement policy
 
-`POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains a truthful historical record of the neutral boundary before the original sequencing decision. `POST_HV6_SEQUENCING_DECISION_0_1_0.md` and `HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md` remain truthful historical records of the pre-amendment real-only path. The accepted 0.1.1 amendment and its living-routing reconciliation control current interpretation.
-
-Historical files currently present on `main` may be retired under a separately bounded housekeeping operation after reachability/recovery is verified. Deleting such a path from the current tree does not erase the underlying Git history.
+The historical Post-HV-6 decision, original real-only preregistration, accepted evidence amendment, pre-selection living reconciliation, and Juniper requirement freeze remain preserved records. `HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls the current transition into architecture confrontation.
