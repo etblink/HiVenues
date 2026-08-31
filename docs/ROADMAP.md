@@ -15,23 +15,25 @@ HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
 HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED
 HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED
 HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED
+HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED
 POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
 POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
-POST_HV5_SEQUENCING_DECISION = ACCEPTED
-SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
-PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
+POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
+POST_HV6_SEQUENCING_DECISION = PENDING
+SELECTED_NEXT_LANE = NONE
+PROPOSED_NEXT_MILESTONE = NONE
 HV6_PREREGISTRATION = ACCEPTED
 HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
 SELECTED_ADAPTER = NATIVE_EXISTING_STACK
-HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
-HV6_PHASE_C_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
-NEXT_OPERATION = HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY
+HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
+HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
+NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY
+NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
 OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE
-SECOND_REAL_VENUE = HIGH_PRIORITY_AFTER_HV6_FOUNDATION_GATE__NOT_AUTHORIZED
+SECOND_REAL_VENUE = HIGH_PRIORITY_FOR_POST_HV6_SEQUENCING__NOT_AUTHORIZED
 SECOND_REAL_VENUE_AUTHORIZED = NO
 CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
@@ -108,35 +110,9 @@ ACCEPTANCE_CI_RUN = 33340059312
 
 HV-5 established one strict editor-independent schema-v1 canonical authoring envelope, delegated venue/package validity to HV-1/HV-3, retained deployment authority in HV-4, added explicit ownership classes and fail-closed ordinary-operator edit enforcement, centralized HV-4/HV-5 secret/private and canonical-document safety, preserved direct source/code authoring, and proved Fourth Street equivalence plus Lantern Room non-bar generality.
 
-## Current architecture baseline
+### HV-6 — Operator Visual Authoring Adapter Foundation — COMPLETE
 
-```text
-HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
-+
-PLATFORM_APPLICATION_PRIMITIVES
-+
-VENUE_CONTEXT
-+
-VENUE_PACKAGE
-+
-DEPLOYMENT_PROFILE
-+
-BOOTSTRAP_COMPOSITION_BINDINGS
-+
-CANONICAL_AUTHORING_CONTRACT
-=
-ONE_ISOLATED_VENUE_RUNTIME
-```
-
-The project has explicit identity, package, deployment, bootstrap, and authoring/ownership seams. Visual tooling is therefore a disposable adapter rather than a source of truth.
-
-## Post-HV-5 Sequencing Decision — COMPLETE
-
-The accepted decision is preserved in `POST_HV5_SEQUENCING_DECISION_0_1_0.md`. It selected the operator visual-authoring adapter lane and proposed HV-6. Its original route to preregistration is historical evidence; current routing has advanced through preregistration, bounded evaluation, technology selection, and selected-native Phase-C authorization.
-
-## HV-6 — Operator Visual Authoring Adapter Foundation — PHASE C AUTHORIZED
-
-### Prospective and original authorization chain
+Prospective and original bounded authorization chain:
 
 ```text
 PREREGISTRATION_COMMIT = 8556cf0c2d85d7f8a35175250e11fa9881354f2f
@@ -149,11 +125,7 @@ BOUNDED_EVALUATION_AUTHORIZATION_PR = 48
 BOUNDED_EVALUATION_AUTHORIZATION_CI_RUN = 33346404440
 ```
 
-### Phase B technology selection — COMPLETE
-
-The bounded comparison evaluated GrapesJS Core against a minimal native existing-stack adapter under the frozen HV-5 authority contract.
-
-Exact canonical Phase-B result:
+Phase B technology selection:
 
 ```text
 PHASE_B_CANONICAL_COMMIT = 863a0ec766efe7c8f82f1e720fdc892ef1d4acac
@@ -170,9 +142,7 @@ The native candidate qualified with 42 HV-5-derived editable leaves across 11 se
 
 GrapesJS Core could preserve HV-5 authority only after substantial capability removal. Its attempted canvas-selection usability advantage did not survive cleanly, and its final dedicated browser proof remained red under the offline resource boundary. Candidate A is preserved as losing experimental evidence rather than merged into the selected tree.
 
-### Phase C selected-native implementation — AUTHORIZED, NOT YET ACCEPTED
-
-Canonical Phase-C authorization:
+Selected-native Phase-C authorization:
 
 ```text
 PHASE_C_AUTHORIZATION_COMMIT = 84e44fc54700e2102e1f826f2fb76791695bd15a
@@ -185,9 +155,24 @@ PRODUCTION_DEPLOYMENT = NOT_AUTHORIZED
 REAL_SECOND_VENUE_ADMISSION = NOT_AUTHORIZED
 ```
 
-The product question remains whether an ordinary venue operator can make routine public-content changes already classified `OPERATOR_AUTHORED` by HV-5, with useful visual context and without acquiring authority over anything they do not own.
+Accepted Phase-C implementation and final evidence:
 
-The controlling authority flow is:
+```text
+IMPLEMENTATION_COMMIT = 3b774468ff1ed347a35500f2a29062a63ed62621
+IMPLEMENTATION_TREE = 5cde834eaf267aef8e6e824fd13b75e54045bb2c
+IMPLEMENTATION_PARENT = edd7dbc32204115c2326f431e278860de2d748af
+QUALIFICATION_PR = 55
+QUALIFICATION_HEAD = 3a432687518a961da219f763efe2333b4dca55d8
+QUALIFICATION_CI_RUN = 33359910931
+RENDERED_ARTIFACT_ID = 9746470417
+RENDERED_ARTIFACT_SHA256 = b6fedcb4c11e1b508fa3747591d41c2e537c91497336cdf07ba1324e95788a11
+ACCEPTANCE_COMMIT = 6ad7c55a4e02a126d6d91f07847d76cfd33b8b8d
+ACCEPTANCE_TREE = 58df05137560873463fc0cd2dc634f967677bee5
+ACCEPTANCE_PR = 56
+ACCEPTANCE_CI_RUN = 33360515127
+```
+
+The accepted authority flow is:
 
 ```text
 ACCEPTED_HV5_DOCUMENT
@@ -209,9 +194,43 @@ TYPED_FIELD_INSPECTOR_DERIVED_FROM_HV5_OWNERSHIP
 TRUTHFUL_REVIEW_PREVIEW_FROM_PROPOSED_HV5_STATE
 ```
 
-Phase C must complete the full preregistered foundation proof rather than merely relabeling the Phase-B prototype as accepted. Required remaining evidence includes the full protected-authority matrix, deterministic rejected-state/base-unchanged behavior, direct-source regression, raw HTML/script authority absence, gallery-topology absence, venue neutrality, and the retained cross-platform/rendered proof selected by scope.
+HV-6 acceptance includes the full protected-authority matrix, deterministic rejected-state/base-unchanged behavior, direct-source regression, raw HTML/script authority absence, gallery-topology UI absence, venue neutrality, cross-platform qualification, and retained rendered/accessibility/responsive proof. The schema-v1 gallery stable-identity limitation remains explicit and bounded rather than silently repaired through heuristics.
 
 A source implementation is not a production mount. If a later operation wants the authoring surface served in the live Fourth Street application, that later operation must separately specify operator authentication, session/CSRF/origin ownership, persistence destination, deployment behavior, and production authorization.
+
+## Current architecture baseline
+
+```text
+HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
++
+PLATFORM_APPLICATION_PRIMITIVES
++
+VENUE_CONTEXT
++
+VENUE_PACKAGE
++
+DEPLOYMENT_PROFILE
++
+BOOTSTRAP_COMPOSITION_BINDINGS
++
+CANONICAL_AUTHORING_CONTRACT
++
+NATIVE_VISUAL_AUTHORING_ADAPTER
+=
+ONE_ISOLATED_VENUE_RUNTIME
+```
+
+The project has explicit identity, package, deployment, bootstrap, authoring/ownership, and selected visual-adapter seams. Visual tooling remains a subordinate adapter rather than a source of truth.
+
+## Post-HV-5 Sequencing Decision — COMPLETE AND SUPERSEDED FOR CURRENT ROUTING
+
+The accepted decision is preserved in `POST_HV5_SEQUENCING_DECISION_0_1_0.md`. It selected the operator visual-authoring adapter lane and proposed HV-6. HV-6 is now accepted, so that selection is exhausted for current routing while remaining authoritative historical evidence.
+
+## Post-HV-6 Sequencing Decision — PENDING
+
+The next product-governance operation is a fresh read-only Post-HV-6 sequencing decision. This living reconciliation does not select among candidate lanes and does not authorize substantive implementation.
+
+Repository housekeeping may proceed separately when bounded to provenance-preserving maintenance. Such housekeeping is not a substitute for product sequencing and may not silently select a lane.
 
 ## Venue-category boundary
 
@@ -223,19 +242,19 @@ Current evidence still does **not** establish a canonical exhaustive venue taxon
 - starter archetypes may later be optional authoring conveniences or capability bundles rather than platform identity;
 - hybrid real-world entities are expected to cross category boundaries.
 
-## Candidate-lane dispositions after Phase B
+## Candidate-lane dispositions after HV-6
 
 ### Real isolated second-venue pilot — HIGH PRIORITY, NOT AUTHORIZED
 
-A real second venue remains the strongest direct falsification test of whether the accepted venue/package/bootstrap/authoring abstractions survive contact with an independently branded real operator. It remains high priority after the current HV-6 foundation gate, unless a concrete pilot becomes available earlier and sequencing is explicitly re-adjudicated.
+A real second venue remains the strongest direct falsification test of whether the accepted venue/package/bootstrap/authoring/visual-adapter abstractions survive contact with an independently branded real operator. It is a high-priority candidate for the fresh Post-HV-6 sequencing decision, but no venue, deployment, onboarding, account authority, or production mutation is authorized.
 
 ### GrapesJS Core — EVALUATED, NOT SELECTED
 
-The rejected candidate remains useful evidence about the cost of constraining a generic page builder beneath the HV-5 domain model. It is not a selected production or Phase-C dependency. Studio SDK remains unselected.
+The rejected candidate remains useful evidence about the cost of constraining a generic page builder beneath the HV-5 domain model. It is not a selected production or foundation dependency. Studio SDK remains unselected.
 
-### Native existing-stack adapter — SELECTED
+### Native existing-stack adapter — ACCEPTED FOUNDATION
 
-The selected adapter uses the existing EJS/HTMX/vanilla-JS/Tailwind/Express application stack plus HV-5 authoring functions. Its authority comes only from the HV-5 domain model; presentation registries may describe fields but may not grant write permission.
+The accepted adapter uses the existing EJS/HTMX/vanilla-JS/Tailwind/Express application stack plus HV-5 authoring functions. Its authority comes only from the HV-5 domain model; presentation registries may describe fields but may not grant write permission.
 
 ### Optional archetype/capability starters — SUPPORTING FIXTURES
 
@@ -293,11 +312,43 @@ A main-tree historical-artifact retirement/archive policy may retire historical 
 
 ## Historical routing rule
 
-Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` selected HV-4, `POST_HV4_SEQUENCING_DECISION_0_1_0.md` selected HV-5, and `POST_HV5_SEQUENCING_DECISION_0_1_0.md` selected the HV-6 lane and originally routed to preregistration. The HV-6 preregistration, bounded evaluation authorization, Phase-B technology selection, and selected-native Phase-C authorization now supersede those earlier routes for current execution while preserving them as historical evidence.
+Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` selected HV-4, `POST_HV4_SEQUENCING_DECISION_0_1_0.md` selected HV-5, and `POST_HV5_SEQUENCING_DECISION_0_1_0.md` selected HV-6. HV-6 preregistration, bounded evaluation authorization, Phase-B technology selection, selected-native Phase-C authorization, implementation, review, and acceptance now preserve the complete HV-6 path as historical/current accepted evidence. Current routing is neutral until a fresh Post-HV-6 sequencing decision is made.
+
+## Historical Phase-C routing snapshot — not current
+
+The following exact values preserve the immediately previous living boundary for inherited historical-coherence checks. They are **not current routing** and may not override the explicitly marked current-state block above:
+
+```text
+POST_HV5_SEQUENCING_DECISION = ACCEPTED
+SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
+PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
+HV6_PREREGISTRATION = ACCEPTED
+HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
+SELECTED_ADAPTER = NATIVE_EXISTING_STACK
+HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_PHASE_C_IMPLEMENTATION = AUTHORIZED__NOT_YET_ACCEPTED
+NEXT_OPERATION = HV6_NATIVE_FOUNDATION_PHASE_C_IMPLEMENTATION_AND_QUALIFICATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY
+TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
+GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
+GRAPESJS_STUDIO_SDK = NOT_SELECTED
+OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE
+SECOND_REAL_VENUE = HIGH_PRIORITY_AFTER_HV6_FOUNDATION_GATE__NOT_AUTHORIZED
+SECOND_REAL_VENUE_AUTHORIZED = NO
+CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
+IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
+THREESPEAK_SPK_MEDIA = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
+SUCCESSOR_PACKAGE_IDENTITY_CLEANUP = ELIGIBLE_ADJACENT_MAINTENANCE__NOT_SELECTED
+FLEET_OPERATIONS = DEFERRED
+HELIA_ORBITDB_REPLICATION = DEFERRED
+LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
+SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
+DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
+```
 
 ## Historical bounded-evaluation routing snapshot — not current
 
-The following exact values preserve the immediately previous living boundary for inherited historical-coherence checks. They are **not current routing** and may not override the explicitly marked current-state block above:
+The following exact values preserve the earlier bounded-evaluation living boundary for inherited historical-coherence checks. They are **not current routing** and may not override the explicitly marked current-state block above:
 
 ```text
 HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
