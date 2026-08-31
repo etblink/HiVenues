@@ -1,0 +1,146 @@
+name: Main-tree retirement Batch-002 consumer audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/main-tree-retirement-batch002-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact canonical audit baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ea55ec0617ab63cd7ae9ff58d9dd91aa3223278e
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact baseline and candidate custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_commit='ea55ec0617ab63cd7ae9ff58d9dd91aa3223278e'
+          expected_tree='e601feb1538b05ee5e238fa1cd8834030c3aa141'
+
+          actual_commit="$(git rev-parse HEAD)"
+          actual_tree="$(git rev-parse HEAD^{tree})"
+          [[ "$actual_commit" == "$expected_commit" ]]
+          [[ "$actual_tree" == "$expected_tree" ]]
+
+          candidates=(
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md|f3954d477a9448b14bfa6557921ac5e72606073c'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md|6ed21c5f89f0da9245a34d1d39aca0a14eba2c1b'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md|4f6b7bffb9a818f4900734dde703640436ac6bd3'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md|a9def8eb08ab46f0a81df509bf088c787e81a3ec'
+            'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md|f02e95413ad94e8e048c448dc8c8746854963c68'
+            'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md|4505a18f28202ffd865389a2f04f3a00ff42056a'
+            'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md|6889b996bbaaedfee9922b4106452c4d3ef2f45a'
+            'docs/POST_HV4_DECISION_ROUTING_RECONCILIATION_0_1_0.md|5a8f4fdb8bb68fec7804aed6ac21e6dc5b53d0e0'
+            'docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md|ed6573d94a7e3bd04a45cc79903f2e8bd9e204f5'
+            'docs/POST_HV4_SEQUENCING_DECISION_0_1_0.md|1aa5566a634630bb54f567a904fe245f5befe3ad'
+            'docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md|2c5a937cbe10c7123cf752b8175d26caeaf263d2'
+            'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md|508ad6a71f249c0b40a7c37c57d693bffc82c74c'
+            'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md|8b9bfb4edea0bb3e8c3c32c5da2683a49d84fb8f'
+          )
+
+          printf 'AUDIT_BASE_COMMIT=%s\n' "$actual_commit"
+          printf 'AUDIT_BASE_TREE=%s\n' "$actual_tree"
+
+          for entry in "${candidates[@]}"; do
+            path="${entry%%|*}"
+            expected_blob="${entry##*|}"
+            actual_blob="$(git rev-parse "HEAD:$path")"
+            [[ "$actual_blob" == "$expected_blob" ]]
+            printf 'CANDIDATE path=%s blob=%s custody=PASS\n' "$path" "$actual_blob"
+          done
+
+      - name: Fail on exact consumers outside the candidate cluster
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidates=(
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
+            'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV4_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV4_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md'
+          )
+
+          excludes=()
+          for candidate in "${candidates[@]}"; do
+            excludes+=(":(exclude)$candidate")
+          done
+
+          failed=0
+          for path in "${candidates[@]}"; do
+            name="${path##*/}"
+            path_hits="$(git grep -n -F "$path" -- . "${excludes[@]}" || true)"
+            name_hits="$(git grep -n -F "$name" -- . "${excludes[@]}" || true)"
+            if [[ -n "$path_hits" || -n "$name_hits" ]]; then
+              printf 'EXTERNAL_CONSUMER_FOUND path=%s\n' "$path" >&2
+              [[ -n "$path_hits" ]] && printf '%s\n' "$path_hits" >&2
+              [[ -n "$name_hits" ]] && printf '%s\n' "$name_hits" >&2
+              failed=1
+            else
+              printf 'NO_EXACT_EXTERNAL_CONSUMER path=%s\n' "$path"
+            fi
+          done
+
+          if [[ "$failed" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Report references within the proposed retirement cluster
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidates=(
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_DOCKET_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_CHECKPOINT_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_EXECUTION_AUTHORIZATION_0_1_0.md'
+            'docs/MAIN_TREE_RETIREMENT_BATCH_001_COMPLETION_0_1_0.md'
+            'docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV4_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV4_SEQUENCING_DECISION_0_1_0.md'
+            'docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md'
+            'docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md'
+          )
+
+          printf 'INTERNAL_CLUSTER_REFERENCE_SCAN_BEGIN\n'
+          for path in "${candidates[@]}"; do
+            name="${path##*/}"
+            for source in "${candidates[@]}"; do
+              [[ "$source" == "$path" ]] && continue
+              if git grep -q -F "$path" -- "$source" || git grep -q -F "$name" -- "$source"; then
+                printf 'INTERNAL_CLUSTER_REFERENCE target=%s source=%s\n' "$path" "$source"
+              fi
+            done
+          done
+          printf 'INTERNAL_CLUSTER_REFERENCE_SCAN_END\n'
+
+      - name: Report generic documentation enumeration surfaces
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'GENERIC_DOC_ENUMERATION_SCAN_BEGIN'
+          git grep -n -E '(readdir|readdirSync|glob|walk|walkSync).*(docs|\.md)|(docs|\.md).*(readdir|readdirSync|glob|walk|walkSync)' -- scripts test .github 2>/dev/null || true
+          echo 'GENERIC_DOC_ENUMERATION_SCAN_END'
+          echo 'AUDIT_INSTRUMENTATION_COMPLETE=YES'
