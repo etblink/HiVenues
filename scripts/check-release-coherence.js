@@ -20,6 +20,8 @@ const {
 } = require('./release-coherence/reference-deployment');
 const { assertRequiredLivingReleaseDocuments } = require('./release-coherence/required-documents');
 
+const NEXT_SUCCESSOR_OPERATION = 'HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY';
+
 function assertReleaseCoherence() {
   const manifestContext = loadManifestContext();
   const deployment = assertReferenceDeploymentProfile();
@@ -42,7 +44,7 @@ function assertReleaseCoherence() {
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
     acceptedSuccessorMilestones: 6,
-    nextOperation: 'HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION',
+    nextOperation: NEXT_SUCCESSOR_OPERATION,
   });
 }
 
@@ -55,4 +57,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { assertReleaseCoherence };
+module.exports = { NEXT_SUCCESSOR_OPERATION, assertReleaseCoherence };
