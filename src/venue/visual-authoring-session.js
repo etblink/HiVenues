@@ -142,6 +142,11 @@ function createVisualAuthoringSession(baseInput) {
     return Object.freeze(editableFieldDescriptors(validProposal));
   }
 
+  // HV-6 intentionally exposes only semantic leaf edits already classified
+  // OPERATOR_AUTHORED by HV-5. There is no raw full-document replacement,
+  // array-topology, HTML, script, or component-tree mutation channel here.
+  // This is especially important for schema-v1 gallery arrays, whose items do
+  // not have stable item identities independent of their fixed array indices.
   function edit(pointer, value) {
     const ownership = ownershipForPath(pointer);
     if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
@@ -156,16 +161,6 @@ function createVisualAuthoringSession(baseInput) {
     const next = cloneJson(proposal);
     writeAtPointer(next, pointer, value);
     proposal = next;
-    lastError = null;
-    refreshDirtyState();
-    return status();
-  }
-
-  // Adapter-internal proposal replacement is intentionally available so both
-  // candidate implementations can be tested against hostile or malformed
-  // proposal objects. Acceptance still occurs only through the HV-5 gate.
-  function replaceProposal(proposedInput) {
-    proposal = cloneJson(proposedInput);
     lastError = null;
     refreshDirtyState();
     return status();
@@ -222,7 +217,6 @@ function createVisualAuthoringSession(baseInput) {
     edit,
     listEditableFields,
     previewProjection,
-    replaceProposal,
     status,
   });
 }
