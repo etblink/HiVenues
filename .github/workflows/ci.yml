@@ -62,11 +62,18 @@ jobs:
           # do not plausibly affect rendered user experience still receive the
           # universal deterministic Ubuntu/Windows gates below. If a normally
           # non-visual change needs deliberate visual review, workflow_dispatch
-          # selects the exhaustive suite explicitly.
+          # selects the exhaustive suite explicitly. The HV-8 deployment
+          # candidate marker is a permanent provenance trigger for the same
+          # exhaustive suite when workflow dispatch is unavailable to the
+          # Project Lead execution interface.
           visual=false
           while IFS= read -r path; do
             [[ -z "$path" ]] && continue
             case "$path" in
+              docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md)
+                visual=true
+                break
+                ;;
               views/*|public/*|src/input.css|src/app.js|routes/*|src/routes/*)
                 visual=true
                 break
