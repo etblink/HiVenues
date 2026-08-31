@@ -2,7 +2,7 @@
 
 Hive-Venues is a successor platform for independently branded venue-native community and social applications on Hive. It preserves the strongest security, payment, social, accessibility, release, and operating work from the original Hive-Bar application while separating reusable platform machinery from venue identity, authored venue expression, and deployment policy.
 
-**Fourth Street Bar in Reno is the reference venue and first real deployment.** It is not the platform identity. The platform does not currently require a universal venue-type taxonomy; venue-specific vocabulary belongs in venue-owned configuration rather than a guessed platform enum.
+**Fourth Street Bar in Reno is the sole real client and reference deployment.** It is not the platform identity. The platform does not currently require a universal venue-type taxonomy; venue-specific vocabulary belongs in venue-owned configuration rather than a guessed platform enum.
 
 ## Current successor state
 
@@ -26,22 +26,31 @@ HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACC
 HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
 POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
 POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
-SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT
-PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT
-NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION
+HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
+POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
+FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT
+SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
+HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
+NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
+REAL_SECOND_VENUE_REQUIRED = NO
 REAL_SECOND_VENUE_AUTHORIZED = NO
+VENUE_OUTREACH = NOT_AUTHORIZED
+SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The Post-HV-6 Sequencing Decision is accepted. The selected next product lane is a **real isolated second-venue pilot**, with the proposed milestone `HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT`. The next operation is preregistration only; no substantive HV-7 implementation is currently authorized.
+The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment supersedes the narrow real-only interpretation for **current routing**: the current lane is an **adversarial isolated second-venue pilot**, real or synthetic candidates are allowed, and the Project Lead has selected a **synthetic adversarial** candidate-design path for the next experiment.
 
-Selecting that lane does not admit or authorize a real venue. No specific second venue is selected by current routing, and production mutation remains unauthorized. The pilot is intended as the strongest direct falsification test of the accepted abstractions before broader venue reuse is trusted. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected as product lanes. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
+A synthetic HV-7 candidate is valid Tier-A evidence for architectural falsification but is not evidence of real-client adoption, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. The next operation is read-only candidate design and requirement freeze; no substantive HV-7 implementation is currently authorized.
+
+No real second venue is required or authorized, and no venue outreach is authorized. CID/IPFS publication, 3Speak/SPK media, package/developer identity cleanup, fleet operations, and other downstream lanes remain unselected as product lanes. Shared-runtime multi-tenancy and unconstrained replicated mutable state remain deferred.
 
 ## Accepted architecture
 
@@ -140,9 +149,12 @@ For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md`
-4. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-5. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-6. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md`
+4. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md`
+5. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md`
+6. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md` for the preserved historical lane decision
+7. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+8. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+9. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
-`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains the truthful historical record of the neutral pre-decision boundary. Superseded wording and prior routing remain recoverable from Git commit history. Living documents do not duplicate old routing snapshots merely to preserve history.
+`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains the truthful historical record of the neutral pre-decision boundary. `docs/HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md` remains the truthful historical preregistration whose narrow real-only evidence requirements were later superseded by the accepted 0.1.1 amendment. Living documents describe the amended current route rather than rewriting either historical record.
