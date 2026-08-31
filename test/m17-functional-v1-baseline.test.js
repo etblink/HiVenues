@@ -41,7 +41,7 @@ test('functional V1 remains pre-final while successor routing advances independe
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION',
+    successorRouting: 'HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY',
   });
 });
 
@@ -63,7 +63,7 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('accepted Post-HV-6 sequencing coexists with the unchanged production safety boundary', () => {
+test('accepted and amended Post-HV-6 routing coexists with the unchanged production safety boundary', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const index = read('docs/README.md');
@@ -72,22 +72,32 @@ test('accepted Post-HV-6 sequencing coexists with the unchanged production safet
   const hv6Acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md');
   const priorPostHv6 = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
   const postHv6Decision = read('docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md');
+  const amendment = read('docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md');
+  const amendmentAcceptance = read('docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md');
 
   assert.match(readme, /^# Hive-Venues$/m);
   assert.match(readme, /first six successor architecture\/product-foundation milestones are accepted/i);
   assert.match(readme, /HV-6 is canonically accepted/i);
-  assert.match(readme, /The Post-HV-6 Sequencing Decision is accepted/i);
-  assert.match(readme, /next operation is preregistration only; no substantive HV-7 implementation is currently authorized/i);
+  assert.match(readme, /historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded/i);
+  assert.match(readme, /current lane is an \*\*adversarial isolated second-venue pilot\*\*/i);
+  assert.match(readme, /synthetic adversarial.*candidate-design path/i);
+  assert.match(readme, /no substantive HV-7 implementation is currently authorized/i);
 
   for (const source of [roadmap, index]) {
     assert.match(source, /^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m);
     assert.match(source, /^POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED$/m);
-    assert.match(source, /^SELECTED_NEXT_LANE = REAL_ISOLATED_SECOND_VENUE_PILOT$/m);
-    assert.match(source, /^PROPOSED_NEXT_MILESTONE = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT$/m);
-    assert.match(source, /^NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION$/m);
+    assert.match(source, /^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m);
+    assert.match(source, /^FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT$/m);
+    assert.match(source, /^SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
+    assert.match(source, /^HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
+    assert.match(source, /^PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT$/m);
+    assert.match(source, /^NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY$/m);
     assert.match(source, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
     assert.match(source, /^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m);
+    assert.match(source, /^REAL_SECOND_VENUE_REQUIRED = NO$/m);
     assert.match(source, /^(?:REAL_SECOND_VENUE_AUTHORIZED|SECOND_REAL_VENUE_AUTHORIZED) = NO$/m);
+    assert.match(source, /^VENUE_OUTREACH = NOT_AUTHORIZED$/m);
+    assert.match(source, /^SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO$/m);
     assert.match(source, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(source, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m);
   }
@@ -109,6 +119,11 @@ test('accepted Post-HV-6 sequencing coexists with the unchanged production safet
   assert.match(postHv6Decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
   assert.match(postHv6Decision, /^REAL_SECOND_VENUE_AUTHORIZED = NO$/m);
   assert.match(postHv6Decision, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+
+  assert.match(amendment, /^HV7_SECOND_VENUE_CANDIDATE = REAL_OR_SYNTHETIC_ALLOWED$/m);
+  assert.match(amendment, /^REAL_SECOND_VENUE_REQUIRED = NO$/m);
+  assert.match(amendmentAcceptance, /^HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED$/m);
+  assert.match(amendmentAcceptance, /^PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL$/m);
 
   assert.match(operations, /canonical repository source: moving branch `main`/);
   assert.match(operations, /Production remains beta until a separately authorized transition/);
