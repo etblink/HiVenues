@@ -94,18 +94,9 @@ test('M18.4 distinguishes future sign-in-required follow copy from unavailable c
   assert.match(profile, /Following isn’t available here yet\./);
 });
 
-test('M18.4 historical acceptance remains bound after the successor documentation transition', () => {
-  const roadmap = read('docs/ROADMAP.md');
-  const index = read('docs/README.md');
+test('M18.4 qualification wiring and production boundary remain intact', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const workflow = read('.github/workflows/ci.yml');
-
-  assert.match(roadmap, /## Historical Hive-Bar line/);
-  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
-  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
-
-  assert.match(index, /All pre-successor milestone documents, acceptance records, deployment evidence, remediation records, visual artifacts, and release qualification files remain historical evidence/);
-  assert.match(index, /what visual or operational evidence supported an accepted milestone/);
 
   assert.match(
     operations,

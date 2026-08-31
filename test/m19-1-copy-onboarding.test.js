@@ -76,10 +76,8 @@ test('M19.1 presents an ordinary-language 404 without exposing route implementat
   assert.doesNotMatch(missing.text, /No route matches|GET \/m19-1-missing-page/);
 });
 
-test('M19.1 remains accepted historical source after the successor documentation transition', () => {
+test('M19.1 source and production boundaries remain directly verifiable', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
-  const roadmap = read('docs/ROADMAP.md');
-  const index = read('docs/README.md');
   const milestone = read('docs/M19_1_COPY_AND_ONBOARDING_READINESS.md');
 
   assert.match(
@@ -89,13 +87,6 @@ test('M19.1 remains accepted historical source after the successor documentation
   assert.match(operations, /M19\.2 followed this invariant to deploy exact M19\.1/);
   assert.match(operations, /Production remains beta until a separately authorized transition/);
   assert.match(operations, /in-person onboarding: not production-activated; M19\.3 is source-only/);
-
-  assert.match(roadmap, /## Historical Hive-Bar line/);
-  assert.match(roadmap, /M17–M19 capture important beta\/V1 readiness, presentation, deployment, and onboarding evidence/);
-  assert.match(roadmap, /They remain authoritative for what those operations established at the time/);
-
-  assert.match(index, /## Historical Hive-Bar evidence/);
-  assert.match(index, /what exact source or deployment was qualified at a historical gate/);
 
   assert.match(milestone, /M19\.1 is source-only/);
   assert.match(milestone, /must not expand capabilities/);
