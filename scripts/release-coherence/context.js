@@ -21,7 +21,6 @@ function loadDocumentContext() {
     architectureDecision: read('docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md'),
     hv5Acceptance: read('docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md'),
     hv6Acceptance: read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md'),
-    postHv6Reconciliation: read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md'),
     operations: read('docs/PRODUCTION_OPERATIONS.md'),
   };
 }
