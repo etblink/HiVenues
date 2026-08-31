@@ -185,6 +185,11 @@ test('UX-1F home document loads the scoped versioned asset without changing shar
   const document = documentFor(response.text);
   const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'), (link) => assetPath(link.href));
 
-  assert.deepEqual(stylesheets, ['/css/style.css', '/css/m15-social.css', '/css/ux-1f-home.css']);
+  assert.deepEqual(stylesheets, [
+    '/css/style.css',
+    '/css/m15-social.css',
+    '/css/ux-1f-home.css',
+    '/css/hv7-structured-home.css',
+  ]);
   assertSingleBoundedRead(fixture);
 });

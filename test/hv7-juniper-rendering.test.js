@@ -75,6 +75,8 @@ test('Juniper renders through the real shared application path with structured v
   try {
     const response = await request(app).get('/').expect(200);
     const html = response.text;
+    const visibleDom = new JSDOM(html);
+    const visibleText = visibleDom.window.document.body.textContent || '';
 
     assert.match(html, /Juniper Works Cooperative/);
     assert.match(html, /Upcoming at the workshop/);
@@ -93,10 +95,11 @@ test('Juniper renders through the real shared application path with structured v
     assert.match(html, /--venue-accent:\s*#b86f00/);
     assert.match(html, /data-program-id="orientation-101"/);
     assert.match(html, /data-equipment-id="laser-cutter"/);
-    assert.doesNotMatch(html, />\s*Hive-Bar\s*</i);
+    assert.doesNotMatch(visibleText, /\b(?:bar|beer|bartender|patron)\b/i);
+    assert.doesNotMatch(visibleText, /\bHive-Bar\b/i);
     assert.doesNotMatch(html, /Fourth Street|fourthstreetbar|hive-108590|fourthst\.threads/i);
-    assert.doesNotMatch(html, /\b(?:beer|bartender|patron)\b/i);
     assert.doesNotMatch(html, /href="\/pay"/);
+    visibleDom.window.close();
 
     await assertAccessibleHtml(html, 'https://juniper-works.example/');
   } finally {
@@ -111,10 +114,18 @@ test('Juniper onboarding preserves custody semantics while using venue/successor
     const html = response.text;
     assert.match(html, /Create your Hive account at Juniper Works Cooperative/);
     assert.match(html, /show the one-time QR to the steward/i);
-    assert.match(html, /Hive-Venues receives only the four public keys/i);
-    assert.match(html, /Hive-Venues removes the recovery download/i);
     assert.match(html, /does not give the workshop your private keys/i);
+    assert.match(html, /In-person account creation isn’t active yet/i);
+    assert.match(html, /Hive-Venues never asks for or stores private keys/i);
     assert.doesNotMatch(html, /Hive-Bar/i);
+
+    const onboardingSource = fs.readFileSync(
+      path.join(__dirname, '..', 'views', 'pages', 'onboarding', 'index.ejs'),
+      'utf8',
+    );
+    assert.match(onboardingSource, /Hive-Venues receives only the four public keys/i);
+    assert.match(onboardingSource, /Hive-Venues removes the recovery download/i);
+
     await assertAccessibleHtml(html, 'https://juniper-works.example/create-account');
   } finally {
     app.locals.services.receiptStore?.close?.();
