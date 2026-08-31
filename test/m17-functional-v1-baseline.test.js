@@ -19,39 +19,19 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-test('C2-A exposes the reviewed profile action in beta while preserving the pre-final functional V1 baseline', () => {
+test('functional V1 remains pre-final while successor routing advances independently', () => {
   const summary = assertFunctionalV1Baseline();
 
   assert.equal(EXPECTED_VERSION, '0.1.0');
   assert.equal(EXPECTED_APP_TAG, 'fourth-street-bar-app/0.1.0');
   assert.deepEqual(EXPECTED_V1_ACTIONS, [
-    'post',
-    'thread',
-    'comment',
-    'vote',
-    'follow',
-    'unfollow',
-    'subscribe',
-    'unsubscribe',
-    'profile',
-    'claim-rewards',
-    'wall',
-    'inbox',
+    'post', 'thread', 'comment', 'vote', 'follow', 'unfollow',
+    'subscribe', 'unsubscribe', 'profile', 'claim-rewards', 'wall', 'inbox',
   ]);
   assert.deepEqual(V1_ACTIONS, EXPECTED_V1_ACTIONS);
   assert.deepEqual(BETA_ACTIONS, [
-    'post',
-    'comment',
-    'vote',
-    'follow',
-    'unfollow',
-    'subscribe',
-    'unsubscribe',
-    'profile',
-    'claim-rewards',
-    'wall',
-    'inbox',
-    'thread',
+    'post', 'comment', 'vote', 'follow', 'unfollow', 'subscribe',
+    'unsubscribe', 'profile', 'claim-rewards', 'wall', 'inbox', 'thread',
   ]);
   assert.deepEqual(summary, {
     profile: 'm17-functional-v1-baseline',
@@ -61,11 +41,11 @@ test('C2-A exposes the reviewed profile action in beta while preserving the pre-
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION',
+    successorRouting: 'POST_HV6_SEQUENCING_DECISION__READ_ONLY',
   });
 });
 
-test('M17.4 last-good bookkeeping is atomic and does not weaken explicit rollback', () => {
+test('last-good bookkeeping is atomic and explicit rollback stays explicit', () => {
   const deploy = read('ops/privex/bin/hive-bar-deploy');
   const rollback = read('ops/privex/bin/hive-bar-rollback');
 
@@ -83,111 +63,43 @@ test('M17.4 last-good bookkeeping is atomic and does not weaken explicit rollbac
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('accepted M17 invariants coexist with historical routing and authorized bounded HV-6 evaluation', () => {
+test('accepted HV-6 coexists with the unchanged production safety boundary', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
-  const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const index = read('docs/README.md');
-  const milestone = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
+  const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const hv5Acceptance = read('docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md');
-  const neutralReconciliation = read('docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
-  const decision = read('docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md');
-  const decisionReconciliation = read('docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md');
-  const hv6Preregistration = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_0_1_0.md');
-  const hv6Acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION_ACCEPTANCE_0_1_0.md');
-  const hv6Authorization = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION_0_1_0.md');
-  const hv6Routing = read('docs/HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md');
+  const hv6Acceptance = read('docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md');
+  const postHv6 = read('docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md');
 
   assert.match(readme, /^# Hive-Venues$/m);
-  assert.match(readme, /The first five successor architecture milestones are accepted/);
-  assert.match(readme, /accepted \*\*Post-HV-5 Sequencing Decision\*\*/i);
-  assert.match(readme, /operator visual authoring adapter/i);
-  assert.match(readme, /HV-6 prospective contract has since been preregistered and accepted/i);
-  assert.match(readme, /bounded implementation authorization is now canonical/i);
-  assert.match(readme, /next operation is \*\*HV-6 bounded dual-candidate implementation and evaluation\*\*/i);
-  assert.match(readme, /No technology winner is selected/i);
-  assert.match(readme, /last recorded accepted production transition in the inherited record is M19\.2/);
-  assert.match(readme, /No successor source refactor by itself authorizes deployment/);
+  assert.match(readme, /first six successor architecture\/product-foundation milestones are accepted/i);
+  assert.match(readme, /HV-6 is canonically accepted/i);
+  assert.match(readme, /next product-governance operation is a fresh \*\*Post-HV-6 Sequencing Decision\*\*/i);
+  assert.match(readme, /No new substantive implementation is currently authorized/i);
 
-  assert.match(roadmap, /^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m);
-  assert.match(roadmap, /^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
-  assert.match(roadmap, /^POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m);
-  assert.match(roadmap, /^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m);
-  assert.match(roadmap, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
-  assert.match(roadmap, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m);
-  assert.match(roadmap, /^HV6_PREREGISTRATION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m);
-  assert.match(roadmap, /^HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION$/m);
-  assert.match(roadmap, /^NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION$/m);
-  assert.match(roadmap, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY$/m);
-  assert.match(roadmap, /^TECHNOLOGY_SELECTED = NO$/m);
-  assert.match(roadmap, /^GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY$/m);
-  assert.match(roadmap, /^SECOND_REAL_VENUE_AUTHORIZED = NO$/m);
-  assert.match(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
-  assert.match(roadmap, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m);
+  for (const source of [roadmap, index]) {
+    assert.match(source, /^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m);
+    assert.match(source, /^POST_HV6_SEQUENCING_DECISION = PENDING$/m);
+    assert.match(source, /^SELECTED_NEXT_LANE = NONE$/m);
+    assert.match(source, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m);
+    assert.match(source, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
+    assert.match(source, /^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m);
+    assert.match(source, /^(?:REAL_SECOND_VENUE_AUTHORIZED|SECOND_REAL_VENUE_AUTHORIZED) = NO$/m);
+    assert.match(source, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+    assert.match(source, /^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m);
+  }
 
   assert.match(hv5Acceptance, /^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m);
-  assert.match(hv5Acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = 932bb2fe109acfca9cb4ab0514dabc7553edf764$/m);
-  assert.match(hv5Acceptance, /^ACCEPTED_IMPLEMENTATION_TREE = aeaddf2bda5bdc89997caeaa8e4e472839ae8b10$/m);
+  assert.match(hv6Acceptance, /^STATUS = PROJECT_LEAD_ACCEPTED$/m);
+  assert.match(hv6Acceptance, /^ACCEPTED_IMPLEMENTATION_COMMIT = 3b774468ff1ed347a35500f2a29062a63ed62621$/m);
+  assert.match(hv6Acceptance, /^HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED$/m);
+  assert.match(hv6Acceptance, /^PUBLIC_PRODUCTION_AUTHORING_ROUTE = NOT_AUTHORIZED$/m);
+  assert.match(postHv6, /^OPERATION = POST_HV6_LIVING_ROUTING_RECONCILIATION$/m);
+  assert.match(postHv6, /^NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY$/m);
+  assert.match(postHv6, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m);
 
-  assert.match(neutralReconciliation, /^OPERATION = POST_HV5_LIVING_ROUTING_RECONCILIATION$/m);
-  assert.match(neutralReconciliation, /^SELECTED_NEXT_LANE = NONE$/m);
-  assert.match(neutralReconciliation, /^NEXT_OPERATION = POST_HV5_SEQUENCING_DECISION__READ_ONLY$/m);
-
-  assert.match(decision, /^STATUS = FROZEN_PROJECT_LEAD_SEQUENCING_DECISION$/m);
-  assert.match(decision, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
-  assert.match(decision, /^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m);
-  assert.match(decision, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
-  assert.match(decision, /^NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED$/m);
-
-  assert.match(decisionReconciliation, /^OPERATION = POST_HV5_DECISION_ROUTING_RECONCILIATION$/m);
-  assert.match(decisionReconciliation, /^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m);
-  assert.match(decisionReconciliation, /^NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
-  assert.match(decisionReconciliation, /^NEW_SUBSTANTIVE_IMPLEMENTATION = NO$/m);
-
-  assert.match(hv6Preregistration, /^OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION$/m);
-  assert.match(hv6Preregistration, /^STATUS = FROZEN_PREREGISTRATION__IMPLEMENTATION_NOT_AUTHORIZED$/m);
-  assert.match(hv6Preregistration, /^CANONICAL_AUTHORING_AUTHORITY = HV5_AUTHORING_DOCUMENT$/m);
-  assert.match(hv6Preregistration, /^IMPLEMENTATION_AUTHORIZED = NO$/m);
-
-  assert.match(hv6Acceptance, /^PROJECT_LEAD_PREREGISTRATION_REVIEW = PASS$/m);
-  assert.match(hv6Acceptance, /^HV6_PREREGISTRATION = ACCEPTED$/m);
-  assert.match(hv6Acceptance, /^IMPLEMENTATION_AUTHORIZED = NO$/m);
-  assert.match(hv6Acceptance, /^TECHNOLOGY_SELECTED = NO$/m);
-
-  assert.match(hv6Authorization, /^OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_IMPLEMENTATION_AUTHORIZATION$/m);
-  assert.match(hv6Authorization, /^CANONICAL_BASE_COMMIT = dfd8dd477c11b5eaec8161cb2dfb2e61aec094d3$/m);
-  assert.match(hv6Authorization, /^IMPLEMENTATION_AUTHORIZATION = BOUNDED_OFFLINE_DUAL_CANDIDATE_PROTOTYPE_AND_EVALUATION$/m);
-  assert.match(hv6Authorization, /^TECHNOLOGY_WINNER_PRESELECTED = NO$/m);
-  assert.match(hv6Authorization, /^PRODUCTION_MUTATION = NO$/m);
-  assert.match(hv6Authorization, /^REAL_SECOND_VENUE_ADMISSION = NO$/m);
-
-  assert.match(hv6Routing, /^OPERATION = HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION$/m);
-  assert.match(hv6Routing, /^CANONICAL_AUTHORIZATION_BASE = 2b67a2f4af4813e84bb539aa9136565dffb3fc1a$/m);
-  assert.match(hv6Routing, /^HV6_PREREGISTRATION = ACCEPTED$/m);
-  assert.match(hv6Routing, /^HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m);
-  assert.match(hv6Routing, /^HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION$/m);
-  assert.match(hv6Routing, /^NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION$/m);
-  assert.match(hv6Routing, /^TECHNOLOGY_SELECTED = NO$/m);
-  assert.match(hv6Routing, /^NEW_SUBSTANTIVE_IMPLEMENTATION_IN_THIS_RECONCILIATION = NO$/m);
-
-  assert.match(
-    operations,
-    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
-  );
   assert.match(operations, /canonical repository source: moving branch `main`/);
   assert.match(operations, /Production remains beta until a separately authorized transition/);
   assert.match(operations, /last-good.*M17\.3/i);
-
-  assert.match(index, /## Historical Hive-Bar evidence/);
-  assert.match(index, /original Git object graph is preserved/);
-  assert.match(index, /HV6_IMPLEMENTATION_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0\.md/);
-  assert.match(index, /NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION/);
-
-  assert.match(milestone, /No cosmetic redesign is required for M17\.4 acceptance/);
-  assert.match(milestone, /canonicalization is not part of this source-qualification authorization/);
 });
