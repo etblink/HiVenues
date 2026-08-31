@@ -34,17 +34,23 @@ test('shared visual harness primitives preserve deterministic hashing, provenanc
   assert.equal(server.listening, false);
 });
 
-test('HV-6 and UX-1F visual suites consume shared mechanical primitives without sharing suite policy', () => {
+test('M18.2, HV-6, and UX-1F visual suites consume shared mechanical primitives without sharing suite policy', () => {
+  const m18 = fs.readFileSync(path.join(ROOT, 'scripts/capture-m18-visual.js'), 'utf8');
   const hv6 = fs.readFileSync(path.join(ROOT, 'scripts/capture-hv6-native-visual.js'), 'utf8');
   const ux1f = fs.readFileSync(path.join(ROOT, 'scripts/capture-ux-1f-visual.js'), 'utf8');
 
-  for (const source of [hv6, ux1f]) {
+  for (const source of [m18, hv6, ux1f]) {
     assert.match(source, /require\('\.\/support\/visual-harness'\)/);
+    assert.doesNotMatch(source, /require\('node:child_process'\)/);
     assert.doesNotMatch(source, /require\('node:crypto'\)/);
     assert.doesNotMatch(source, /function listen\(app\)/);
+    assert.doesNotMatch(source, /async function closeServer\(/);
     assert.doesNotMatch(source, /function sha256\(/);
   }
 
+  assert.match(m18, /async function installNetworkGuard\(context, \{ baseUrl, documentPath \}\)/);
+  assert.match(m18, /async function settlePresentation\(page\)/);
+  assert.match(m18, /const KEYCHAIN_STUB/);
   assert.match(hv6, /async function runAxe\(target\)/);
   assert.match(hv6, /LANTERN_EVALUATION_ASSETS/);
   assert.match(ux1f, /async function accessibilityEvidence\(page, label\)/);
