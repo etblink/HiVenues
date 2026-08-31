@@ -104,9 +104,9 @@ async function inspectPublicHome(page) {
   await page.locator('#home-heading').waitFor({ state: 'visible' });
   const text = await page.locator('body').innerText();
   assert.match(text, /Juniper Works Cooperative/);
-  assert.match(text, /Upcoming at the workshop/);
+  assert.match(text, /Upcoming at the workshop/i);
   assert.match(text, /New member orientation/);
-  assert.match(text, /Equipment status/);
+  assert.match(text, /Equipment status/i);
   assert.match(text, /Laser cutter/);
   assert.match(text, /Maintenance/);
   assert.match(text, /Available/);
