@@ -1,0 +1,214 @@
+name: Post-HV6 ref hygiene final teardown
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/post-hv6-ref-hygiene.yml'
+      - '.github/workflows/post-hv6-ref-hygiene-finalize.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/post-hv6-ref-hygiene-finalize.yml'
+
+permissions:
+  contents: write
+
+env:
+  RECOVERY_WORKFLOW: .github/workflows/post-hv6-ref-hygiene-finalize.yml
+  RETIRED_WORKFLOW: .github/workflows/post-hv6-ref-hygiene.yml
+  ACTIVATION_SHA: 2c692d961ff2cfbdf6aaf25c64e0eb9519c04d6d
+  TEARDOWN_BASE: e600e8c1baa8f9abe7d4e22f13abd3303bd59bb3
+  PRE_ACTIVATION_TREE: 62fdf5bc8fd15448d2e587cfccadbeb829fecf85
+  RECOVERY_BRANCH: maintenance/ref-hygiene-post-hv6-teardown
+  APPLY: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+  PR_HEAD: ${{ github.head_ref }}
+  PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact event commit with authenticated Git
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: true
+
+      - name: Verify exact recovered custody state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' --prune --force
+          canonical_sha="$(git rev-parse refs/remotes/origin/main)"
+          event_sha="$(git rev-parse HEAD)"
+
+          tag_ledger="$(mktemp)"
+          cat >"$tag_ledger" <<'EOF'
+          archive/branch/automation/hive-venues-baseline-audit|8c891a51a63f991789c8ebad8ad913409f26c0e7
+          archive/branch/automation/hv1-venue-context-builder|ad8e508ae3bdfd8c41b9878312a847bcfe17b53d
+          archive/branch/automation/post-hv2-routing-reconciliation-builder|d159acc06a023a9b24077cfe578aae4c7d36e473
+          archive/branch/codex/c2-g1c-r5-4-import-diagnostic|0546a0547cf30812e5b94c862e00ce6040799ec9
+          archive/branch/codex/m18-4-beta-readiness-closure|7362f4fc98ac9172544952a34ca840a1f2e8778c
+          archive/branch/codex/m2-live-smoke-validation|c524ab182f85e1170edb99e9093ca49d34e3ac84
+          archive/branch/codex/m2-read-only-slice|86b54854669658c0c04c3d5667d8b741d851f6fb
+          archive/branch/continuity/v0.4.1-handoff-freeze|b872f4a4916afbbbe65f1fe8de8ec524b44e9798
+          archive/branch/continuity/v0.5.0-c2-b-closure-freeze|8fcee3b8bbedf38b53a8e64f6d28eac7b0f0e37d
+          archive/branch/hv6/grapesjs-candidate-a-evaluation|9c515d0083162052c765686013287e3cd2a5bf84
+          archive/branch/maintenance/ci-graph-rationalization|a4a29647b89da1bcc10ead8f374dc0ff0e5eac90
+          archive/branch/parseMarkdown|14e2b769309ec10180163716a237a9c237138f18
+          archive/branch/platform/hv2-acceptance-reconciliation|123453a82ce9ddb5974be9f9c7a25c5fa0cbfa0d
+          archive/branch/platform/hv2-acceptance-reconciliation-v2|7e696cad21bfa31723a98969440ec0aaf69fe5b4
+          archive/branch/platform/hv2-reference-deployment-profile|bae5f0dfafd8fb831e809474a5be07bcfb18a523
+          archive/branch/platform/hv3-reference-venue-package|4eccb6feb73f783464d8773436630910d935a7bc
+          archive/branch/qualification/hv2-coverage-compare|1774a3e1cb25d05afc027d0b33c126b137083c6d
+          archive/main-tree/batch-20260830-001|e636c9f26d787c0db72db4ff833a07c340f49aa1
+          EOF
+
+          expected_tags="$(sort "$tag_ledger")"
+          observed_tags="$(git for-each-ref --format='%(refname:strip=2)|%(objectname)' refs/tags | sort)"
+          [[ "$observed_tags" == "$expected_tags" ]] || {
+            printf 'Refusing finalization: tag namespace or object identity drift.\nExpected:\n%s\nObserved:\n%s\n' \
+              "$expected_tags" "$observed_tags" >&2
+            exit 1
+          }
+
+          verify_archive_tag() {
+            local tag_name="$1"
+            local tag_object_sha="$2"
+            local expected_commit="$3"
+            local expected_tree="$4"
+            local source_branch="$5"
+            local tag_object
+
+            [[ "$(git rev-parse "refs/tags/$tag_name")" == "$tag_object_sha" ]]
+            [[ "$(git cat-file -t "$tag_object_sha")" == 'tag' ]]
+            [[ "$(git rev-parse "refs/tags/$tag_name^{}")" == "$expected_commit" ]]
+            [[ "$(git rev-parse "$expected_commit^{tree}")" == "$expected_tree" ]]
+            tag_object="$(git cat-file -p "$tag_object_sha")"
+            grep -Fqx "SOURCE_BRANCH = $source_branch" <<<"$tag_object"
+            grep -Fqx "SOURCE_COMMIT = $expected_commit" <<<"$tag_object"
+            grep -Fqx "SOURCE_TREE = $expected_tree" <<<"$tag_object"
+            grep -Fqx 'ARCHIVE_CLASSIFICATION = DURABLE_INDEPENDENT_HISTORICAL_EVIDENCE' <<<"$tag_object"
+            grep -Fqx 'IMMUTABLE_BY_PROJECT_POLICY = YES' <<<"$tag_object"
+          }
+
+          verify_archive_tag \
+            archive/branch/continuity/v0.4.1-handoff-freeze \
+            b872f4a4916afbbbe65f1fe8de8ec524b44e9798 \
+            bead61a96f37394cde6f2407d9731cf8a191ef8a \
+            b3d1c9d176c8ad6499b03e49ec67ee69b5bbdaa5 \
+            continuity/v0.4.1-handoff-freeze
+          verify_archive_tag \
+            archive/branch/continuity/v0.5.0-c2-b-closure-freeze \
+            8fcee3b8bbedf38b53a8e64f6d28eac7b0f0e37d \
+            af9f30b66d375ce06d82a98289d514a102aba5ed \
+            7e2568ccd1d7f068eec6221b1d897be4fe719496 \
+            continuity/v0.5.0-c2-b-closure-freeze
+          verify_archive_tag \
+            archive/branch/hv6/grapesjs-candidate-a-evaluation \
+            9c515d0083162052c765686013287e3cd2a5bf84 \
+            7657387fb6117d6f508be4248f05e28527e21f7f \
+            8a6697408c68a6c6b4e5d16e23ae37522c73e1eb \
+            hv6/grapesjs-candidate-a-evaluation
+
+          [[ "$(git rev-parse "$TEARDOWN_BASE^")" == "$ACTIVATION_SHA" ]]
+          [[ "$(git rev-parse "$TEARDOWN_BASE^{tree}")" == "$PRE_ACTIVATION_TREE" ]]
+          if git cat-file -e "$TEARDOWN_BASE:$RETIRED_WORKFLOW" 2>/dev/null; then
+            echo 'Refusing finalization: retired privileged workflow exists in teardown base.' >&2
+            exit 1
+          fi
+
+          recovery_ref="refs/remotes/origin/$RECOVERY_BRANCH"
+          git show-ref --verify --quiet "$recovery_ref" || {
+            echo 'Refusing finalization: recovery branch missing.' >&2
+            exit 1
+          }
+          recovery_tip="$(git rev-parse "$recovery_ref")"
+          [[ "$(git rev-parse "$recovery_tip^")" == "$TEARDOWN_BASE" ]] || {
+            echo 'Refusing finalization: recovery tip is not direct child of teardown base.' >&2
+            exit 1
+          }
+          [[ "$(git diff-tree --no-commit-id --name-only -r "$TEARDOWN_BASE" "$recovery_tip")" == "$RECOVERY_WORKFLOW" ]] || {
+            echo 'Refusing finalization: recovery tip changes more than the recovery workflow.' >&2
+            exit 1
+          }
+          git cat-file -e "$recovery_tip:$RECOVERY_WORKFLOW"
+          if git cat-file -e "$recovery_tip:$RETIRED_WORKFLOW" 2>/dev/null; then
+            echo 'Refusing finalization: retired workflow reappeared.' >&2
+            exit 1
+          fi
+
+          mapfile -t branches < <(
+            git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin |
+            grep -v '^HEAD$' |
+            sort
+          )
+          expected_branches=(main "$RECOVERY_BRANCH")
+          mapfile -t expected_branches < <(printf '%s\n' "${expected_branches[@]}" | sort)
+          [[ "$(printf '%s\n' "${branches[@]}")" == "$(printf '%s\n' "${expected_branches[@]}")" ]] || {
+            printf 'Refusing finalization: branch namespace drift.\n%s\n' "$(printf '%s\n' "${branches[@]}")" >&2
+            exit 1
+          }
+
+          if [[ "$APPLY" == 'false' ]]; then
+            [[ "$PR_HEAD" == "$RECOVERY_BRANCH" ]]
+            [[ "$PR_HEAD_SHA" == "$recovery_tip" ]]
+            [[ "$canonical_sha" == "$ACTIVATION_SHA" ]]
+            echo 'FINAL_TEARDOWN_DRY_RUN=PASS'
+            echo 'NO_REFS_MUTATED=YES'
+            exit 0
+          fi
+
+          [[ "$event_sha" == "$canonical_sha" ]] || {
+            echo 'Refusing finalization: event commit is not canonical main.' >&2
+            exit 1
+          }
+          [[ "$event_sha" == "$recovery_tip" ]] || {
+            echo 'Refusing finalization: canonical main is not exact recovery branch tip.' >&2
+            exit 1
+          }
+
+          git config user.name 'Evan Kotler'
+          git config user.email 'etblink@users.noreply.github.com'
+          final_commit="$(printf '%s\n' 'Finalize post-HV6 ref hygiene teardown' | git commit-tree "$PRE_ACTIVATION_TREE" -p "$event_sha")"
+          [[ "$(git rev-parse "$final_commit^")" == "$event_sha" ]]
+          [[ "$(git rev-parse "$final_commit^{tree}")" == "$PRE_ACTIVATION_TREE" ]]
+          [[ "$(git diff-tree --no-commit-id --name-only -r "$event_sha" "$final_commit")" == "$RECOVERY_WORKFLOW" ]]
+          if git cat-file -e "$final_commit:$RECOVERY_WORKFLOW" 2>/dev/null || \
+             git cat-file -e "$final_commit:$RETIRED_WORKFLOW" 2>/dev/null; then
+            echo 'Refusing finalization: privileged workflow remains in final tree.' >&2
+            exit 1
+          fi
+
+          git push --atomic \
+            "--force-with-lease=refs/heads/main:$event_sha" \
+            "--force-with-lease=refs/heads/$RECOVERY_BRANCH:$event_sha" \
+            origin \
+            "$final_commit:refs/heads/main" \
+            ":refs/heads/$RECOVERY_BRANCH"
+
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' --prune --force
+          [[ "$(git rev-parse refs/remotes/origin/main)" == "$final_commit" ]]
+          [[ "$(git rev-parse "$final_commit^{tree}")" == "$PRE_ACTIVATION_TREE" ]]
+          mapfile -t final_branches < <(
+            git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin |
+            grep -v '^HEAD$' |
+            sort
+          )
+          [[ "$(printf '%s\n' "${final_branches[@]}")" == 'main' ]]
+          [[ "$(git for-each-ref --format='%(refname:strip=2)|%(objectname)' refs/tags | sort)" == "$expected_tags" ]]
+          if git cat-file -e "$final_commit:$RECOVERY_WORKFLOW" 2>/dev/null || \
+             git cat-file -e "$final_commit:$RETIRED_WORKFLOW" 2>/dev/null; then
+            echo 'Refusing success: privileged workflow remains after final push.' >&2
+            exit 1
+          fi
+
+          echo "FINAL_MAIN=$final_commit"
+          echo "FINAL_TREE=$PRE_ACTIVATION_TREE"
+          echo 'FINAL_BRANCH_NAMESPACE=main-only'
+          echo 'PRIVILEGED_WORKFLOWS_PRESENT=NO'
+          echo 'ARCHIVE_TAG_SET_UNCHANGED=YES'
+          echo 'POST_HV6_REF_HYGIENE=PASS'
