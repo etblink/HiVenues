@@ -78,8 +78,8 @@ test('M15.5 public surfaces remain complete local-first application documents', 
 test('M15.5 signed-out, read-only, controlled, owner-only, and payment-enabled states stay truthful', async () => {
   const { app: publicApp } = createFixtureApp();
   const signedOutPay = await request(publicApp).get('/pay').expect(200);
-  assert.match(signedOutPay.text, /Sign in to pay/);
-  assert.doesNotMatch(signedOutPay.text, /data-pay-form/);
+  assert.match(signedOutPay.text, /Payments aren’t available at 4th Street Bar/);
+  assert.doesNotMatch(signedOutPay.text, /Sign in to pay|data-pay-form/);
 
   const signedOutDocument = documentFor(signedOutPay.text);
   const signedOutPayNav = signedOutDocument.querySelector('.app-nav-link[data-pay-nav]');

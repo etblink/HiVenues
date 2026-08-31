@@ -60,8 +60,10 @@ test('M16.5 public pages speak to visitors rather than operators', async () => {
   assert.match(home.text, /Your private keys stay in Keychain/);
 
   const pay = await request(app).get('/pay').expect(200);
-  assert.match(pay.text, /If confirmation is unclear, don’t pay again/);
-  assert.match(pay.text, /Hive-Bar never receives your private keys/);
+  assert.match(pay.text, /Payments aren’t available at 4th Street Bar/);
+  assert.match(pay.text, /4th Street Bar does not currently offer payments through Hive-Venues/);
+  assert.match(pay.text, /Hive-Venues never asks for or stores private keys/);
+  assert.doesNotMatch(pay.text, /Sign in to pay|data-pay-form|\bHive-Bar\b/);
 });
 
 test('M16.5 beta participation copy stays friendly while preserving write-review safety', async () => {
