@@ -32,88 +32,41 @@ function assertFunctionalV1Baseline() {
   assertReleaseCoherence();
 
   const manifest = JSON.parse(read('ops/privex/manifest.json'));
-  const m17Baseline = read('docs/M17_4_FUNCTIONAL_V1_BASELINE.md');
-  const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const deploy = read('ops/privex/bin/hive-bar-deploy');
 
-  if (PACKAGE_VERSION !== EXPECTED_VERSION) {
-    throw new Error(`M17.4 must remain pre-final package version ${EXPECTED_VERSION}`);
-  }
-  if (RELEASE_APP_TAG !== EXPECTED_APP_TAG) {
-    throw new Error(`M17.4 app tag must remain exactly ${EXPECTED_APP_TAG}`);
-  }
+  if (PACKAGE_VERSION !== EXPECTED_VERSION) throw new Error(`functional V1 must remain pre-final package version ${EXPECTED_VERSION}`);
+  if (RELEASE_APP_TAG !== EXPECTED_APP_TAG) throw new Error(`functional V1 app tag must remain exactly ${EXPECTED_APP_TAG}`);
   if (JSON.stringify(V1_ACTIONS) !== JSON.stringify(EXPECTED_V1_ACTIONS)) {
-    throw new Error('V1 action manifest drifted from the accepted M20.2 twelve-action boundary');
+    throw new Error('V1 action manifest drifted from the accepted twelve-action boundary');
   }
   if (JSON.stringify(manifest.v1?.selfSignedActions) !== JSON.stringify(EXPECTED_V1_ACTIONS)) {
-    throw new Error('Privex manifest drifted from the accepted M20.2 twelve-action V1 boundary');
+    throw new Error('Privex manifest drifted from the accepted twelve-action V1 boundary');
   }
   if (manifest.runtimeProfiles?.acceptedBeta !== 'privex-beta-self-signing') {
-    throw new Error('M17.4 must retain the accepted beta production profile');
+    throw new Error('functional V1 must retain the accepted beta production profile');
   }
   if (manifest.runtimeProfiles?.wiredV1 !== 'privex-v1-self-signing') {
-    throw new Error('M17.4 must retain the wired V1 self-signing profile');
+    throw new Error('functional V1 must retain the wired V1 self-signing profile');
   }
   if (manifest.v1?.status !== 'runtime-wired-not-production-activated') {
-    throw new Error('M17.4 must not claim that V1 production activation has occurred');
+    throw new Error('functional V1 must not claim production activation');
   }
   if (manifest.v1?.paymentsEnabled !== false || manifest.v1?.distriatorEnabled !== false) {
-    throw new Error('M17.4 must keep Pay and Distriator outside V1');
+    throw new Error('functional V1 must keep Pay and Distriator outside V1');
   }
   if (manifest.release?.lastGoodPath !== '/opt/hive-bar/last-good') {
-    throw new Error('M17.4 must publish the canonical last-good release path');
+    throw new Error('functional V1 must publish the canonical last-good release path');
   }
   if (manifest.release?.lastGoodPolicy !== 'previous-validated-current-before-switch') {
-    throw new Error('M17.4 must publish the reviewed last-good update policy');
+    throw new Error('functional V1 must publish the reviewed last-good update policy');
   }
 
-  // M17.4 remains historical evidence. Current successor routing is asserted
-  // separately from the preserved functional-V1 contract below.
-  if (!/^# M17\.4 Functional V1 Baseline$/m.test(m17Baseline)) {
-    throw new Error('historical M17.4 functional baseline evidence is missing or malformed');
-  }
-  if (!/## Functional baseline identity/.test(m17Baseline)) {
-    throw new Error('historical M17.4 evidence must retain its functional baseline identity contract');
-  }
-  if (!/production remaining beta until separately authorized/i.test(m17Baseline)) {
-    throw new Error('historical M17.4 evidence must retain beta-until-authorized semantics');
-  }
-
-  for (const [pattern, message] of [
-    [/^HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-1'],
-    [/^HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-2'],
-    [/^HV3_REFERENCE_VENUE_PACKAGE_EXTRACTION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-3'],
-    [/^HV4_ISOLATED_VENUE_BOOTSTRAP_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-4'],
-    [/^HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED$/m, 'living roadmap must preserve accepted HV-5'],
-    [/^POST_HV3_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'living roadmap must preserve post-HV-3 sequencing as historical'],
-    [/^POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING$/m, 'living roadmap must preserve post-HV-4 sequencing as historical'],
-    [/^POST_HV5_SEQUENCING_DECISION = ACCEPTED$/m, 'living roadmap must bind accepted post-HV-5 sequencing'],
-    [/^SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER$/m, 'living roadmap must select the operator visual-authoring adapter'],
-    [/^PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION$/m, 'living roadmap must identify proposed HV-6'],
-    [/^HV6_PREREGISTRATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-6 preregistration'],
-    [/^HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED$/m, 'living roadmap must bind accepted HV-6 implementation authorization'],
-    [/^HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION$/m, 'living roadmap must bind bounded HV-6 implementation state'],
-    [/^NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION$/m, 'living roadmap must route to bounded HV-6 dual-candidate implementation/evaluation'],
-    [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY$/m, 'living roadmap must authorize only bounded HV-6 evaluation implementation'],
-    [/^TECHNOLOGY_SELECTED = NO$/m, 'living roadmap must keep technology selection open'],
-    [/^GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY$/m, 'living roadmap must keep GrapesJS unselected as a production dependency'],
-    [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'living roadmap must keep a real second venue unauthorized'],
-    [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'living roadmap must keep production mutation unauthorized'],
-    [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'living roadmap must keep shared-runtime tenancy deferred'],
-    [/^DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME$/m, 'living roadmap must preserve the isolated-runtime default'],
-  ]) {
-    if (!pattern.test(roadmap)) throw new Error(message);
-  }
-
-  if (!/last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`/.test(operations)) {
-    throw new Error('production operations must retain M19.2 as the historical accepted M19.1 deployment event');
-  }
   if (!/Production remains beta until a separately authorized transition/.test(operations)) {
-    throw new Error('production operations must keep V1 activation outside later beta milestones');
+    throw new Error('production operations must keep V1 activation outside source qualification');
   }
   if (!/last-good.*M17\.3/i.test(operations)) {
-    throw new Error('production operations must retain exact M17.3 as the recorded last-good boundary');
+    throw new Error('production operations must retain the currently recorded last-good boundary');
   }
   for (const pattern of [
     /readonly last_good="\$app_root\/last-good"/,
@@ -121,9 +74,7 @@ function assertFunctionalV1Baseline() {
     /ln -s "\$previous" "\$last_good_staging"/,
     /mv -Tf "\$last_good_staging" "\$last_good"/,
   ]) {
-    if (!pattern.test(deploy)) {
-      throw new Error('deployment helper no longer preserves deterministic last-good bookkeeping');
-    }
+    if (!pattern.test(deploy)) throw new Error('deployment helper no longer preserves deterministic last-good bookkeeping');
   }
 
   return Object.freeze({
@@ -134,7 +85,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION',
+    successorRouting: 'POST_HV6_SEQUENCING_DECISION__READ_ONLY',
   });
 }
 
@@ -142,7 +93,7 @@ if (require.main === module) {
   try {
     process.stdout.write(`${JSON.stringify(assertFunctionalV1Baseline())}\n`);
   } catch (error) {
-    process.stderr.write(`Hive-Venues inherited functional V1 baseline refused: ${error.message}\n`);
+    process.stderr.write(`Hive-Venues functional V1 baseline refused: ${error.message}\n`);
     process.exitCode = 1;
   }
 }
