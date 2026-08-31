@@ -84,7 +84,7 @@ async function exerciseCollectionAuthoring(page, fixture) {
   await submitAndWait(page, () => accentForm.locator('button[type="submit"]').click());
   preview = await getPreviewFrame(page);
   assert.equal(
-    (await preview.locator('html').evaluate((node) => getComputedStyle(node).getPropertyValue('--venue-accent'))).trim(),
+    (await preview.locator('html').evaluate((node) => globalThis.getComputedStyle(node).getPropertyValue('--venue-accent'))).trim(),
     '#a96700',
   );
 
@@ -119,7 +119,7 @@ async function inspectPublicHome(page) {
   assert.equal(await page.locator('img[src="/fixtures/juniper-works/workshop.svg"]').count(), 1);
   assert.equal(await page.locator('img[src^="/fixtures/juniper-works/project-"]').count(), 3);
   return {
-    accent: (await page.locator('html').evaluate((node) => getComputedStyle(node).getPropertyValue('--venue-accent'))).trim(),
+    accent: (await page.locator('html').evaluate((node) => globalThis.getComputedStyle(node).getPropertyValue('--venue-accent'))).trim(),
     programCount: await page.locator('[data-program-id]').count(),
     equipmentCount: await page.locator('[data-equipment-id]').count(),
   };
@@ -196,9 +196,9 @@ async function run() {
     await mobile.goto(`${origin}${fixture.editorPath}`, { waitUntil: 'networkidle' });
     const editorGeometry = await assertNoHorizontalOverflow(mobile, 'authoring mobile');
     const positions = await mobile.evaluate(() => ({
-      previewTop: document.querySelector('.preview').getBoundingClientRect().top,
-      inspectorTop: document.querySelector('.inspector').getBoundingClientRect().top,
-      undersized: Array.from(document.querySelectorAll('button,input:not([type="hidden"]),textarea,select,summary'))
+      previewTop: globalThis.document.querySelector('.preview').getBoundingClientRect().top,
+      inspectorTop: globalThis.document.querySelector('.inspector').getBoundingClientRect().top,
+      undersized: Array.from(globalThis.document.querySelectorAll('button,input:not([type="hidden"]),textarea,select,summary'))
         .filter((node) => {
           const rect = node.getBoundingClientRect();
           return rect.width > 0 && rect.height > 0 && rect.height < 44;
