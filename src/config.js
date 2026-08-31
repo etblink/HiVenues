@@ -3,12 +3,18 @@
 const { randomBytes } = require('node:crypto');
 const dotenv = require('dotenv');
 const { z } = require('zod');
+const {
+  LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS,
+  loadFourthStreetCompatibleVenue,
+} = require('./deployment/reference/fourth-street-env');
 const { parseAsset } = require('./hive/assets');
-const { createVenueContext, withVenueContext } = require('./venue/context');
-const { FOURTH_STREET_REFERENCE_VENUE } = require('./venue/reference/fourth-street');
+const {
+  COMMUNITY_PATTERN,
+  HIVE_ACCOUNT_PATTERN,
+  createVenueContext,
+  withVenueContext,
+} = require('./venue/context');
 
-const HIVE_ACCOUNT_PATTERN = /^(?=.{3,64}$)[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
-const COMMUNITY_PATTERN = /^hive-[0-9]{3,12}$/;
 const CONTROLLED_ACTIONS = Object.freeze([
   'post',
   'thread',
@@ -25,15 +31,8 @@ const CONTROLLED_ACTIONS = Object.freeze([
   'payment',
 ]);
 const BETA_SELF_ACTIONS = Object.freeze(['post', 'comment', 'thread']);
-const PRODUCTION_REQUIRED_SETTINGS = [
-  'SITE_NAME',
-  'BAR_ADDRESS',
-  'BAR_PHONE',
-  'BAR_HOURS',
-  'BAR_WEBSITE_URL',
-  'BAR_MAP_URL',
-  'HIVE_COMMUNITY_ID',
-  'THREADS_CONTAINER_ACCOUNT',
+
+const PLATFORM_PRODUCTION_REQUIRED_SETTINGS = Object.freeze([
   'HIVE_RPC_NODES',
   'HIVE_WRITE_MODE',
   'HIVE_WALL_DEFAULT_FEE',
@@ -43,12 +42,21 @@ const PRODUCTION_REQUIRED_SETTINGS = [
   'BIND_HOST',
   'APP_ORIGIN',
   'SESSION_SECRET',
-];
+]);
 
-const PRODUCTION_PAYMENT_REQUIRED_SETTINGS = [
+const PRODUCTION_REQUIRED_SETTINGS = Object.freeze([
+  ...LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS,
+  ...PLATFORM_PRODUCTION_REQUIRED_SETTINGS,
+]);
+
+const PRODUCTION_PAYMENT_REQUIRED_SETTINGS = Object.freeze([
   'HIVE_PAYMENT_MERCHANT_ACCOUNTS',
   'HIVE_PAYMENT_RECEIPT_DB_PATH',
-];
+]);
+
+const PLATFORM_PRODUCTION_PAYMENT_REQUIRED_SETTINGS = Object.freeze([
+  'HIVE_PAYMENT_RECEIPT_DB_PATH',
+]);
 
 function hasEnabledPayment(source) {
   return ['true', '1'].includes(String(source.HIVE_PAYMENT_ENABLED || '').trim().toLowerCase());
@@ -207,37 +215,6 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     BIND_HOST: z.enum(['127.0.0.1', '::1', '0.0.0.0', '::']).default('127.0.0.1'),
-    VENUE_ID: z.string().trim().default(FOURTH_STREET_REFERENCE_VENUE.id),
-    SITE_NAME: z.string().trim().min(1).max(80).default(FOURTH_STREET_REFERENCE_VENUE.displayName),
-    BAR_ADDRESS: z
-      .string()
-      .trim()
-      .min(1)
-      .max(200)
-      .default(FOURTH_STREET_REFERENCE_VENUE.business.address),
-    BAR_PHONE: z.string().trim().min(1).max(40).default(FOURTH_STREET_REFERENCE_VENUE.business.phone),
-    BAR_HOURS: z.string().trim().min(1).max(120).default(FOURTH_STREET_REFERENCE_VENUE.business.hours),
-    BAR_WEBSITE_URL: z
-      .string()
-      .trim()
-      .default(FOURTH_STREET_REFERENCE_VENUE.business.websiteUrl)
-      .transform(requireHttpsUrl),
-    BAR_MAP_URL: z
-      .string()
-      .trim()
-      .default(FOURTH_STREET_REFERENCE_VENUE.business.mapUrl)
-      .transform(requireHttpsUrl),
-    HIVE_COMMUNITY_ID: z.string().trim().regex(COMMUNITY_PATTERN).default(FOURTH_STREET_REFERENCE_VENUE.hive.communityId),
-    HIVE_OFFICIAL_BAR_ACCOUNT: z
-      .string()
-      .trim()
-      .regex(HIVE_ACCOUNT_PATTERN)
-      .default(FOURTH_STREET_REFERENCE_VENUE.hive.officialAccount),
-    THREADS_CONTAINER_ACCOUNT: z
-      .string()
-      .trim()
-      .regex(HIVE_ACCOUNT_PATTERN)
-      .default(FOURTH_STREET_REFERENCE_VENUE.hive.threadsContainerAccount),
     HIVE_RPC_NODES: z
       .string()
       .default('https://api.hive.blog,https://api.deathwing.me,https://api.openhive.network')
@@ -261,10 +238,6 @@ const envSchema = z
     HIVE_MODERATION_OPERATOR_ACCOUNTS: z.string().default('').transform(parseAccountList),
     HIVE_MODERATION_DB_PATH: z.string().default(':memory:').transform(parseReceiptPath),
     HIVE_PAYMENT_ENABLED: z.string().default('false').transform(parseBoolean),
-    HIVE_PAYMENT_MERCHANT_ACCOUNTS: z
-      .string()
-      .default(FOURTH_STREET_REFERENCE_VENUE.hive.paymentMerchantAccounts.join(','))
-      .transform(parseAccountList),
     HIVE_PAYMENT_RECEIPT_DB_PATH: z.string().default(':memory:').transform(parseReceiptPath),
     HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS: z.coerce
       .number()
@@ -366,13 +339,6 @@ const envSchema = z
         message: 'Enabled payment requires Hive Keychain',
       });
     }
-    if (env.HIVE_PAYMENT_ENABLED && env.HIVE_PAYMENT_MERCHANT_ACCOUNTS.length === 0) {
-      context.addIssue({
-        code: 'custom',
-        path: ['HIVE_PAYMENT_MERCHANT_ACCOUNTS'],
-        message: 'Enabled payment requires at least one approved merchant',
-      });
-    }
     if (
       env.HIVE_PAYMENT_ENABLED &&
       env.NODE_ENV !== 'test' &&
@@ -415,6 +381,17 @@ const envSchema = z
     }
   });
 
+function productionRequiredSettings(source, venueOverride) {
+  const platform = venueOverride
+    ? PLATFORM_PRODUCTION_REQUIRED_SETTINGS
+    : PRODUCTION_REQUIRED_SETTINGS;
+  if (!hasEnabledPayment(source)) return platform;
+  const payment = venueOverride
+    ? PLATFORM_PRODUCTION_PAYMENT_REQUIRED_SETTINGS
+    : PRODUCTION_PAYMENT_REQUIRED_SETTINGS;
+  return [...platform, ...payment];
+}
+
 function loadConfig(
   source = process.env,
   { loadDotenv = source === process.env, allowV1Production = false, venue: venueOverride = null } = {},
@@ -422,9 +399,7 @@ function loadConfig(
   if (loadDotenv) dotenv.config({ quiet: true });
 
   if (String(source.NODE_ENV || '').trim() === 'production') {
-    const requiredSettings = hasEnabledPayment(source)
-      ? [...PRODUCTION_REQUIRED_SETTINGS, ...PRODUCTION_PAYMENT_REQUIRED_SETTINGS]
-      : PRODUCTION_REQUIRED_SETTINGS;
+    const requiredSettings = productionRequiredSettings(source, venueOverride);
     const missing = requiredSettings.filter(
       (name) => source[name] === undefined || String(source[name]).trim() === '',
     );
@@ -458,23 +433,13 @@ function loadConfig(
 
   const venue = venueOverride
     ? createVenueContext(venueOverride)
-    : createVenueContext({
-        id: result.data.VENUE_ID,
-        displayName: result.data.SITE_NAME,
-        business: {
-          address: result.data.BAR_ADDRESS,
-          phone: result.data.BAR_PHONE,
-          hours: result.data.BAR_HOURS,
-          websiteUrl: result.data.BAR_WEBSITE_URL,
-          mapUrl: result.data.BAR_MAP_URL,
-        },
-        hive: {
-          communityId: result.data.HIVE_COMMUNITY_ID,
-          officialAccount: result.data.HIVE_OFFICIAL_BAR_ACCOUNT,
-          threadsContainerAccount: result.data.THREADS_CONTAINER_ACCOUNT,
-          paymentMerchantAccounts: result.data.HIVE_PAYMENT_MERCHANT_ACCOUNTS,
-        },
-      });
+    : loadFourthStreetCompatibleVenue(source);
+
+  if (result.data.HIVE_PAYMENT_ENABLED && venue.hive.paymentMerchantAccounts.length === 0) {
+    throw new Error(
+      'Invalid Hive-Bar configuration: HIVE_PAYMENT_MERCHANT_ACCOUNTS: Enabled payment requires at least one approved merchant',
+    );
+  }
 
   const config = {
     env: result.data.NODE_ENV,
@@ -489,20 +454,7 @@ function loadConfig(
       },
       authRateLimitMax: result.data.AUTH_RATE_LIMIT_MAX,
     },
-    site: {
-      name: result.data.SITE_NAME,
-      business: {
-        address: result.data.BAR_ADDRESS,
-        phone: result.data.BAR_PHONE,
-        hours: result.data.BAR_HOURS,
-        websiteUrl: result.data.BAR_WEBSITE_URL,
-        mapUrl: result.data.BAR_MAP_URL,
-      },
-    },
     hive: {
-      communityId: result.data.HIVE_COMMUNITY_ID,
-      officialBarAccount: result.data.HIVE_OFFICIAL_BAR_ACCOUNT,
-      threadsContainerAccount: result.data.THREADS_CONTAINER_ACCOUNT,
       rpcNodes: result.data.HIVE_RPC_NODES,
       rpcTimeoutMs: result.data.HIVE_RPC_TIMEOUT_MS,
       rpcFailureThreshold: result.data.HIVE_RPC_FAILURE_THRESHOLD,
@@ -533,7 +485,6 @@ function loadConfig(
       dbPath: result.data.HIVE_MODERATION_DB_PATH,
     },
     payments: {
-      merchantAccounts: result.data.HIVE_PAYMENT_MERCHANT_ACCOUNTS,
       receiptDbPath: result.data.HIVE_PAYMENT_RECEIPT_DB_PATH,
       confirmationTimeoutMs: result.data.HIVE_PAYMENT_CONFIRMATION_TIMEOUT_MS,
       enabled: result.data.HIVE_PAYMENT_ENABLED,
@@ -562,6 +513,8 @@ module.exports = {
   COMMUNITY_PATTERN,
   CONTROLLED_ACTIONS,
   HIVE_ACCOUNT_PATTERN,
+  PLATFORM_PRODUCTION_PAYMENT_REQUIRED_SETTINGS,
+  PLATFORM_PRODUCTION_REQUIRED_SETTINGS,
   PRODUCTION_REQUIRED_SETTINGS,
   PRODUCTION_PAYMENT_REQUIRED_SETTINGS,
   hasEnabledPayment,
@@ -570,5 +523,6 @@ module.exports = {
   parseBoolean,
   parseReceiptPath,
   parseWallFee,
+  productionRequiredSettings,
   loadConfig,
 };
