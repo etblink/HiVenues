@@ -54,8 +54,12 @@ HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT = ACCEPTED__SYNTHETIC_TIER_A
 HV7_CANONICAL_IMPLEMENTATION = 25b8c79c9016275375902cece355ae78ce75a341
 HV7_CANONICAL_TREE = af5b2d780040aa28eb0ec0db7c85177fdd80fcea
 HV7_PR91 = CLOSED__UNMERGED__EXACT_QUALIFIED_TREE_TRANSFERRED
-POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = COMPLETE
-NEXT_OPERATION = POST_HV7_SEQUENCING_DECISION__READ_ONLY
+POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
+POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
+SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
+PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
+POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
@@ -70,6 +74,7 @@ CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
 THREESPEAK_SPK_MEDIA = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 SUCCESSOR_PACKAGE_IDENTITY_CLEANUP = ELIGIBLE_ADJACENT_MAINTENANCE__NOT_SELECTED_PRODUCT_LANE
+PUBLIC_PRODUCTION_AUTHORING = POTENTIALLY_VALUABLE__NOT_SELECTED__NOT_AUTHORIZED
 FLEET_OPERATIONS = DEFERRED
 HELIA_ORBITDB_REPLICATION = DEFERRED
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
@@ -80,99 +85,68 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 
 Canonical source moves independently of milestone identities. Resolve exact current `main` commit/tree from GitHub when qualifying or releasing.
 
-## Accepted successor foundation
+## Accepted successor foundation and HV-7 result
 
-HV-1 through HV-6 remain accepted. Together they establish validated venue context, provider-neutral deployment profiles, authored venue packages, deterministic isolated bootstrap composition, an editor-independent HV-5 authoring/ownership contract, and the native HV-6 visual-authoring adapter.
+HV-1 through HV-6 remain accepted foundations. HV-7 then confronted those abstractions with a frozen serious synthetic non-bar venue, exposed bounded generality failures, repaired them through reusable mechanisms, and ultimately passed all 24 frozen requirements at Tier-A product-and-architecture evidence.
 
-The baseline remains:
-
-```text
-HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
-+
-PLATFORM_APPLICATION_PRIMITIVES
-+
-VENUE_CONTEXT
-+
-VENUE_PACKAGE
-+
-DEPLOYMENT_PROFILE
-+
-BOOTSTRAP_COMPOSITION_BINDINGS
-+
-CANONICAL_AUTHORING_CONTRACT
-+
-NATIVE_VISUAL_AUTHORING_ADAPTER
-=
-ONE_ISOLATED_VENUE_RUNTIME
-```
-
-HV-6 remains subordinate to HV-5. The HV-7 repair does not change that authority hierarchy.
-
-## HV-7 — synthetic adversarial second-venue validation ACCEPTED
-
-Juniper Works Cooperative was selected as a product-credible synthetic second venue nominee, not as an artificial stress vector. Its 24 authentic requirements were frozen before implementation and were not rewritten to improve platform fit.
-
-The read-only architecture confrontation originally produced:
-
-```text
-PASS_EXISTING = 12
-FAIL_REPAIR_REQUIRED = 11
-DEPENDENT_RETEST_AFTER_REPAIR = 1
-```
-
-The separately preregistered repair then added only demonstrated reusable capabilities: bounded structured programs, advisory equipment status, explicit HV-5 collection lifecycle authority at two admitted paths, typed HV-6 collection controls, bounded validated venue theme tokens, and candidate-facing successor identity cleanup.
-
-Final exact-head qualification and manual Project Lead inspection produced:
-
-```text
-FROZEN_REQUIREMENTS = 24_OF_24_PASS
-EVIDENCE_TIER = TIER_A_PRODUCT_AND_ARCHITECTURE
-JUNIPER_WORKS = VALIDATED_SYNTHETIC_SECOND_VENUE_NOMINEE
-VENUE_SPECIFIC_SOURCE_FORK = NO
-ISOLATED_RUNTIME_MODEL = PRESERVED
-HV5_AUTHORITY = PRESERVED
-HV6_SUBORDINATE_TO_HV5 = PRESERVED
-```
-
-The permanent record is `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`.
+The baseline remains one isolated venue per runtime; HV-5 remains canonical authoring authority; HV-6 remains subordinate to HV-5; shared tenancy remains deferred.
 
 ## Evidence ceiling
 
 HV-7 does **not** establish another real client, independent real-operator usability, real venue permission/admission, real Hive onboarding, real DNS/hosting, or deployment readiness. Fourth Street remains the sole real client and reference deployment.
 
-A future real venue/operator remains an optional stronger evidence tier, not a requirement for the accepted synthetic architectural result. No venue outreach is currently authorized.
+A future real venue/operator remains an optional stronger evidence tier, not the most blocking immediate uncertainty.
 
-## Current operation — POST-HV-7 SEQUENCING
+## Post-HV-7 sequencing — ACCEPTED
+
+The permanent decision is `POST_HV7_SEQUENCING_DECISION_0_1_0.md`.
 
 ```text
-POST_HV7_SEQUENCING_DECISION__READ_ONLY
+SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
+PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT
 ```
 
-The next operation must inspect the now-accepted source/product state and choose the scientifically/product-appropriate next lane without treating mere downstream eligibility as selection.
+The rationale is that the major Post-HV-6 cross-venue abstraction uncertainty has now been materially reduced, while the accepted successor source has advanced substantially beyond the last recorded production transition. The highest-value remaining question is whether the successor can safely meet the one real reference deployment without disturbing its exact release/provenance/rollback and capability-activation boundaries.
 
-Candidate lanes already known to be eligible or adjacent include:
+## HV-8 — reference deployment successor readiness
 
-- a stronger optional real-venue/operator evidence tier;
-- successor package/developer identity cleanup;
-- CID/IPFS publication, with IPNS only after a content artifact exists;
-- 3Speak/SPK media work;
-- separately governed production-authoring or production-migration work if later selected;
-- other product work revealed by the accepted platform state.
+The first operation is read-only. It should establish:
 
-Shared-runtime multi-tenancy, unconstrained replicated mutable state, fleet operations, and Helia/OrbitDB replication remain deferred rather than silently becoming priorities.
+- exact canonical source identity at audit time;
+- exact present installed Fourth Street source identity from read-only evidence rather than historical inference;
+- source-to-deployment ancestry/delta;
+- provenance-bearing production compatibility names and paths;
+- which accepted source capabilities must remain dormant in production;
+- any persistent-state/migration exposure;
+- release/rollback prerequisites for a later candidate;
+- the exact qualification envelope for any later deployment preregistration;
+- blockers that require bounded source/operations repair before deployment can even be proposed.
 
-No substantive next-lane implementation is authorized until the read-only sequencing decision is made.
+The controlling epistemic rule is:
 
-## Venue-category boundary
+```text
+HISTORICAL_DEPLOYMENT_RECORD != CURRENT_INSTALLED_IDENTITY
+CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
+SOURCE_CAPABILITY_PRESENT != PRODUCTION_CAPABILITY_ENABLED
+DEPLOYMENT_ELIGIBLE != DEPLOYMENT_AUTHORIZED
+READINESS_FINDING != DEPLOYMENT_DECISION
+```
 
-Current evidence still does **not** establish a canonical exhaustive venue taxonomy. Generic platform/security code remains venue-neutral; authentic vocabulary belongs to venue-owned configuration. Juniper is a validated nominee, not a mandatory platform archetype.
+## Deferred / non-selected lanes
+
+A real second venue/operator, package/developer identity cleanup, CID/IPFS, 3Speak/SPK, and production visual authoring remain eligible or potentially useful, but are not selected before reference-deployment readiness is understood.
+
+Fleet operations, Helia/OrbitDB replication, and shared-runtime multi-tenancy remain deferred.
+
+No substantive HV-8 implementation or production mutation is authorized by the sequencing decision.
 
 ## Production boundary
 
-Fourth Street remains the first real client, first venue nominee, reference compatibility deployment, and sole real client. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
+Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag until a separately accepted migration changes them.
 
-Successor source changes do not authorize deployment, account creation, delegation, payment activation, write-mode escalation, secret rotation, or infrastructure mutation.
+The last recorded accepted production transition is M19.2. That is historical evidence, not a statement of current installed identity. HV-8 must observe the present identity before making readiness claims.
 
 ## History and retirement policy
 
-The historical Post-HV-6 decision, real-only preregistration, accepted evidence amendment, pre-selection reconciliation, Juniper requirement freeze, confrontation routing, architecture confrontation, repair preregistration, implementation authorization, pre-acceptance reconciliation, and acceptance record remain preserved. `POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls current routing.
+The HV-7 requirement freeze, confrontation, repair preregistration/authorization, pre-acceptance reconciliation, acceptance record, post-acceptance neutral reconciliation, and Post-HV-7 sequencing decision remain preserved. `POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md` controls current routing.

@@ -15,7 +15,9 @@ The first six successor architecture/product-foundation milestones are accepted:
 - **HV-5 — Venue Authoring Contract Foundation**
 - **HV-6 — Operator Visual Authoring Adapter Foundation**
 
-HV-7 has now completed its synthetic adversarial second-venue validation. **Juniper Works Cooperative** remains explicitly synthetic, but its frozen 24-requirement product packet has passed the repaired platform at **Tier-A product-and-architecture evidence**. The accepted repair adds reusable structured programs, advisory equipment status, bounded ordinary-operator collection authority, typed visual collection authoring, and validated venue-owned theme composition without introducing a venue-specific source fork, a second authority model, shared runtime tenancy, or new Hive/payment/security authority.
+HV-7 has completed its synthetic adversarial second-venue validation. **Juniper Works Cooperative** remains explicitly synthetic, but its frozen 24-requirement product packet passed at **Tier-A product-and-architecture evidence** after bounded platform-generality repairs. The result validates the isolated architecture against one real reference venue and one serious synthetic second venue nominee without creating a venue-specific source fork or new security, Hive, payment, or tenancy authority.
+
+The accepted Post-HV-7 sequencing decision now selects **Fourth Street reference-deployment successor convergence** as the next learning lane. The first HV-8 operation is a **read-only reference-deployment readiness audit**, not deployment.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -56,8 +58,12 @@ HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT = ACCEPTED__SYNTHETIC_TIER_A
 HV7_CANONICAL_IMPLEMENTATION = 25b8c79c9016275375902cece355ae78ce75a341
 HV7_CANONICAL_TREE = af5b2d780040aa28eb0ec0db7c85177fdd80fcea
 HV7_PR91 = CLOSED__UNMERGED__EXACT_QUALIFIED_TREE_TRANSFERRED
-POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = COMPLETE
-NEXT_OPERATION = POST_HV7_SEQUENCING_DECISION__READ_ONLY
+POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
+POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
+SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
+PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
+POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = COMPLETE
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
@@ -71,11 +77,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The permanent acceptance record is `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`. It binds the exact qualified tree, dual-OS and pinned-Chromium qualification, the four manually inspected Juniper screenshots and manifest, and the final `JW-R001` through `JW-R024` adjudication.
+The permanent HV-7 acceptance record is `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`. The permanent Post-HV-7 sequencing decision is `docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md`.
 
-The accepted evidence ceiling matters. Juniper proves that the repaired architecture can support a serious non-bar synthetic venue nominee under the frozen Tier-A test. It does **not** prove another real client, independent real-operator usability, real venue permission/admission, real Hive onboarding, or real-world deployment readiness.
+HV-8 begins by establishing what is actually deployed at Fourth Street and whether the accepted successor source is operationally compatible with that real installation. **Historical M19.2 deployment evidence is not current installed identity.** If present-day installed identity cannot be established from read-only evidence, that is a readiness blocker rather than a gap to fill from history.
 
-The next operation is a fresh **read-only Post-HV-7 sequencing decision**. No new substantive implementation, real-venue outreach, or production mutation is authorized merely because HV-7 passed.
+No source deployment, service restart, environment change, symlink/release-root mutation, Hive/Keychain write, payment or onboarding activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized by this sequencing decision.
 
 ## Accepted architecture
 
@@ -101,51 +107,25 @@ NATIVE_VISUAL_AUTHORING_ADAPTER
 ONE_ISOLATED_VENUE_RUNTIME
 ```
 
-HV-5 remains the editor-independent canonical authoring authority. HV-6 remains subordinate to it: editable controls derive from HV-5 ownership, proposed state is rendered through the real application renderer, Apply remains atomic through the HV-5 gate, Discard restores accepted state, and the direct source/code path remains independent. The HV-7 repair adds authority only for the two explicitly admitted structured collections and bounded validated theme fields; gallery topology and protected identity/security/deployment authority remain outside ordinary editing.
-
-Front-end visibility, DOM/component state, generated HTML/CSS, autosave state, arbitrary scripts, editor project JSON, or other shadow state may not become canonical platform authority.
+HV-5 remains the editor-independent canonical authoring authority. HV-6 remains subordinate to it. The HV-7 repair adds only bounded structured collection and validated theme authority; protected identity, Hive/security/payment/deployment authority and gallery topology remain outside ordinary editing.
 
 ## Preserved assurance boundary
 
-The successor continues to preserve these live invariants:
-
 - Hive Keychain remains the user-side signing/custody boundary.
 - The server does not hold Hive private keys and has no Hive broadcast RPC implementation.
-- User-owned writes are explicitly reviewed before signing.
-- Ambiguous post-Keychain acceptance never triggers automatic rebroadcast.
-- Payment preparation, idempotency, replay prevention, durable receipt state, cancellation, and chain confirmation remain fail-closed.
-- Structured input validation, sanitization, session ownership, origin/CSRF checks, and rate limits remain tested.
-- Release identity and rollback discipline remain exact.
-- Accessibility, responsive behavior, and accepted visual states remain covered by deterministic/rendered qualification when scope requires it.
+- User-owned writes require explicit review before signing.
+- Ambiguous post-Keychain acceptance is never automatically rebroadcast.
+- Payment replay/idempotency/receipt/confirmation boundaries remain fail-closed.
+- Release identity and rollback remain exact.
+- Source advancement does not imply production activation.
 
 ## Source identity versus production identity
 
-Canonical source is the `main` branch of `etblink/Hive-Venues`. Resolve its exact commit/tree at qualification or release time rather than pinning moving source identity in prose.
+Canonical source is the moving `main` branch of `etblink/Hive-Venues`; resolve its exact commit/tree at qualification or release time.
 
-The existing Fourth Street production installation remains a compatibility deployment with provenance-bearing Hive-Bar-era names and paths such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, the Fourth Street host, and the Fourth Street Hive application tag. Those names must not be changed merely because successor source has a different product identity.
+The Fourth Street production installation intentionally retains provenance-bearing Hive-Bar-era names such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, the Fourth Street host, and its Hive application tag. HV-8 must test these as compatibility facts rather than cosmetically renaming them.
 
-The last recorded accepted production transition in the inherited record is M19.2. Source advancement does not authorize deployment, account creation, delegation, payment activation, secret rotation, or infrastructure mutation. Current Fourth Street operating guidance remains in `docs/PRODUCTION_OPERATIONS.md` until a separately accepted production migration supersedes it.
-
-## Functional boundary
-
-Canonical source contains the accepted beta self-signing social action set:
-
-```text
-post
-thread
-comment
-vote
-follow
-unfollow
-subscribe
-unsubscribe
-profile
-claim-rewards
-wall
-inbox
-```
-
-The codebase also contains independently gated payment functionality and dormant/rehearsed release profiles. Their presence in source does not imply that production has enabled them. In-person account creation/onboarding also remains separately gated.
+The last **recorded** accepted production transition remains M19.2. Current installed identity must be observed from present release/build evidence and must not be inferred from that historical statement.
 
 ## Development
 
@@ -156,7 +136,7 @@ Node.js 24.19.0
 npm 11.17.0
 ```
 
-Install and qualify with the locked dependency graph:
+Qualification baseline:
 
 ```bash
 npm ci --ignore-scripts --no-fund
@@ -164,23 +144,20 @@ npx --no-install patch-package
 npm run check
 ```
 
-The main CI verifies the deterministic gate on Ubuntu and Windows and runs the accepted pinned-Chromium rendered chain when the changed-path classifier requires it. Live Hive smoke remains separately gated.
-
 ## Current documentation
 
 For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
-4. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
-5. `docs/HV7_JUNIPER_WORKS_PRE_ACCEPTANCE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved transition into acceptance
-6. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION_0_1_0.md`
-7. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION_0_1_0.md`
-8. `docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md`
-9. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-10. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-11. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-12. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `docs/POST_HV7_SEQUENCING_DECISION_0_1_0.md`
+5. `docs/POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for the preserved pre-decision boundary
+6. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
+7. `docs/HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md`
+8. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+9. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+10. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+11. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
-Older decisions and living reconciliations remain truthful provenance records. Current living documents advance from them without rewriting them.
+Older decisions and routing reconciliations remain truthful provenance and are not rewritten to imitate current state.
