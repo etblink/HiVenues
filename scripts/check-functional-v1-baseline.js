@@ -29,7 +29,7 @@ function read(relativePath) {
 }
 
 function assertFunctionalV1Baseline() {
-  assertReleaseCoherence();
+  const releaseCoherence = assertReleaseCoherence();
 
   const manifest = JSON.parse(read('ops/privex/manifest.json'));
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
@@ -85,7 +85,7 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: 'HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__PREREGISTRATION',
+    successorRouting: releaseCoherence.nextOperation,
   });
 }
 
