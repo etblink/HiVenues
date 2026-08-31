@@ -171,7 +171,14 @@ async function assertResponsiveEditor(page, scenario) {
   return evidence;
 }
 
-async function keyboardEdit(page, pointer, value) {
+async function submitWithNavigation(page) {
+  const navigation = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
+  await page.keyboard.press('Enter');
+  await navigation;
+  await page.waitForLoadState('networkidle');
+}
+
+async function keyboardEdit(page, pointer, value, expectedReloadedValue = value) {
   const form = page.locator(`form[data-field-pointer="${pointer}"]`);
   const control = form.locator('[name="value"]');
   await control.focus();
@@ -180,15 +187,19 @@ async function keyboardEdit(page, pointer, value) {
   await page.keyboard.press('Tab');
   const focused = await page.evaluate(() => globalThis.document.activeElement?.tagName);
   assert.equal(focused, 'BUTTON');
-  await page.keyboard.press('Enter');
-  await page.waitForLoadState('networkidle');
+  await submitWithNavigation(page);
+
+  const reloadedControl = page
+    .locator(`form[data-field-pointer="${pointer}"]`)
+    .locator('[name="value"]');
+  await reloadedControl.waitFor({ state: 'visible' });
+  assert.equal(await reloadedControl.inputValue(), expectedReloadedValue, pointer);
 }
 
 async function keyboardAction(page, action) {
   const button = page.locator(`[data-action="${action}"]`);
   await button.focus();
-  await page.keyboard.press('Enter');
-  await page.waitForLoadState('networkidle');
+  await submitWithNavigation(page);
 }
 
 async function exerciseAuthoringProof(page, fixture, scenario) {
@@ -245,7 +256,12 @@ async function exerciseAuthoringProof(page, fixture, scenario) {
   assert.equal(fixture.session.canonicalAccepted(), acceptedCanonical);
 
   const currentImage = fixture.session.acceptedDocument.venuePackage.home.hero.image.src;
-  await keyboardEdit(page, '/venuePackage/home/hero/image/src', 'https://evil.example/hero.jpg');
+  await keyboardEdit(
+    page,
+    '/venuePackage/home/hero/image/src',
+    'https://evil.example/hero.jpg',
+    currentImage,
+  );
   preview = await getPreviewFrame(page);
   assert.equal(fixture.session.status().dirty, false);
   assert.equal(fixture.session.canonicalAccepted(), acceptedCanonical);
