@@ -165,7 +165,8 @@ test('UX-1E Inbox is a private-message surface, not a wallet panel', async () =>
   assert.match(html, /Alice Example/);
   assert.match(html, /Messages are stored on Hive as encrypted text/);
   assert.match(html, /Hive Keychain uses your Memo key in this browser to decrypt the message locally/);
-  assert.match(html, /decrypted message is not sent back to Hive-Bar/);
+  assert.match(html, /decrypted message is not sent back to Hive-Venues/);
+  assert.doesNotMatch(html, /\bHive-Bar\b/);
   assert.match(html, /Decrypt with Keychain/);
   assert.match(html, /data-inbox-ciphertext="#memo-ciphertext-for-ux-1e"/);
   assert.match(html, /data-inbox-plaintext hidden/);
