@@ -36,7 +36,7 @@ function assertCurrentSelectedNativeBlock(relativePath) {
     [/^NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_SELECTED_NATIVE_PHASE_C_BOUNDARY$/m, 'substantive work must remain inside Phase C'],
     [/^GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED$/m, 'GrapesJS Core must remain rejected'],
     [/^GRAPESJS_STUDIO_SDK = NOT_SELECTED$/m, 'Studio SDK must remain unselected'],
-    [/^REAL_SECOND_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
+    [/^SECOND_REAL_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^SHARED_RUNTIME_MULTI_TENANCY = DEFERRED$/m, 'shared runtime tenancy must remain deferred'],
     [/^DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME$/m, 'isolated runtime must remain default'],
