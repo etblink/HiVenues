@@ -1,12 +1,16 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const playwrightPackage = require('playwright/package.json');
+const {
+  closeServer,
+  createGitReader,
+  listenLoopback,
+  sha256,
+} = require('./support/visual-harness');
 const {
   FIXTURE_ACCOUNT,
   FIXTURE_NOW_MS,
@@ -16,6 +20,7 @@ const {
 } = require('../test/support/m18-visual-fixture');
 
 const ROOT = path.join(__dirname, '..');
+const git = createGitReader(ROOT);
 const OUTPUT_ROOT = path.resolve(ROOT, process.env.M18_VISUAL_OUTPUT || 'artifacts/m18-visual');
 const SCREENSHOT_ROOT = path.join(OUTPUT_ROOT, 'screenshots');
 const EXPECTED_SIGNED_OUT_NAV = ['Home', 'Community', 'Threads', 'Sign in'];
@@ -65,14 +70,6 @@ const SCENARIOS = Object.freeze([
   },
 ]);
 
-function git(...args) {
-  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
-}
-
-function sha256(buffer) {
-  return createHash('sha256').update(buffer).digest('hex');
-}
-
 function relativeArtifactPath(filename) {
   return path.relative(OUTPUT_ROOT, filename).split(path.sep).join('/');
 }
@@ -93,21 +90,6 @@ function assertExpectedConsoleErrors({ consoleErrors, documentUrl, statusCode })
   if (consoleErrors[0].locationUrl) {
     assert.equal(consoleErrors[0].locationUrl, documentUrl);
   }
-}
-
-async function listen(app) {
-  return new Promise((resolve, reject) => {
-    const server = app.listen(0, '127.0.0.1');
-    server.once('error', reject);
-    server.once('listening', () => resolve(server));
-  });
-}
-
-async function closeServer(server) {
-  if (!server) return;
-  await new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
-  });
 }
 
 function allowedLocalRequest(pathname, documentPath) {
@@ -667,7 +649,7 @@ async function main() {
   let browser;
   let server;
   try {
-    server = await listen(fixture.app);
+    server = await listenLoopback(fixture.app);
     const address = server.address();
     const baseUrl = `http://127.0.0.1:${address.port}`;
     browser = await chromium.launch({ headless: true });
