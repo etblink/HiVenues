@@ -39,7 +39,7 @@ function sha256(value) {
 
 async function getPreviewFrame(page) {
   await page.waitForFunction(() => {
-    const frame = document.querySelector('iframe[title="Real Hive-Venues home-page preview"]');
+    const frame = globalThis.document.querySelector('iframe[title="Real Hive-Venues home-page preview"]');
     return Boolean(frame && frame.contentDocument && frame.contentDocument.readyState === 'complete');
   });
   const frame = page.frames().find((candidate) => candidate.url().includes('/__hv6/native/preview'));
@@ -63,11 +63,11 @@ async function runAxe(target) {
 
 async function assertResponsiveEditor(page, scenario) {
   const evidence = await page.evaluate(() => {
-    const root = document.documentElement;
-    const workspace = document.querySelector('.workspace');
-    const preview = document.querySelector('.preview');
-    const inspector = document.querySelector('.inspector');
-    const visibleControls = Array.from(document.querySelectorAll('button,input:not([type="hidden"]),textarea'))
+    const root = globalThis.document.documentElement;
+    const workspace = globalThis.document.querySelector('.workspace');
+    const preview = globalThis.document.querySelector('.preview');
+    const inspector = globalThis.document.querySelector('.inspector');
+    const visibleControls = Array.from(globalThis.document.querySelectorAll('button,input:not([type="hidden"]),textarea'))
       .filter((node) => {
         const rect = node.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
@@ -78,12 +78,12 @@ async function assertResponsiveEditor(page, scenario) {
       });
     return {
       horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
-      workspaceDisplay: getComputedStyle(workspace).display,
+      workspaceDisplay: globalThis.getComputedStyle(workspace).display,
       previewTop: preview.getBoundingClientRect().top,
       inspectorTop: inspector.getBoundingClientRect().top,
       undersizedControls: visibleControls.filter((control) => control.height < 44),
-      fieldCount: document.querySelectorAll('form[data-field-pointer]').length,
-      protectedControlCount: document.querySelectorAll([
+      fieldCount: globalThis.document.querySelectorAll('form[data-field-pointer]').length,
+      protectedControlCount: globalThis.document.querySelectorAll([
         'form[data-field-pointer="/venueContext/id"]',
         'form[data-field-pointer="/deploymentRef/id"]',
         'form[data-field-pointer="/venueContext/hive/communityId"]',
@@ -110,7 +110,7 @@ async function keyboardEdit(page, pointer, value) {
   await page.keyboard.press('Control+A');
   await page.keyboard.type(value);
   await page.keyboard.press('Tab');
-  const focused = await page.evaluate(() => document.activeElement?.tagName);
+  const focused = await page.evaluate(() => globalThis.document.activeElement?.tagName);
   assert.equal(focused, 'BUTTON');
   await page.keyboard.press('Enter');
   await page.waitForLoadState('networkidle');
@@ -149,7 +149,10 @@ async function runScenario(browser, scenario) {
     assert.equal(initialLede, scenario.input.venuePackage.home.hero.lede);
 
     await page.keyboard.press('Tab');
-    const firstFocus = await page.evaluate(() => ({ tag: document.activeElement?.tagName, text: document.activeElement?.textContent?.trim() }));
+    const firstFocus = await page.evaluate(() => ({
+      tag: globalThis.document.activeElement?.tagName,
+      text: globalThis.document.activeElement?.textContent?.trim(),
+    }));
     assert.equal(firstFocus.tag, 'A');
     assert.match(firstFocus.text, /Skip to editable fields/);
 
