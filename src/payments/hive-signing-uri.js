@@ -20,7 +20,7 @@ function decodeBase64u(value) {
   }
   try {
     const normalized = value.replace(/(-|_|\.)/g, (match) => B64U_LOOKUP[match]);
-    const binary = atob(normalized);
+    const binary = globalThis.atob(normalized);
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     return UTF8_DECODER.decode(bytes);
   } catch (error) {
