@@ -160,6 +160,12 @@ function createVisualAuthoringSession(baseInput) {
     }
     const next = cloneJson(proposal);
     writeAtPointer(next, pointer, value);
+
+    // Keep the visual projection reconstructable after every UI transaction.
+    // Invalid values are rejected before they can replace the current proposal;
+    // this does not bypass Apply, which still crosses the HV-5 ordinary-edit gate.
+    createVenueAuthoringDocument(next);
+
     proposal = next;
     lastError = null;
     refreshDirtyState();
