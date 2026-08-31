@@ -1,11 +1,11 @@
 'use strict';
 
 const express = require('express');
-const { requireHiveAccount } = require('../src/http/validation');
-const { buildM4Operation, M4_ACTIONS } = require('../src/hive/m4-operations');
-const { FeatureUnavailableError, ValidationError } = require('../src/lib/errors');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
-const { isV1M4Action } = require('../src/v1/actions');
+const { requireHiveAccount } = require('../http/validation');
+const { buildM4Operation, M4_ACTIONS } = require('../hive/m4-operations');
+const { FeatureUnavailableError, ValidationError } = require('../lib/errors');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
+const { isV1M4Action } = require('../v1/actions');
 const {
   TRANSACTION_ID_PATTERN,
   assertControlledAction,

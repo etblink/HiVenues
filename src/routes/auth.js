@@ -1,9 +1,9 @@
 'use strict';
 
 const express = require('express');
-const { requireHiveAccount } = require('../src/http/validation');
-const { clearSessionCookie, sessionCookie } = require('../src/auth/session-store');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
+const { requireHiveAccount } = require('../http/validation');
+const { clearSessionCookie, sessionCookie } = require('../auth/session-store');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
 
 function createAuthRouter({ config }) {
   const router = express.Router();

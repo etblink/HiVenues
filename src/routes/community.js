@@ -5,8 +5,8 @@ const {
   requireCommunitySort,
   requireConfiguredCommunity,
   requireHiveAccount,
-} = require('../src/http/validation');
-const { NotFoundError } = require('../src/lib/errors');
+} = require('../http/validation');
+const { NotFoundError } = require('../lib/errors');
 
 const router = express.Router();
 

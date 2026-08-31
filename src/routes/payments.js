@@ -1,10 +1,10 @@
 'use strict';
 
 const express = require('express');
-const { FeatureUnavailableError } = require('../src/lib/errors');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
-const { decodeHivePaymentInvoice } = require('../src/payments/invoice-decoder');
-const { RECEIPT_STATES } = require('../src/payments/receipt-store');
+const { FeatureUnavailableError } = require('../lib/errors');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
+const { decodeHivePaymentInvoice } = require('../payments/invoice-decoder');
+const { RECEIPT_STATES } = require('../payments/receipt-store');
 
 function responseRecord(record, config, message) {
   const confirmed = record.state === RECEIPT_STATES.CHAIN_CONFIRMED;

@@ -30,11 +30,11 @@ const { PreflightStore } = require('./social/preflight-store');
 const { isM10OperatorArmActive } = require('./social/operator-posting-mode');
 const { createHealthRouter } = require('./routes/health');
 const { isV1Action } = require('./v1/actions');
-const { createAuthRouter } = require('../routes/auth');
-const { createM4Router } = require('../routes/m4');
-const { createModerationRouter } = require('../routes/moderation');
-const { createPaymentRouter } = require('../routes/payments');
-const { createSocialRouter } = require('../routes/social');
+const { createAuthRouter } = require('./routes/auth');
+const { createM4Router } = require('./routes/m4');
+const { createModerationRouter } = require('./routes/moderation');
+const { createPaymentRouter } = require('./routes/payments');
+const { createSocialRouter } = require('./routes/social');
 
 function securityMiddleware(config) {
   return helmet({
@@ -347,11 +347,11 @@ function createApp(options = {}) {
   app.use('/api/m4', createM4Router({ config }));
   app.use('/api/payments', createPaymentRouter({ config, now: options.now || Date.now }));
 
-  const indexRouter = require('../routes/index');
-  const communityRouter = require('../routes/community');
-  const profileRouter = require('../routes/profile');
-  const commonRouter = require('../routes/common');
-  const apiRouter = require('../routes/api');
+  const indexRouter = require('./routes/index');
+  const communityRouter = require('./routes/community');
+  const profileRouter = require('./routes/profile');
+  const commonRouter = require('./routes/common');
+  const apiRouter = require('./routes/api');
 
   app.use('/', indexRouter);
   app.use('/community', communityRouter);

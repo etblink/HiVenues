@@ -1,8 +1,8 @@
 'use strict';
 
 const express = require('express');
-const { requireHiveAccount } = require('../src/http/validation');
-const { FeatureUnavailableError, NotFoundError } = require('../src/lib/errors');
+const { requireHiveAccount } = require('../http/validation');
+const { FeatureUnavailableError, NotFoundError } = require('../lib/errors');
 
 const router = express.Router();
 

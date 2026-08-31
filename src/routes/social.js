@@ -1,15 +1,15 @@
 'use strict';
 
 const express = require('express');
-const { FeatureUnavailableError, AuthorizationError, ValidationError } = require('../src/lib/errors');
-const { isBetaAction } = require('../src/beta/actions');
-const { ACTIONS, buildSocialOperation, createPermlink } = require('../src/hive/social-operations');
-const { recordPilotTerminal } = require('../src/social/pilot-terminal-marker');
-const { appendOperatorAudit } = require('../src/social/operator-audit');
-const { assertM10OperatorArmActive } = require('../src/social/operator-posting-mode');
-const { resolvePostingIdentity } = require('../src/social/delegated-posting-mode');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
-const { isV1SocialAction } = require('../src/v1/actions');
+const { FeatureUnavailableError, AuthorizationError, ValidationError } = require('../lib/errors');
+const { isBetaAction } = require('../beta/actions');
+const { ACTIONS, buildSocialOperation, createPermlink } = require('../hive/social-operations');
+const { recordPilotTerminal } = require('../social/pilot-terminal-marker');
+const { appendOperatorAudit } = require('../social/operator-audit');
+const { assertM10OperatorArmActive } = require('../social/operator-posting-mode');
+const { resolvePostingIdentity } = require('../social/delegated-posting-mode');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
+const { isV1SocialAction } = require('../v1/actions');
 
 const TRANSACTION_ID_PATTERN = /^[0-9a-f]{40}$/i;
 const CONTENT_ACTIONS = new Set(['post', 'thread', 'comment']);

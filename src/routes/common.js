@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { isCommunityRoot } = require('../src/moderation/policy');
+const { isCommunityRoot } = require('../moderation/policy');
 
 const router = express.Router();
 

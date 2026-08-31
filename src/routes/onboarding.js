@@ -1,15 +1,15 @@
 'use strict';
 
 const express = require('express');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
 const {
   BROWSER_MODULE_MOUNTS,
   ONBOARDING_IMPORT_MAP_TEXT,
   authorizeOnboardingImportMap,
-} = require('../src/onboarding/browser-modules');
-const { parseOnboardingConfig } = require('../src/onboarding/config');
-const { OnboardingRequestStore } = require('../src/onboarding/request-store');
-const { OnboardingService } = require('../src/onboarding/service');
+} = require('../onboarding/browser-modules');
+const { parseOnboardingConfig } = require('../onboarding/config');
+const { OnboardingRequestStore } = require('../onboarding/request-store');
+const { OnboardingService } = require('../onboarding/service');
 
 const browserModuleStaticOptions = Object.freeze({
   dotfiles: 'deny',

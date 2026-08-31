@@ -1,8 +1,8 @@
 'use strict';
 
 const express = require('express');
-const { AuthorizationError, FeatureUnavailableError } = require('../src/lib/errors');
-const { requireAppOrigin, requireCsrf, requireSession } = require('../src/middleware/session');
+const { AuthorizationError, FeatureUnavailableError } = require('../lib/errors');
+const { requireAppOrigin, requireCsrf, requireSession } = require('../middleware/session');
 
 function requireModerationOperator(config) {
   return (req, _res, next) => {
