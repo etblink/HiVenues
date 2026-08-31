@@ -24,7 +24,7 @@ This index points to the documents needed to interpret the **current** successor
 
 ## Current successor interpretation
 
-HV-1 through HV-6 are accepted. Fourth Street Bar is the **sole real client and reference deployment**. The accepted composition is:
+HV-1 through HV-6 are accepted. Fourth Street Bar is a **real venue, the first real client, the first venue nominee, and the reference deployment**. It is currently the sole real client. These are separate product roles rather than synonyms. The accepted composition is:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -54,9 +54,19 @@ POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
 HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
 POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
-FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT
+FOURTH_STREET_VENUE_STATUS = REAL_VENUE
+FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
+FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
+FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
+HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
+HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
 SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
+HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
+HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
+HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED
+HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
 SELECTED_ADAPTER = NATIVE_EXISTING_STACK
@@ -77,9 +87,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The historical Post-HV-6 sequencing decision remains accepted and preserved. The later accepted HV-7 candidate-evidence-model amendment supersedes its narrow real-only interpretation for current routing. The current product lane is an adversarial isolated second-venue pilot, real or synthetic candidates are permitted, and the Project Lead has selected the **synthetic adversarial** path for the next experiment.
+The historical Post-HV-6 sequencing decision remains accepted and preserved. The later accepted HV-7 candidate-evidence-model amendment supersedes its narrow real-only interpretation for current routing. Hive-Venues already serves its first venue nominee, Fourth Street Bar. HV-7 is now establishing a **second venue nominee**; a real or synthetic nominee is permitted, and the Project Lead has selected the **synthetic adversarial** evidence mode for the next experiment.
 
-Synthetic evidence is valid for Tier-A architectural falsification only. It does not establish real-client adoption, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No real second venue is required or authorized, no outreach is authorized, and no substantive HV-7 implementation is currently authorized.
+The synthetic nominee must be treated as a credible product instance, not merely a stress-test vector. It should be internally coherent, desirable to support, realistic as a future client type, meaningfully different from Fourth Street, and capable of falsifying bad abstractions. Existing architecture and source may be inspected and used normally during design. Confirmation-bias control comes from freezing the nominee's authentic requirements before implementation and forbidding later requirement edits whose purpose is merely to force a platform pass.
+
+Synthetic evidence is valid for Tier-A architectural falsification only. It does not establish another real client, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No real second venue is required or authorized, no outreach is authorized, and no substantive HV-7 implementation is currently authorized.
 
 ## Accepted authoring boundary
 
@@ -101,7 +113,7 @@ GrapesJS Core remains `EVALUATED_AND_NOT_SELECTED`; Studio SDK remains unselecte
 
 ## Current candidate dispositions
 
-The **synthetic adversarial HV-7 candidate-design path** is the selected next experiment mode because it supplies strong controlled falsification pressure without creating a client-recruitment dependency or external effect. Its requirement packet must be frozen before implementation and must differ materially from Fourth Street across vocabulary, operating model, content structure, customer/member relationship, operator needs, integration assumptions, presentation semantics, and compatibility pressure.
+The **synthetic adversarial HV-7 second-nominee design path** is the selected next experiment mode because it supplies strong controlled falsification pressure without creating a client-recruitment dependency or external effect. Its requirement packet must be frozen before implementation and must differ materially from Fourth Street across vocabulary, operating model, content structure, customer/member relationship, operator needs, integration assumptions, presentation semantics, and compatibility pressure.
 
 A later real-client/operator evidence tier remains available if and when real evidence exists; it is not required merely to continue architectural falsification. Successor package/developer identity cleanup remains eligible adjacent maintenance. CID/IPFS/IPNS publication and 3Speak/SPK media remain downstream candidates. Fleet tooling, Helia/OrbitDB mutable replication, and shared-runtime multi-tenancy remain deferred.
 
@@ -128,4 +140,4 @@ For current project status, read in this order:
 9. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
 10. current operating documentation when production is involved.
 
-The current boundary is **HV-7 evidence model amended and accepted; Fourth Street remains the sole real client; synthetic adversarial candidate design is next; no real second venue, outreach, or substantive implementation is authorized**. Exact historical routing remains available in its preserved artifacts and Git history.
+The current boundary is **HV-7 evidence model amended and accepted; Fourth Street is the real first client/first nominee/reference deployment; synthetic adversarial second-nominee design is next; no real second venue, outreach, or substantive implementation is authorized**. Exact historical routing remains available in its preserved artifacts and Git history.
