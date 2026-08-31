@@ -57,7 +57,7 @@ test('HV8 preserves the historical identity hold while current evidence advances
   const identity = read('docs/HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md');
   const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
 
-  assert.match(audit, /full installed tree.*not directly re-observed/i);
+  assert.match(audit, /^HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED$/m);
   assert.match(audit, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
   assert.match(preservedHoldRoute, /^HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD$/m);
   assert.match(preservedHoldRoute, /^NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY$/m);
