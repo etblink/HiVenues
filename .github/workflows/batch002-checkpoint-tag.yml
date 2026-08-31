@@ -1,0 +1,182 @@
+name: Batch-002 checkpoint tag capability
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/batch002-checkpoint-tag.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/batch002-checkpoint-tag.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: batch002-checkpoint-tag
+  cancel-in-progress: false
+
+jobs:
+  checkpoint-tag:
+    name: Batch-002 checkpoint tag custody
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: ${{ github.event_name == 'push' }}
+
+      - name: Verify custody contract and create tag only on canonical main push
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          EXPECTED_PARENT: 51cbd4a289de718ef23758fa761508bd41bb1edc
+          CHECKPOINT_COMMIT: 5d05927ef326537f195f7b1a746388b6bdb23124
+          CHECKPOINT_TREE: a226d9d1597add51dd8aed4185e9b480dd93f9a2
+          DOCKET_PATH: docs/MAIN_TREE_RETIREMENT_BATCH_002_DOCKET_0_1_0.md
+          DOCKET_BLOB: 9e1ae1b2d4e0204bbc0acf0c9694c616562cc18e
+          AUTH_PATH: docs/MAIN_TREE_RETIREMENT_BATCH_002_CHECKPOINT_AUTHORIZATION_0_1_0.md
+          AUTH_BLOB: e96f3e4974ac0274cfa96d1ef3e6af33f1182808
+          TAG_NAME: archive/main-tree/batch-20260831-002
+          WORKFLOW_PATH: .github/workflows/batch002-checkpoint-tag.yml
+        run: |
+          set -euo pipefail
+
+          fail() {
+            echo "::error::$*"
+            exit 1
+          }
+
+          git fetch --force --prune origin \
+            '+refs/heads/main:refs/remotes/origin/main' \
+            '+refs/tags/*:refs/tags/*'
+
+          head_sha="$(git rev-parse HEAD)"
+          head_parent="$(git rev-parse HEAD^)"
+          [[ "$head_parent" == "$EXPECTED_PARENT" ]] || fail "candidate parent drift: $head_parent"
+
+          changed="$(git diff --name-only "$EXPECTED_PARENT" HEAD)"
+          [[ "$changed" == "$WORKFLOW_PATH" ]] || fail "capability candidate must change only $WORKFLOW_PATH; got: $changed"
+
+          [[ "$(git rev-parse "$CHECKPOINT_COMMIT^{tree}")" == "$CHECKPOINT_TREE" ]] || fail "checkpoint tree mismatch"
+          [[ "$(git rev-parse "$CHECKPOINT_COMMIT:$DOCKET_PATH")" == "$DOCKET_BLOB" ]] || fail "docket blob mismatch"
+          [[ "$(git rev-parse "$EXPECTED_PARENT:$AUTH_PATH")" == "$AUTH_BLOB" ]] || fail "authorization blob mismatch"
+
+          declare -A candidates=(
+            ["docs/POST_HV2_SEQUENCING_DECISION_0_1_0.md"]="f02e95413ad94e8e048c448dc8c8746854963c68"
+            ["docs/POST_HV3_ROUTING_RECONCILIATION_0_1_0.md"]="4505a18f28202ffd865389a2f04f3a00ff42056a"
+            ["docs/POST_HV3_SEQUENCING_DECISION_0_1_0.md"]="6889b996bbaaedfee9922b4106452c4d3ef2f45a"
+            ["docs/POST_HV4_DECISION_ROUTING_RECONCILIATION_0_1_0.md"]="5a8f4fdb8bb68fec7804aed6ac21e6dc5b53d0e0"
+            ["docs/POST_HV4_LIVING_ROUTING_RECONCILIATION_0_1_0.md"]="ed6573d94a7e3bd04a45cc79903f2e8bd9e204f5"
+            ["docs/POST_HV5_DECISION_ROUTING_RECONCILIATION_0_1_0.md"]="2c5a937cbe10c7123cf752b8175d26caeaf263d2"
+            ["docs/POST_HV5_LIVING_ROUTING_RECONCILIATION_0_1_0.md"]="508ad6a71f249c0b40a7c37c57d693bffc82c74c"
+            ["docs/POST_HV5_SEQUENCING_DECISION_0_1_0.md"]="8b9bfb4edea0bb3e8c3c32c5da2683a49d84fb8f"
+          )
+          for path in "${!candidates[@]}"; do
+            actual="$(git rev-parse "$CHECKPOINT_COMMIT:$path")"
+            [[ "$actual" == "${candidates[$path]}" ]] || fail "candidate blob mismatch: $path => $actual"
+          done
+
+          archive_ledger="$(mktemp)"
+          cat > "$archive_ledger" <<'LEDGER'
+          refs/tags/archive/branch/automation/hive-venues-baseline-audit 8c891a51a63f991789c8ebad8ad913409f26c0e7
+          refs/tags/archive/branch/automation/hv1-venue-context-builder ad8e508ae3bdfd8c41b9878312a847bcfe17b53d
+          refs/tags/archive/branch/automation/post-hv2-routing-reconciliation-builder d159acc06a023a9b24077cfe578aae4c7d36e473
+          refs/tags/archive/branch/codex/c2-g1c-r5-4-import-diagnostic 0546a0547cf30812e5b94c862e00ce6040799ec9
+          refs/tags/archive/branch/codex/m18-4-beta-readiness-closure 7362f4fc98ac9172544952a34ca840a1f2e8778c
+          refs/tags/archive/branch/codex/m2-live-smoke-validation c524ab182f85e1170edb99e9093ca49d34e3ac84
+          refs/tags/archive/branch/codex/m2-read-only-slice 86b54854669658c0c04c3d5667d8b741d851f6fb
+          refs/tags/archive/branch/continuity/v0.4.1-handoff-freeze b872f4a4916afbbbe65f1fe8de8ec524b44e9798
+          refs/tags/archive/branch/continuity/v0.5.0-c2-b-closure-freeze 8fcee3b8bbedf38b53a8e64f6d28eac7b0f0e37d
+          refs/tags/archive/branch/hv6/grapesjs-candidate-a-evaluation 9c515d0083162052c765686013287e3cd2a5bf84
+          refs/tags/archive/branch/maintenance/ci-graph-rationalization a4a29647b89da1bcc10ead8f374dc0ff0e5eac90
+          refs/tags/archive/branch/parseMarkdown 14e2b769309ec10180163716a237a9c237138f18
+          refs/tags/archive/branch/platform/hv2-acceptance-reconciliation 123453a82ce9ddb5974be9f9c7a25c5fa0cbfa0d
+          refs/tags/archive/branch/platform/hv2-acceptance-reconciliation-v2 7e696cad21bfa31723a98969440ec0aaf69fe5b4
+          refs/tags/archive/branch/platform/hv2-reference-deployment-profile bae5f0dfafd8fb831e809474a5be07bcfb18a523
+          refs/tags/archive/branch/platform/hv3-reference-venue-package 4eccb6feb73f783464d8773436630910d935a7bc
+          refs/tags/archive/branch/qualification/hv2-coverage-compare 1774a3e1cb25d05afc027d0b33c126b137083c6d
+          refs/tags/archive/main-tree/batch-20260830-001 e636c9f26d787c0db72db4ff833a07c340f49aa1
+          LEDGER
+
+          while read -r ref expected; do
+            actual="$(git rev-parse "$ref")"
+            [[ "$actual" == "$expected" ]] || fail "existing archive tag drift: $ref => $actual"
+            [[ "$(git cat-file -t "$actual")" == "tag" ]] || fail "existing archive ref is not annotated: $ref"
+          done < "$archive_ledger"
+
+          if git show-ref --verify --quiet "refs/tags/$TAG_NAME"; then
+            fail "authorized Batch-002 tag already exists before operation"
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            [[ "$(git rev-parse refs/remotes/origin/main)" == "$EXPECTED_PARENT" ]] || fail "PR dry-run base drift"
+            echo "BATCH002_CHECKPOINT_TAG_DRY_RUN=PASS"
+            echo "NO_REFS_MUTATED=YES"
+            exit 0
+          fi
+
+          [[ "$EVENT_NAME" == "push" ]] || fail "unsupported event: $EVENT_NAME"
+          [[ "$EVENT_REF" == "refs/heads/main" ]] || fail "mutation permitted only on main push"
+          [[ "$EVENT_SHA" == "$head_sha" ]] || fail "event/head mismatch"
+          [[ "$(git rev-parse refs/remotes/origin/main)" == "$EVENT_SHA" ]] || fail "remote main/event mismatch"
+
+          git config user.name "Hive-Venues bounded archive custodian"
+          git config user.email "etblink@users.noreply.github.com"
+
+          annotation="$(cat <<EOF
+          Hive-Venues Main-tree retirement Batch-002 checkpoint
+
+          RETIREMENT_ID = batch-20260831-002
+          CHECKPOINT_COMMIT = $CHECKPOINT_COMMIT
+          CHECKPOINT_TREE = $CHECKPOINT_TREE
+          RETIREMENT_DOCKET_PATH = $DOCKET_PATH
+          RETIREMENT_DOCKET_BLOB_SHA = $DOCKET_BLOB
+          CHECKPOINT_AUTHORIZATION_RECORD_PATH = $AUTH_PATH
+          CHECKPOINT_AUTHORIZATION_RECORD_BLOB_SHA = $AUTH_BLOB
+          IMMUTABLE_BY_PROJECT_POLICY = YES
+          EOF
+          )"
+
+          git tag -a "$TAG_NAME" "$CHECKPOINT_COMMIT" -m "$annotation"
+          git push origin "refs/tags/$TAG_NAME:refs/tags/$TAG_NAME"
+
+          git fetch --force origin "+refs/tags/$TAG_NAME:refs/tags/$TAG_NAME"
+          tag_object="$(git rev-parse "refs/tags/$TAG_NAME")"
+          [[ "$(git cat-file -t "$tag_object")" == "tag" ]] || fail "new archive ref is not an annotated tag"
+          [[ "$(git rev-parse "refs/tags/$TAG_NAME^{}")" == "$CHECKPOINT_COMMIT" ]] || fail "new tag peeled commit mismatch"
+          [[ "$(git rev-parse "refs/tags/$TAG_NAME^{}^{tree}")" == "$CHECKPOINT_TREE" ]] || fail "new tag tree mismatch"
+          [[ "$(git rev-parse "refs/tags/$TAG_NAME^{}:$DOCKET_PATH")" == "$DOCKET_BLOB" ]] || fail "new tag docket mismatch"
+
+          tag_text="$(git cat-file -p "$tag_object")"
+          for required in \
+            "RETIREMENT_ID = batch-20260831-002" \
+            "CHECKPOINT_COMMIT = $CHECKPOINT_COMMIT" \
+            "CHECKPOINT_TREE = $CHECKPOINT_TREE" \
+            "RETIREMENT_DOCKET_PATH = $DOCKET_PATH" \
+            "RETIREMENT_DOCKET_BLOB_SHA = $DOCKET_BLOB" \
+            "CHECKPOINT_AUTHORIZATION_RECORD_PATH = $AUTH_PATH" \
+            "CHECKPOINT_AUTHORIZATION_RECORD_BLOB_SHA = $AUTH_BLOB" \
+            "IMMUTABLE_BY_PROJECT_POLICY = YES"; do
+            grep -Fq "$required" <<< "$tag_text" || fail "new tag annotation missing: $required"
+          done
+
+          while read -r ref expected; do
+            actual="$(git rev-parse "$ref")"
+            [[ "$actual" == "$expected" ]] || fail "existing archive tag changed after push: $ref"
+          done < "$archive_ledger"
+
+          archive_count="$(git for-each-ref --format='%(refname)' refs/tags/archive/ | wc -l | tr -d ' ')"
+          [[ "$archive_count" == "19" ]] || fail "archive tag count mismatch after creation: $archive_count"
+
+          echo "BATCH002_CHECKPOINT_TAG_CREATION=PASS"
+          echo "NEW_TAG_OBJECT=$tag_object"
+          echo "CHECKPOINT_COMMIT=$CHECKPOINT_COMMIT"
+          echo "CHECKPOINT_TREE=$CHECKPOINT_TREE"
+          echo "FILE_DELETION=NO"
