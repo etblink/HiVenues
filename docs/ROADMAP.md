@@ -9,7 +9,10 @@ This document records **current** successor state and current/next sequencing. S
 REPOSITORY = etblink/Hive-Venues
 PRODUCT = Hive-Venues
 REFERENCE_VENUE = Fourth Street Bar, Reno
-FOURTH_STREET_REAL_CLIENT_STATUS = SOLE_REAL_CLIENT_AND_REFERENCE_DEPLOYMENT
+FOURTH_STREET_VENUE_STATUS = REAL_VENUE
+FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
+FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
+FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
 SOURCE_LINEAGE = etblink/Hive-Bar
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
 HV2_REFERENCE_DEPLOYMENT_PROFILE_EXTRACTION = ACCEPTED
@@ -23,8 +26,15 @@ POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
 HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
 POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
+HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
+HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
 SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
+HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
+HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
+HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
+HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED
+HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV6_PREREGISTRATION = ACCEPTED
 HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
@@ -164,11 +174,14 @@ HISTORICAL_NEXT_OPERATION = HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT__
 
 That decision was followed by the canonical 0.1.0 HV-7 preregistration. Before that preregistration was accepted, new authoritative product context established that Fourth Street Bar remains the sole real client/reference deployment and that architectural falsification does not require recruiting another real venue.
 
+Current product interpretation now adds a separate nomination layer: Fourth Street is a real venue, first real client, **first venue nominee**, and reference deployment. HV-7 is establishing the **second venue nominee**. Nomination is a product role; it does not imply real-client adoption or deployment.
+
 The accepted 0.1.1 evidence-model amendment therefore supersedes the real-only interpretation for current routing without rewriting either historical artifact:
 
 ```text
 CURRENT_SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 CURRENT_HV7_CANDIDATE_UNIVERSE = REAL_OR_SYNTHETIC_ALLOWED
+CURRENT_HV7_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
 PROJECT_LEAD_SELECTED_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
 CURRENT_PROPOSED_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 CURRENT_NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
@@ -176,26 +189,37 @@ CURRENT_NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONL
 
 No substantive HV-7 implementation is authorized by this roadmap.
 
-## Candidate dispositions
+## Second venue nominee — PRODUCT DESIGN NEXT
 
-### Synthetic adversarial second venue — SELECTED EXPERIMENT MODE, DESIGN NEXT
+The selected next experiment is to design one coherent synthetic **second venue nominee**. It is a serious product instance: something Hive-Venues would plausibly be willing to support for a real venue of that kind someday.
 
-A deliberately constructed synthetic venue is the selected next HV-7 experiment mode. It is valid Tier-A evidence for architectural falsification provided its requirement packet is frozen before implementation and is materially independent from Fourth Street.
+The nominee must be:
 
-The design must pressure multiple dimensions rather than merely reskinning the existing fixture:
+```text
+PRODUCT_CREDIBLE
+INTERNALLY_COHERENT
+MEANINGFULLY_DIFFERENT_FROM_FOURTH_STREET
+DESIRABLE_TO_SUPPORT
+REALISTIC_AS_A_FUTURE_CLIENT_TYPE
+CAPABLE_OF_FALSIFYING_BAD_ABSTRACTIONS
+```
 
-- vocabulary;
-- operating model;
-- content structure;
-- customer/member relationship;
-- operator needs;
-- Hive/deployment binding assumptions;
-- visual-authoring semantics;
-- compatibility-seam containment.
+“Adversarial” is an evidence property, not a mandate to maximize incompatibility. The nominee should not be bizarre merely to break the architecture. Its falsification pressure should arise from authentic product differences.
+
+The Project Lead may inspect and use the accumulated Hive-Venues architecture, source, accepted schemas, tests, and implementation knowledge during nominee design. Artificial blindness is neither required nor desirable. The anti-confirmation-bias control is instead:
+
+```text
+DESIGN_A_COHERENT_VENUE_ON_ITS_OWN_TERMS
+-> FREEZE_ITS_AUTHENTIC_REQUIREMENTS
+-> CONFRONT_THE_EXISTING_ARCHITECTURE_WITH_THOSE_REQUIREMENTS
+-> DO_NOT_REWRITE_THE_REQUIREMENTS_MERELY_TO_MAKE_THE_PLATFORM_PASS
+```
+
+The design should differ materially from Fourth Street across vocabulary, operating model, content structure, customer/member relationship, operator needs, Hive/deployment binding assumptions, visual-authoring semantics, and compatibility pressure where those differences arise naturally from the product.
 
 Synthetic HV-7 may test venue neutrality, no Fourth Street/bar leakage, no generic source fork, HV-1/HV-2/HV-3/HV-4 composition generality, HV-5 ownership fit, HV-6 structural visual-authoring generality, isolated-runtime sufficiency, and compatibility boundaries.
 
-It may **not** establish real-client adoption, independent real-operator usability, real venue permission/admission, real-world operational fit, real Hive onboarding, or real deployment readiness.
+It may **not** establish another real client, independent real-operator usability, real venue permission/admission, real-world operational fit, real Hive onboarding, or real deployment readiness.
 
 ### Real second venue — OPTIONAL LATER EVIDENCE TIER, NOT REQUIRED OR AUTHORIZED
 
@@ -217,7 +241,7 @@ Developer-facing inherited `hive-bar` metadata remains a known mismatch distinct
 
 ### Optional archetypes — SUPPORTING, NONAUTHORITATIVE
 
-Examples may be useful convenience/evidence layers but are not a mandatory platform taxonomy. The synthetic HV-7 candidate is an adversarial experiment, not a canonical venue-type archetype.
+Examples may be useful convenience/evidence layers but are not a mandatory platform taxonomy. The synthetic HV-7 nominee is a product instance under test, not a canonical venue-type archetype.
 
 ### CID/IPFS/IPNS publication — ELIGIBLE DOWNSTREAM
 
@@ -231,11 +255,14 @@ Potential media/storage/delivery capability only. It must not become authority f
 
 Fleet tooling should follow observed multi-venue operations rather than hypothetical repetition. Replicated mutable state requires a concrete bounded domain. Shared runtime tenancy remains unjustified; one isolated venue per runtime remains the default.
 
-## HV-7 current hard boundary before candidate design
+## HV-7 current hard boundary before second-nominee design
 
 ```text
 HV7_HISTORICAL_PREREGISTRATION_0_1_0 = CANONICAL__REAL_ONLY_REQUIREMENTS_SUPERSEDED
 HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1 = ACCEPTED
+FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
+HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
+HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
 HV7_SYNTHETIC_CANDIDATE_REQUIREMENT_PACKET = NOT_YET_FROZEN
 HV7_IMPLEMENTATION = NOT_AUTHORIZED
@@ -248,7 +275,7 @@ LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 ```
 
-The next read-only candidate-design operation may define and freeze the fictional venue concept and independent requirements. It may not implement the candidate or repair the platform in response to anticipated mismatches.
+The next read-only candidate-design operation may inspect the existing architecture and source, define the fictional nominee on its own product terms, and freeze its independent requirements. “Read-only” here means no platform implementation, repair, production mutation, or external effect; it does **not** require ignorance of the existing platform.
 
 ## Venue-category boundary
 
@@ -256,7 +283,7 @@ Current evidence still does **not** establish a canonical exhaustive venue taxon
 
 ## Production boundary
 
-Fourth Street remains the **sole real client and reference compatibility deployment**. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
+Fourth Street remains the **first real client, first venue nominee, and reference compatibility deployment**, and it is currently the sole real client. Hive-Bar-era service names, release paths, storage paths, release identity files, host, and Hive application tag remain deployment facts until a separately accepted migration changes them.
 
 The last recorded accepted production transition in the inherited roadmap is M19.2. Do not infer current runtime identity from that historical event; inspect installed release/build identity for operational decisions.
 
