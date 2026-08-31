@@ -19,12 +19,16 @@ POST_HV4_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTI
 POST_HV5_SEQUENCING_DECISION = ACCEPTED
 SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
 PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
-NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY
-GRAPESJS_STUDIO_SDK = SECONDARY_REFERENCE__NOT_SELECTED_DEPENDENCY
+HV6_PREREGISTRATION = ACCEPTED
+HV6_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
+HV6_IMPLEMENTATION = AUTHORIZED_AS_BOUNDED_EVALUATION
+NEXT_OPERATION = HV6_BOUNDED_DUAL_CANDIDATE_IMPLEMENTATION_AND_EVALUATION
+NEXT_SUBSTANTIVE_IMPLEMENTATION = AUTHORIZED_WITHIN_HV6_EVALUATION_BOUNDARY
+TECHNOLOGY_SELECTED = NO
+GRAPESJS_CORE = EVALUATION_CANDIDATE__NOT_SELECTED_PRODUCTION_DEPENDENCY
+GRAPESJS_STUDIO_SDK = REFERENCE_ONLY__NOT_SELECTED_DEPENDENCY
 OPTIONAL_STARTER_ARCHETYPES = SUPPORTING_FIXTURES__NONAUTHORITATIVE
-SECOND_REAL_VENUE = HIGH_PRIORITY_AFTER_OR_DURING_REASSESSMENT__NOT_AUTHORIZED
+SECOND_REAL_VENUE = HIGH_PRIORITY_AFTER_BOUNDED_HV6_GATE__NOT_AUTHORIZED
 SECOND_REAL_VENUE_AUTHORIZED = NO
 CID_PUBLICATION = ELIGIBLE_DOWNSTREAM__NOT_SELECTED
 IPNS = ELIGIBLE_AFTER_CID_ARTIFACT__NOT_SOURCE_IDENTITY
@@ -124,39 +128,57 @@ The project now has explicit identity, package, deployment, bootstrap, and autho
 
 ## Post-HV-5 Sequencing Decision — COMPLETE
 
-The accepted decision is preserved in `POST_HV5_SEQUENCING_DECISION_0_1_0.md`.
+The accepted decision is preserved in `POST_HV5_SEQUENCING_DECISION_0_1_0.md`. It selected the operator visual-authoring adapter lane and proposed HV-6. Its original route to preregistration remains historical evidence; current routing has advanced through accepted preregistration and bounded implementation authorization.
 
-Exact accepted routing consequence:
+## HV-6 — Operator Visual Authoring Adapter Foundation — BOUNDED IMPLEMENTATION/EVALUATION AUTHORIZED
+
+Canonical prospective and authorization chain:
 
 ```text
-SELECTED_NEXT_LANE = OPERATOR_VISUAL_AUTHORING_ADAPTER
-PROPOSED_MILESTONE = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION
-NEXT_OPERATION = HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_PREREGISTRATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-GRAPESJS_CORE = PRIMARY_EVALUATION_CANDIDATE__NOT_SELECTED_DEPENDENCY
+PREREGISTRATION_COMMIT = 8556cf0c2d85d7f8a35175250e11fa9881354f2f
+PREREGISTRATION_TREE = aee06d529aa2708d4fa1d62aa1fdc70a4a4118a0
+PREREGISTRATION_ACCEPTANCE_COMMIT = dfd8dd477c11b5eaec8161cb2dfb2e61aec094d3
+PREREGISTRATION_ACCEPTANCE_TREE = 8235d87e9af5c2615284fcfa4f53ff7a7d8011eb
+IMPLEMENTATION_AUTHORIZATION_COMMIT = 2b67a2f4af4813e84bb539aa9136565dffb3fc1a
+IMPLEMENTATION_AUTHORIZATION_TREE = dfcefcd782f20284f7e628959cbb94f27b33a910
+IMPLEMENTATION_AUTHORIZATION_PR = 48
+IMPLEMENTATION_AUTHORIZATION_CI_RUN = 33346404440
 ```
 
-The decision chose the visual/operator lane because it directly exercises the newly accepted HV-5 ownership contract, is reversible and offline-testable, materially advances ordinary-operator usability, and prepares rather than replaces the later real second-venue falsification test.
+The authorized mode is:
 
-## HV-6 — Operator Visual Authoring Adapter Foundation — PREREGISTRATION NEXT
+```text
+IMPLEMENTATION_AUTHORIZATION = BOUNDED_OFFLINE_DUAL_CANDIDATE_PROTOTYPE_AND_EVALUATION
+CANDIDATE_A = GRAPESJS_CORE_ADAPTER
+CANDIDATE_B = MINIMAL_NATIVE_EXISTING_STACK_ADAPTER
+TECHNOLOGY_WINNER_PRESELECTED = NO
+PRODUCTION_MUTATION = NO
+REAL_SECOND_VENUE_ADMISSION = NO
+```
 
-No HV-6 implementation is authorized yet.
+The product question remains whether an ordinary venue operator can make routine public-content changes already classified `OPERATOR_AUTHORED` by HV-5, with useful visual context and without acquiring authority over anything they do not own.
 
-The preregistration must freeze at least:
+The controlling authority flow is:
 
-- `HV5_AUTHORING_DOCUMENT` as the sole canonical authoring authority;
-- editor project/persistence state as non-authoritative and disposable;
-- editable controls derived only from HV-5 `OPERATOR_AUTHORED` paths;
-- read-only or absent controls for integration, deployment, derived, platform-fixed, security-privileged, and forbidden/private paths;
-- no arbitrary HTML/script/event-handler/unknown-field authority;
-- preview derived from the accepted renderer or a bounded deterministic projection;
-- no-op load/save byte identity for Fourth Street and Lantern Room;
-- allowed-edit round-trip/reload equivalence through the HV-5 operator gate;
-- preservation of direct JSON/source authoring without visual-editor installation;
-- a technology comparison between `GRAPESJS_CORE_ADAPTER` and `MINIMAL_NATIVE_OR_EXISTING_STACK_ADAPTER`;
-- licensing, accessibility, responsive behavior, deterministic reload, implementation burden, injection safety, and venue-neutrality gates.
+```text
+ACCEPTED_HV5_DOCUMENT
+-> VISUAL_ADAPTER_PROJECTION
+-> OPERATOR_INTERACTION
+-> PROPOSED_HV5_DOCUMENT
+-> applyOrdinaryOperatorEdit(base, proposed)
+-> ACCEPTED_HV5_DOCUMENT
+-> CANONICAL_SERIALIZATION
+```
 
-The preregistration may evaluate technology. It may not select a dependency by reputation or visual appeal alone.
+Representative thin-slice coverage should span meaningfully different fields such as display name, business phone/hours, hero lede, hero image src/alt, and an existing gallery caption. The slices must exercise projection, discovery, editing, preview truth, apply/discard, no-op and allowed-edit round trip, reload from accepted HV-5 state, protected-field rejection, accessibility, responsive behavior, and venue neutrality.
+
+Candidate A must answer whether GrapesJS can be constrained enough without destroying its usability advantage. Storage/autosave authority, persistent project JSON as platform data, raw HTML, arbitrary insertion/page/topology/style authority, scripts, external scripts, unknown component types, and gallery topology changes remain forbidden from the ordinary-operator path.
+
+Candidate B must answer whether the existing EJS/HTMX/vanilla-JS/Tailwind/Express stack can provide a genuinely visual operator experience without becoming a glorified form or duplicating the renderer brittlely.
+
+The evaluation may stop a candidate early on a hard-boundary failure. It does not need to build both candidates to feature parity.
+
+No technology is selected until evidence supports a disposition of `GRAPESJS_CORE`, `NATIVE_EXISTING_STACK`, or `NEITHER__RETHINK_ADAPTER`.
 
 ## Venue-category boundary
 
@@ -172,9 +194,9 @@ Current evidence still does **not** establish a canonical exhaustive venue taxon
 
 ### Real isolated second-venue pilot — HIGH PRIORITY, NOT AUTHORIZED
 
-A real second venue remains the strongest direct falsification test of whether the accepted venue/package/bootstrap/authoring abstractions survive contact with an independently branded real operator. It is deferred one bounded operator-usability gate, unless a concrete pilot becomes available earlier and sequencing is explicitly re-adjudicated.
+A real second venue remains the strongest direct falsification test of whether the accepted venue/package/bootstrap/authoring abstractions survive contact with an independently branded real operator. It remains high priority after the bounded HV-6 usability/technology gate, unless a concrete pilot becomes available earlier and sequencing is explicitly re-adjudicated.
 
-### GrapesJS Core — PRIMARY HV-6 EVALUATION CANDIDATE
+### GrapesJS Core — AUTHORIZED EVALUATION CANDIDATE, NOT SELECTED PRODUCTION DEPENDENCY
 
 The accepted dependency direction is:
 
@@ -192,7 +214,11 @@ EDITOR_INTERNAL_PROJECT_MODEL
 -> PLATFORM_SOURCE_OF_TRUTH
 ```
 
-GrapesJS project JSON or exported HTML/CSS may not become canonical Hive-Venues state. Studio SDK remains a secondary reference and is not selected.
+Before an exact Candidate-A dependency is frozen, current upstream release and license evidence must be refreshed from official sources. GrapesJS project JSON or exported HTML/CSS may not become canonical Hive-Venues state. Studio SDK remains reference-only and is not selected.
+
+### Native existing-stack adapter — AUTHORIZED COMPARATOR
+
+The native candidate may use EJS, HTMX, vanilla browser JavaScript, Tailwind CSS, Express, and HV-5 authoring functions. It must be judged on actual spatial/visual usability and architectural directness rather than receiving preference merely for having fewer dependencies.
 
 ### Optional archetype/capability starters — SUPPORTING FIXTURES
 
@@ -246,8 +272,8 @@ M17–M19 capture important beta/V1 readiness, presentation, deployment, and onb
 
 The inherited M1–M20/C2/UX milestones and earlier successor governance files remain authoritative evidence for what they established at the time, but they do not all need to remain permanently present in the living `main` tree.
 
-A separate main-tree historical-artifact retirement/archive policy may retire historical files only after an immutable checkpoint ref preserves the exact pre-retirement tree and a retirement manifest records each path/blob/recovery location. Retirement from `main` must never be interpreted as evidence deletion or supersession of accepted facts.
+A main-tree historical-artifact retirement/archive policy may retire historical files only after an immutable checkpoint ref preserves the exact pre-retirement tree and a retirement manifest records each path/blob/recovery location. Retirement from `main` must never be interpreted as evidence deletion or supersession of accepted facts.
 
 ## Historical routing rule
 
-Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` selected HV-4, `POST_HV4_SEQUENCING_DECISION_0_1_0.md` selected HV-5, and `POST_HV5_SEQUENCING_DECISION_0_1_0.md` now governs current routing to HV-6 preregistration.
+Earlier accepted sequencing records remain immutable historical evidence. `POST_HV2_SEQUENCING_DECISION_0_1_0.md` selected HV-3 at its boundary, `POST_HV3_SEQUENCING_DECISION_0_1_0.md` selected HV-4, `POST_HV4_SEQUENCING_DECISION_0_1_0.md` selected HV-5, and `POST_HV5_SEQUENCING_DECISION_0_1_0.md` selected the HV-6 lane and originally routed to preregistration. The accepted HV-6 preregistration and implementation authorization now supersede that preregistration route for current execution while preserving the decision as historical evidence.
