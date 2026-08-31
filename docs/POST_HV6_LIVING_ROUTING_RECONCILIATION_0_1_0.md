@@ -13,11 +13,9 @@ NEW_SUBSTANTIVE_IMPLEMENTATION = NO
 PRODUCTION_MUTATION = NO
 ```
 
-This record reconciles mutable living/navigation surfaces after canonical acceptance of HV-6. It does not perform the fresh Post-HV-6 Sequencing Decision and does not authorize any substantive post-HV-6 implementation.
+This record reconciles living/navigation surfaces after canonical acceptance of HV-6. It does not perform the fresh Post-HV-6 Sequencing Decision and does not authorize substantive post-HV-6 implementation.
 
 ## 1. Accepted state being reconciled
-
-The canonical acceptance baseline establishes:
 
 ```text
 HV1_VENUE_CONTEXT_FOUNDATION = ACCEPTED
@@ -56,7 +54,7 @@ ACCEPTANCE_CI_RUN = 33360515127
 
 ## 2. Minimum routing consequence
 
-HV-6 acceptance exhausts the Post-HV-5 selection. Therefore current routing becomes:
+HV-6 acceptance exhausts the Post-HV-5 selection. Current product routing therefore becomes:
 
 ```text
 POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
@@ -67,11 +65,11 @@ NEXT_OPERATION = POST_HV6_SEQUENCING_DECISION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 ```
 
-This is a routing consequence of the already accepted HV-6 result, not a new product sequencing judgment.
+This is a consequence of the accepted HV-6 result, not a new product-lane judgment.
 
-Repository housekeeping that does not select a product lane may still proceed under separately bounded maintenance authorization. Such maintenance does not replace or pre-adjudicate the fresh Post-HV-6 sequencing decision.
+Separately bounded repository housekeeping may proceed without selecting a product lane. Branch/ref cleanup and historical-file retirement are maintenance operations and must not be treated as substitutes for Post-HV-6 sequencing.
 
-## 3. Accepted HV-6 authority boundary preserved
+## 3. Accepted HV-6 authority boundary
 
 The controlling visual-authoring flow remains:
 
@@ -85,11 +83,9 @@ ACCEPTED_HV5_DOCUMENT
 -> CANONICAL_SERIALIZATION
 ```
 
-HV-6 acceptance does not make front-end visibility, DOM/component state, generated HTML/CSS, autosave state, project JSON, arbitrary HTML/scripts, or any other shadow model authoritative.
+Front-end visibility, DOM/component state, generated HTML/CSS, autosave state, editor project state, arbitrary HTML/scripts, or any other shadow model does not become platform authority. Direct source/code authoring remains independent of the visual adapter.
 
-The direct source/code authoring path remains valid and independent of the visual adapter.
-
-## 4. Runtime and external-effect boundaries preserved
+## 4. Runtime and external-effect boundaries
 
 ```text
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
@@ -101,11 +97,9 @@ PUBLIC_PRODUCTION_AUTHORING_ROUTE = NOT_AUTHORIZED
 
 This reconciliation performs no deployment, account creation, delegation, signing, Hive write, payment activation, merchant-authority change, secret rotation, DNS/VPS/systemd change, production authoring mount, or real-venue admission.
 
-Fourth Street production compatibility names remain provenance-bearing deployment facts.
+## 5. Candidate-lane neutrality
 
-## 5. Candidate-lane neutrality after HV-6
-
-No post-HV-6 product lane is selected here. Candidate dispositions remain:
+No post-HV-6 product lane is selected here:
 
 ```text
 REAL_ISOLATED_SECOND_VENUE_PILOT = HIGH_PRIORITY_FOR_FRESH_SEQUENCING__NOT_AUTHORIZED
@@ -119,9 +113,9 @@ HELIA_ORBITDB_REPLICATION = DEFERRED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 ```
 
-GrapesJS Core is not an active candidate for the accepted HV-6 foundation. It remains historical evaluated-and-not-selected evidence.
+GrapesJS Core is not an active foundation candidate; it remains evaluated and not selected.
 
-## 6. Venue-category boundary preserved
+## 6. Venue-category boundary
 
 ```text
 MANDATORY_VENUE_TYPE_ENUM = NO
@@ -129,26 +123,20 @@ PLATFORM_CORE_VENUE_TYPE_NEUTRAL = YES
 OPTIONAL_ARCHETYPES_MAY_BE_COMPOSABLE = YES
 ```
 
-No exhaustive bar/restaurant/club/cafe/band/streamer/news/store taxonomy is inferred from HV-6 acceptance.
+No exhaustive venue-type taxonomy is inferred from HV-6 acceptance.
 
 ## 7. Acceptance-record filename erratum
 
-The canonical acceptance record contains one non-operative reference-name typo in its list of controlling records:
+The canonical HV-6 acceptance record contains one non-operative filename typo in its list of controlling records:
 
 ```text
 RECORDED_REFERENCE = docs/HV6_PHASE_C_ROUTING_RECONCILIATION_0_1_0.md
 ACTUAL_CANONICAL_RECORD = docs/HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md
 ```
 
-The referenced historical operation itself is intact. Its canonical file is `docs/HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION_0_1_0.md`, with operation literal:
+The referenced operation itself is intact. This record corrects the name prospectively rather than rewriting the already accepted document. The typo does not alter implementation identity, qualification evidence, technology selection, authority, or acceptance.
 
-```text
-OPERATION = HV6_NATIVE_PHASE_C_AUTHORIZATION_ROUTING_RECONCILIATION
-```
-
-This reconciliation records the correction prospectively. The accepted HV-6 acceptance record is not rewritten, because changing it after acceptance would blur the provenance of the exact reviewed document. The typo does not alter the accepted implementation identity, authority boundary, qualification evidence, technology selection, or acceptance conclusion.
-
-## 8. Current-routing machine contract
+## 8. Living-state and history doctrine
 
 The marked current-routing blocks in:
 
@@ -158,13 +146,22 @@ docs/README.md
 docs/ROADMAP.md
 ```
 
-must agree on the post-HV-6 neutral boundary. `test/hv6-current-routing.test.js` is the focused current-state consumer and must read only those marked blocks for current routing rather than satisfying present-state assertions from historical compatibility snapshots elsewhere in the documents.
+must agree on the post-HV-6 neutral boundary.
 
-Older release/M17 coherence checks may continue to assert historical literals for the historical evidence they protect. Those historical literals may not override the focused current-routing contract.
+Superseded current-state text is preserved by Git commit history. Living documents must **not** duplicate old routing snapshots merely to preserve historical wording or satisfy stale tests.
+
+```text
+HISTORY_RECOVERY = GIT_COMMIT_HISTORY
+LIVING_DUPLICATE_HISTORICAL_SNAPSHOTS = NO
+CURRENT_STATE_TESTS_MAY_REQUIRE_SUPERSEDED_LITERALS = NO
+HISTORICAL_FILE_RETIREMENT_REQUIRES_SEPARATE_BOUNDED_MAINTENANCE = YES
+```
+
+Current-state/coherence tests should protect live runtime, authority, acceptance, and routing invariants. They should not require superseded governance files or literals to remain in the active tree solely because they once existed.
+
+This doctrine does not itself delete existing historical files. A later bounded housekeeping operation may classify and retire paths after verifying Git reachability and any additional recovery requirements.
 
 ## 9. Post-reconciliation hard boundary
-
-After this reconciliation is qualified and canonical:
 
 ```text
 HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED
@@ -177,4 +174,4 @@ REAL_SECOND_VENUE_AUTHORIZED = NO
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 ```
 
-A separate fresh Project Lead sequencing operation may later compare candidate lanes. That later decision must not be back-projected into this neutral reconciliation record.
+A later Project Lead sequencing operation may compare candidate lanes. That later decision must not be back-projected into this neutral reconciliation record.
