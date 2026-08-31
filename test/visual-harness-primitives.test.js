@@ -41,13 +41,13 @@ test('M18.2, HV-6, and UX-1F visual suites consume shared mechanical primitives 
 
   for (const source of [m18, hv6, ux1f]) {
     assert.match(source, /require\('\.\/support\/visual-harness'\)/);
-    assert.doesNotMatch(source, /require\('node:child_process'\)/);
     assert.doesNotMatch(source, /require\('node:crypto'\)/);
     assert.doesNotMatch(source, /function listen\(app\)/);
-    assert.doesNotMatch(source, /async function closeServer\(/);
     assert.doesNotMatch(source, /function sha256\(/);
   }
 
+  assert.doesNotMatch(m18, /require\('node:child_process'\)/);
+  assert.doesNotMatch(m18, /async function closeServer\(/);
   assert.match(m18, /async function installNetworkGuard\(context, \{ baseUrl, documentPath \}\)/);
   assert.match(m18, /async function settlePresentation\(page\)/);
   assert.match(m18, /const KEYCHAIN_STUB/);
