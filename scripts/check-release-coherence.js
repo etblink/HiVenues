@@ -20,7 +20,7 @@ const {
 } = require('./release-coherence/reference-deployment');
 const { assertRequiredLivingReleaseDocuments } = require('./release-coherence/required-documents');
 
-const NEXT_SUCCESSOR_OPERATION = 'HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY';
+const NEXT_SUCCESSOR_OPERATION = 'HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY';
 
 function assertReleaseCoherence() {
   const manifestContext = loadManifestContext();
