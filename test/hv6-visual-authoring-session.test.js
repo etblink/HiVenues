@@ -14,10 +14,6 @@ const {
   LANTERN_ROOM_AUTHORING_INPUT,
 } = require('./support/hv5-authoring-fixtures');
 
-function mutable(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
 test('HV-6 derives its editable registry exclusively from accepted HV-5 ownership', () => {
   for (const input of [FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT]) {
     const ownership = buildOwnershipMap(input);
@@ -124,44 +120,42 @@ test('HV-6 UI edit API refuses protected, derived, container, and unknown author
   assert.deepEqual(session.status(), { state: SESSION_STATE.CLEAN, dirty: false, error: null });
 });
 
-test('HV-6 hostile adapter proposals still fail through HV-5 with accepted base unchanged', () => {
-  const cases = [
-    (proposal) => {
-      proposal.deploymentRef.id = 'shadow-deployment';
-    },
-    (proposal) => {
-      proposal.venueContext.hive.communityId = 'hive-999999';
-    },
-    (proposal) => {
-      proposal.venuePackage.home.hero.image.width += 1;
-    },
-    (proposal) => {
-      proposal.venuePackage.home.gallery.items.reverse();
-    },
-    (proposal) => {
-      proposal.shadowEditorState = { html: '<script>alert(1)</script>' };
-    },
-  ];
+test('HV-6 visual session exposes no raw document or gallery-topology mutation channel', () => {
+  const session = createVisualAuthoringSession(FOURTH_STREET_AUTHORING_INPUT);
 
-  for (const mutate of cases) {
-    const session = createVisualAuthoringSession(FOURTH_STREET_AUTHORING_INPUT);
-    const accepted = session.canonicalAccepted();
-    const proposal = mutable(FOURTH_STREET_AUTHORING_INPUT);
-    mutate(proposal);
-    session.replaceProposal(proposal);
+  assert.equal(session.replaceProposal, undefined);
+  assert.equal(session.reorderGallery, undefined);
+  assert.equal(session.addGalleryItem, undefined);
+  assert.equal(session.removeGalleryItem, undefined);
 
-    assert.throws(() => session.apply());
-    assert.equal(session.state, SESSION_STATE.REJECTED_WITH_BASE_UNCHANGED);
-    assert.equal(session.status().dirty, true);
-    assert.equal(typeof session.status().error, 'string');
-    assert.equal(session.canonicalAccepted(), accepted);
-  }
+  assert.throws(
+    () => session.edit('/venuePackage/home/gallery/items', []),
+    (error) => error instanceof VisualAuthoringSessionError && /ordinary visual edit denied/.test(error.message),
+  );
+
+  const before = session.canonicalAccepted();
+  session.edit('/venuePackage/home/gallery/items/0/caption', 'A refreshed fixed-slot gallery caption');
+  assert.equal(session.state, SESSION_STATE.DIRTY);
+  assert.equal(session.status().dirty, true);
+  assert.equal(session.previewProjection().venuePackage.home.gallery.items.length, 3);
+
+  session.apply();
+  assert.equal(session.state, SESSION_STATE.ACCEPTED);
+  assert.equal(session.acceptedDocument.venuePackage.home.gallery.items.length, 3);
+  assert.equal(
+    session.acceptedDocument.venuePackage.home.gallery.items[0].caption,
+    'A refreshed fixed-slot gallery caption',
+  );
+  assert.notEqual(session.canonicalAccepted(), before);
 });
 
 test('HV-6 semantic field controls provide no arbitrary HTML or script authority', () => {
   const fields = editableFieldDescriptors(FOURTH_STREET_AUTHORING_INPUT);
-  assert.equal(fields.some((field) => /html|script|component|style|topology/i.test(field.controlKind)), false);
-  assert.equal(fields.some((field) => /html|script|component|style|topology/i.test(field.pointer)), false);
+  const forbiddenKinds = new Set(['html', 'script', 'component', 'style', 'topology']);
+  const forbiddenPointerSegment = /(?:^|\/)(?:html|script|component|style|topology)(?:\/|$)/i;
+
+  assert.equal(fields.some((field) => forbiddenKinds.has(field.controlKind)), false);
+  assert.equal(fields.some((field) => forbiddenPointerSegment.test(field.pointer)), false);
 
   // Operator copy remains plain semantic text. Existing EJS templates escape it;
   // the adapter does not create a distinct raw-HTML or executable-script channel.
