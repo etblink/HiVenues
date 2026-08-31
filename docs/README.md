@@ -1,33 +1,41 @@
 # Hive-Venues Documentation Index
 
-This index points to the documents needed to interpret the **current** successor state. Historical decisions, preregistrations, failed evidence, and prior routing remain preserved as provenance rather than being rewritten to match the present.
+This index points to the documents needed to interpret the **current** successor state. Historical decisions, preregistrations, holds, and prior routing remain preserved as provenance rather than being rewritten to match later evidence.
 
 ## Current successor documents
 
 - `../README.md` — product/developer entry point and current source boundary.
 - `ROADMAP.md` — living current/next successor roadmap.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — current route after the completed HV-8 readiness audit.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md` — permanent HV-8 source/deployment-readiness adjudication and exact-identity hold.
-- `POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — preserved route into the HV-8 audit.
-- `POST_HV7_SEQUENCING_DECISION_0_1_0.md` — permanent Project Lead post-HV-7 lane selection.
-- `POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — preserved neutral post-acceptance/pre-sequencing boundary.
-- `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — permanent HV-7 acceptance, evidence ceiling, and `JW-R001..JW-R024` rerun.
-- `HV7_JUNIPER_WORKS_PRE_ACCEPTANCE_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — preserved transition into final qualification and acceptance.
-- `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION_0_1_0.md` and implementation authorization — frozen repair contract/history.
-- `HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md` — completed read-only confrontation.
-- `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper product definition.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — current route into candidate freeze and qualification.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen production-transition contract; no production mutation authorized.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_DECISION_0_1_0.md` — Project Lead authorization to write the preregistration.
+- `HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md` — direct public full runtime identity and readiness observation that cleared the audit hold.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — preserved route into exact identity observation.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md` — permanent source/deployment-readiness audit.
+- `POST_HV7_SEQUENCING_DECISION_0_1_0.md` — Project Lead selection of the reference-deployment convergence lane.
+- `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — permanent HV-7 Tier-A acceptance.
+- `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper product requirements.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — permanent HV-6 acceptance.
-- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — HV-5 authority baseline.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
 - `PRODUCTION_OPERATIONS.md` — current Fourth Street operating model until superseded.
 
-## Current successor interpretation
+## Current interpretation
 
-HV-1 through HV-6 are accepted foundations. Fourth Street Bar remains a **real venue, first real client, first venue nominee, and reference deployment**, and remains the sole real client.
+HV-1 through HV-6 are accepted foundations. Juniper Works Cooperative is the validated **synthetic** second venue nominee; its 24 frozen requirements passed at Tier-A product-and-architecture evidence.
 
-Juniper Works Cooperative is the **validated synthetic second venue nominee**. Its 24 frozen requirements passed at **Tier-A product-and-architecture evidence**. That result does not establish another real client or production deployment.
+The HV-8 readiness audit initially held because the full installed tree had not been directly re-observed. That hold is now **cleared by direct public `/healthz` evidence**, not by inference. Current running Fourth Street identity is:
 
-The Post-HV-7 sequencing decision selected the Fourth Street reference-deployment successor-convergence lane. The HV-8 readiness audit is now complete. It found source readiness to pass and production compatibility to pass subject to an exact identity observation hold. Fresh public evidence exposes `beta-fdb5b5b`, resolving to deployed commit `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`, but the full installed tree value was not directly re-observed.
+```text
+BUILD = beta-fdb5b5b
+COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
+TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
+ENVIRONMENT = production
+WRITE_MODE = beta
+READY = ready
+```
+
+The Project Lead accepted preregistration readiness and froze a deployment preregistration. Production mutation remains unauthorized.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -76,11 +84,20 @@ PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
 POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
 HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE
 HV8_SOURCE_READINESS = PASS
-HV8_PRODUCTION_COMPATIBILITY = PASS_WITH_IDENTITY_OBSERVATION_HOLD
-HV8_DEPLOYMENT_PREREGISTRATION_READINESS = HOLD
-HV8_IDENTITY_OBSERVATION_HOLD_REASON = FULL_INSTALLED_TREE_NOT_DIRECTLY_REOBSERVED
-HV8_READINESS_LIVING_ROUTING_RECONCILIATION = COMPLETE
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY
+HV8_PRODUCTION_COMPATIBILITY = PASS
+HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION = COMPLETE__PASS
+HV8_CURRENT_RUNNING_BUILD = beta-fdb5b5b
+HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
+HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
+HV8_CURRENT_RUNNING_WRITE_MODE = beta
+HV8_CURRENT_RUNNING_READY = ready
+HV8_READINESS_IDENTITY_HOLD = CLEARED
+HV8_DEPLOYMENT_PREREGISTRATION_READINESS = PASS
+HV8_DEPLOYMENT_PREREGISTRATION_DECISION = PROJECT_LEAD_ACCEPTED
+HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
+HV8_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION = COMPLETE
+HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
@@ -98,30 +115,14 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION__READ_ONLY
+HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
 ```
 
-The operation exists to close one deliberately unfilled provenance field. It should observe the exact current release target, `.hive-bar-commit`, `.hive-bar-tree`, `/healthz` build/commit/tree, `/readyz`, and `last-good` identity without changing any host state.
+The operation is offline. It must select one exact candidate commit/tree and qualify it against the **full deployed-to-candidate delta**. Pinned-Chromium rendered evidence is mandatory because that delta contains presentation changes, regardless of whether the final candidate-freeze commit is governance-only.
 
-The controlling distinctions remain:
+Before any later production mutation, the preregistration separately requires operator-side observation of `current`, `last-good`, and protected environment hashes. Those facts have not been inferred from public health or historical prose.
 
-```text
-HISTORICAL_M19_2_DEPLOYMENT_RECORD != CURRENT_INSTALLED_IDENTITY
-CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
-SOURCE_CAPABILITY_PRESENT != PRODUCTION_CAPABILITY_ENABLED
-REPOSITORY_TREE_FOR_COMMIT != DIRECTLY_OBSERVED_INSTALLED_TREE
-DEPLOYMENT_ELIGIBLE != DEPLOYMENT_AUTHORIZED
-```
-
-No deployment, service restart, environment/symlink mutation, Hive/Keychain write, payment/onboarding activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
-
-## Accepted authoring boundary
-
-HV-6 remains subordinate to HV-5. The HV-7 repair adds only bounded structured collection and theme authority. Protected integration/Hive/payment/deployment/security authority remains outside ordinary editing.
-
-## Current Fourth Street operating documentation
-
-Canonical integrated source is moving `main` in `etblink/Hive-Venues`. Fourth Street retains provenance-bearing Hive-Bar-era production names until a separately accepted migration. Fresh public evidence binds the visible production generation to `beta-fdb5b5b`; the full installed tree remains intentionally unclaimed until direct observation.
+No deployment, service restart, environment/symlink mutation, Hive/Keychain write, payment/onboarding/moderation/V1 activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
 
 ## Navigation rule
 
@@ -129,16 +130,17 @@ For current project status, read in this order:
 
 1. `../README.md`
 2. `ROADMAP.md`
-3. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
-4. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`
-5. `POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for preserved pre-audit routing
-6. `POST_HV7_SEQUENCING_DECISION_0_1_0.md`
-7. `POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for preserved pre-decision history
-8. `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
-9. `HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION_0_1_0.md`
-10. `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-11. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-12. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-13. current production operating documentation when production is involved.
+3. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md`
+5. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_DECISION_0_1_0.md`
+6. `HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md`
+7. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for preserved pre-observation routing
+8. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`
+9. `POST_HV7_SEQUENCING_DECISION_0_1_0.md`
+10. `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
+11. `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+12. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+13. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+14. current production operating documentation when production is involved.
 
 Earlier records remain truthful provenance; later living routing controls current sequencing.
