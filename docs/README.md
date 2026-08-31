@@ -1,30 +1,24 @@
 # Hive-Venues Documentation Index
 
-This index points to the documents needed to interpret the **current** successor state. Historical decisions, preregistrations, holds, and prior routing remain preserved as provenance rather than being rewritten to match later evidence.
+This index points to documents needed to interpret the **current** successor state. Superseded sequencing, temporary holds, and intermediate routing are recoverable from Git history and are not required living documentation.
 
-## Current successor documents
+## Current documents
 
 - `../README.md` — product/developer entry point and current source boundary.
-- `ROADMAP.md` — living current/next successor roadmap.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — current route into candidate freeze and qualification.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen production-transition contract; no production mutation authorized.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_DECISION_0_1_0.md` — Project Lead authorization to write the preregistration.
-- `HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md` — direct public full runtime identity and readiness observation that cleared the audit hold.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` — preserved route into exact identity observation.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md` — permanent source/deployment-readiness audit.
-- `POST_HV7_SEQUENCING_DECISION_0_1_0.md` — Project Lead selection of the reference-deployment convergence lane.
-- `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — permanent HV-7 Tier-A acceptance.
-- `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper product requirements.
-- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — permanent HV-6 acceptance.
+- `ROADMAP.md` — current successor state and sequencing.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen HV-8 production-transition contract; production mutation remains unauthorized.
+- `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — accepted HV-7 Tier-A result.
+- `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper requirements.
+- `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted visual-authoring foundation.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
-- `PRODUCTION_OPERATIONS.md` — current Fourth Street operating model until superseded.
+- `PRODUCTION_OPERATIONS.md` — Fourth Street operating model.
 
 ## Current interpretation
 
 HV-1 through HV-6 are accepted foundations. Juniper Works Cooperative is the validated **synthetic** second venue nominee; its 24 frozen requirements passed at Tier-A product-and-architecture evidence.
 
-The HV-8 readiness audit initially held because the full installed tree had not been directly re-observed. That hold is now **cleared by direct public `/healthz` evidence**, not by inference. Current running Fourth Street identity is:
+Current running Fourth Street identity is:
 
 ```text
 BUILD = beta-fdb5b5b
@@ -35,80 +29,29 @@ WRITE_MODE = beta
 READY = ready
 ```
 
-The Project Lead accepted preregistration readiness and froze a deployment preregistration. Production mutation remains unauthorized.
-
-Canonical integrated source is moving `main` in `etblink/Hive-Venues`; a deploy candidate must instead be one exact frozen commit/tree.
+The HV-8 deployment preregistration is frozen. Production mutation remains unauthorized. Canonical integrated source is moving `main` in `etblink/Hive-Venues`; a deploy candidate must instead be one exact frozen commit/tree.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
-HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED
-HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION = ACCEPTED
-HV6_PHASE_B_TECHNOLOGY_SELECTION = COMPLETE
-SELECTED_ADAPTER = NATIVE_EXISTING_STACK
-HV6_PHASE_C_IMPLEMENTATION_AUTHORIZATION = HISTORICAL_ACCEPTED__EXHAUSTED_BY_ACCEPTED_IMPLEMENTATION
-HV6_PHASE_C_IMPLEMENTATION = ACCEPTED
-POST_HV5_SEQUENCING_DECISION = HISTORICAL_ACCEPTED__SUPERSEDED_FOR_CURRENT_ROUTING
-POST_HV6_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
-HV7_CANDIDATE_EVIDENCE_MODEL_AMENDMENT = ACCEPTED
-POST_HV6_SELECTED_LANE_LABEL = HISTORICAL_ACCEPTED__SUPERSEDED_BY_HV7_EVIDENCE_MODEL_AMENDMENT
-FOURTH_STREET_VENUE_STATUS = REAL_VENUE
+SUCCESSOR_FOUNDATIONS = HV1_THROUGH_HV6_ACCEPTED
 FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
-FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
 FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
-HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
 HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE
-HV7_SECOND_VENUE_NOMINEE_REALITY = SYNTHETIC
 HV7_SECOND_VENUE_NOMINEE_STATUS = VALIDATED__SYNTHETIC_TIER_A
-HV7_REQUIREMENTS_PACKET = FROZEN_0_1_0
 HV7_REQUIREMENT_COUNT = 24
-HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
-HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
-HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
-HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
-HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE
-HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
-HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION = COMPLETE__READ_ONLY
-HV7_PLATFORM_GENERALITY_REPAIR_PREREGISTRATION = ACCEPTED
-HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION_AUTHORIZATION = ACCEPTED
-HV7_PLATFORM_GENERALITY_REPAIR_IMPLEMENTATION = ACCEPTED
-HV7_PRE_ACCEPTANCE_QUALIFICATION = COMPLETE__PASS
 HV7_FROZEN_REQUIREMENT_ADJUDICATION = PASS__24_OF_24
-HV7_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE = PROJECT_LEAD_ACCEPTED
-HV7_SYNTHETIC_TIER_A_PRODUCT_AND_ARCHITECTURE = ACCEPTED
-HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT = ACCEPTED__SYNTHETIC_TIER_A
-HV7_CANONICAL_IMPLEMENTATION = 25b8c79c9016275375902cece355ae78ce75a341
-HV7_CANONICAL_TREE = af5b2d780040aa28eb0ec0db7c85177fdd80fcea
-HV7_PR91 = CLOSED__UNMERGED__EXACT_QUALIFIED_TREE_TRANSFERRED
-POST_HV7_JUNIPER_REPAIR_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
-POST_HV7_SEQUENCING_DECISION = PROJECT_LEAD_ACCEPTED
-SELECTED_NEXT_LANE = FOURTH_STREET_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE
-PROPOSED_NEXT_MILESTONE = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS
-POST_HV7_SEQUENCING_LIVING_ROUTING_RECONCILIATION = HISTORICAL_COMPLETE__SUPERSEDED_FOR_CURRENT_ROUTING
-HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS__READ_ONLY_AUDIT = COMPLETE
-HV8_SOURCE_READINESS = PASS
-HV8_PRODUCTION_COMPATIBILITY = PASS
-HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION = COMPLETE__PASS
 HV8_CURRENT_RUNNING_BUILD = beta-fdb5b5b
 HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
 HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
-HV8_READINESS_IDENTITY_HOLD = CLEARED
-HV8_DEPLOYMENT_PREREGISTRATION_READINESS = PASS
-HV8_DEPLOYMENT_PREREGISTRATION_DECISION = PROJECT_LEAD_ACCEPTED
 HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION = COMPLETE
 HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
 NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
-NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
-TECHNOLOGY_SELECTED = NATIVE_EXISTING_STACK
-GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
-GRAPESJS_STUDIO_SDK = NOT_SELECTED
-REAL_SECOND_VENUE_REQUIRED = NO
+LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
+PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
 VENUE_OUTREACH = NOT_AUTHORIZED
-SYNTHETIC_HV7_REAL_OPERATOR_USABILITY_EVIDENCE = NO
-LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
 DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
@@ -120,29 +63,8 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
 ```
 
-The operation is offline. It must select one exact candidate commit/tree and qualify it against the **full deployed-to-candidate delta**. Pinned-Chromium rendered evidence is mandatory because that delta contains presentation changes, regardless of whether the final candidate-freeze commit is governance-only.
+The operation is offline. It must select one exact candidate commit/tree and qualify it against the **full deployed-to-candidate delta**. Pinned-Chromium rendered evidence is mandatory because that delta contains presentation changes.
 
-Before any later production mutation, the preregistration separately requires operator-side observation of `current`, `last-good`, and protected environment hashes. Those facts have not been inferred from public health or historical prose.
+Before any later production mutation, the preregistration separately requires operator-side observation of `current`, `last-good`, and protected environment hashes.
 
 No deployment, service restart, environment/symlink mutation, Hive/Keychain write, payment/onboarding/moderation/V1 activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
-
-## Navigation rule
-
-For current project status, read in this order:
-
-1. `../README.md`
-2. `ROADMAP.md`
-3. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
-4. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md`
-5. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_PREREGISTRATION_DECISION_0_1_0.md`
-6. `HV8_REFERENCE_DEPLOYMENT_EXACT_IDENTITY_OBSERVATION_0_1_0.md`
-7. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_LIVING_ROUTING_RECONCILIATION_0_1_0.md` for preserved pre-observation routing
-8. `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_READINESS_READ_ONLY_AUDIT_0_1_0.md`
-9. `POST_HV7_SEQUENCING_DECISION_0_1_0.md`
-10. `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
-11. `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-12. `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-13. `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-14. current production operating documentation when production is involved.
-
-Earlier records remain truthful provenance; later living routing controls current sequencing.
