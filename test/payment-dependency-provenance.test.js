@@ -1,80 +1,87 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { createHash } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const {
+  decodeHiveSigningUri,
+  resolveHiveSigningTransaction,
+} = require('../src/payments/hive-signing-uri');
 
 const root = path.join(__dirname, '..');
-const patchSha256 = 'e68145d75b25e660098569dc5c8211898cc680ea7f0f8a8e5ee5022be0b7fe8b';
 
 function canonicalLf(value) {
   return String(value).replace(/\r\n?/g, '\n');
 }
 
-function canonicalTextSha256(value) {
-  return createHash('sha256').update(canonicalLf(value), 'utf8').digest('hex');
-}
-
-function assertEveryScriptDisabledInstallIsPatched(workflow) {
+function assertScriptDisabledInstallsNeedNoPatch(workflow) {
   const normalized = canonicalLf(workflow);
   const installs = normalized.match(/run: npm ci --ignore-scripts --no-fund/g) || [];
-  const patches = normalized.match(/run: npx --no-install patch-package/g) || [];
-  const paired = normalized.match(
-    /- name: Install locked dependencies\n\s+run: npm ci --ignore-scripts --no-fund\n\s+- name: Apply pinned dependency patch\n\s+run: npx --no-install patch-package/g,
-  ) || [];
 
-  assert.ok(installs.length >= 3, 'CI must retain deterministic, visual, and manual-smoke install paths');
-  assert.equal(patches.length, installs.length);
-  assert.equal(paired.length, installs.length);
+  assert.equal(
+    installs.length,
+    3,
+    'CI must retain deterministic, visual, and manual-smoke script-disabled install paths',
+  );
+  assert.doesNotMatch(normalized, /patch-package/);
+  assert.doesNotMatch(normalized, /Apply pinned dependency patch/);
+  assert.doesNotMatch(normalized, /lockfile-generator|Generate dependency-free lock candidate/);
 }
 
-test('binds the exact M5 decoder, compatibility patch, scanner, and runtime provenance', () => {
+test('binds the source-owned payment URI decoder and retired dependency provenance closed', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const lockfile = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  const patch = fs.readFileSync(path.join(root, 'patches', 'hive-uri+0.2.8.patch'), 'utf8');
+  const lockRoot = lockfile.packages[''];
+  const invoiceDecoder = fs.readFileSync(
+    path.join(root, 'src', 'payments', 'invoice-decoder.js'),
+    'utf8',
+  );
 
   assert.equal(packageJson.engines.node, '>=24.15 <25');
   assert.equal(packageJson.engines.npm, '>=11');
   assert.equal(packageJson.packageManager, 'npm@11.17.0');
-  assert.equal(packageJson.dependencies['hive-uri'], '0.2.8');
   assert.equal(packageJson.dependencies['@zxing/browser'], '0.2.1');
-  assert.equal(packageJson.dependencies['patch-package'], '8.0.1');
-  assert.equal(packageJson.scripts.postinstall, 'patch-package');
-  assert.equal(lockfile.packages['node_modules/hive-uri'].version, '0.2.8');
-  assert.equal(
-    lockfile.packages['node_modules/hive-uri'].integrity,
-    'sha512-z04c+XiIxn8LmLyZD/26T5vBhR+EptIIxTnQYu5sODMskY1SjkpVZr6QaHb+6N4vWGVuOtLnK1A89NfyJ7OFfA==',
-  );
   assert.equal(lockfile.packages['node_modules/@zxing/browser'].version, '0.2.1');
-  assert.equal(canonicalTextSha256(patch), patchSha256);
+
+  assert.equal(packageJson.dependencies['hive-uri'], undefined);
+  assert.equal(packageJson.dependencies['patch-package'], undefined);
+  assert.equal(packageJson.scripts.postinstall, undefined);
+  assert.equal(lockRoot.dependencies['hive-uri'], undefined);
+  assert.equal(lockRoot.dependencies['patch-package'], undefined);
+  assert.equal(lockRoot.hasInstallScript, undefined);
+  assert.equal(lockfile.packages['node_modules/hive-uri'], undefined);
+  assert.equal(lockfile.packages['node_modules/patch-package'], undefined);
+  assert.deepEqual(lockRoot.dependencies, packageJson.dependencies);
+  assert.deepEqual(lockRoot.devDependencies, packageJson.devDependencies);
+
+  assert.equal(typeof decodeHiveSigningUri, 'function');
+  assert.equal(typeof resolveHiveSigningTransaction, 'function');
+  assert.match(invoiceDecoder, /require\('\.\/hive-signing-uri'\)/);
+  assert.doesNotMatch(invoiceDecoder, /require\(['"]hive-uri['"]\)/);
+
+  assert.equal(fs.existsSync(path.join(root, 'patches', 'hive-uri+0.2.8.patch')), false);
+  assert.equal(fs.existsSync(path.join(root, 'test', 'hive-signing-uri-compat.test.js')), false);
 });
 
-test('applies the pinned dependency patch explicitly after every script-disabled CI install', () => {
+test('keeps CI installs immutable without post-install patch mutation', () => {
   const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
   const attributes = canonicalLf(fs.readFileSync(path.join(root, '.gitattributes'), 'utf8'));
 
-  assertEveryScriptDisabledInstallIsPatched(workflow);
+  assertScriptDisabledInstallsNeedNoPatch(workflow);
   assert.match(workflow, /ubuntu-latest/);
   assert.match(workflow, /windows-latest/);
-  assert.match(attributes, /^patches\/\*\.patch text eol=lf$/m);
   assert.match(attributes, /^\.github\/workflows\/\*\.yml text eol=lf$/m);
   assert.match(attributes, /^\.github\/workflows\/\*\.yaml text eol=lf$/m);
+  assert.doesNotMatch(attributes, /^patches\/\*\.patch /m);
 });
 
-test('binds identical provenance under simulated LF and Windows CRLF checkouts', () => {
-  const patch = canonicalLf(
-    fs.readFileSync(path.join(root, 'patches', 'hive-uri+0.2.8.patch'), 'utf8'),
-  );
+test('binds identical CI provenance under simulated LF and Windows CRLF checkouts', () => {
   const workflow = canonicalLf(
     fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8'),
   );
-  const windowsPatch = patch.replace(/\n/g, '\r\n');
   const windowsWorkflow = workflow.replace(/\n/g, '\r\n');
 
-  assert.equal(canonicalTextSha256(patch), patchSha256);
-  assert.equal(canonicalTextSha256(windowsPatch), patchSha256);
-  assertEveryScriptDisabledInstallIsPatched(workflow);
-  assertEveryScriptDisabledInstallIsPatched(windowsWorkflow);
+  assertScriptDisabledInstallsNeedNoPatch(workflow);
+  assertScriptDisabledInstallsNeedNoPatch(windowsWorkflow);
 });

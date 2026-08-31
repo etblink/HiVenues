@@ -93,50 +93,6 @@ jobs:
           echo "visual=$visual" >> "$GITHUB_OUTPUT"
           echo "UI/UX visual evidence required: $visual"
 
-  lockfile-generator:
-    name: Generate dependency-free lock candidate
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out exact candidate
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      - name: Regenerate lockfile from package manifest
-        run: npm install --package-lock-only --ignore-scripts --no-fund --audit=false
-      - name: Verify retired roots are absent
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const lock = require('./package-lock.json');
-          const root = lock.packages[''];
-          for (const name of ['hive-uri', 'patch-package']) {
-            if (root.dependencies?.[name] !== undefined) {
-              throw new Error(`${name} remains in root lock dependencies`);
-            }
-            if (lock.packages[`node_modules/${name}`] !== undefined) {
-              throw new Error(`${name} remains installed in generated lockfile`);
-            }
-          }
-          if (root.hasInstallScript !== undefined) {
-            throw new Error('Generated root lock still records an install script');
-          }
-          NODE
-      - name: Preserve generated lockfile
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: hive-uri-exit-package-lock-${{ github.event.pull_request.head.sha }}
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 7
-
   verify:
     name: Node 24.19.0 / npm 11.17.0 verification (${{ matrix.os }})
     strategy:
@@ -161,8 +117,6 @@ jobs:
         run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
       - name: Run deterministic quality gate
         run: npm run check
 
@@ -190,8 +144,6 @@ jobs:
         run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Qualify M19.3.1 onboarding browser modules
@@ -287,8 +239,6 @@ jobs:
           package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-      - name: Apply pinned dependency patch
-        run: npx --no-install patch-package
       - name: Verify production targets through read-only RPC calls
         env:
           NODE_ENV: development
