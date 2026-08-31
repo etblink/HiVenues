@@ -37,6 +37,8 @@ READY = ready
 
 The Project Lead accepted preregistration readiness and froze a deployment preregistration. Production mutation remains unauthorized.
 
+Canonical integrated source is moving `main` in `etblink/Hive-Venues`; a deploy candidate must instead be one exact frozen commit/tree.
+
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
 HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION = ACCEPTED
