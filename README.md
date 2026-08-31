@@ -33,16 +33,20 @@ FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
 FOURTH_STREET_NOMINEE_STATUS = FIRST_VENUE_NOMINEE
 FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
 HV7_SECOND_VENUE_PRODUCT_ROLE = SECOND_VENUE_NOMINEE
-HV7_SECOND_VENUE_NOMINEE_STATUS = DESIGN_PENDING__SYNTHETIC_ALLOWED
+HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE
+HV7_SECOND_VENUE_NOMINEE_REALITY = SYNTHETIC
+HV7_SECOND_VENUE_NOMINEE_STATUS = SELECTED__REQUIREMENTS_FROZEN
+HV7_REQUIREMENTS_PACKET = FROZEN_0_1_0
+HV7_REQUIREMENT_COUNT = 24
 SELECTED_NEXT_LANE = ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
 HV7_CANDIDATE_MODE = SYNTHETIC_ADVERSARIAL
 HV7_ADVERSARIAL_INTERPRETATION = PRODUCT_CREDIBLE_FALSIFICATION__NOT_MAXIMIZED_INCOMPATIBILITY
 HV7_DESIGN_METHOD = ARCHITECTURE_AWARE_PRODUCT_FIRST
 HV7_ARTIFICIAL_BLINDNESS = NOT_REQUIRED
-HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = REQUIRED
+HV7_REQUIREMENTS_FREEZE_BEFORE_IMPLEMENTATION = COMPLETE
 HV7_POST_FREEZE_REQUIREMENT_REWRITE_TO_FORCE_PLATFORM_FIT = FORBIDDEN
 PROPOSED_NEXT_MILESTONE = HV7_ADVERSARIAL_ISOLATED_SECOND_VENUE_PILOT
-NEXT_OPERATION = HV7_ADVERSARIAL_SECOND_VENUE_CANDIDATE_DESIGN__READ_ONLY
+NEXT_OPERATION = HV7_JUNIPER_WORKS_ARCHITECTURE_CONFRONTATION__READ_ONLY
 NEXT_SUBSTANTIVE_IMPLEMENTATION = NOT_AUTHORIZED
 GRAPESJS_CORE = EVALUATED_AND_NOT_SELECTED
 GRAPESJS_STUDIO_SDK = NOT_SELECTED
@@ -56,9 +60,9 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment supersedes the narrow real-only interpretation for **current routing**: HV-7 is establishing a **second venue nominee**, real or synthetic nominees are allowed, and the Project Lead has selected a **synthetic adversarial** evidence mode for the next product-design experiment.
+The historical Post-HV-6 Sequencing Decision remains accepted exactly as recorded. Its original `REAL_ISOLATED_SECOND_VENUE_PILOT` label is preserved in that historical artifact. The later accepted HV-7 candidate-evidence-model amendment superseded the narrow real-only interpretation for current routing, and the product-first candidate-design step has now selected **Juniper Works Cooperative** as Hive-Venues' synthetic second venue nominee.
 
-Here, **adversarial** means that the nominee must be capable of exposing bad abstractions; it does not mean maximizing incompatibility or inventing an edge case for its own sake. The nominee must be product-credible, internally coherent, meaningfully different from Fourth Street, desirable for Hive-Venues to support, and realistic as a future client type. Project Lead design is architecture-aware: existing source and accepted architecture may be inspected and used normally. The protection against confirmation bias is to design the venue on its own terms, freeze those authentic requirements before implementation, and then refuse to rewrite them merely to make Hive-Venues pass.
+Juniper Works is a member-run fabrication workshop and tool library: a serious, credible future client type rather than an artificial stress vector. Its 24 authentic product requirements are frozen in `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` before implementation. The next operation is a read-only architecture confrontation against those requirements. The requirements may not be rewritten merely to improve Hive-Venues' score.
 
 A synthetic HV-7 nominee is valid Tier-A evidence for architectural falsification and a serious product instance, but it is not evidence of another real client, independent real-operator usability, real venue permission/admission, or real-world deployment readiness. No substantive HV-7 implementation is currently authorized.
 
@@ -161,12 +165,14 @@ For current status and routing, use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md`
-4. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md`
-5. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md`
-6. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md` for the preserved historical lane decision
-7. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-8. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-9. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/HV7_JUNIPER_WORKS_POST_FREEZE_LIVING_ROUTING_RECONCILIATION_0_1_0.md`
+4. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+5. `docs/HV7_CANDIDATE_EVIDENCE_MODEL_LIVING_ROUTING_RECONCILIATION_0_1_1.md` for the pre-selection routing transition
+6. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_ACCEPTANCE_0_1_1.md`
+7. `docs/HV7_SECOND_VENUE_CANDIDATE_EVIDENCE_MODEL_AMENDMENT_0_1_1.md`
+8. `docs/POST_HV6_SEQUENCING_DECISION_0_1_0.md` for the preserved historical lane decision
+9. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+10. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+11. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
-`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md` remains the truthful historical record of the neutral pre-decision boundary. `docs/HV7_REAL_ISOLATED_SECOND_VENUE_PRE_ADMISSION_PILOT_PREREGISTRATION_0_1_0.md` remains the truthful historical preregistration whose narrow real-only evidence requirements were later superseded by the accepted 0.1.1 amendment. Living documents describe the amended current route rather than rewriting either historical record.
+`docs/POST_HV6_LIVING_ROUTING_RECONCILIATION_0_1_0.md`, the historical Post-HV-6 decision, the original real-only HV-7 preregistration, and the pre-selection HV-7 living reconciliation remain truthful provenance records. Current living documents advance from those records without rewriting them.
