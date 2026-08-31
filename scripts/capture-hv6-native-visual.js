@@ -18,10 +18,10 @@ const OUTPUT = path.resolve(ROOT, process.env.HV6_NATIVE_VISUAL_OUTPUT || 'artif
 const SHOTS = path.join(OUTPUT, 'screenshots');
 const LANTERN_EVALUATION_ASSETS = new Set([
   '/fixtures/lantern-room/logo.svg',
-  '/fixtures/lantern-room/hero.svg',
-  '/fixtures/lantern-room/shelves.svg',
-  '/fixtures/lantern-room/tea.svg',
-  '/fixtures/lantern-room/corner.svg',
+  '/fixtures/lantern-room/reading-room.jpg',
+  '/fixtures/lantern-room/bookshelf.jpg',
+  '/fixtures/lantern-room/reading-table.jpg',
+  '/fixtures/lantern-room/front-desk.jpg',
 ]);
 const SCENARIOS = Object.freeze([
   {
@@ -70,7 +70,7 @@ function getAtPointer(document, pointer) {
 }
 
 function lanternEvaluationSvg(pathname) {
-  const label = path.basename(pathname, '.svg').replaceAll('-', ' ');
+  const label = path.basename(pathname, path.extname(pathname)).replaceAll('-', ' ');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Lantern Room fixture ${label}"><rect width="1200" height="800" fill="#18181b"/><circle cx="600" cy="330" r="150" fill="#f5f5f4"/><path d="M525 480h150l-28 145h-94z" fill="#f5f5f4"/><text x="600" y="730" text-anchor="middle" font-family="system-ui,sans-serif" font-size="54" fill="#f5f5f4">Lantern Room · ${label}</text></svg>`;
 }
 
