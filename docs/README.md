@@ -6,7 +6,8 @@ This index points to documents needed to interpret the **current** successor sta
 
 - `../README.md` — product/developer entry point and current source boundary.
 - `ROADMAP.md` — current successor state and sequencing.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen HV-8 production-transition contract; production mutation remains unauthorized.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md` — accepted exact deploy candidate and qualification result; production mutation remains unauthorized.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen HV-8 production-transition contract.
 - `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — accepted HV-7 Tier-A result.
 - `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper requirements.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted visual-authoring foundation.
@@ -29,7 +30,7 @@ WRITE_MODE = beta
 READY = ready
 ```
 
-The HV-8 deployment preregistration is frozen. Production mutation remains unauthorized. Canonical integrated source is moving `main` in `etblink/Hive-Venues`; a deploy candidate must instead be one exact frozen commit/tree.
+The HV-8 deployment preregistration is frozen. Exact candidate `02ac081d2cfaee599f98e4fb8d9367638cd8d500` / tree `49b7b561af89fc99534d2a2974215bfe7a3db3c3` is Project-Lead accepted after full exact-candidate qualification. Production mutation remains unauthorized. Canonical integrated source is moving `main`; the deploy target is the frozen historical candidate, not moving `main`.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -46,8 +47,10 @@ HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
 HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+HV8_DEPLOY_CANDIDATE = 02ac081d2cfaee599f98e4fb8d9367638cd8d500
+HV8_DEPLOY_CANDIDATE_TREE = 49b7b561af89fc99534d2a2974215bfe7a3db3c3
+HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -60,11 +63,9 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
 ```
 
-The operation is offline. It must select one exact candidate commit/tree and qualify it against the **full deployed-to-candidate delta**. Pinned-Chromium rendered evidence is mandatory because that delta contains presentation changes.
-
-Before any later production mutation, the preregistration separately requires operator-side observation of `current`, `last-good`, and protected environment hashes.
+Phase A is read-only. It must freshly reconcile public deployment identity/readiness with operator-side `current`, bind `last-good`, and record only cryptographic hashes/non-secret metadata for the accepted beta and read-only environments. It must stop on ambiguity.
 
 No deployment, service restart, environment/symlink mutation, Hive/Keychain write, payment/onboarding/moderation/V1 activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
