@@ -78,17 +78,20 @@ test('M19.1 presents an ordinary-language 404 without exposing route implementat
   assert.doesNotMatch(missing.text, /No route matches|GET \/m19-1-missing-page/);
 });
 
-test('M19.1 source and production boundaries remain directly verifiable', () => {
+test('M19.1 historical source boundary remains preserved while living production truth can advance', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const milestone = read('docs/M19_1_COPY_AND_ONBOARDING_READINESS.md');
 
+  assert.match(operations, /^ONBOARDING_ENABLED = true$/m);
+  assert.match(operations, /^ONBOARDING_ACTIVE = true$/m);
   assert.match(
     operations,
-    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
+    /These are current production facts, not source defaults and not inferred historical state/,
   );
-  assert.match(operations, /M19\.2 followed this invariant to deploy exact M19\.1/);
-  assert.match(operations, /Production remains beta until a separately authorized transition/);
-  assert.match(operations, /in-person onboarding: not production-activated; M19\.3 is source-only/);
+  assert.match(
+    operations,
+    /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/,
+  );
 
   assert.match(milestone, /M19\.1 is source-only/);
   assert.match(milestone, /must not expand capabilities/);

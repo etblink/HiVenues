@@ -1,0 +1,46 @@
+<section
+  class="home-community-pulse"
+  aria-labelledby="community-pulse-heading"
+  data-home-community-pulse-state="<%= communityPulse.status %>">
+  <div class="app-content-frame home-section">
+    <header class="home-section-heading home-community-pulse__heading">
+      <div>
+        <p class="home-kicker">From the community</p>
+        <h2 id="community-pulse-heading">Recently shared</h2>
+      </div>
+      <p>A few fresh posts from people around <%= siteName %>.</p>
+    </header>
+
+    <% if (communityPulse.status === 'ready') { %>
+      <ul class="home-community-pulse__list" aria-label="Recent community posts">
+        <% communityPulse.items.forEach((post) => { %>
+          <li class="home-community-pulse__item">
+            <article class="home-community-card">
+              <p class="home-community-card__author">@<%= post.author %></p>
+              <h3>
+                <a href="/post/<%= post.author %>/<%= post.permlink %>"><%= post.title || 'Community post' %></a>
+              </h3>
+              <p class="home-community-card__excerpt"><%= post.excerpt || 'Read the full post in the community.' %></p>
+              <p class="home-community-card__meta">
+                <span><%= post.replyCount || 0 %> <%= Number(post.replyCount) === 1 ? 'reply' : 'replies' %></span>
+                <span aria-hidden="true">·</span>
+                <span><%= post.positiveVotes || 0 %> <%= Number(post.positiveVotes) === 1 ? 'vote' : 'votes' %></span>
+              </p>
+            </article>
+          </li>
+        <% }) %>
+      </ul>
+      <a href="/community" class="home-text-link home-community-pulse__more">See more from the community <span aria-hidden="true">→</span></a>
+    <% } else if (communityPulse.status === 'unavailable') { %>
+      <div class="home-community-pulse__note home-community-pulse__note--unavailable" role="status">
+        <span class="home-community-pulse__mark" aria-hidden="true"></span>
+        <p><strong>Community activity is temporarily unavailable.</strong> The rest of the venue is still ready to explore.</p>
+      </div>
+    <% } else { %>
+      <div class="home-community-pulse__note home-community-pulse__note--empty">
+        <span class="home-community-pulse__mark" aria-hidden="true"></span>
+        <p><strong>The community is quiet right now.</strong> New community posts will appear here.</p>
+      </div>
+    <% } %>
+  </div>
+</section>

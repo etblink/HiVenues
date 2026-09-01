@@ -71,11 +71,14 @@ test('renders a truthful, complete home document with hardened response headers'
   assert.match(response.headers['x-request-id'], /^[0-9a-f-]{36}$/);
 });
 
-test('renders only bounded official community-root updates on the home page', async () => {
+test('renders bounded official updates and a bounded community pulse on the home page', async () => {
   const calls = [];
   const app = appWithRpc(async (api, method, params) => {
     calls.push({ api, method, params });
     assert.equal(api, 'bridge');
+    if (method === 'get_profiles') {
+      return params.accounts.map((name) => ({ name, metadata: {}, stats: {} }));
+    }
     assert.equal(method, 'get_ranked_posts');
     return [
       {
@@ -83,12 +86,12 @@ test('renders only bounded official community-root updates on the home page', as
         parent_permlink: 'hive-108590', title: 'Official <update>', body: 'Fresh news', active_votes: [],
       },
       {
-        author: 'someoneelse', permlink: 'not-official', parent_author: '',
-        parent_permlink: 'hive-108590', title: 'Do not show', body: 'Nope', active_votes: [],
+        author: 'someoneelse', permlink: 'community-neighbor', parent_author: '',
+        parent_permlink: 'hive-108590', title: 'Community hello', body: 'From a neighbor', active_votes: [],
       },
       {
         author: 'fourthstreetbar', permlink: 'reply', parent_author: 'someoneelse',
-        parent_permlink: 'not-official', title: 'Do not show reply', body: 'Nope', active_votes: [],
+        parent_permlink: 'community-neighbor', title: 'Do not show reply', body: 'Nope', active_votes: [],
       },
     ];
   });
@@ -97,12 +100,26 @@ test('renders only bounded official community-root updates on the home page', as
   assert.match(response.text, /Latest from the bar/);
   assert.match(response.text, /Official &lt;update&gt;/);
   assert.match(response.text, /Fresh news/);
-  assert.doesNotMatch(response.text, /Do not show/);
   assert.match(response.text, /\/post\/fourthstreetbar\/official-update/);
-  assert.deepEqual(calls, [{
-    api: 'bridge', method: 'get_ranked_posts',
-    params: { tag: 'hive-108590', sort: 'created', limit: 25 },
-  }]);
+  assert.match(response.text, /From the community/);
+  assert.match(response.text, /Community hello/);
+  assert.match(response.text, /From a neighbor/);
+  assert.match(response.text, /\/post\/someoneelse\/community-neighbor/);
+  assert.doesNotMatch(response.text, /Do not show reply/);
+  assert.deepEqual(calls, [
+    {
+      api: 'bridge', method: 'get_ranked_posts',
+      params: { tag: 'hive-108590', sort: 'created', limit: 25 },
+    },
+    {
+      api: 'bridge', method: 'get_ranked_posts',
+      params: { tag: 'hive-108590', sort: 'created', limit: 20 },
+    },
+    {
+      api: 'bridge', method: 'get_profiles',
+      params: { accounts: ['someoneelse'] },
+    },
+  ]);
 });
 
 test('keeps the home page available when official updates cannot be read', async () => {

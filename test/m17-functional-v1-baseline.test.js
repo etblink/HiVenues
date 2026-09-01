@@ -47,18 +47,18 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('HV8 current state binds exact production identity and keeps deployment mutation unauthorized', () => {
+test('HV8 current state binds observed production identity and keeps the transition withheld', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
-  const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
 
   assert.match(readme, /^HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e$/m);
   assert.match(readme, /^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m);
   assert.match(readme, /^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m);
+  assert.match(readme, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
   assert.match(readme, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
-  assert.match(roadmap, /^HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0$/m);
-  assert.match(preregistration, /^PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
-  assert.match(preregistration, /^DEPLOY_CANDIDATE = NOT_YET_FROZEN$/m);
-  assert.match(operations, /Do not infer current production source/i);
+  assert.match(roadmap, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
+  assert.match(roadmap, new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'));
+  assert.match(operations, /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/);
+  assert.match(operations, /`last-good` is evidence and a recovery candidate, not permission to mutate the host/);
 });

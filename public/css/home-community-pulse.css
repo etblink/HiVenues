@@ -1,0 +1,137 @@
+/* Homepage-only community activity presentation.
+ * This layer consumes existing venue and platform tokens and adds no external assets.
+ */
+
+.home-community-pulse {
+  border-bottom: 1px solid var(--hb-border);
+  background: var(--hb-surface);
+}
+
+.home-community-pulse__heading {
+  align-items: end;
+}
+
+.home-community-pulse__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--hb-border);
+  list-style: none;
+}
+
+.home-community-pulse__item {
+  min-width: 0;
+  border-bottom: 1px solid var(--hb-border);
+}
+
+.home-community-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  padding-block: 1.35rem 1.5rem;
+}
+
+.home-community-card__author {
+  color: var(--hb-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+}
+
+.home-community-card h3 {
+  margin-top: 0.55rem;
+  color: var(--hb-text);
+  font-size: clamp(1.12rem, 2.3vw, 1.4rem);
+  font-weight: 830;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.home-community-card h3 a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-community-card h3 a:hover {
+  color: var(--hb-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.home-community-card__excerpt {
+  margin-top: 0.6rem;
+  color: var(--hb-text-muted);
+  line-height: 1.65;
+}
+
+.home-community-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+  color: var(--hb-text-subtle);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.home-community-pulse__more {
+  margin-top: 1rem;
+}
+
+.home-community-pulse__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-block: 1px solid var(--hb-border);
+  color: var(--hb-text-muted);
+  padding-block: 1rem;
+  line-height: 1.55;
+}
+
+.home-community-pulse__note strong {
+  color: var(--hb-text);
+}
+
+.home-community-pulse__mark {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  margin-top: 0.45rem;
+  border: 2px solid var(--hb-text-subtle);
+  border-radius: 999px;
+}
+
+.home-community-pulse__note--unavailable .home-community-pulse__mark {
+  border-color: var(--venue-warning);
+}
+
+@media (min-width: 720px) {
+  .home-community-pulse__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-community-pulse__item {
+    border-bottom: 0;
+  }
+
+  .home-community-pulse__item + .home-community-pulse__item {
+    border-left: 1px solid var(--hb-border);
+  }
+
+  .home-community-card {
+    padding-inline: 1.25rem;
+  }
+
+  .home-community-pulse__item:first-child .home-community-card {
+    padding-left: 0;
+  }
+
+  .home-community-pulse__item:last-child .home-community-card {
+    padding-right: 0;
+  }
+}

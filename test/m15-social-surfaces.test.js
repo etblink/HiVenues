@@ -28,7 +28,7 @@ function documentFor(html) {
   return new JSDOM(html).window.document;
 }
 
-test('M15.3 Home remains venue-led and preserves the Fourth Street reference topology after the additive HV7 capability extension', async () => {
+test('M15.3 Home remains venue-led while the current homepage adds a bounded community pulse', async () => {
   const { app } = createFixtureApp();
   const response = await request(app).get('/').expect(200);
   const document = documentFor(response.text);
@@ -37,6 +37,7 @@ test('M15.3 Home remains venue-led and preserves the Fourth Street reference top
   assert.ok(main);
   assert.ok(main.querySelector('.home-hero'));
   assert.ok(main.querySelector('.home-updates'));
+  assert.ok(main.querySelector('.home-community-pulse'));
   assert.equal(main.querySelector('img[src="/images/fourth-street-bar-logo.jpg"]'), null);
   assert.match(main.querySelector('h1')?.textContent || '', /4th Street Bar/);
 
@@ -46,16 +47,19 @@ test('M15.3 Home remains venue-led and preserves the Fourth Street reference top
     '/css/m15-social.css',
     '/css/ux-1f-home.css',
     '/css/hv7-structured-home.css',
+    '/css/home-community-pulse.css',
   ]);
 
   const children = Array.from(main.children);
   assert.deepEqual(children.map((element) => element.classList[0]), [
     'home-hero',
     'home-updates',
+    'home-community-pulse',
     'home-pathways',
     'home-gallery',
   ]);
   assert.ok(main.querySelector('.home-pathways #visit'));
+  assert.ok(main.querySelector('.home-community-pulse a[href="/community"]'));
   assert.equal(main.querySelector('[data-hv7-programs]'), null);
   assert.equal(main.querySelector('[data-hv7-equipment-status]'), null);
 

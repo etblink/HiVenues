@@ -21,7 +21,7 @@ READY = ready
 
 Operator-side `current` agrees with that public identity; `last-good` is exact parent release `09ff0802bcfe8920eb88ed2f347ddd51253b524a`. The deployed beta gate passes. Current production also has active durable Pay (schema 2), onboarding (schema 1), and moderation; Distriator is disabled; controlled/delegated Hive authority is absent. Exact non-secret operational details and environment hashes live in `docs/PRODUCTION_OPERATIONS.md`.
 
-HV-8 is **technically qualified, with the production transition withheld**. Its exact successor candidate passed the full deployed-to-candidate qualification envelope, but ability to deploy is not a reason to replace a healthy real product. **Production deployment is not authorized.**
+HV-8 is **technically qualified**. The **production transition is withheld**: its exact successor candidate passed the full deployed-to-candidate qualification envelope, but ability to deploy is not a reason to replace a healthy real product. **Production deployment is not authorized.**
 
 The selected next work is a product-value slice: make the venue homepage feel more socially alive by surfacing a compact, moderated **community pulse** alongside official venue updates using the Hive read machinery already in the product. This introduces no new signing authority, persistence, infrastructure, or production mutation.
 

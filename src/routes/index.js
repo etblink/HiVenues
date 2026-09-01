@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { loadHomeReadModel } = require('../home/read-model');
 const { createOnboardingRouter } = require('./onboarding');
 
 const router = express.Router();
@@ -8,21 +9,15 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
   try {
     const { services, venue } = req.app.locals;
-    let officialUpdates = { items: [], status: 'empty' };
-    try {
-      const items = await services.hiveReads.getOfficialCommunityPosts({
-        account: venue.hive.officialAccount,
-        community: venue.hive.communityId,
-        limit: 3,
-      });
-      officialUpdates = { items, status: items.length > 0 ? 'ready' : 'empty' };
-    } catch (error) {
-      req.log?.warn({ err: error }, 'Official home-page updates are unavailable');
-      officialUpdates = { items: [], status: 'unavailable' };
-    }
+    const { officialUpdates, communityPulse } = await loadHomeReadModel({
+      services,
+      venue,
+      logger: req.log,
+    });
     res.render('pages/home/index', {
       pageTitle: res.app.locals.siteName,
       officialUpdates,
+      communityPulse,
     });
   } catch (error) {
     next(error);

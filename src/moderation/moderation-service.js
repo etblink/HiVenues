@@ -33,10 +33,14 @@ class ModerationService {
 
   async getCommunityPosts(options) {
     if (!this.config.moderation.enabled) return this.hiveReads.getCommunityPosts(options);
+    const callerFilter = options?.contentFilter ?? null;
+    if (callerFilter !== null && typeof callerFilter !== 'function') {
+      throw new TypeError('contentFilter must be a function');
+    }
     const policy = this.#policy();
     return this.hiveReads.getCommunityPosts({
       ...options,
-      contentFilter: (item) => !policy.isHidden(item),
+      contentFilter: (item) => !policy.isHidden(item) && (!callerFilter || callerFilter(item)),
       scanPageLimit: this.scanPageLimit,
     });
   }

@@ -64,7 +64,7 @@ function controlledApp({ payment = false } = {}) {
   };
 }
 
-test('M18.3 Home remains venue-first while UX-1F supersedes its historical presentation', async () => {
+test('M18.3 Home remains venue-first while the current homepage adds a bounded community pulse', async () => {
   const { app } = createFixtureApp();
   const response = await request(app).get('/').expect(200);
   const document = documentFor(response.text);
@@ -86,9 +86,14 @@ test('M18.3 Home remains venue-first while UX-1F supersedes its historical prese
   assert.deepEqual(children.map((item) => item.classList[0]), [
     'home-hero',
     'home-updates',
+    'home-community-pulse',
     'home-pathways',
     'home-gallery',
   ]);
+
+  const pulse = main.querySelector('.home-community-pulse');
+  assert.ok(pulse);
+  assert.ok(pulse.querySelector('a[href="/community"]'));
 
   const visit = main.querySelector('#visit');
   assert.match(visit?.textContent || '', /Address/);

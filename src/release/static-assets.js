@@ -14,6 +14,7 @@ const FIRST_PARTY_ASSETS = Object.freeze([
   '/css/c2-e-moderation.css',
   '/css/ux-1f-home.css',
   '/css/hv7-structured-home.css',
+  '/css/home-community-pulse.css',
   '/css/ux-1e-messages.css',
   '/css/m15-wallet-pay.css',
   '/js/keychain-adapter.js',

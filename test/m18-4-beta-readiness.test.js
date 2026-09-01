@@ -94,15 +94,19 @@ test('M18.4 distinguishes future sign-in-required follow copy from unavailable c
   assert.match(profile, /Following isn’t available here yet\./);
 });
 
-test('M18.4 UI/UX evidence wiring and production boundary remain intact', () => {
+test('M18.4 UI/UX evidence wiring and current production boundary remain intact', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const workflow = read('.github/workflows/ci.yml');
 
   assert.match(
     operations,
-    /last recorded accepted production transition: M19\.2 deployed M19\.1 commit `e01407f5f29e3d0a1d41fe33fca129399b4cd2d4`, tree `1a4bb993ad59ca67032997d8938696a079a71e1f`/,
+    /HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD/,
   );
-  assert.match(operations, /Production remains beta until a separately authorized transition/);
+  assert.match(
+    operations,
+    /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/,
+  );
+  assert.match(operations, /source advancement on `main` does not by itself authorize deployment/);
 
   assert.match(workflow, /UI\/UX visual evidence \(Ubuntu \/ pinned Chromium\)/);
   assert.match(workflow, /M18_4_VISUAL_OUTPUT: artifacts\/m18-4-visual/);

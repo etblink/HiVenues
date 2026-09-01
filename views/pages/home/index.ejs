@@ -4,6 +4,7 @@
   <%- include('../../common/head') %>
   <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/ux-1f-home.css') : '/css/ux-1f-home.css' %>">
   <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/hv7-structured-home.css') : '/css/hv7-structured-home.css' %>">
+  <link rel="stylesheet" href="<%= typeof assetUrl === 'function' ? assetUrl('/css/home-community-pulse.css') : '/css/home-community-pulse.css' %>">
 </head>
 <body class="flex min-h-screen flex-col">
   <%- include('../../common/header') %>
@@ -15,6 +16,7 @@
     data-ux-1f-surface="home">
     <%- include('partials/hero') %>
     <%- include('partials/latest-updates', { officialUpdates }) %>
+    <%- include('partials/community-pulse', { communityPulse }) %>
     <%- include('partials/programs') %>
     <%- include('partials/equipment-status') %>
     <section class="home-pathways" aria-labelledby="home-pathways-heading">

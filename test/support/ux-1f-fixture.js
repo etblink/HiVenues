@@ -28,9 +28,43 @@ const UX1F_UPDATES = Object.freeze([
     excerpt: 'See what friends of 4th Street Bar are posting and talking about online.',
   },
 ]);
+const UX1F_PULSE_CANDIDATES = Object.freeze([
+  {
+    author: 'fourthstreetbar', permlink: 'official-duplicate', parentAuthor: '',
+    title: 'Official duplicate', excerpt: 'Should remain in the official lane.', replyCount: 2, positiveVotes: 8,
+  },
+  {
+    author: 'poolregular', permlink: 'league-night-recap', parentAuthor: '',
+    title: 'League night recap', excerpt: 'A regular shares a quick recap from the pool tables.', replyCount: 4, positiveVotes: 12,
+  },
+  {
+    author: 'fourthst.threads', permlink: 'threads-container', parentAuthor: '',
+    title: 'Threads container', excerpt: 'Dedicated Threads material belongs elsewhere.', replyCount: 7, positiveVotes: 20,
+  },
+  {
+    author: 'renoafterdark', permlink: 'patio-weather-was-perfect', parentAuthor: '',
+    title: 'Patio weather was perfect', excerpt: 'A visitor posts about an easy evening on the patio.', replyCount: 1, positiveVotes: 6,
+  },
+  {
+    author: 'replyonly', permlink: 'not-a-root', parentAuthor: 'someone',
+    title: 'A reply', excerpt: 'Replies do not become homepage pulse cards.', replyCount: 0, positiveVotes: 1,
+  },
+  {
+    author: 'eastfourthfriend', permlink: 'good-conversation-tonight', parentAuthor: '',
+    title: 'Good conversation tonight', excerpt: 'A community member keeps the conversation going online.', replyCount: 3, positiveVotes: 9,
+  },
+]);
+const UX1F_PULSE = Object.freeze(
+  UX1F_PULSE_CANDIDATES.filter((item) => (
+    item.parentAuthor === '' &&
+    item.author !== 'fourthstreetbar' &&
+    item.author !== 'fourthst.threads'
+  )),
+);
 
-function createUx1fVisualFixture(status = 'ready') {
+function createUx1fVisualFixture(status = 'ready', pulseStatus = status) {
   if (!UX1F_STATUSES.includes(status)) throw new TypeError(`Unsupported UX-1F status: ${status}`);
+  if (!UX1F_STATUSES.includes(pulseStatus)) throw new TypeError(`Unsupported UX-1F pulse status: ${pulseStatus}`);
 
   const config = configFrom({
     HIVE_WRITE_MODE: 'disabled',
@@ -39,6 +73,7 @@ function createUx1fVisualFixture(status = 'ready') {
     SESSION_SECRET: 'ux-1f-home-visual-session-secret-at-least-32-bytes',
   });
   const readCalls = [];
+  const moderationCalls = [];
   const unexpectedReadCalls = [];
   const hiveReadService = new Proxy({
     async getOfficialCommunityPosts(options) {
@@ -56,6 +91,22 @@ function createUx1fVisualFixture(status = 'ready') {
       };
     },
   });
+  const moderationService = {
+    async getCommunityPosts(options) {
+      moderationCalls.push({
+        method: 'getCommunityPosts',
+        options: {
+          name: options.name,
+          sort: options.sort,
+          cursor: options.cursor,
+          contentFilter: options.contentFilter,
+        },
+      });
+      if (pulseStatus === 'unavailable') throw new Error('UX-1F deterministic community pulse outage');
+      if (pulseStatus === 'empty') return { items: [] };
+      return { items: structuredClone(UX1F_PULSE_CANDIDATES).filter(options.contentFilter) };
+    },
+  };
   const rpcPool = {
     calls: [],
     getStatus: () => [],
@@ -64,7 +115,7 @@ function createUx1fVisualFixture(status = 'ready') {
       throw new Error(`UX-1F visual fixture forbids Hive RPC: ${api}.${method}`);
     },
   };
-  const application = createApp({ config, logger, rpcPool, hiveReadService });
+  const application = createApp({ config, logger, rpcPool, hiveReadService, moderationService });
   application.locals.assetUrl = createStaticAssetUrl(path.join(ROOT, 'public'));
   application.locals.currentYear = 2026;
 
@@ -87,7 +138,10 @@ function createUx1fVisualFixture(status = 'ready') {
     app,
     config,
     hiveReadService,
+    moderationCalls,
+    moderationService,
     mutationAttempts,
+    pulseStatus,
     readCalls,
     rpcPool,
     status,
@@ -96,6 +150,8 @@ function createUx1fVisualFixture(status = 'ready') {
 }
 
 module.exports = {
+  UX1F_PULSE,
+  UX1F_PULSE_CANDIDATES,
   UX1F_STATUSES,
   UX1F_UPDATES,
   createUx1fVisualFixture,

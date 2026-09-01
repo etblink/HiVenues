@@ -65,8 +65,8 @@ function assertFunctionalV1Baseline() {
   if (!/Production remains beta until a separately authorized transition/.test(operations)) {
     throw new Error('production operations must keep V1 activation outside source qualification');
   }
-  if (!/last-good.*M17\.3/i.test(operations)) {
-    throw new Error('production operations must retain the currently recorded last-good boundary');
+  if (!/last-good` is evidence and a recovery candidate, not permission to mutate the host/i.test(operations)) {
+    throw new Error('production operations must keep last-good observational and mutation-neutral');
   }
   for (const pattern of [
     /readonly last_good="\$app_root\/last-good"/,
