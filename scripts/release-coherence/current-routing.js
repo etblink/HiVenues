@@ -4,7 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE';
+const NEXT_SUCCESSOR_OPERATION = 'VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -40,7 +40,13 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED$/m, 'isolated venue runtime admission must remain accepted'],
     [/^PORTABLE_VENUE_WORKSPACE = ACCEPTED$/m, 'portable venue workspace must remain accepted'],
     [/^DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED$/m, 'deployment-agnostic venue source must remain accepted'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the bounded venue-capsule CID content-identity spike'],
+    [/^DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED$/m, 'deployment-agnostic source authoring must remain accepted'],
+    [/^DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED$/m, 'durable source save/open must remain accepted'],
+    [/^LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED$/m, 'local operator launcher must remain accepted'],
+    [/^CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY$/m, 'CID technical viability result must remain preserved'],
+    [/^CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE$/m, 'CID capability-gap result must remain preserved'],
+    [/^CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE$/m, 'CID adoption must remain deferred without prejudice'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the bounded Hive identity/key-management audit'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m, 'public production authoring must remain unauthorized'],
     [/^REAL_SECOND_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
@@ -64,11 +70,13 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /portable venue workspace is accepted/i, 'README must record accepted portable workspace');
   requireMatch(readme, /Distriator remains an external service[\s\S]*current evidence does not establish Fourth Street's venue-participation, transaction-recognition, or rebate state/i, 'README must preserve Distriator external-service and evidence boundaries');
   requireMatch(readme, /deployment-agnostic venue source is accepted/i, 'README must record accepted deployment-agnostic venue source');
-  requireMatch(readme, /venue-capsule CID content-identity spike/i, 'README must identify the selected bounded CID experiment');
-  requireMatch(readme, /one-byte mutation of the exact canonical `venue-source\.json` changes the root CID/i, 'README must require source-byte mutation sensitivity');
-  requireMatch(readme, /one-byte mutation of \*\*every non-empty included public file\*\*/i, 'README must require mutation sensitivity for every included public file');
-  requireMatch(readme, /CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN/, 'README must forbid product authority from the first CID spike');
-  requireMatch(readme, /equivalent results count as \*\*no advantage\*\*/i, 'README must make baseline equivalence a failed capability gap rather than discretionary materiality');
+  requireMatch(readme, /deployment-agnostic source authoring is accepted/i, 'README must record accepted source authoring');
+  requireMatch(readme, /durable venue-source save\/open/i, 'README must record accepted source durability');
+  requireMatch(readme, /local source-authoring operator launcher is accepted/i, 'README must record accepted local launcher');
+  requireMatch(readme, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/, 'README must preserve CID technical viability without authority');
+  requireMatch(readme, /STABLE_SUBFILE_CONTENT_ADDRESS_REUSE/, 'README must preserve the proven CID capability gap');
+  requireMatch(readme, /CID adoption.*deferred without prejudice/i, 'README must preserve CID adoption deferral');
+  requireMatch(readme, /Hive identity and key-management minimization/i, 'README must identify the selected next bounded audit');
   requireMatch(readme, /Production deployment is not authorized/i, 'README must preserve deployment boundary');
   requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
 
@@ -76,9 +84,9 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(docsReadme, /Superseded sequencing, temporary holds, and intermediate routing are recoverable from Git history/i, 'docs index must use Git history rather than living archival state');
   requireMatch(docsReadme, /PORTABLE_VENUE_WORKSPACE = ACCEPTED/, 'docs index must record accepted workspace');
   requireMatch(docsReadme, /DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED/, 'docs index must record accepted deployment-agnostic venue source');
-  requireMatch(docsReadme, /VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE/, 'docs index must route to the bounded CID experiment');
-  requireMatch(docsReadme, /CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN/, 'docs index must forbid product authority from the first CID spike');
-  requireMatch(docsReadme, /baseline fails under the same constraints[\s\S]*equivalent results are explicitly \*\*no advantage\*\*/i, 'docs index must preserve the objective baseline gap rule');
+  requireMatch(docsReadme, /LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED/, 'docs index must record accepted local launcher');
+  requireMatch(docsReadme, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/, 'docs index must preserve CID adoption deferral');
+  requireMatch(docsReadme, /VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT/, 'docs index must route to the bounded identity/key-management audit');
   requireMatch(docsReadme, /production transition.*withheld/i, 'docs index must preserve the HV-8 stop decision');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
@@ -86,13 +94,11 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(roadmap, /HV-8 established.*technically deployable/is, 'roadmap must preserve the HV-8 stop decision');
   requireMatch(roadmap, /Portable venue workspace.*PR #98/is, 'roadmap must record accepted portable workspace');
   requireMatch(roadmap, /Deployment-agnostic venue source.*PR #100/is, 'roadmap must record accepted deployment-agnostic venue source');
-  requireMatch(roadmap, /Current operation.*venue-capsule CID content identity bounded spike/is, 'roadmap must select the bounded CID experiment');
-  requireMatch(roadmap, /mutating one byte of the exact canonical `venue-source\.json` changes the root CID/i, 'roadmap must prove the source document is included in capsule identity');
-  requireMatch(roadmap, /every non-empty included public file[\s\S]*one-byte change in each changes the root CID/is, 'roadmap must prove every included file is identity-bound');
-  requireMatch(roadmap, /CID_SPIKE_PASS = ALL_CONTENT_BINDING_AND_DETERMINISM_GATES_PASS/, 'roadmap must freeze the technical viability pass rule');
-  requireMatch(roadmap, /CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN/, 'roadmap must forbid first-spike product authority');
-  requireMatch(roadmap, /CID_CAPABILITY_GAP_REQUIRED = AT_LEAST_ONE_PRE_REGISTERED_GAP_TEST/, 'roadmap must require an objective pre-registered capability gap before later adoption');
-  requireMatch(roadmap, /CAPABILITY_GAP = PASS[\s\S]*CID passes[\s\S]*baseline fails/is, 'roadmap must define the capability-gap decision rule');
+  requireMatch(roadmap, /source authoring.*PR #102/is, 'roadmap must record accepted source authoring');
+  requireMatch(roadmap, /source durability.*PR #103/is, 'roadmap must record accepted source durability');
+  requireMatch(roadmap, /operator launcher.*PR #104/is, 'roadmap must record accepted local launcher');
+  requireMatch(roadmap, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/, 'roadmap must preserve CID adoption deferral');
+  requireMatch(roadmap, /Current operation.*Hive identity and key-management minimization/is, 'roadmap must select the bounded identity/key-management audit');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }

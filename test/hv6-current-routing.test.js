@@ -32,6 +32,12 @@ test('living current-routing blocks agree on current accepted invariants and one
     assert.match(block, /^ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED$/m);
     assert.match(block, /^PORTABLE_VENUE_WORKSPACE = ACCEPTED$/m);
     assert.match(block, /^DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED$/m);
+    assert.match(block, /^DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED$/m);
+    assert.match(block, /^DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED$/m);
+    assert.match(block, /^LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED$/m);
+    assert.match(block, /^CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY$/m);
+    assert.match(block, /^CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE$/m);
+    assert.match(block, /^CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE$/m);
     assert.match(block, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(block, /^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m);
   }
@@ -57,13 +63,16 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(readme, /Isolated venue runtime admission is accepted/i);
   assert.match(readme, /portable venue workspace is accepted/i);
   assert.match(readme, /deployment-agnostic venue source is accepted/i);
+  assert.match(readme, /deployment-agnostic source authoring is accepted/i);
+  assert.match(readme, /durable venue-source save\/open/i);
+  assert.match(readme, /local source-authoring operator launcher is accepted/i);
   assert.match(roadmap, /ABILITY_TO_DEPLOY != REASON_TO_DEPLOY/);
-  assert.match(roadmap, /VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE/);
-  assert.match(roadmap, /mutating one byte of the exact canonical `venue-source\.json` changes the root CID/i);
-  assert.match(roadmap, /every non-empty included public file[\s\S]*one-byte change in each changes the root CID/is);
-  assert.match(roadmap, /CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN/);
-  assert.match(roadmap, /CID_CAPABILITY_GAP_REQUIRED = AT_LEAST_ONE_PRE_REGISTERED_GAP_TEST/);
-  assert.match(roadmap, /CAPABILITY_GAP = PASS[\s\S]*baseline fails/is);
+  assert.match(roadmap, /## Completed CID lane/);
+  assert.match(roadmap, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/);
+  assert.match(roadmap, /CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE/);
+  assert.match(roadmap, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/);
+  assert.match(roadmap, /NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT/);
+  assert.doesNotMatch(roadmap, /NEXT_OPERATION = VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE/);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {

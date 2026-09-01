@@ -26,7 +26,13 @@ PROFILE_RECENT_ACTIVITY = ACCEPTED
 ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
 PORTABLE_VENUE_WORKSPACE = ACCEPTED
 DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED
-NEXT_OPERATION = VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE
+DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED
+DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED
+LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
+CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -42,7 +48,7 @@ Canonical source moves independently of deployment identity. The healthy Fourth 
 
 HV-1 through HV-6 are accepted foundations. HV-7 validated Juniper Works Cooperative as a synthetic non-bar venue and passed all 24 frozen requirements at Tier-A product-and-architecture evidence. Shared-runtime tenancy remains deferred; one isolated venue per runtime remains the accepted default.
 
-HV-8 established that the successor is technically deployable while also establishing that deployment itself would not materially improve the healthy reference product. The result remains:
+HV-8 established that the successor is technically deployable while also establishing that deployment itself would not materially improve the healthy reference product:
 
 ```text
 ABILITY_TO_DEPLOY != REASON_TO_DEPLOY
@@ -51,80 +57,118 @@ PRODUCTION_TRANSITION = WITHHELD
 
 Current Fourth Street production remains `beta-fdb5b5b`, commit `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`, with active durable Pay, onboarding, and moderation; no successor production transition is authorized.
 
-Accepted post-foundation product slices are:
+Accepted post-foundation product/source slices are:
 
-- **Homepage community pulse** — commit `9310b2784f816d531b46d35d05ab57e4f996256b`, PR #92.
-- **Owner Recent activity** — commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9`, PR #94.
-- **Isolated venue runtime admission** — commit `6b077b91cb7b958769c09befe8d0641689946a7d`, PR #96.
-- **Portable venue workspace** — commit `e1d31ae7805e7387ddab1a361bb3815ed54c5aa8`, PR #98.
-- **Deployment-agnostic venue source** — commit `41928f5d900bcbfc90d5edf9b1365d5dd9f7b336`, PR #100.
+- **Homepage community pulse** — PR #92.
+- **Owner Recent activity** — PR #94.
+- **Isolated venue runtime admission** — PR #96.
+- **Portable venue workspace** — PR #98.
+- **Deployment-agnostic venue source** — PR #100.
+- **Deployment-agnostic source authoring** — commit `a7cae27ab69eae49301f5d0279ab8c6f79254e81`, PR #102.
+- **Deployment-agnostic source durability** — commit `0ac2d8c298b62efdb3f1a284caf0b62beafc7f8e`, PR #103.
+- **Local operator launcher** — commit `c8587b22c68cc7983e575b813909cef9eb9a4d2e`, PR #104.
 
-Runtime admission is the operability bridge the foundations previously lacked: an explicit non-secret validated bootstrap can drive ordinary non-Fourth-Street isolated startup without source injection. The portable workspace then adds an offline deterministic build boundary around one accepted HV-5 authoring document plus one explicit target deployment manifest, producing canonical reviewed inputs, the exact runtime bootstrap, and machine-readable file identities.
-
-PR #98 acceptance followed dual-OS qualification and two review-driven repairs: the builder now enforces the same one-MiB bootstrap ceiling as runtime admission, and the CLI atomically claims its final output directory so its no-overwrite promise remains true under concurrent reservation.
-
-## Current operation — venue-capsule CID content identity bounded spike
-
-```text
-NEXT_OPERATION = VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE
-```
-
-PR #100 accepted the topology-independent venue-source boundary after dual-OS qualification, a real HV-2/HV-5 deployment-ID contract repair, and a clean fresh exact-head review. The accepted source canonically identifies its own JSON bytes and can bind later to distinct valid deployment targets without changing those upstream bytes.
-
-That acceptance exposes a narrower unresolved content-identity problem: venue-package media uses same-origin paths such as `/images/logo.jpg`. A path identifies where a deployment serves an asset, but does not independently identify the bytes behind that path. Two deployments can therefore preserve identical source JSON while serving different public media bytes.
-
-The bounded next experiment tests an immutable public **venue capsule**:
+The operator-facing source path is therefore now:
 
 ```text
 venue-source.json
-+ public venue media/files
-+ frozen capsule/import profile
--> immutable root CIDv1
+-> LOCAL_LOOPBACK_AUTHORING
+-> CUSTOMIZE / PREVIEW
+-> KEEP / DISCARD
+-> SAVE / REOPEN venue-source.json
+-> LATER_SELECT_DEPLOYMENT_TARGET
+-> EXISTING_WORKSPACE / RUNTIME_CHAIN
 ```
 
-The experiment must remain offline and deterministic. It must freeze every CID-affecting import choice and establish all of the following:
+## Completed CID lane
 
-1. two byte-identical capsules materialized independently yield the same CIDv1;
-2. mutating one byte of the exact canonical `venue-source.json` changes the root CID;
-3. **every non-empty included public file** is independently mutation-tested and a one-byte change in each changes the root CID; for any zero-length included file, adding one byte must change the root;
-4. renaming any included relative path changes the root, proving the directory/file structure is bound rather than only file payloads;
-5. rebinding the unchanged capsule to distinct valid deployment targets does not change the capsule CID;
-6. independently mirrored copies verify to the same identity;
-7. the same capsule inventory is evaluated against a frozen baseline consisting of a canonical relative-path/byte-length/per-file-SHA-256 manifest plus ordinary files/Git.
-
-The first spike has an objective outcome and **cannot grant product authority**:
+The CID technical spike and comparative capability-gap adjudication are complete:
 
 ```text
-CID_SPIKE_PASS = ALL_CONTENT_BINDING_AND_DETERMINISM_GATES_PASS
-CID_SPIKE_FAIL = ANY_REQUIRED_GATE_FAILS
-CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN
-CID_ADOPTION_GATE = SEPARATE_AUTHORIZATION_REQUIRED
-CID_CAPABILITY_GAP_REQUIRED = AT_LEAST_ONE_PRE_REGISTERED_GAP_TEST
-BASELINE = CANONICAL_FILE_MANIFEST_SHA256_PLUS_ORDINARY_FILES_GIT
+CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+BASELINE = CANONICAL_SHA256_PLUS_ORDINARY_FILES_GIT
 ```
 
-If any required spike gate fails, CID is rejected at this stage. If all pass, the only positive result is `CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY`; there is no discretionary “material advantage” adjudication.
+The frozen CID construction passed determinism, byte/path sensitivity, independent materialization, and deployment-neutrality. The comparative test also demonstrated a genuine stable-subfile content-address-reuse capability that the baseline does not natively provide. Adoption remains deferred because current Hive-Venues product workflows have not justified the added Kubo/CAR/import-profile/provider complexity.
 
-A later CID adoption experiment may be opened only under separate authorization and must pre-register one or more of these objective capability-gap workflows before execution:
+This result is evidence-responsive rather than ideological: CID/IPFS may be reconsidered if future venue workflows make the proven capability gap valuable enough to outweigh operational complexity.
 
-1. **HOST_INDEPENDENT_RECOVERY** — with the original web host unavailable and no Git checkout available to the recovering client, recover 100% of capsule files by the root CID from at least two independently administered storage/retrieval locations; byte-for-byte verification and the root CID must match, and loss of either one location alone must not prevent recovery.
-2. **STABLE_SUBFILE_CONTENT_ADDRESS_REUSE** — for a frozen multi-chunk public media specimen, a one-byte change must preserve stable content addresses for at least 75% of unchanged payload bytes and prove those unchanged blocks can be reused without retransmission.
-3. **STANDARD_NON_GIT_INTEROPERABILITY** — a clean standard IPFS client, given the root CID but no Hive-Venues-specific manifest parser and no Git repository/ref, must retrieve and verify 100% of the capsule from an independently administered location.
+## Current operation — Hive identity and key-management minimization
 
-For any claimed gap, the corresponding baseline workflow must be run under the same input and authority constraints. `CAPABILITY_GAP = PASS` only when CID passes and the canonical SHA-256 + ordinary files/Git baseline fails that same workflow without adding a new custom content-addressed/chunked retrieval layer. If both approaches pass, the result is `CAPABILITY_GAP = NO`; if neither passes, it is `CAPABILITY_GAP = UNPROVEN`. CID can receive product authority only after all technical-viability gates pass **and** at least one pre-registered capability gap is `PASS` in that separately authorized adoption experiment.
+```text
+NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+```
 
-Until then, the ordinary canonical SHA-256 plus files/Git approach remains authoritative.
+The current operation is a bounded **Hive identity and key-management minimization** audit. It asks whether the platform can reduce ordinary merchant key-management burden while preserving useful protocol separation and automation safety.
 
-IPNS is not part of the first experiment. If a mutable pointer is later justified, Hive-Venues' existing venue-owned Hive account may be a stronger update-authority candidate than introducing a second mandatory private key.
+Working hypothesis to test rather than assume:
 
-No Kubo daemon, IPFS publication, pinning/provider purchase, gateway dependency, IPNS key creation/custody, DNSLink mutation, production deployment, Hive/Keychain write, secret/private publication, real venue outreach, or external effect is authorized.
+1. **Merchant identity** — one ordinary venue account remains merchant-controlled; its Active/Owner/private posting keys are not placed on the Hive-Venues server.
+2. **Community identity** — the `hive-...` protocol identity remains a recovery/ownership boundary; routine venue administration should use delegated roles where Hive supports them rather than requiring daily community-owner key handling.
+3. **Threads service identity** — a dedicated low-value account may remain justified for automatic container-post lifecycle. If retained, server custody should be bounded to the minimum Posting authority needed for root-container creation/rotation; Resource Credits can be delegated instead of requiring meaningful owned stake.
+4. **Container economics** — preserve legitimate reward upside while avoiding server-held merchant Active/Owner authority. Prefer direct beneficiary routing to the merchant where protocol semantics support it; any residual-balance mechanism must not widen production-server authority without explicit justification.
+5. **Rotation policy** — do not invent a hard thread-count limit. Determine container rotation from actual Hive/Hivemind retrieval behavior, pagination, age, child count, or other measured operational constraints.
+
+No Hive account, role, key, authority, community permission, server secret, or on-chain state changes during this audit.
+
+## Beneficiary economics design boundary
+
+The identity audit shares one protocol seam with two product beneficiary policies. They should be designed together so `comment_options` composition, beneficiary merging, total-weight bounds, disclosure, and exact-operation review are solved once.
+
+### Venue beneficiary policy
+
+Initial target:
+
+```text
+DEFAULT = OFF
+OPERATOR_UI = OFF / ON + PERCENTAGE
+RECIPIENT = DERIVED_TRUSTED_VENUE_OR_MERCHANT_IDENTITY
+HIDDEN_BENEFICIARY = FORBIDDEN
+USER_DISCLOSURE_BEFORE_KEYCHAIN = REQUIRED
+INITIAL_SCOPE = VENUE_CONTEXT_CONTENT__TO_BE_ADJUDICATED
+```
+
+The venue may choose a beneficiary percentage for eligible user-authored venue content, but the user must see the exact economic effect before signing. The policy must not be represented as per-post optional if the venue actually requires it for publication through that venue.
+
+### Voluntary Hive-Venues creator donation
+
+Initial target:
+
+```text
+PLATFORM_AVAILABILITY = TOGGLEABLE
+PLATFORM_PERCENTAGE = ADJUSTABLE
+RECIPIENT = TRUSTED_HIVE_VENUES_CREATOR_CONFIGURATION
+USER_CONTROL = PER_POST_CHECKBOX
+CHECKBOX_DEFAULT = UNCHECKED
+EXACT_PERCENTAGE_IN_LABEL = REQUIRED
+```
+
+A normal user should see a simple checkbox near the composer, e.g. `Donate 2% of this post's author rewards to the creator of Hive-Venues`. Participation is voluntary per post. If both venue and creator beneficiaries apply, the final signing review must show both allocations and the author's remaining share. Duplicate recipient accounts must be canonically combined at the protocol level without hiding the distinct economic reasons in the review UI. Total beneficiary weight must fail closed rather than silently rescale when it would exceed Hive limits.
+
+No beneficiary implementation or Hive write is authorized until this design contract is adjudicated.
+
+## Engineering-health companion operation
+
+A bounded `TEST_SUITE_LIVE_INVARIANT_AND_CROSS_PLATFORM_SCOPE_AUDIT` will examine the deterministic suite before changing CI policy.
+
+Current evidence says the full `npm run check`, including every `test/*.test.js`, is mirrored on Ubuntu and Windows even though many tests are platform-neutral. The audit will classify tests by:
+
+- live invariant protected;
+- unique versus duplicate evidence;
+- historical defect/regression value;
+- platform sensitivity;
+- cost and failure-diagnostic value.
+
+The likely target is full deterministic regression on a primary OS plus an explicit Windows portability contract, while retaining periodic/exhaustive Windows coverage until reduced-scope equivalence is proven. **No test deletion or Windows-coverage reduction is authorized by this hypothesis.**
 
 ## Product trajectory
 
 ```text
 STARTER_OR_CUSTOM_SOURCE
 -> DEPLOYMENT_AGNOSTIC_VENUE_SOURCE
--> CUSTOMIZE / PREVIEW / CONFIRM
+-> LOCAL_AUTHORING / SAVE / REOPEN
 -> CHOOSE_HOME_PC / VPS / CUSTOM_SERVER
 -> SELECT_OR_CREATE_DEPLOYMENT_TARGET
 -> COMPILE_DEPLOYMENT_BOUND_AUTHORING + BOOTSTRAP + WORKSPACE
@@ -133,22 +177,7 @@ STARTER_OR_CUSTOM_SOURCE
 -> HEALTH / BACKUP / UPDATE / ROLLBACK
 ```
 
-Self-hosting and VPS hosting are both intended first-class future choices. Central hosting is not an architectural requirement. Decentralization remains available by operator choice rather than imposed as ideology.
-
-The important portability contract is now precise: **venue source state should remain stable when only the hosting topology changes; deployment target state is expected to change.**
-
-## Technology posture
-
-Deferred technologies remain secondary to product need.
-
-- **CID/IPFS/IPNS:** CIDv1 is now under a bounded offline content-identity experiment for public venue capsules. IPFS publication, provider/pinning, gateways, and IPNS remain unselected and unauthorized.
-- **3Speak/SPK:** potentially useful when venue/community media becomes a concrete product lane.
-- **Production visual authoring:** accepted source foundation exists, but public authoring requires real authentication, authorization, persistence, draft/publish, rollback, and audit work.
-- **Real second venue:** important eventual evidence synthetic venues cannot supply; outreach remains unauthorized.
-- **Helia/OrbitDB:** no present requirement for peer-replicated mutable venue state.
-- **Fleet/shared-runtime tenancy:** no present operating pressure justifies increasing shared failure/custody domains.
-
-Technologies are means. Selection should change when a real user/operator/developer problem changes the value equation.
+Self-hosting and VPS hosting are both intended first-class future choices. Central hosting is not an architectural requirement. Technologies are means; selection should change when a real user/operator/developer problem changes the value equation.
 
 ## Controlling rules
 
@@ -162,10 +191,13 @@ COMPATIBILITY_NAME != PLATFORM_PRODUCT_IDENTITY
 ONE_VENUE_RUNTIME = VALID_DEFAULT__NOT_IDEOLOGY
 DEPLOYMENT_AGNOSTIC_VENUE_SOURCE != DEPLOYMENT_BOUND_HV5_AUTHORING
 VENUE_SOURCE_PORTABILITY != DEPLOYMENT_TARGET_PORTABILITY
+PROTOCOL_ROLE_COUNT != DAILY_KEY_SET_COUNT
+AUTOMATION_AUTHORITY = MINIMUM_REQUIRED_AUTHORITY
+USER_BENEFICIARY_CONSENT = VISIBLE_EXACT_OPERATION
 ```
 
 ## Production and external-effect boundary
 
-No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change current Pay/onboarding/moderation/Distriator/V1/controlled-delegated authority, mount visual authoring, change secrets/keys, mutate DNS/VPS/systemd/router/tunnel state, or perform venue outreach.
+No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change account authorities or keys, activate beneficiaries, change current Pay/onboarding/moderation/Distriator/V1 behavior, mount public authoring, mutate DNS/VPS/systemd/router/tunnel state, or perform venue outreach.
 
 Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, identity files, host, and application tag until a separately accepted migration has a concrete reason to change them.

@@ -7,38 +7,45 @@ This index points to documents needed to interpret the **current** successor sta
 - `../README.md` — product/developer entry point and current source boundary.
 - `ROADMAP.md` — current product state and sequencing.
 - `DEPLOYMENT_AGNOSTIC_VENUE_SOURCE.md` — accepted topology-independent non-secret venue-source contract.
+- `DEPLOYMENT_AGNOSTIC_VENUE_SOURCE_DURABILITY.md` — accepted canonical venue-source save/open and downstream workspace bridge.
 - `PORTABLE_VENUE_WORKSPACE.md` — accepted deterministic offline workspace/build contract.
-- `PRODUCTION_OPERATIONS.md` — freshly reconciled Fourth Street operating model and current durable-capability state.
+- `PRODUCTION_OPERATIONS.md` — Fourth Street operating model and durable-capability state.
 - `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md` — accepted technical convergence candidate/evidence; production transition is withheld.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen transition contract retained for use only if a future product/operational reason reopens deployment.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen transition contract retained only if a future product/operational reason reopens deployment.
 - `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — accepted HV-7 Tier-A result.
-- `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper requirements.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted visual-authoring foundation.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted deployment-bound canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
 
-Accepted product-slice implementation and qualification histories remain recoverable from Git/PR history; no extra archival acceptance documents are required on living `main`.
+Accepted implementation and qualification histories remain recoverable from Git/PR history; no extra archival acceptance documents are required on living `main`.
 
 ## Current interpretation
 
-HV-1 through HV-6 are accepted foundations. Juniper Works Cooperative is the validated **synthetic** second venue nominee; its 24 frozen requirements passed at Tier-A product-and-architecture evidence.
+HV-1 through HV-6 are accepted foundations. Juniper Works Cooperative is the validated synthetic second-venue nominee; its 24 frozen requirements passed at Tier-A product-and-architecture evidence. HV-8 established technical successor convergence while preserving the decision that the **production transition is withheld**.
 
-Fresh HV-8 Phase A is complete. Fourth Street remains healthy and coherent at:
+Current Fourth Street production remains independently pinned to `beta-fdb5b5b`, commit `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`; no successor production transition is authorized.
+
+Post-foundation product/source progression is now:
 
 ```text
-BUILD = beta-fdb5b5b
-COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
-TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
-ENVIRONMENT = production
-WRITE_MODE = beta
-READY = ready
+PORTABLE_VENUE_WORKSPACE = ACCEPTED
+DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED
+DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED
+DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED
+LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
 ```
 
-Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; controlled/delegated Hive authority is absent. Distriator itself is an external blockchain scanner/rebate service that Hive-Venues cannot enable or disable. Separately, Hive-Venues has a venue-level participation toggle: after a business completes Distriator onboarding, the operator may enable the local post-confirmation rebate handoff. That toggle does not guarantee that Distriator will recognize a particular transaction or issue a rebate, and the current evidence does not establish Fourth Street participation, recognition, or rebate status. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
+PR #102 accepted ordinary deployment-agnostic customize/preview/Keep/Discard authoring. PR #103 accepted durable canonical `venue-source.json` save/open plus the existing workspace bridge. PR #104 accepted a loopback-only local operator launcher that composes the real renderer and accepted source-authoring surface while forcing Hive capability off.
 
-The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Isolated venue runtime admission is accepted at commit `6b077b91cb7b958769c09befe8d0641689946a7d` (PR #96). The portable venue workspace is accepted at commit `e1d31ae7805e7387ddab1a361bb3815ed54c5aa8` (PR #98). The deployment-agnostic venue source is accepted at commit `41928f5d900bcbfc90d5edf9b1365d5dd9f7b336` (PR #100), after dual-OS qualification, an HV-2/HV-5 deployment-ID domain repair, and a clean fresh exact-head Codex review. All remained bounded source/product work with no production activation.
+The CID program is complete for now:
 
-With that source boundary accepted, the next bounded lane is the venue-capsule CID content-identity spike: test offline whether CIDv1 deterministically binds the exact public source-plus-media bytes across deployment migrations. This is a technical-viability experiment, not IPFS product authority. The first spike cannot authorize adoption; any later adoption requires a separately frozen capability-gap workflow where CID passes and the canonical SHA-256/files/Git baseline fails under identical constraints.
+```text
+CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+```
+
+CIDv1 was technically viable and one genuine stable-subfile-reuse capability gap was demonstrated against the canonical SHA-256/files/Git baseline. Current product evidence does not justify adopting Kubo/CAR/import-profile/provider complexity, so ordinary SHA-256 plus files/Git remains canonical. This is a deferral, not a rejection of future CID use.
 
 Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
@@ -64,7 +71,13 @@ PROFILE_RECENT_ACTIVITY = ACCEPTED
 ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
 PORTABLE_VENUE_WORKSPACE = ACCEPTED
 DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED
-NEXT_OPERATION = VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE
+DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED
+DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED
+LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
+CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -77,22 +90,18 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE
+VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
 ```
 
-The accepted deployment-agnostic source canonically identifies its own JSON bytes, but same-origin public media paths still identify serving locations rather than independently proving the bytes behind them. The bounded spike therefore tests one immutable public venue capsule containing the canonical source plus public media/files under a frozen deterministic CIDv1 import profile.
+The current lane is a bounded **Hive identity and key-management minimization** audit. It does not change any Hive account, authority, key, community role, beneficiary, server secret, or production behavior.
 
-The first experiment is offline only. Identical capsules must yield the same CIDv1; a one-byte mutation of the exact canonical `venue-source.json` must change the root; every included public file must independently prove byte sensitivity (one-byte mutation for every non-empty file, or adding one byte to a zero-length file); a path rename must change the root; and rebinding the unchanged capsule to distinct deployment targets must leave the capsule CID unchanged.
+The audit will distinguish protocol identities from ordinary operator key burden; evaluate the dedicated Threads account as a Posting-only automation principal for container lifecycle; keep the merchant account under merchant custody; preserve the community identity as a protocol/recovery boundary; and evaluate delegated RC, reward routing, and beneficiary composition without granting the server merchant Active/Owner authority.
 
-This spike can establish only technical viability:
+The same design boundary will adjudicate two separate beneficiary policies:
 
-```text
-CID_SPIKE_PASS = ALL_CONTENT_BINDING_AND_DETERMINISM_GATES_PASS
-CID_SPIKE_FAIL = ANY_REQUIRED_GATE_FAILS
-CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN
-CID_ADOPTION_GATE = SEPARATE_AUTHORIZATION_REQUIRED
-```
+- a venue beneficiary policy configured by the venue and plainly disclosed to the posting user;
+- a voluntary Hive-Venues creator-donation beneficiary controlled by an unchecked per-post user checkbox.
 
-Any later adoption gate must use a frozen canonical per-file SHA-256 + ordinary files/Git baseline and at least one pre-registered capability-gap workflow. CID advances only when CID passes that workflow and the baseline fails under the same constraints; equivalent results are explicitly **no advantage**.
+A separate test-suite audit will classify the 700-test deterministic inventory by live invariant and true platform sensitivity before any deletion or Windows-scope reduction.
 
-No Kubo daemon, IPFS publication, pinning/provider purchase, gateway requirement, IPNS key creation/custody, DNSLink mutation, deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure/router/tunnel mutation, or venue outreach is authorized.
+No production deployment, Hive/Keychain write, secret/key change, account-role migration, beneficiary activation, CI-policy reduction, venue outreach, or infrastructure mutation is authorized by this routing reconciliation.
