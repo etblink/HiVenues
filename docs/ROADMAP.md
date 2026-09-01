@@ -18,11 +18,10 @@ HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
 HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
-HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_DEPLOY_CANDIDATE = 02ac081d2cfaee599f98e4fb8d9367638cd8d500
-HV8_DEPLOY_CANDIDATE_TREE = 49b7b561af89fc99534d2a2974215bfe7a3db3c3
-HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
+HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
+HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
+HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
+NEXT_OPERATION = VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -32,84 +31,76 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-Canonical source moves independently of deployment identity. Resolve exact `main` whenever qualifying; never use the moving branch label as a deploy target. The accepted HV-8 target is the exact historical candidate above.
+Canonical source moves independently of deployment identity. The healthy Fourth Street reference deployment remains on its observed exact release; source work may advance without implying production transition.
 
 ## Accepted foundation
 
 HV-1 through HV-6 are accepted. HV-7 validated Juniper Works Cooperative as a synthetic non-bar venue and passed all 24 frozen requirements at Tier-A product-and-architecture evidence.
 
-The baseline remains one isolated venue per runtime. HV-5 remains canonical authoring authority. HV-6 remains subordinate to HV-5. Shared tenancy remains deferred.
+The baseline remains one isolated venue per runtime. HV-5 remains canonical authoring authority. HV-6 remains subordinate to HV-5. Shared tenancy remains deferred because there is still no authentic product requirement that justifies its additional coupling.
 
-## Current Fourth Street production identity
+## HV-8 conclusion — technically qualified, transition withheld
 
-Current evidence binds the running reference deployment to:
+Fresh Phase-A read-only observation closed the deployment-compatibility uncertainty rather than creating a deployment obligation. Public and operator-side identity agree on the healthy running `beta-fdb5b5b` release; `last-good` is its exact parent release; the accepted beta and read-only environment byte identities are cryptographically bound without exposing their contents.
 
-```text
-BUILD = beta-fdb5b5b
-COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
-TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
-ENVIRONMENT = production
-WRITE_MODE = beta
-READY = ready
-```
+The observation also corrected the inherited production model: Pay, onboarding, and moderation are currently active against durable state; Distriator is disabled; controlled/delegated Hive authority is absent. `docs/PRODUCTION_OPERATIONS.md` is the current operational source for those facts.
 
-Phase A must freshly re-observe these facts rather than treating this roadmap as operational proof.
-
-## HV-8 deployment preregistration — FROZEN
-
-The controlling prospective production-transition contract is:
+The previously qualified successor candidate remains useful technical evidence. Its successful deployment compatibility does not materially improve the product merely by being exercised against production now. The production transition is therefore withheld.
 
 ```text
-docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md
+ABILITY_TO_DEPLOY != REASON_TO_DEPLOY
+PRODUCTION_TRANSITION = WITHHELD
 ```
 
-The accepted exact candidate and qualification result are:
+If a future product or operational need creates a real reason to deploy, the frozen HV-8 transition contract and exact candidate evidence remain available. They do not capture current product sequencing.
+
+## Current operation — community pulse product build
 
 ```text
-docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md
+NEXT_OPERATION = VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
 ```
 
-The candidate passed Ubuntu and Windows deterministic qualification, 631/631 tests, zero production dependency vulnerabilities, the complete pinned-Chromium evidence chain, artifact integrity verification, Project Lead manual visual review, strict deployed-old ancestry, and the non-live production-harness contract rehearsal.
+The highest-value immediate uncertainty is product vitality: can a venue's front door make its Hive community feel active and worth revisiting rather than presenting only venue-authored announcements?
 
-## Current operation — Phase A read-only production preflight
+The smallest honest build is to use capabilities already present and trusted:
 
-```text
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
-```
+1. keep official venue updates as an editorial voice;
+2. add a compact read-only community pulse drawn from the venue Hive community;
+3. reuse the existing merchant-local moderation policy rather than inventing a homepage moderation path;
+4. exclude duplicate official-account roots and the dedicated Threads container from the pulse;
+5. fail soft and independently if either official updates or community activity is temporarily unavailable;
+6. preserve one clear venue-led visual hierarchy and accessible browser behavior;
+7. add no signing authority, persistence, infrastructure, or external effect.
 
-Before any production mutation can be considered, Phase A must freshly establish without mutation:
+This is ordinary product engineering, not a new governance program. Browser evidence should decide visual quality after deterministic tests pass.
 
-- public health status, environment, write mode, build, commit, tree, and readiness;
-- operator-side `current` target plus exact installed commit/tree;
-- operator-side `last-good` target plus exact installed commit/tree;
-- SHA-256 of the active accepted beta environment;
-- SHA-256 of the accepted read-only environment;
-- agreement between public and operator-side release identity.
+## Technology posture
 
-Only hashes and non-secret metadata may be recorded. Protected environment contents, session secrets, SSH keys, Hive private keys, customer private keys, and recovery material must not be exposed. Any ambiguity is a hard stop.
+Deferred technologies were reconsidered only far enough to choose the next product lane. None currently beats the community-pulse build on expected user value per unit complexity.
 
-The canonical deployment harness's existing `Observe` mode is for an already-installed new candidate and is not a substitute for this pre-deployment old-release entry observation.
+- **CID/IPFS/IPNS:** potentially useful later for immutable publication artifacts, portable venue packages, or content-addressed media when one of those becomes a real product need. Not selected now.
+- **3Speak/SPK:** potentially useful when venue/community media becomes a concrete product lane. A future media abstraction should start from the user experience, not from provider adoption. Not selected now.
+- **Production visual authoring:** the typed HV-6 source adapter is accepted, but a public operator workflow would require real authentication, authorization, draft/publish, persistence, rollback, and audit requirements. Not selected now.
+- **Real second venue:** important eventual evidence that synthetic venues cannot supply. Outreach remains unauthorized and should begin when the product is ready to learn honestly from an independent operator.
+- **Helia/OrbitDB:** no present requirement for offline-first peer replication or non-authoritative shared mutable venue state. Deferred.
+- **Fleet/shared-runtime tenancy:** no present venue-count or operating-cost pressure that justifies increasing shared failure/custody domains. Deferred.
+
+Technologies are means. Selection should change when a real user/operator/developer problem changes the value equation.
 
 ## Controlling rules
 
 ```text
+PRODUCT_VALUE > ARCHITECTURAL_PURITY
 CURRENT_OBSERVATION > HISTORICAL_PROSE
-EXACT_FROZEN_CANDIDATE != MOVING_MAIN
+ABILITY_TO_DEPLOY != REASON_TO_DEPLOY
 CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
 SOURCE_CAPABILITY_PRESENT != PRODUCTION_CAPABILITY_ENABLED
 COMPATIBILITY_NAME != PLATFORM_PRODUCT_IDENTITY
-DEPLOYMENT_QUALIFIED != DEPLOYMENT_AUTHORIZED
-TECHNICAL_DEPLOYMENT_SUCCESS != PROJECT_LEAD_ACCEPTANCE
+ONE_VENUE_RUNTIME = VALID_DEFAULT__NOT_IDEOLOGY
 ```
 
-## Production boundary
+## Production and external-effect boundary
 
-No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, activate Pay/Distriator/onboarding/moderation/V1/controlled-delegated state, mount visual authoring, change secrets/keys, or mutate DNS/VPS/systemd.
+No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change current Pay/onboarding/moderation/Distriator/V1/controlled-delegated authority, mount visual authoring, change secrets/keys, mutate DNS/VPS/systemd, or perform venue outreach.
 
-Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, identity files, host, and application tag until a separately accepted migration changes them.
-
-## Deferred lanes
-
-A real second venue/operator, package/developer identity cleanup, CID/IPFS, 3Speak/SPK, and production visual authoring remain eligible or potentially useful but are not selected while reference-deployment convergence is active.
-
-Fleet operations, Helia/OrbitDB replication, and shared-runtime multi-tenancy remain deferred.
+Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, identity files, host, and application tag until a separately accepted migration has a concrete reason to change them.
