@@ -27,7 +27,9 @@ The moderated homepage **community pulse is accepted** at commit `9310b2784f816d
 
 The owner-only **Recent activity** profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). It adds a read-only signed-in return loop for supported Hive replies, mentions, votes, follows, reblogs, and subscriptions while making no unread/read claim and adding no notification database, signer, provider, infrastructure, or write authority. Acceptance included dual-OS deterministic qualification, full pinned-Chromium evidence, artifact-integrity verification, accessibility review, a real-RPC-policy regression, PR-review reconciliation, and manual visual review.
 
-The selected next product question is **isolated venue runtime admission**: can an explicit non-secret validated venue/bootstrap document drive the ordinary server startup path for a non-Fourth-Street isolated runtime, without requiring a developer to edit platform internals and without weakening deployment/runtime binding?
+**Isolated venue runtime admission is accepted** at commit `6b077b91cb7b958769c09befe8d0641689946a7d` (PR #96). Ordinary startup can now consume one explicit non-secret validated venue/bootstrap document and launch a non-Fourth-Street isolated runtime without developer source injection. Acceptance required four review-driven integration repairs covering explicit-admission precedence, durable-storage binding, non-reference release provenance, and observable Node/platform binding before listen.
+
+The selected next product question is the **portable venue workspace**: can the already accepted authoring, deployment, bootstrap, and runtime-admission authorities become one deterministic offline operator unit, while keeping portable venue source separate from target-specific deployment facts?
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -48,7 +50,8 @@ HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIV
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
 PROFILE_RECENT_ACTIVITY = ACCEPTED
-NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
+NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -61,22 +64,25 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 ```
 
-The authoring and deployment foundations already exist: HV-5 defines the strict non-secret canonical venue-authoring document, HV-6 supplies a subordinate visual Apply/Discard adapter, and HV-4 validates a non-secret bootstrap with venue/package/deployment three-way binding. The remaining product/platform gap is that ordinary `startServer()` still starts from the built-in Fourth Street path; a validated second venue still requires developer source injection to become an isolated runtime.
+The platform now has the necessary lower-level authorities: HV-5 defines the canonical non-secret venue-authoring document, HV-2 owns target-specific deployment facts, HV-4 composes their validated three-way binding into a bootstrap, HV-6 provides a subordinate visual authoring adapter, and accepted runtime admission lets that bootstrap drive ordinary isolated startup.
 
-The bounded implementation target is:
+The remaining operator gap is that these pieces still live as separate developer-facing files and commands. The bounded implementation target is therefore to create one deterministic **offline workspace/build boundary** that:
 
-- let ordinary startup consume an **explicit** non-secret validated venue/bootstrap source;
-- reuse existing HV-4 bootstrap, HV-5 authoring/domain, deployment-profile, and `loadConfig(..., { venue })` authorities rather than creating parallel schemas;
-- preserve current Fourth Street-compatible startup when no explicit admission source is configured;
-- fail closed for malformed, missing, partial, or binding-incoherent explicit admission;
-- bind deployment-profile facts to the existing runtime configuration before the server listens;
-- prove the path with a synthetic non-Fourth-Street isolated runtime;
-- perform no real deployment, DNS/VPS/systemd mutation, production authoring mount, venue outreach/admission, Hive/Keychain write, secret/key change, or capability activation.
+- keeps canonical venue authoring as the portable source of venue identity, content, and design;
+- keeps deployment manifests separate and explicitly target-specific rather than embedding VPS/OS facts into venue design;
+- reuses existing HV-5, HV-2, and HV-4 validators rather than introducing shadow schemas;
+- deterministically emits canonical reviewed inputs, the compiled bootstrap ordinary startup consumes, and a small machine-readable checksum/identity manifest;
+- uses host-portable workspace-local paths while leaving target runtime/release/storage paths under deployment-profile authority;
+- rejects secret/private material through the existing safety boundaries;
+- proves reproducible offline rebuild/verification without network access or source editing;
+- does **not** create a template taxonomy, deployment wizard, shared tenancy, runtime database bundle, secret store, or production deployment.
 
-No source deployment, service restart, environment change, current/last-good mutation, Hive/Keychain write, capability activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized.
+This separation is intentional: **portable venue source is not portable deployment facts**. A future operator should be able to keep the same venue source while choosing or regenerating a deployment target for a home PC, VPS, or custom server.
+
+No source deployment, service restart, environment change, current/last-good mutation, Hive/Keychain write, capability activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, router/tunnel change, or venue outreach is authorized.
 
 ## Accepted architecture
 
@@ -153,4 +159,4 @@ For current state use:
 9. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
 10. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
 
-The community-pulse and Recent-Activity implementation/qualification histories are intentionally recoverable from Git/PR history rather than duplicated as permanent transition documents. Superseded sequencing and transient evidence likewise remain recoverable from Git history rather than being required living documents.
+The community-pulse, Recent-Activity, and isolated-runtime-admission implementation/qualification histories are intentionally recoverable from Git/PR history rather than duplicated as permanent transition documents. Superseded sequencing and transient evidence likewise remain recoverable from Git history rather than being required living documents.

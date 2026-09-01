@@ -4,7 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD';
+const NEXT_SUCCESSOR_OPERATION = 'PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -37,7 +37,8 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m, 'HV-8 must stop at technical convergence without implying deployment'],
     [/^VENUE_HOME_COMMUNITY_PULSE = ACCEPTED$/m, 'the homepage community pulse must remain accepted'],
     [/^PROFILE_RECENT_ACTIVITY = ACCEPTED$/m, 'the owner Recent activity product slice must remain accepted'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be isolated venue runtime admission'],
+    [/^ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED$/m, 'isolated venue runtime admission must remain accepted'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the portable venue workspace'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m, 'public production authoring must remain unauthorized'],
     [/^REAL_SECOND_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
@@ -57,21 +58,22 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /production transition is withheld/i, 'README must state that technical deployment ability is not a deployment reason');
   requireMatch(readme, /community pulse is accepted/i, 'README must record the accepted homepage product slice');
   requireMatch(readme, /Recent activity.*accepted/i, 'README must record the accepted signed-in return-loop slice');
-  requireMatch(readme, /isolated venue runtime admission/i, 'README must identify the selected runtime-admission product lane');
+  requireMatch(readme, /Isolated venue runtime admission is accepted/i, 'README must record accepted runtime admission');
+  requireMatch(readme, /portable venue workspace/i, 'README must identify the selected portable-workspace product lane');
   requireMatch(readme, /Production deployment is not authorized/i, 'README must preserve deployment boundary');
   requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'docs index must identify Hive-Venues');
   requireMatch(docsReadme, /Superseded sequencing, temporary holds, and intermediate routing are recoverable from Git history/i, 'docs index must use Git history rather than living archival state');
-  requireMatch(docsReadme, /PROFILE_RECENT_ACTIVITY = ACCEPTED/, 'docs index must record accepted Recent activity');
-  requireMatch(docsReadme, /ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD/, 'docs index must route to isolated venue runtime admission');
+  requireMatch(docsReadme, /ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED/, 'docs index must record accepted runtime admission');
+  requireMatch(docsReadme, /PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD/, 'docs index must route to portable venue workspace');
   requireMatch(docsReadme, /production transition.*withheld/i, 'docs index must preserve the HV-8 stop decision');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
   requireMatch(roadmap, /Superseded states remain recoverable from Git history/i, 'roadmap must keep superseded state in Git history');
-  requireMatch(roadmap, /HV-8.*technically qualified.*transition withheld/is, 'roadmap must close HV-8 without selecting deployment');
-  requireMatch(roadmap, /Accepted product slice.*profile Recent activity/is, 'roadmap must record accepted Recent activity');
-  requireMatch(roadmap, /Current operation.*isolated venue runtime admission/is, 'roadmap must select runtime-admission product work');
+  requireMatch(roadmap, /HV-8 established.*technically deployable/is, 'roadmap must preserve the HV-8 stop decision');
+  requireMatch(roadmap, /Isolated venue runtime admission.*PR #96/is, 'roadmap must record accepted runtime admission');
+  requireMatch(roadmap, /Current operation.*portable venue workspace/is, 'roadmap must select portable workspace product work');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }

@@ -34,7 +34,7 @@ READY = ready
 
 Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; Distriator remains disabled and controlled/delegated Hive authority is absent. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
 
-The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Both remained bounded product work with no production activation.
+The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Isolated venue runtime admission is accepted at commit `6b077b91cb7b958769c09befe8d0641689946a7d` (PR #96). All remained bounded source/product work with no production activation.
 
 Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
@@ -57,7 +57,8 @@ HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIV
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
 PROFILE_RECENT_ACTIVITY = ACCEPTED
-NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
+NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -70,11 +71,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 ```
 
-The next work connects accepted venue/deployment authority to the ordinary isolated-runtime startup path. A validated explicit non-secret venue/bootstrap source should be consumable as data without developer source wiring, while malformed/partial/binding-incoherent explicit admission fails closed and the existing Fourth Street-compatible default remains unchanged when no explicit source is configured.
+HV-5 already defines the portable non-secret venue authoring source. HV-2 intentionally owns target-specific provider/runtime/topology/release/storage/provenance facts separately. HV-4 composes those authorities into the validated bootstrap, and accepted runtime admission now lets that bootstrap drive ordinary isolated startup.
 
-The first slice must reuse HV-4 bootstrap/deployment authority, HV-5 venue-authoring/domain authority, and existing `loadConfig(..., { venue })` behavior. It must prove a synthetic non-Fourth-Street isolated runtime and must not deploy or activate any real venue.
+The next work is an offline deterministic workspace/build boundary: canonicalize and preserve the venue source, pair it explicitly with a separately selected target deployment definition, compile the bootstrap through existing authorities, and emit a small machine-readable identity/checksum record. Workspace-local paths should remain host-portable; target deployment paths remain target-specific. No template taxonomy, deployment wizard, secrets, runtime databases, shared tenancy, or real deployment belongs in this first slice.
 
-No deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
+No deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure/router/tunnel mutation, or venue outreach is authorized.

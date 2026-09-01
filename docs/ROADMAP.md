@@ -23,7 +23,8 @@ HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIV
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
 PROFILE_RECENT_ACTIVITY = ACCEPTED
-NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
+NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -35,80 +36,82 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 
 Canonical source moves independently of deployment identity. The healthy Fourth Street reference deployment remains on its observed exact release; source work may advance without implying production transition.
 
-## Accepted foundation
+## Accepted platform/product state
 
-HV-1 through HV-6 are accepted. HV-7 validated Juniper Works Cooperative as a synthetic non-bar venue and passed all 24 frozen requirements at Tier-A product-and-architecture evidence.
+HV-1 through HV-6 are accepted foundations. HV-7 validated Juniper Works Cooperative as a synthetic non-bar venue and passed all 24 frozen requirements at Tier-A product-and-architecture evidence. Shared-runtime tenancy remains deferred; one isolated venue per runtime remains the accepted default.
 
-The baseline remains one isolated venue per runtime. HV-5 remains canonical authoring authority. HV-6 remains subordinate to HV-5. Shared tenancy remains deferred because there is still no authentic product requirement that justifies its additional coupling.
-
-## HV-8 conclusion — technically qualified, transition withheld
-
-Fresh Phase-A read-only observation closed the deployment-compatibility uncertainty rather than creating a deployment obligation. Public and operator-side identity agree on the healthy running `beta-fdb5b5b` release; `last-good` is its exact parent release; the accepted beta and read-only environment byte identities are cryptographically bound without exposing their contents.
-
-The observation also corrected the inherited production model: Pay, onboarding, and moderation are currently active against durable state; Distriator is disabled; controlled/delegated Hive authority is absent. `docs/PRODUCTION_OPERATIONS.md` is the current operational source for those facts.
-
-The previously qualified successor candidate remains useful technical evidence. Its successful deployment compatibility does not materially improve the product merely by being exercised against production now. The production transition is therefore withheld.
+HV-8 established that the successor is technically deployable while also establishing that deployment itself would not materially improve the healthy reference product. The result remains:
 
 ```text
 ABILITY_TO_DEPLOY != REASON_TO_DEPLOY
 PRODUCTION_TRANSITION = WITHHELD
 ```
 
-If a future product or operational need creates a real reason to deploy, the frozen HV-8 transition contract and exact candidate evidence remain available. They do not capture current product sequencing.
+Current Fourth Street production remains `beta-fdb5b5b`, commit `fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e`, with active durable Pay, onboarding, and moderation; no successor production transition is authorized.
 
-## Accepted product slice — homepage community pulse
+Accepted post-foundation product slices are:
 
-The homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` through PR #92. It keeps official venue updates distinct, adds compact moderation-aware community activity, excludes official duplication and the Threads container, fails read lanes independently, and adds no signing authority, persistence, infrastructure, or external effect.
+- **Homepage community pulse** — commit `9310b2784f816d531b46d35d05ab57e4f996256b`, PR #92.
+- **Owner Recent activity** — commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9`, PR #94.
+- **Isolated venue runtime admission** — commit `6b077b91cb7b958769c09befe8d0641689946a7d`, PR #96.
 
-## Accepted product slice — profile Recent activity
+Runtime admission is the operability bridge the foundations previously lacked: an explicit non-secret validated bootstrap can now drive ordinary non-Fourth-Street isolated startup without source injection. Acceptance followed dual-OS qualification and four review-driven repairs in the real runtime graph: explicit-admission precedence, durable-store binding, non-reference release provenance, and observable Node/platform binding before listen.
 
-The owner-only Recent activity view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` through PR #94.
-
-The accepted slice:
-
-1. adds owner-only `/profile/:username/activity`;
-2. reads `bridge.account_notifications` through the real central read-only RPC policy;
-3. presents only supported social notification types whose meaning can be stated truthfully;
-4. maps only conservative safe upstream post/profile links into local routes;
-5. provides ready, empty, and unavailable states without turning the rest of the profile into a failure domain;
-6. makes no unread/read claim and stores no notification state;
-7. adds no signer, provider, database, infrastructure, or write authority;
-8. repaired an inherited mobile accessible-name defect in the shared signed-in account link.
-
-Acceptance required dual-OS deterministic qualification, the real `HiveRpcPool` allowlist regression, full pinned-Chromium evidence, candidate-specific Axe coverage, artifact-integrity verification, PR-review reconciliation, and manual visual review. A prior green CI candidate was deliberately rejected when review found that its fake RPC fixture bypassed the real runtime allowlist; only the repaired candidate was accepted.
-
-## Current operation — isolated venue runtime admission
+## Current operation — portable venue workspace
 
 ```text
-NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
+NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
 ```
 
-HV-4 already validates a non-secret bootstrap with venue/package/deployment three-way binding. HV-5 already validates and canonically serializes the non-secret authoring document. HV-6 already gives ordinary operators a subordinate typed visual Apply/Discard workflow. But ordinary `startServer()` still starts through the compiled Fourth Street path; a validated second venue cannot become an isolated runtime without developer source injection.
+The authoring/deployment/runtime layers are now individually sound but still developer-facing as separate files and commands.
 
-The next bounded product build should close that gap without crossing into deployment:
+The next bounded product build is an offline deterministic **portable venue workspace** boundary:
 
-1. accept one explicit non-secret venue/bootstrap source at ordinary startup;
-2. parse it before venue-specific production configuration is finalized;
-3. validate it through existing HV-4/HV-5/domain/deployment authorities rather than parallel schemas;
-4. use existing `loadConfig(..., { venue })` and ordinary `createApp()` composition;
-5. fail closed for missing, malformed, partial, unknown, or three-way-binding-incoherent explicit admission;
-6. verify deployment-profile/runtime coherence before listening, including the runtime facts the existing profile already owns;
-7. preserve the current Fourth Street-compatible default when no explicit admission source is configured;
-8. prove a synthetic non-Fourth-Street isolated runtime starts through the ordinary path without source edits or network/external effects;
-9. add no shared-runtime tenancy, venue taxonomy, public authoring, secret storage, deployment automation, or production mutation.
+1. keep the validated HV-5 authoring document as canonical portable venue source;
+2. keep deployment manifests/profile facts separate and target-specific;
+3. accept one explicit authoring source plus one explicit target deployment definition;
+4. validate through existing HV-5/HV-2/HV-4 authorities rather than duplicate schemas;
+5. deterministically emit canonical reviewed source, validated target material, the exact bootstrap accepted by runtime admission, and a compact machine-readable identity/checksum manifest;
+6. make workspace-local file references host-portable while leaving target release/storage/runtime paths under deployment authority;
+7. make rebuild/verification offline and reproducible;
+8. reject secret/private material through existing safety boundaries;
+9. include no runtime databases, Hive private keys, payment secrets, production state, or other mutable operational custody;
+10. do not create a template taxonomy, deployment wizard, hosting-provider dependency, shared tenancy, or production action.
 
-This is a product-operability step: make the accepted isolated-runtime architecture usable by validated data rather than requiring platform-source customization.
+The design rule is:
+
+```text
+PORTABLE_VENUE_SOURCE != PORTABLE_DEPLOYMENT_FACTS
+```
+
+A future operator should be able to preserve the same venue source while choosing or regenerating a deployment target appropriate to a home PC, VPS, or custom server. Template/starter selection and guided deployment should be built on this workspace boundary rather than around repository internals.
+
+## Product trajectory
+
+```text
+STARTER_OR_CUSTOM_SOURCE
+-> PORTABLE_VENUE_WORKSPACE
+-> CUSTOMIZE / PREVIEW / CONFIRM
+-> SELECT_OR_CREATE_DEPLOYMENT_TARGET
+-> COMPILE_VALIDATED_BOOTSTRAP
+-> READINESS
+-> CHOOSE_HOME_PC / VPS / CUSTOM_SERVER
+-> GUIDED_DEPLOYMENT
+-> HEALTH / BACKUP / UPDATE / ROLLBACK
+```
+
+Self-hosting and VPS hosting are both intended first-class future choices. Central hosting is not an architectural requirement. Decentralization remains available by operator choice rather than imposed as ideology.
 
 ## Technology posture
 
 Deferred technologies remain secondary to product need.
 
-- **CID/IPFS/IPNS:** potentially useful later for immutable publication artifacts, portable venue packages, or content-addressed media when one of those becomes a real product need. Not selected now.
-- **3Speak/SPK:** potentially useful when venue/community media becomes a concrete product lane. A future media abstraction should start from the user experience, not from provider adoption. Not selected now.
-- **Production visual authoring:** the typed HV-6 source adapter is accepted, but a public operator workflow would require real authentication, authorization, draft/publish, persistence, rollback, and audit requirements. Not selected now.
-- **Real second venue:** important eventual evidence that synthetic venues cannot supply. Outreach remains unauthorized and should begin when the product is ready to learn honestly from an independent operator.
-- **Helia/OrbitDB:** no present requirement for offline-first peer replication or non-authoritative shared mutable venue state. Deferred.
-- **Fleet/shared-runtime tenancy:** no present venue-count or operating-cost pressure that justifies increasing shared failure/custody domains. Deferred.
+- **CID/IPFS/IPNS:** potentially useful later for immutable publication artifacts, portable assets, or resilient custody when a concrete product problem justifies them.
+- **3Speak/SPK:** potentially useful when venue/community media becomes a concrete product lane.
+- **Production visual authoring:** accepted source foundation exists, but public authoring requires real authentication, authorization, persistence, draft/publish, rollback, and audit work.
+- **Real second venue:** important eventual evidence synthetic venues cannot supply; outreach remains unauthorized.
+- **Helia/OrbitDB:** no present requirement for peer-replicated mutable venue state.
+- **Fleet/shared-runtime tenancy:** no present operating pressure justifies increasing shared failure/custody domains.
 
 Technologies are means. Selection should change when a real user/operator/developer problem changes the value equation.
 
@@ -126,6 +129,6 @@ ONE_VENUE_RUNTIME = VALID_DEFAULT__NOT_IDEOLOGY
 
 ## Production and external-effect boundary
 
-No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change current Pay/onboarding/moderation/Distriator/V1/controlled-delegated authority, mount visual authoring, change secrets/keys, mutate DNS/VPS/systemd, or perform venue outreach.
+No production mutation is authorized. Do not restart the service, change environment files, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change current Pay/onboarding/moderation/Distriator/V1/controlled-delegated authority, mount visual authoring, change secrets/keys, mutate DNS/VPS/systemd/router/tunnel state, or perform venue outreach.
 
 Fourth Street retains provenance-bearing Hive-Bar-era service names, release paths, identity files, host, and application tag until a separately accepted migration has a concrete reason to change them.
