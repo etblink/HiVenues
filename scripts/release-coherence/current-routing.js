@@ -4,9 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT';
-const HV8_DEPLOY_CANDIDATE = '02ac081d2cfaee599f98e4fb8d9367638cd8d500';
-const HV8_DEPLOY_CANDIDATE_TREE = '49b7b561af89fc99534d2a2974215bfe7a3db3c3';
+const NEXT_SUCCESSOR_OPERATION = 'VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -34,11 +32,10 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m, 'current running tree must remain exactly observed'],
     [/^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m, 'current running write mode must remain beta'],
     [/^HV8_CURRENT_RUNNING_READY = ready$/m, 'current running readiness must remain ready'],
-    [/^HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0$/m, 'HV-8 deployment preregistration must remain frozen'],
-    [new RegExp(`^HV8_DEPLOY_CANDIDATE = ${HV8_DEPLOY_CANDIDATE}$`, 'm'), 'deploy candidate must remain the accepted exact commit'],
-    [new RegExp(`^HV8_DEPLOY_CANDIDATE_TREE = ${HV8_DEPLOY_CANDIDATE_TREE}$`, 'm'), 'deploy candidate tree must remain exact'],
-    [/^HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED$/m, 'candidate qualification must remain accepted'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be Phase-A read-only preflight'],
+    [/^HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS$/m, 'HV-8 Phase A must reflect the completed fresh observation'],
+    [/^HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE$/m, 'routing must reflect the observed durable production capability state'],
+    [/^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m, 'HV-8 must stop at technical convergence without implying deployment'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the selected product build'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m, 'public production authoring must remain unauthorized'],
     [/^REAL_SECOND_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
@@ -54,20 +51,21 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /^# Hive-Venues$/m, 'README must identify Hive-Venues');
   requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve Fourth Street roles');
   requireMatch(readme, /24 frozen requirements passed at \*\*Tier-A product-and-architecture evidence\*\*/i, 'README must preserve HV-7 evidence result');
-  requireMatch(readme, /HV-8 deployment preregistration is frozen/i, 'README must identify the controlling preregistration');
-  requireMatch(readme, /frozen deploy candidate/i, 'README must identify the accepted deploy candidate');
+  requireMatch(readme, /Phase A.*complete/i, 'README must record the completed HV-8 observation');
+  requireMatch(readme, /production transition is withheld/i, 'README must state that technical deployment ability is not a deployment reason');
+  requireMatch(readme, /community pulse/i, 'README must identify the selected product-value lane');
   requireMatch(readme, /Production deployment is not authorized/i, 'README must preserve deployment boundary');
   requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
 
   requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'docs index must identify Hive-Venues');
   requireMatch(docsReadme, /Superseded sequencing, temporary holds, and intermediate routing are recoverable from Git history/i, 'docs index must use Git history rather than living archival state');
-  requireMatch(docsReadme, /HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT/, 'docs index must route to Phase A preflight');
-  requireMatch(docsReadme, /Canonical integrated source is moving `main`/, 'docs index must identify moving source');
+  requireMatch(docsReadme, /VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD/, 'docs index must route to the selected product build');
+  requireMatch(docsReadme, /production transition.*withheld/i, 'docs index must preserve the HV-8 stop decision');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
   requireMatch(roadmap, /Superseded states remain recoverable from Git history/i, 'roadmap must keep superseded state in Git history');
-  requireMatch(roadmap, /HV-8 deployment preregistration — FROZEN/i, 'roadmap must identify the controlling preregistration');
-  requireMatch(roadmap, /Phase A read-only production preflight/i, 'roadmap must record current read-only operation');
+  requireMatch(roadmap, /HV-8.*technically qualified.*transition withheld/is, 'roadmap must close HV-8 without selecting deployment');
+  requireMatch(roadmap, /community pulse/i, 'roadmap must select product vitality work rather than another architecture-only lane');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
@@ -80,8 +78,6 @@ function assertLivingDocumentGuardrails({ readme }) {
 }
 
 module.exports = {
-  HV8_DEPLOY_CANDIDATE,
-  HV8_DEPLOY_CANDIDATE_TREE,
   NEXT_SUCCESSOR_OPERATION,
   assertCurrentRoutingBlock,
   assertLivingDocumentGuardrails,
