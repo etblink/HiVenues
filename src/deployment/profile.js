@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const DNS_HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const DEPLOYMENT_ID_MAX_LENGTH = 120;
 
 class DeploymentProfileError extends Error {
   constructor(message) {
@@ -24,6 +25,16 @@ function requireString(value, label) {
     throw new DeploymentProfileError(`${label} must be a non-empty trimmed string`);
   }
   return value;
+}
+
+function requireDeploymentId(value) {
+  const deploymentId = requireString(value, 'deployment.id');
+  if (deploymentId.length > DEPLOYMENT_ID_MAX_LENGTH) {
+    throw new DeploymentProfileError(
+      `deployment.id must be at most ${DEPLOYMENT_ID_MAX_LENGTH} characters`,
+    );
+  }
+  return deploymentId;
 }
 
 function requireBoolean(value, label) {
@@ -150,7 +161,7 @@ function compileDeploymentProfile(rawManifest) {
 
   const profile = {
     schemaVersion: 1,
-    id: requireString(deployment.id, 'deployment.id'),
+    id: requireDeploymentId(deployment.id),
     provider: {
       name: requireString(manifest.provider, 'provider'),
       package: requireString(manifest.package, 'package'),
@@ -212,6 +223,7 @@ function compileDeploymentProfile(rawManifest) {
 }
 
 module.exports = {
+  DEPLOYMENT_ID_MAX_LENGTH,
   DeploymentProfileError,
   compileDeploymentProfile,
 };

@@ -5,7 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const referenceManifest = require('../ops/privex/manifest.json');
-const { DeploymentProfileError, compileDeploymentProfile } = require('../src/deployment/profile');
+const {
+  DEPLOYMENT_ID_MAX_LENGTH,
+  DeploymentProfileError,
+  compileDeploymentProfile,
+} = require('../src/deployment/profile');
 const { REFERENCE_DEPLOYMENT_PROFILE } = require('../src/deployment/reference/fourth-street-privex');
 const { FOURTH_STREET_REFERENCE_VENUE } = require('../src/venue/reference/fourth-street');
 const { DEFAULT_ONBOARDING_DB_PATH } = require('../src/onboarding/config');
@@ -148,6 +152,17 @@ test('HV-2 compiles a provider-neutral synthetic deployment offline without chan
   assert.equal(Object.isFrozen(deployment), true);
   assert.equal(JSON.stringify(FOURTH_STREET_REFERENCE_VENUE), venueIdentityBefore);
   assert.equal(FOURTH_STREET_REFERENCE_VENUE.hive.paymentMerchantAccounts[0], 'fourthstreetbar');
+});
+
+test('HV-2 deployment identity domain matches the HV-5 deployment-reference ceiling', () => {
+  const accepted = syntheticManifest();
+  accepted.deployment.id = 'd'.repeat(DEPLOYMENT_ID_MAX_LENGTH);
+  assert.equal(compileDeploymentProfile(accepted).id, accepted.deployment.id);
+
+  expectInvalid(
+    (manifest) => { manifest.deployment.id = 'd'.repeat(DEPLOYMENT_ID_MAX_LENGTH + 1); },
+    /deployment\.id must be at most 120 characters/,
+  );
 });
 
 test('HV-2 rejects malformed deployment manifests before release consumers can use them', () => {
