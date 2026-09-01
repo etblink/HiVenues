@@ -19,8 +19,10 @@ HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
 HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+HV8_DEPLOY_CANDIDATE = 02ac081d2cfaee599f98e4fb8d9367638cd8d500
+HV8_DEPLOY_CANDIDATE_TREE = 49b7b561af89fc99534d2a2974215bfe7a3db3c3
+HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -30,7 +32,7 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-Canonical source moves independently of deployment identity. Resolve exact `main` commit/tree whenever qualifying; never use the moving branch label as a deploy target.
+Canonical source moves independently of deployment identity. Resolve exact `main` whenever qualifying; never use the moving branch label as a deploy target. The accepted HV-8 target is the exact historical candidate above.
 
 ## Accepted foundation
 
@@ -40,7 +42,7 @@ The baseline remains one isolated venue per runtime. HV-5 remains canonical auth
 
 ## Current Fourth Street production identity
 
-Direct public health evidence binds the running reference deployment to:
+Current evidence binds the running reference deployment to:
 
 ```text
 BUILD = beta-fdb5b5b
@@ -51,32 +53,42 @@ WRITE_MODE = beta
 READY = ready
 ```
 
+Phase A must freshly re-observe these facts rather than treating this roadmap as operational proof.
+
 ## HV-8 deployment preregistration — FROZEN
 
-The controlling production-transition contract is:
+The controlling prospective production-transition contract is:
 
 ```text
 docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md
 ```
 
-It separates:
-
-1. operator-side read-only entry observation before any mutation authorization;
-2. exact immutable source candidate freeze and qualification;
-3. a separately authorized production transition;
-4. separate post-transition Project Lead acceptance.
-
-Operator-side `current`, `last-good`, and protected environment hashes remain mandatory Phase-A facts before any future production mutation.
-
-## Current operation — offline candidate freeze and qualification
+The accepted exact candidate and qualification result are:
 
 ```text
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md
 ```
 
-The candidate must be one exact full commit/tree. Qualification must use the **full production-to-candidate delta** as its scope. Because that delta contains significant presentation, responsive, accessibility, shell, authoring, and HV-7 generality changes, pinned-Chromium rendered qualification is mandatory.
+The candidate passed Ubuntu and Windows deterministic qualification, 631/631 tests, zero production dependency vulnerabilities, the complete pinned-Chromium evidence chain, artifact integrity verification, Project Lead manual visual review, strict deployed-old ancestry, and the non-live production-harness contract rehearsal.
 
-The candidate handoff must retain exact deterministic CI identities, rendered job/artifact identities and hashes, manual Fourth Street review, ancestry proof, release-profile evidence, beta-gate rehearsal evidence, and production dependency audit evidence.
+## Current operation — Phase A read-only production preflight
+
+```text
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
+```
+
+Before any production mutation can be considered, Phase A must freshly establish without mutation:
+
+- public health status, environment, write mode, build, commit, tree, and readiness;
+- operator-side `current` target plus exact installed commit/tree;
+- operator-side `last-good` target plus exact installed commit/tree;
+- SHA-256 of the active accepted beta environment;
+- SHA-256 of the accepted read-only environment;
+- agreement between public and operator-side release identity.
+
+Only hashes and non-secret metadata may be recorded. Protected environment contents, session secrets, SSH keys, Hive private keys, customer private keys, and recovery material must not be exposed. Any ambiguity is a hard stop.
+
+The canonical deployment harness's existing `Observe` mode is for an already-installed new candidate and is not a substitute for this pre-deployment old-release entry observation.
 
 ## Controlling rules
 
