@@ -31,6 +31,7 @@ test('living current-routing blocks agree on current accepted invariants and one
     assert.match(block, /^PROFILE_RECENT_ACTIVITY = ACCEPTED$/m);
     assert.match(block, /^ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED$/m);
     assert.match(block, /^PORTABLE_VENUE_WORKSPACE = ACCEPTED$/m);
+    assert.match(block, /^DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED$/m);
     assert.match(block, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(block, /^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m);
   }
@@ -55,8 +56,14 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(readme, /Recent activity.*accepted/i);
   assert.match(readme, /Isolated venue runtime admission is accepted/i);
   assert.match(readme, /portable venue workspace is accepted/i);
+  assert.match(readme, /deployment-agnostic venue source is accepted/i);
   assert.match(roadmap, /ABILITY_TO_DEPLOY != REASON_TO_DEPLOY/);
-  assert.match(roadmap, /DEPLOYMENT_AGNOSTIC_VENUE_SOURCE__PRODUCT_BUILD/);
+  assert.match(roadmap, /VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE/);
+  assert.match(roadmap, /mutating one byte of the exact canonical `venue-source\.json` changes the root CID/i);
+  assert.match(roadmap, /every non-empty included public file[\s\S]*one-byte change in each changes the root CID/is);
+  assert.match(roadmap, /CID_PRODUCT_AUTHORITY_FROM_FIRST_SPIKE = FORBIDDEN/);
+  assert.match(roadmap, /CID_CAPABILITY_GAP_REQUIRED = AT_LEAST_ONE_PRE_REGISTERED_GAP_TEST/);
+  assert.match(roadmap, /CAPABILITY_GAP = PASS[\s\S]*baseline fails/is);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {
