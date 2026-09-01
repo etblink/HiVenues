@@ -22,7 +22,8 @@ HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
 HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
-NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+PROFILE_RECENT_ACTIVITY = ACCEPTED
+NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -57,40 +58,46 @@ If a future product or operational need creates a real reason to deploy, the fro
 
 ## Accepted product slice — homepage community pulse
 
-The homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` through PR #92.
+The homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` through PR #92. It keeps official venue updates distinct, adds compact moderation-aware community activity, excludes official duplication and the Threads container, fails read lanes independently, and adds no signing authority, persistence, infrastructure, or external effect.
+
+## Accepted product slice — profile Recent activity
+
+The owner-only Recent activity view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` through PR #94.
 
 The accepted slice:
 
-1. keeps official venue updates as a distinct editorial voice;
-2. adds a compact read-only pulse of recent community-root posts;
-3. reuses merchant-local moderation policy rather than bypassing it;
-4. excludes duplicate official-account roots and the dedicated Threads container;
-5. fails official updates and community activity independently;
-6. preserves venue-led visual hierarchy, responsive behavior, and accessibility;
-7. adds no signing authority, persistence, infrastructure, or external effect.
+1. adds owner-only `/profile/:username/activity`;
+2. reads `bridge.account_notifications` through the real central read-only RPC policy;
+3. presents only supported social notification types whose meaning can be stated truthfully;
+4. maps only conservative safe upstream post/profile links into local routes;
+5. provides ready, empty, and unavailable states without turning the rest of the profile into a failure domain;
+6. makes no unread/read claim and stores no notification state;
+7. adds no signer, provider, database, infrastructure, or write authority;
+8. repaired an inherited mobile accessible-name defect in the shared signed-in account link.
 
-Deterministic Ubuntu/Windows qualification, pinned-Chromium evidence, artifact-integrity verification, accessibility qualification, and manual visual review passed. The implementation/qualification chronology remains in Git and PR history rather than another permanent transition document.
+Acceptance required dual-OS deterministic qualification, the real `HiveRpcPool` allowlist regression, full pinned-Chromium evidence, candidate-specific Axe coverage, artifact-integrity verification, PR-review reconciliation, and manual visual review. A prior green CI candidate was deliberately rejected when review found that its fake RPC fixture bypassed the real runtime allowlist; only the repaired candidate was accepted.
 
-## Current operation — profile Recent activity product build
+## Current operation — isolated venue runtime admission
 
 ```text
-NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 ```
 
-The next highest-value product uncertainty is the signed-in return loop. The current `You` area lets a verified Hive user see posts, wallet, wall, inbox, following/followers, and settings, but it does not provide a coherent view of recent replies, mentions, votes, follows, or related activity directed at that account.
+HV-4 already validates a non-secret bootstrap with venue/package/deployment three-way binding. HV-5 already validates and canonically serializes the non-secret authoring document. HV-6 already gives ordinary operators a subordinate typed visual Apply/Discard workflow. But ordinary `startServer()` still starts through the compiled Fourth Street path; a validated second venue cannot become an isolated runtime without developer source injection.
 
-Hive already exposes those events through the existing Hivemind Bridge read API. The smallest honest build is therefore:
+The next bounded product build should close that gap without crossing into deployment:
 
-1. add an owner-only `Recent activity` profile tab;
-2. call `bridge.account_notifications` through the existing RPC/read-service boundary;
-3. normalize and render only supported notification types whose meaning can be presented truthfully;
-4. link into local post/profile/community routes only when the returned notification can be mapped safely;
-5. paginate conservatively if the upstream API supports an exact stable cursor;
-6. provide compact empty and unavailable states;
-7. preserve read-only behavior and the existing Keychain/session custody model;
-8. add no local notification database and make no unread/read claim in this first slice.
+1. accept one explicit non-secret venue/bootstrap source at ordinary startup;
+2. parse it before venue-specific production configuration is finalized;
+3. validate it through existing HV-4/HV-5/domain/deployment authorities rather than parallel schemas;
+4. use existing `loadConfig(..., { venue })` and ordinary `createApp()` composition;
+5. fail closed for missing, malformed, partial, unknown, or three-way-binding-incoherent explicit admission;
+6. verify deployment-profile/runtime coherence before listening, including the runtime facts the existing profile already owns;
+7. preserve the current Fourth Street-compatible default when no explicit admission source is configured;
+8. prove a synthetic non-Fourth-Street isolated runtime starts through the ordinary path without source edits or network/external effects;
+9. add no shared-runtime tenancy, venue taxonomy, public authoring, secret storage, deployment automation, or production mutation.
 
-This is ordinary product engineering, not a new governance program. Browser evidence should decide presentation quality after deterministic tests pass.
+This is a product-operability step: make the accepted isolated-runtime architecture usable by validated data rather than requiring platform-source customization.
 
 ## Technology posture
 

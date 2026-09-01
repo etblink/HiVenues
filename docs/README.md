@@ -15,7 +15,7 @@ This index points to documents needed to interpret the **current** successor sta
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
 
-The accepted homepage community-pulse implementation and its PR/CI/rendered evidence remain recoverable from Git/PR history; no extra archival acceptance document is required on living `main`.
+Accepted product-slice implementation and qualification histories remain recoverable from Git/PR history; no extra archival acceptance documents are required on living `main`.
 
 ## Current interpretation
 
@@ -34,7 +34,7 @@ READY = ready
 
 Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; Distriator remains disabled and controlled/delegated Hive authority is absent. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
 
-The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). It preserved official updates while adding compact moderation-aware community activity and passed deterministic Ubuntu/Windows plus rendered qualification and manual review.
+The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Both remained bounded product work with no production activation.
 
 Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
@@ -56,7 +56,8 @@ HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
 HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
-NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+PROFILE_RECENT_ACTIVITY = ACCEPTED
+NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -69,9 +70,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 ```
 
-The next work is ordinary product engineering: strengthen the signed-in return loop with an owner-only Recent activity profile view backed by Hive `bridge.account_notifications`. The first slice should present recent replies, mentions, votes, follows, and other truthfully supported notification types without introducing unread-state persistence, signing authority, a new database, provider, or infrastructure.
+The next work connects accepted venue/deployment authority to the ordinary isolated-runtime startup path. A validated explicit non-secret venue/bootstrap source should be consumable as data without developer source wiring, while malformed/partial/binding-incoherent explicit admission fails closed and the existing Fourth Street-compatible default remains unchanged when no explicit source is configured.
+
+The first slice must reuse HV-4 bootstrap/deployment authority, HV-5 venue-authoring/domain authority, and existing `loadConfig(..., { venue })` behavior. It must prove a synthetic non-Fourth-Street isolated runtime and must not deploy or activate any real venue.
 
 No deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.

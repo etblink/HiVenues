@@ -28,6 +28,7 @@ test('living current-routing blocks agree on current accepted invariants and one
     assert.match(block, /^HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE$/m);
     assert.match(block, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
     assert.match(block, /^VENUE_HOME_COMMUNITY_PULSE = ACCEPTED$/m);
+    assert.match(block, /^PROFILE_RECENT_ACTIVITY = ACCEPTED$/m);
     assert.match(block, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(block, /^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m);
   }
@@ -49,8 +50,9 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(candidateAcceptance, /^DEPLOYMENT_AUTHORIZED = NO$/m);
   assert.match(docsIndex, /recoverable from Git history/i);
   assert.match(readme, /community pulse is accepted/i);
+  assert.match(readme, /Recent activity.*accepted/i);
   assert.match(roadmap, /ABILITY_TO_DEPLOY != REASON_TO_DEPLOY/);
-  assert.match(roadmap, /PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD/);
+  assert.match(roadmap, /ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD/);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {

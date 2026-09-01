@@ -23,9 +23,11 @@ Operator-side `current` agrees with that public identity; `last-good` is exact p
 
 HV-8 is **technically qualified**. The **production transition is withheld**: its exact successor candidate passed the full deployed-to-candidate qualification envelope, but ability to deploy is not a reason to replace a healthy real product. **Production deployment is not authorized.**
 
-The moderated homepage **community pulse is accepted**. PR #92 integrated the product slice at commit `9310b2784f816d531b46d35d05ab57e4f996256b` after deterministic Ubuntu/Windows qualification, pinned-Chromium evidence, artifact-integrity verification, accessibility qualification, and manual visual review. It keeps official venue updates while adding a compact, moderation-aware view of recent community activity without adding signing authority, persistence, infrastructure, or production mutation.
+The moderated homepage **community pulse is accepted** at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). It keeps official venue updates while adding a compact, moderation-aware view of recent community activity without adding signing authority, persistence, infrastructure, or production mutation.
 
-The selected next product question is the signed-in return loop: can the owner-only `You` area provide a useful **Recent activity** view of replies, mentions, votes, follows, and related Hive notifications using the existing Hive read boundary, without inventing unread-state persistence or weakening custody?
+The owner-only **Recent activity** profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). It adds a read-only signed-in return loop for supported Hive replies, mentions, votes, follows, reblogs, and subscriptions while making no unread/read claim and adding no notification database, signer, provider, infrastructure, or write authority. Acceptance included dual-OS deterministic qualification, full pinned-Chromium evidence, artifact-integrity verification, accessibility review, a real-RPC-policy regression, PR-review reconciliation, and manual visual review.
+
+The selected next product question is **isolated venue runtime admission**: can an explicit non-secret validated venue/bootstrap document drive the ordinary server startup path for a non-Fourth-Street isolated runtime, without requiring a developer to edit platform internals and without weakening deployment/runtime binding?
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -45,7 +47,8 @@ HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
 HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
-NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+PROFILE_RECENT_ACTIVITY = ACCEPTED
+NEXT_OPERATION = ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -58,20 +61,20 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
+ISOLATED_VENUE_RUNTIME_ADMISSION__PRODUCT_BUILD
 ```
 
-The immediate product question is whether signed-in users have a strong reason to return after participating. The existing profile area already provides posts, wallet, wall, inbox, following/followers, and settings, but it does not surface recent replies, mentions, votes, follows, or related Hive activity directed at the account.
+The authoring and deployment foundations already exist: HV-5 defines the strict non-secret canonical venue-authoring document, HV-6 supplies a subordinate visual Apply/Discard adapter, and HV-4 validates a non-secret bootstrap with venue/package/deployment three-way binding. The remaining product/platform gap is that ordinary `startServer()` still starts from the built-in Fourth Street path; a validated second venue still requires developer source injection to become an isolated runtime.
 
-The bounded implementation target is deliberately small:
+The bounded implementation target is:
 
-- add an owner-only `Recent activity` profile view;
-- read `bridge.account_notifications` through the existing RPC/read-service boundary;
-- normalize only the notification types the product can present truthfully;
-- link safely back into the relevant Hive-Venues post/profile/community surface when a trustworthy local route exists;
-- provide compact empty/unavailable states;
-- remain read-only and require no new signer, database, provider, or infrastructure;
-- do **not** claim or persist unread/read semantics in this first slice.
+- let ordinary startup consume an **explicit** non-secret validated venue/bootstrap source;
+- reuse existing HV-4 bootstrap, HV-5 authoring/domain, deployment-profile, and `loadConfig(..., { venue })` authorities rather than creating parallel schemas;
+- preserve current Fourth Street-compatible startup when no explicit admission source is configured;
+- fail closed for malformed, missing, partial, or binding-incoherent explicit admission;
+- bind deployment-profile facts to the existing runtime configuration before the server listens;
+- prove the path with a synthetic non-Fourth-Street isolated runtime;
+- perform no real deployment, DNS/VPS/systemd mutation, production authoring mount, venue outreach/admission, Hive/Keychain write, secret/key change, or capability activation.
 
 No source deployment, service restart, environment change, current/last-good mutation, Hive/Keychain write, capability activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized.
 
@@ -150,4 +153,4 @@ For current state use:
 9. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
 10. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
 
-The community-pulse implementation/qualification history is intentionally recoverable from Git/PR history rather than duplicated as another permanent acceptance document. Superseded sequencing and transient evidence likewise remain recoverable from Git history rather than being required living documents.
+The community-pulse and Recent-Activity implementation/qualification histories are intentionally recoverable from Git/PR history rather than duplicated as permanent transition documents. Superseded sequencing and transient evidence likewise remain recoverable from Git history rather than being required living documents.
