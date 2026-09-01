@@ -27,16 +27,18 @@ test('living current-routing blocks agree on current accepted invariants and one
     assert.match(block, /^HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS$/m);
     assert.match(block, /^HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE$/m);
     assert.match(block, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
+    assert.match(block, /^VENUE_HOME_COMMUNITY_PULSE = ACCEPTED$/m);
     assert.match(block, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(block, /^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m);
   }
 });
 
-test('current branch retains governing evidence without making the qualified HV-8 candidate the roadmap', () => {
+test('current branch retains governing evidence while completed product slices move into current accepted state', () => {
   const requirements = read('docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md');
   const acceptance = read('docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md');
   const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
   const candidateAcceptance = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md');
+  const readme = read('README.md');
   const docsIndex = read('docs/README.md');
   const roadmap = read('docs/ROADMAP.md');
 
@@ -46,8 +48,9 @@ test('current branch retains governing evidence without making the qualified HV-
   assert.match(candidateAcceptance, /^DEPLOY_CANDIDATE = FROZEN$/m);
   assert.match(candidateAcceptance, /^DEPLOYMENT_AUTHORIZED = NO$/m);
   assert.match(docsIndex, /recoverable from Git history/i);
+  assert.match(readme, /community pulse is accepted/i);
   assert.match(roadmap, /ABILITY_TO_DEPLOY != REASON_TO_DEPLOY/);
-  assert.match(roadmap, /VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD/);
+  assert.match(roadmap, /PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD/);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {

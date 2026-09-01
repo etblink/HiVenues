@@ -21,7 +21,8 @@ HV8_CURRENT_RUNNING_READY = ready
 HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
 HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
 HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
-NEXT_OPERATION = VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
+VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
+NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -54,29 +55,46 @@ PRODUCTION_TRANSITION = WITHHELD
 
 If a future product or operational need creates a real reason to deploy, the frozen HV-8 transition contract and exact candidate evidence remain available. They do not capture current product sequencing.
 
-## Current operation — community pulse product build
+## Accepted product slice — homepage community pulse
+
+The homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` through PR #92.
+
+The accepted slice:
+
+1. keeps official venue updates as a distinct editorial voice;
+2. adds a compact read-only pulse of recent community-root posts;
+3. reuses merchant-local moderation policy rather than bypassing it;
+4. excludes duplicate official-account roots and the dedicated Threads container;
+5. fails official updates and community activity independently;
+6. preserves venue-led visual hierarchy, responsive behavior, and accessibility;
+7. adds no signing authority, persistence, infrastructure, or external effect.
+
+Deterministic Ubuntu/Windows qualification, pinned-Chromium evidence, artifact-integrity verification, accessibility qualification, and manual visual review passed. The implementation/qualification chronology remains in Git and PR history rather than another permanent transition document.
+
+## Current operation — profile Recent activity product build
 
 ```text
-NEXT_OPERATION = VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
+NEXT_OPERATION = PROFILE_RECENT_ACTIVITY__PRODUCT_BUILD
 ```
 
-The highest-value immediate uncertainty is product vitality: can a venue's front door make its Hive community feel active and worth revisiting rather than presenting only venue-authored announcements?
+The next highest-value product uncertainty is the signed-in return loop. The current `You` area lets a verified Hive user see posts, wallet, wall, inbox, following/followers, and settings, but it does not provide a coherent view of recent replies, mentions, votes, follows, or related activity directed at that account.
 
-The smallest honest build is to use capabilities already present and trusted:
+Hive already exposes those events through the existing Hivemind Bridge read API. The smallest honest build is therefore:
 
-1. keep official venue updates as an editorial voice;
-2. add a compact read-only community pulse drawn from the venue Hive community;
-3. reuse the existing merchant-local moderation policy rather than inventing a homepage moderation path;
-4. exclude duplicate official-account roots and the dedicated Threads container from the pulse;
-5. fail soft and independently if either official updates or community activity is temporarily unavailable;
-6. preserve one clear venue-led visual hierarchy and accessible browser behavior;
-7. add no signing authority, persistence, infrastructure, or external effect.
+1. add an owner-only `Recent activity` profile tab;
+2. call `bridge.account_notifications` through the existing RPC/read-service boundary;
+3. normalize and render only supported notification types whose meaning can be presented truthfully;
+4. link into local post/profile/community routes only when the returned notification can be mapped safely;
+5. paginate conservatively if the upstream API supports an exact stable cursor;
+6. provide compact empty and unavailable states;
+7. preserve read-only behavior and the existing Keychain/session custody model;
+8. add no local notification database and make no unread/read claim in this first slice.
 
-This is ordinary product engineering, not a new governance program. Browser evidence should decide visual quality after deterministic tests pass.
+This is ordinary product engineering, not a new governance program. Browser evidence should decide presentation quality after deterministic tests pass.
 
 ## Technology posture
 
-Deferred technologies were reconsidered only far enough to choose the next product lane. None currently beats the community-pulse build on expected user value per unit complexity.
+Deferred technologies remain secondary to product need.
 
 - **CID/IPFS/IPNS:** potentially useful later for immutable publication artifacts, portable venue packages, or content-addressed media when one of those becomes a real product need. Not selected now.
 - **3Speak/SPK:** potentially useful when venue/community media becomes a concrete product lane. A future media abstraction should start from the user experience, not from provider adoption. Not selected now.
