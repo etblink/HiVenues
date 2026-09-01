@@ -488,6 +488,20 @@
 }
 
 @media (max-width: 519px) {
+  /* Human-review regression: reserve top-of-hero space so a reasonable longer
+   * operator-authored venue name cannot collide with the image caption. */
+  .home-hero__frame {
+    min-height: max(43rem, calc(100svh - 4rem));
+    padding-top: 4.75rem;
+  }
+
+  .home-hero__caption {
+    left: 0.85rem;
+    right: 0.85rem;
+    max-width: none;
+    text-align: left;
+  }
+
   .home-hero__actions a,
   .home-pathway__actions .button-primary,
   .home-pathway__actions .button-secondary {

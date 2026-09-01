@@ -82,7 +82,7 @@ jobs:
                 visual=true
                 break
                 ;;
-              src/venue/native-authoring-surface.js|src/venue/visual-authoring-session.js|src/venue/context.js|src/venue/package.js|src/venue/package-selection.js|src/venue/reference/*)
+              src/venue/native-authoring-surface.js|src/venue/visual-authoring-session.js|src/venue/source-authoring.js|src/venue/source-authoring-session.js|src/venue/source-authoring-surface.js|src/venue/context.js|src/venue/package.js|src/venue/package-selection.js|src/venue/reference/*)
                 visual=true
                 break
                 ;;
@@ -90,7 +90,7 @@ jobs:
                 visual=true
                 break
                 ;;
-              test/support/*visual*|test/support/hv6-native-editor-fixture.js)
+              test/support/*visual*|test/support/hv6-native-editor-fixture.js|test/support/source-authoring-fixture.js)
                 visual=true
                 break
                 ;;
@@ -206,6 +206,10 @@ jobs:
         env:
           HV7_JUNIPER_VISUAL_OUTPUT: artifacts/hv7-juniper-visual
         run: npm run test:visual:hv7-juniper
+      - name: Capture and qualify deployment-agnostic source authoring
+        env:
+          SOURCE_AUTHORING_VISUAL_OUTPUT: artifacts/source-authoring-visual
+        run: node scripts/capture-source-authoring-visual.js
       - name: Capture and qualify UX-1E Wall and Inbox states
         env:
           UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
