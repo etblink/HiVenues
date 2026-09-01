@@ -8,7 +8,7 @@ Hive-Venues is a successor platform for independently branded venue-native commu
 
 HV-1 through HV-6 are accepted foundations. HV-7 validated **Juniper Works Cooperative** as a synthetic second-venue nominee: all 24 frozen requirements passed at **Tier-A product-and-architecture evidence**. Juniper remains synthetic evidence, not another real client or deployment.
 
-The current Fourth Street production process is directly bound by public health evidence to:
+Current Fourth Street production remains:
 
 ```text
 BUILD = beta-fdb5b5b
@@ -19,7 +19,7 @@ WRITE_MODE = beta
 READY = ready
 ```
 
-The HV-8 successor-convergence deployment preregistration is frozen. **Production deployment is not authorized.** The current operation is offline candidate freeze and qualification.
+The HV-8 deployment preregistration is frozen. Exact candidate `02ac081d2cfaee599f98e4fb8d9367638cd8d500` / tree `49b7b561af89fc99534d2a2974215bfe7a3db3c3` passed the full deployed-to-candidate qualification envelope and is the frozen deploy candidate. **Production deployment is not authorized.** The next operation is the preregistered read-only Phase-A production-entry preflight.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -36,8 +36,10 @@ HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
 HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_DEPLOY_CANDIDATE = NOT_YET_FROZEN
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+HV8_DEPLOY_CANDIDATE = 02ac081d2cfaee599f98e4fb8d9367638cd8d500
+HV8_DEPLOY_CANDIDATE_TREE = 49b7b561af89fc99534d2a2974215bfe7a3db3c3
+HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED
+NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -50,18 +52,14 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__CANDIDATE_FREEZE_AND_QUALIFICATION
+HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
 ```
 
-The deploy candidate must be one exact immutable commit/tree. Qualification must consider the **full deployed-to-candidate delta**. Because that delta includes substantial presentation and venue-generality work, pinned-Chromium rendered evidence is mandatory even if the final candidate-freeze commit itself is governance-only.
-
-Operator-side `last-good` identity and protected environment hashes are hard Phase-A gates before any later production-mutation authorization.
+Phase A is observational only. It must freshly bind public health/build/commit/tree/readiness to operator-side `current`, identify and bind `last-good`, and record only cryptographic hashes/non-secret metadata for the active accepted beta environment and accepted read-only environment. Any ambiguity is a stop condition.
 
 No source deployment, service restart, environment change, current/last-good mutation, Hive/Keychain write, payment/Distriator/onboarding/moderation/V1 activation, production visual-authoring mount, secret/key change, DNS/VPS/systemd mutation, or venue outreach is authorized.
 
 ## Accepted architecture
-
-The current composition remains:
 
 ```text
 HIGH_ASSURANCE_PROTOCOL_SECURITY_CORE
@@ -98,7 +96,7 @@ HV-5 remains the editor-independent canonical authoring authority. HV-6 remains 
 
 ## Source identity versus production identity
 
-Canonical source is moving `main` in `etblink/Hive-Venues`; any deploy candidate must instead be an exact frozen commit/tree.
+Canonical source is moving `main` in `etblink/Hive-Venues`; the HV-8 deploy target is the exact frozen historical commit/tree above, not moving `main`.
 
 Fourth Street intentionally retains provenance-bearing compatibility names such as `/opt/hive-bar`, `hive-bar.service`, `.hive-bar-commit`, `.hive-bar-tree`, the Fourth Street host, and its Hive application tag. Those names are production/provenance seams, not the platform product identity.
 
@@ -125,12 +123,13 @@ For current state use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md`
-4. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
-5. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
-6. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
-7. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
-8. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
-9. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
+3. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md`
+4. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md`
+5. `docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md`
+6. `docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md`
+7. `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md`
+8. `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md`
+9. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
+10. `docs/PRODUCTION_OPERATIONS.md` when production is involved.
 
 Superseded sequencing and transient evidence are recoverable from Git history rather than being required living documents.
