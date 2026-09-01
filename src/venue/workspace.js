@@ -17,7 +17,7 @@ const {
 const { MAX_VENUE_BOOTSTRAP_BYTES } = require('./runtime-admission');
 
 const WORKSPACE_KIND = 'hive-venues-portable-workspace';
-const WORKSPACE_SCHEMA_VERSION = 1;
+const WORKSPACE_SCHEMA_VERSION = 2;
 const WORKSPACE_FILENAMES = Object.freeze({
   authoring: 'venue-authoring.json',
   deployment: 'deployment-manifest.json',
@@ -47,10 +47,10 @@ function sha256Utf8(value) {
   return crypto.createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
-function deriveSourceDigest(authoringBytes, deploymentBytes) {
+function deriveWorkspaceInputDigest(authoringBytes, deploymentBytes) {
   return crypto
     .createHash('sha256')
-    .update('hive-venues-portable-workspace-v1\0', 'utf8')
+    .update('hive-venues-portable-workspace-v2\0', 'utf8')
     .update(authoringBytes, 'utf8')
     .update('\0', 'utf8')
     .update(deploymentBytes, 'utf8')
@@ -94,9 +94,9 @@ function buildPortableVenueWorkspace({ authoringDocument, deploymentManifest }) 
 
   const authoringBytes = serializeVenueAuthoringReview(authoring);
   const deploymentBytes = serializeCanonicalJson(deploymentManifest);
-  const sourceDigestSha256 = deriveSourceDigest(authoringBytes, deploymentBytes);
-  const workspaceId = `workspace-${sourceDigestSha256.slice(0, 24)}`;
-  const bootstrapId = `${authoring.venueContext.id}-workspace-${sourceDigestSha256.slice(0, 16)}`;
+  const inputDigestSha256 = deriveWorkspaceInputDigest(authoringBytes, deploymentBytes);
+  const workspaceId = `workspace-${inputDigestSha256.slice(0, 24)}`;
+  const bootstrapId = `${authoring.venueContext.id}-workspace-${inputDigestSha256.slice(0, 16)}`;
   const canonicalDeploymentManifest = JSON.parse(deploymentBytes);
 
   const bootstrapInput = {
@@ -131,7 +131,7 @@ function buildPortableVenueWorkspace({ authoringDocument, deploymentManifest }) 
   }
   const bootstrapReviewBytes = serializeVenueBootstrapReview(composition);
   const records = [
-    fileRecord(WORKSPACE_FILENAMES.authoring, 'CANONICAL_PORTABLE_VENUE_SOURCE', authoringBytes),
+    fileRecord(WORKSPACE_FILENAMES.authoring, 'DEPLOYMENT_BOUND_HV5_AUTHORING_INPUT', authoringBytes),
     fileRecord(WORKSPACE_FILENAMES.deployment, 'TARGET_SPECIFIC_DEPLOYMENT_AUTHORITY', deploymentBytes),
     fileRecord(WORKSPACE_FILENAMES.bootstrap, 'DIRECT_RUNTIME_ADMISSION_INPUT', bootstrapBytes),
     fileRecord(WORKSPACE_FILENAMES.bootstrapReview, 'DERIVED_VALIDATED_BOOTSTRAP_REVIEW', bootstrapReviewBytes),
@@ -141,7 +141,7 @@ function buildPortableVenueWorkspace({ authoringDocument, deploymentManifest }) 
     schemaVersion: WORKSPACE_SCHEMA_VERSION,
     kind: WORKSPACE_KIND,
     workspaceId,
-    sourceDigestSha256,
+    inputDigestSha256,
     identity: {
       venueId: composition.identity.venueId,
       packageId: composition.identity.packageId,
@@ -149,7 +149,7 @@ function buildPortableVenueWorkspace({ authoringDocument, deploymentManifest }) 
       bootstrapId: composition.bootstrapId,
     },
     authority: {
-      venueSource: WORKSPACE_FILENAMES.authoring,
+      deploymentBoundAuthoring: WORKSPACE_FILENAMES.authoring,
       deploymentTarget: WORKSPACE_FILENAMES.deployment,
       runtimeAdmission: WORKSPACE_FILENAMES.bootstrap,
       bootstrapReview: WORKSPACE_FILENAMES.bootstrapReview,
@@ -171,7 +171,7 @@ function buildPortableVenueWorkspace({ authoringDocument, deploymentManifest }) 
     schemaVersion: WORKSPACE_SCHEMA_VERSION,
     kind: WORKSPACE_KIND,
     workspaceId,
-    sourceDigestSha256,
+    inputDigestSha256,
     identity: manifest.identity,
     manifest,
     files,
@@ -184,6 +184,6 @@ module.exports = {
   WORKSPACE_KIND,
   WORKSPACE_SCHEMA_VERSION,
   buildPortableVenueWorkspace,
-  deriveSourceDigest,
+  deriveWorkspaceInputDigest,
   sha256Utf8,
 };

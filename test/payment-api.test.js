@@ -254,7 +254,7 @@ test('allows a same-account pending receipt to be safely rechecked after write m
   ).expect(200);
   assert.equal(result.body.state, 'ChainConfirmed');
   assert.equal(result.body.paid, true);
-  assert.equal(result.body.distriatorHandoff.available, true);
+  assert.equal(result.body.distriatorHandoff.available, false);
 
   const page = await request(recovered.app)
     .get('/pay')
@@ -290,11 +290,11 @@ test('enforces session, origin, CSRF, controlled-account, and merchant boundarie
     .expect(503);
 });
 
-test('renders the neutral post-confirmation Distriator handoff independent of the historical presentation flag', async () => {
-  for (const historicalFlag of ['false', 'true']) {
+test('renders the post-confirmation Distriator handoff only for an onboarded participating venue', async () => {
+  for (const venueParticipating of [false, true]) {
     const fixtureApp = controlledApp({
       configOverrides: {
-        DISTRIATOR_ENABLED: historicalFlag,
+        DISTRIATOR_ENABLED: venueParticipating ? 'true' : 'false',
         DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
       },
     });
@@ -305,15 +305,20 @@ test('renders the neutral post-confirmation Distriator handoff independent of th
     assert.match(page.text, /@fourthstreetbar/);
     assert.doesNotMatch(page.text, /Maximum payment/);
     assert.match(page.text, /Use the HBD payment QR provided by 4th Street Bar; Lightning and LNURL invoices are not supported here/);
-    assert.match(page.text, /data-distriator-handoff hidden/);
-    assert.match(page.text, /data-distriator-handoff-link/);
-    assert.match(page.text, /href="https:\/\/distriator\.com\/#\/claim"/);
-    assert.match(page.text, /target="_blank" rel="noopener noreferrer"/);
-    assert.match(page.text, /Distriator is a separate service that may recognize qualifying purchases/);
-    assert.match(page.text, /Hive-Venues does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
     assert.match(page.text, /4th Street Bar’s own records remain the final source of truth for the underlying purchase/);
     assert.doesNotMatch(page.text, /\bHive-Bar\b/);
-    if (historicalFlag === 'true') assert.match(page.text, /data-distriator-claim/);
-    else assert.doesNotMatch(page.text, /data-distriator-claim/);
+
+    if (venueParticipating) {
+      assert.match(page.text, /data-distriator-handoff hidden/);
+      assert.match(page.text, /data-distriator-handoff-link/);
+      assert.match(page.text, /href="https:\/\/distriator\.com\/#\/claim"/);
+      assert.match(page.text, /target="_blank" rel="noopener noreferrer"/);
+      assert.match(page.text, /This venue is configured for Distriator rebate participation/);
+      assert.match(page.text, /Distriator is a separate service that independently decides whether a particular transaction qualifies/);
+      assert.match(page.text, /Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
+    } else {
+      assert.doesNotMatch(page.text, /data-distriator-handoff/);
+      assert.doesNotMatch(page.text, /distriator\.com/i);
+    }
   }
 });

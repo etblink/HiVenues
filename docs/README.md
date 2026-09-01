@@ -6,13 +6,14 @@ This index points to documents needed to interpret the **current** successor sta
 
 - `../README.md` — product/developer entry point and current source boundary.
 - `ROADMAP.md` — current product state and sequencing.
+- `PORTABLE_VENUE_WORKSPACE.md` — accepted deterministic offline workspace/build contract.
 - `PRODUCTION_OPERATIONS.md` — freshly reconciled Fourth Street operating model and current durable-capability state.
 - `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md` — accepted technical convergence candidate/evidence; production transition is withheld.
 - `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen transition contract retained for use only if a future product/operational reason reopens deployment.
 - `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — accepted HV-7 Tier-A result.
 - `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper requirements.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted visual-authoring foundation.
-- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — canonical authoring authority baseline.
+- `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted deployment-bound canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
 
 Accepted product-slice implementation and qualification histories remain recoverable from Git/PR history; no extra archival acceptance documents are required on living `main`.
@@ -32,9 +33,11 @@ WRITE_MODE = beta
 READY = ready
 ```
 
-Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; Distriator remains disabled and controlled/delegated Hive authority is absent. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
+Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; controlled/delegated Hive authority is absent. Distriator itself is an external blockchain scanner/rebate service that Hive-Venues cannot enable or disable. Separately, Hive-Venues has a venue-level participation toggle: after a business completes Distriator onboarding, the operator may enable the local post-confirmation rebate handoff. That toggle does not guarantee that Distriator will recognize a particular transaction or issue a rebate, and the current evidence does not establish Fourth Street participation, recognition, or rebate status. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
 
-The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Isolated venue runtime admission is accepted at commit `6b077b91cb7b958769c09befe8d0641689946a7d` (PR #96). All remained bounded source/product work with no production activation.
+The moderated homepage community pulse is accepted at commit `9310b2784f816d531b46d35d05ab57e4f996256b` (PR #92). The owner-only Recent activity profile view is accepted at commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9` (PR #94). Isolated venue runtime admission is accepted at commit `6b077b91cb7b958769c09befe8d0641689946a7d` (PR #96). The portable venue workspace is accepted at commit `e1d31ae7805e7387ddab1a361bb3815ed54c5aa8` (PR #98). All remained bounded source/product work with no production activation.
+
+The workspace acceptance plus the operator-choice hosting goal exposed a stronger portability requirement. HV-5 schema v1 correctly retains deployment-owned `deploymentRef.id`; it is therefore a deployment-bound authoring envelope, not the topology-invariant source bytes we now want to preserve across home-PC/VPS/custom-server choices. The next bounded lane adds that deployment-agnostic source before the accepted binding pipeline rather than rewriting HV-5.
 
 Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
@@ -58,7 +61,8 @@ HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSIT
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
 PROFILE_RECENT_ACTIVITY = ACCEPTED
 ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
-NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
+PORTABLE_VENUE_WORKSPACE = ACCEPTED
+NEXT_OPERATION = DEPLOYMENT_AGNOSTIC_VENUE_SOURCE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -71,11 +75,11 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
+DEPLOYMENT_AGNOSTIC_VENUE_SOURCE__PRODUCT_BUILD
 ```
 
-HV-5 already defines the portable non-secret venue authoring source. HV-2 intentionally owns target-specific provider/runtime/topology/release/storage/provenance facts separately. HV-4 composes those authorities into the validated bootstrap, and accepted runtime admission now lets that bootstrap drive ordinary isolated startup.
+The next work is a strict deterministic deployment-agnostic venue-source boundary. It should contain accepted venue context/package state but no deployment reference, reuse HV-1/HV-3 and shared secret-safe canonical-document machinery rather than introduce shadow schemas, and bind later to a separately selected deployment through the already accepted HV-5/HV-4/workspace chain.
 
-The next work is an offline deterministic workspace/build boundary: canonicalize and preserve the venue source, pair it explicitly with a separately selected target deployment definition, compile the bootstrap through existing authorities, and emit a small machine-readable identity/checksum record. Workspace-local paths should remain host-portable; target deployment paths remain target-specific. No template taxonomy, deployment wizard, secrets, runtime databases, shared tenancy, or real deployment belongs in this first slice.
+The proof must show that byte-identical source state can bind to distinct valid synthetic deployment targets while protected integration/security ownership remains intact. This is not yet a starter/template taxonomy or deployment wizard.
 
 No deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure/router/tunnel mutation, or venue outreach is authorized.

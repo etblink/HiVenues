@@ -16,12 +16,14 @@
   <p class="pay-receipt__caution"><strong>Don’t pay again while this receipt is pending or unclear.</strong> Rechecking looks for the payment you already approved; it does not create a new transfer.</p>
   <button type="button" class="button-secondary pay-recheck" data-pay-recheck hidden>Recheck payment status</button>
 
-  <div class="pay-external-claim" data-pay-rebate data-distriator-handoff hidden>
-    <p class="app-kicker">Separate service</p>
-    <h3>Continue to Distriator</h3>
-    <p>Your HBD payment is confirmed. Distriator is a separate service that may recognize qualifying purchases. Open Distriator and sign in with the Hive account you used to pay. Hive-Venues does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout.</p>
-    <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-handoff-link <% if (distriator.enabled) { %>data-distriator-claim<% } %>>Open Distriator</a>
-  </div>
+  <% if (distriator.enabled) { %>
+    <div class="pay-external-claim" data-pay-rebate data-distriator-handoff hidden>
+      <p class="app-kicker">Separate service</p>
+      <h3>Continue to Distriator</h3>
+      <p>This venue is configured for Distriator rebate participation and your HBD payment is confirmed. Distriator is a separate service that independently decides whether a particular transaction qualifies for recognition and any rebate. Open Distriator and sign in with the Hive account you used to pay. Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout.</p>
+      <a class="button-secondary" href="<%= distriator.claimUrl %>" target="_blank" rel="noopener noreferrer" data-distriator-handoff-link>Open Distriator</a>
+    </div>
+  <% } %>
 
   <p class="pay-receipt__merchant-note">This receipt helps you confirm the Hive payment. <%= siteName %>’s own records remain the final source of truth for the underlying purchase.</p>
 </section>

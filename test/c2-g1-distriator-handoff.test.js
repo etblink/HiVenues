@@ -25,9 +25,11 @@ const NON_CONFIRMED_STATES = [
   'Cancelled',
 ];
 
-function handoffConfig(legacyEnabled) {
+function handoffConfig(venueParticipating) {
   return configFrom({
-    DISTRIATOR_ENABLED: legacyEnabled ? 'true' : 'false',
+    // Historical environment-key spelling retained for deployment compatibility.
+    // Product semantics are venue participation/onboarding, not control of Distriator.
+    DISTRIATOR_ENABLED: venueParticipating ? 'true' : 'false',
     DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
   });
 }
@@ -45,11 +47,15 @@ function baseReceipt(state) {
   };
 }
 
-test('C2-G.1c-R5.1 exposes the neutral Distriator handoff only for ChainConfirmed independent of the legacy flag', () => {
-  for (const legacyEnabled of [false, true]) {
-    const config = handoffConfig(legacyEnabled);
-    assert.equal(config.distriator.claimUrl, 'https://distriator.com/#/claim');
+test('C2-G.1c-R5.1 exposes the Distriator handoff only after chain confirmation for a participating venue', () => {
+  const notParticipating = handoffConfig(false);
+  const participating = handoffConfig(true);
 
+  assert.equal(notParticipating.distriator.enabled, false);
+  assert.equal(participating.distriator.enabled, true);
+  assert.equal(participating.distriator.claimUrl, 'https://distriator.com/#/claim');
+
+  for (const config of [notParticipating, participating]) {
     for (const state of NON_CONFIRMED_STATES) {
       const record = responseRecord(baseReceipt(state), config, 'state');
       assert.deepEqual(record.distriatorHandoff, {
@@ -59,49 +65,59 @@ test('C2-G.1c-R5.1 exposes the neutral Distriator handoff only for ChainConfirme
       });
       assert.equal(record.rebate, record.distriatorHandoff);
     }
-
-    const confirmed = responseRecord(baseReceipt('ChainConfirmed'), config, 'paid');
-    assert.deepEqual(confirmed.distriatorHandoff, {
-      available: true,
-      url: 'https://distriator.com/#/claim',
-      external: true,
-    });
-    assert.equal(confirmed.rebate, confirmed.distriatorHandoff);
   }
+
+  const disabledConfirmed = responseRecord(baseReceipt('ChainConfirmed'), notParticipating, 'paid');
+  assert.deepEqual(disabledConfirmed.distriatorHandoff, {
+    available: false,
+    url: null,
+    external: true,
+  });
+
+  const enabledConfirmed = responseRecord(baseReceipt('ChainConfirmed'), participating, 'paid');
+  assert.deepEqual(enabledConfirmed.distriatorHandoff, {
+    available: true,
+    url: 'https://distriator.com/#/claim',
+    external: true,
+  });
 });
 
-test('C2-G.1c-R5.1 always renders the safe external claim link and describes Distriator as a separate non-guaranteed service', () => {
+test('C2-G.1c-R5.1 treats DISTRIATOR_ENABLED as a venue-participation toggle, never an external-service switch', () => {
+  assert.match(routeSource, /legacy environment-key spelling for a venue-local/);
+  assert.match(routeSource, /const venueParticipating = Boolean\(config\.distriator\.enabled\)/);
+  assert.match(routeSource, /const handoffAvailable = confirmed && venueParticipating/);
+  assert.match(routeSource, /never enables or disables Distriator itself/);
+});
+
+test('C2-G.1c-R5.1 server markup omits the external handoff when the venue is not participating', () => {
+  assert.match(receiptTemplate, /if \(distriator\.enabled\)/);
   assert.match(receiptTemplate, /data-distriator-handoff hidden/);
   assert.match(receiptTemplate, /data-distriator-handoff-link/);
   assert.match(receiptTemplate, /href="<%= distriator\.claimUrl %>"/);
   assert.match(receiptTemplate, /target="_blank" rel="noopener noreferrer"/);
-  assert.match(receiptTemplate, /Distriator is a separate service that may recognize qualifying purchases/);
-  assert.match(receiptTemplate, /Hive-Venues does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
+  assert.match(receiptTemplate, /This venue is configured for Distriator rebate participation/);
+  assert.match(receiptTemplate, /Distriator is a separate service that independently decides whether a particular transaction qualifies/);
+  assert.match(receiptTemplate, /Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
   assert.match(receiptTemplate, /<%= siteName %>’s own records remain the final source of truth for the underlying purchase/);
   assert.doesNotMatch(receiptTemplate, /\bHive-Bar\b|The bar’s point-of-sale system|final record for your tab/);
-  assert.doesNotMatch(
-    receiptTemplate,
-    /if \(distriator\.enabled\)[\s\S]{0,120}<div class="pay-external-claim"/,
-  );
 
   const disabledHtml = ejs.render(receiptTemplate, {
     receiptClass: '',
     distriator: handoffConfig(false).distriator,
     siteName: '4th Street Bar',
   });
-  assert.match(disabledHtml, /href="https:\/\/distriator\.com\/#\/claim"/);
-  assert.match(disabledHtml, /data-distriator-handoff-link/);
+  assert.doesNotMatch(disabledHtml, /data-distriator-handoff/);
+  assert.doesNotMatch(disabledHtml, /distriator\.com/i);
   assert.match(disabledHtml, /4th Street Bar’s own records remain the final source of truth for the underlying purchase/);
-  assert.doesNotMatch(disabledHtml, /data-distriator-claim/);
 
-  const legacyEnabledHtml = ejs.render(receiptTemplate, {
+  const participatingHtml = ejs.render(receiptTemplate, {
     receiptClass: '',
     distriator: handoffConfig(true).distriator,
     siteName: '4th Street Bar',
   });
-  assert.match(legacyEnabledHtml, /href="https:\/\/distriator\.com\/#\/claim"/);
-  assert.match(legacyEnabledHtml, /data-distriator-handoff-link/);
-  assert.match(legacyEnabledHtml, /data-distriator-claim/);
+  assert.match(participatingHtml, /href="https:\/\/distriator\.com\/#\/claim"/);
+  assert.match(participatingHtml, /data-distriator-handoff/);
+  assert.match(participatingHtml, /data-distriator-handoff-link/);
 });
 
 test('C2-G.1c-R5.1 browser presentation suppresses every non-confirmed state even if availability is malformed true', () => {
@@ -155,9 +171,9 @@ test('C2-G.1c-R5.1 browser presentation suppresses every non-confirmed state eve
   }
 });
 
-test('C2-G.1c-R5.1 contains no Distriator API, claim submission, eligibility, or payout request path', () => {
+test('C2-G.1c-R5.1 contains no Distriator API, claim submission, recognition, or payout request path', () => {
   assert.doesNotMatch(routeSource, /(?:fetch|axios|got)\s*\([^)]*distriator/i);
   assert.doesNotMatch(clientSource, /(?:fetch|axios|XMLHttpRequest)[\s\S]{0,160}distriator\.com/i);
   assert.doesNotMatch(routeSource, /distriator[^\n]{0,80}(?:claim\s*\(|eligibility\s*\(|payout\s*\()/i);
-  assert.match(routeSource, /url: confirmed \? config\.distriator\.claimUrl : null/);
+  assert.match(routeSource, /url: handoffAvailable \? config\.distriator\.claimUrl : null/);
 });

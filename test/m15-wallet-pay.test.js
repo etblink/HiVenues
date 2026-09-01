@@ -12,7 +12,7 @@ const { configFrom, createFixtureApp, logger } = require('./support/test-app');
 
 const SESSION_SECRET = 'test-session-secret-that-is-at-least-32-bytes';
 
-function controlledApp({ payment = false } = {}) {
+function controlledApp({ payment = false, distriatorParticipation = false } = {}) {
   const config = configFrom({
     HIVE_WRITE_MODE: payment ? 'beta' : 'controlled',
     HIVE_SIGNER_MODE: payment ? 'keychain' : 'disabled',
@@ -23,7 +23,7 @@ function controlledApp({ payment = false } = {}) {
     ...(payment ? {
       HIVE_PAYMENT_MERCHANT_ACCOUNTS: 'fourthstreetbar',
       HIVE_PAYMENT_RECEIPT_DB_PATH: ':memory:',
-      DISTRIATOR_ENABLED: 'false',
+      DISTRIATOR_ENABLED: distriatorParticipation ? 'true' : 'false',
       DISTRIATOR_CLAIM_URL: 'https://distriator.com/#/claim',
     } : {}),
   });
@@ -98,8 +98,8 @@ test('M15.4 explicitly enabled Pay presents venue identity and the no-duplicate-
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
 
-test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundary, and neutral Distriator handoff without an amount ceiling', async () => {
-  const fixture = controlledApp({ payment: true });
+test('M15.4 explicitly enabled beta Pay keeps every payment hook and the participating-venue Distriator handoff without an amount ceiling', async () => {
+  const fixture = controlledApp({ payment: true, distriatorParticipation: true });
   const response = await request(fixture.app)
     .get('/pay')
     .set('cookie', fixture.cookie)
@@ -122,9 +122,9 @@ test('M15.4 explicitly enabled beta Pay keeps every payment hook, review boundar
   assert.match(response.text, /data-distriator-handoff hidden/);
   assert.match(response.text, /data-distriator-handoff-link/);
   assert.match(response.text, /href="https:\/\/distriator\.com\/#\/claim"/);
-  assert.match(response.text, /Distriator is a separate service that may recognize qualifying purchases/);
-  assert.match(response.text, /does not determine or guarantee recognition, eligibility, cashback amount, claim processing, or payout/);
-  assert.doesNotMatch(response.text, /data-distriator-claim/);
+  assert.match(response.text, /This venue is configured for Distriator rebate participation/);
+  assert.match(response.text, /Distriator is a separate service that independently decides whether a particular transaction qualifies/);
+  assert.match(response.text, /does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
   assert.doesNotMatch(response.text, /Maximum payment/i);
   assert.doesNotMatch(response.text, /Hive-Bar/);
 });

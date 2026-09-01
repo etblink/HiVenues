@@ -15,6 +15,7 @@ const {
 const {
   PortableVenueWorkspaceError,
   WORKSPACE_FILENAMES,
+  WORKSPACE_SCHEMA_VERSION,
   buildPortableVenueWorkspace,
 } = require('../src/venue/workspace');
 const { HV4_SYNTHETIC_DEPLOYMENT_MANIFEST } = require('./support/hv4-synthetic-bootstrap');
@@ -51,8 +52,10 @@ test('portable workspace is deterministic across source object insertion order',
     deploymentManifest: reorderObject(mutable(HV4_SYNTHETIC_DEPLOYMENT_MANIFEST)),
   });
 
+  assert.equal(normal.schemaVersion, 2);
+  assert.equal(WORKSPACE_SCHEMA_VERSION, 2);
   assert.equal(normal.workspaceId, reordered.workspaceId);
-  assert.equal(normal.sourceDigestSha256, reordered.sourceDigestSha256);
+  assert.equal(normal.inputDigestSha256, reordered.inputDigestSha256);
   assert.deepEqual(normal.files, reordered.files);
   assert.equal(Object.isFrozen(normal), true);
   assert.equal(Object.isFrozen(normal.manifest), true);
@@ -66,11 +69,22 @@ test('workspace manifest binds every derived payload by exact UTF-8 bytes and SH
   });
   const manifest = JSON.parse(workspace.files[WORKSPACE_FILENAMES.manifest]);
 
+  assert.equal(manifest.schemaVersion, 2);
   assert.equal(manifest.kind, 'hive-venues-portable-workspace');
   assert.equal(manifest.workspaceId, workspace.workspaceId);
-  assert.equal(manifest.sourceDigestSha256, workspace.sourceDigestSha256);
+  assert.equal(manifest.inputDigestSha256, workspace.inputDigestSha256);
+  assert.equal(Object.hasOwn(manifest, 'sourceDigestSha256'), false);
+  assert.equal(manifest.authority.deploymentBoundAuthoring, WORKSPACE_FILENAMES.authoring);
+  assert.equal(Object.hasOwn(manifest.authority, 'venueSource'), false);
   assert.equal(manifest.authority.workspaceManifestRole, 'DERIVED_INSPECTION_RECORD');
   assert.equal(manifest.files.length, 4);
+
+  const authoringRecord = manifest.files.find((record) => record.path === WORKSPACE_FILENAMES.authoring);
+  assert.equal(authoringRecord.role, 'DEPLOYMENT_BOUND_HV5_AUTHORING_INPUT');
+  assert.equal(
+    manifest.files.some((record) => record.role === 'CANONICAL_PORTABLE_VENUE_SOURCE'),
+    false,
+  );
 
   for (const record of manifest.files) {
     const content = workspace.files[record.path];
@@ -141,7 +155,6 @@ test('workspace refuses deployment-reference drift and secret-bearing deployment
   );
 });
 
-
 test('workspace refuses a runtime bootstrap above the accepted admission byte ceiling', () => {
   const oversized = mutable(HV4_SYNTHETIC_DEPLOYMENT_MANIFEST);
   oversized.region = 'x'.repeat(MAX_VENUE_BOOTSTRAP_BYTES);
@@ -177,7 +190,7 @@ test('target-specific deployment changes produce a distinct reproducible workspa
   });
 
   assert.notEqual(first.workspaceId, second.workspaceId);
-  assert.notEqual(first.sourceDigestSha256, second.sourceDigestSha256);
+  assert.notEqual(first.inputDigestSha256, second.inputDigestSha256);
   assert.notEqual(first.identity.bootstrapId, second.identity.bootstrapId);
   assert.equal(first.identity.venueId, second.identity.venueId);
   assert.equal(first.identity.packageId, second.identity.packageId);

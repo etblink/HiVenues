@@ -110,16 +110,20 @@ test('Pay fails closed when its durable store is unavailable without taking unre
   await request(fixture.app).get('/healthz').expect(200);
 });
 
-test('Pay navigation, versioned client, and neutral Distriator handoff are present whenever Pay is enabled', async () => {
-  const enabled = betaPayApp({ configOverrides: { DISTRIATOR_ENABLED: 'false' } });
-  const page = await request(enabled.app).get('/pay').set('cookie', `hive_bar_session=${enabled.token}`).expect(200);
+test('Pay navigation and client remain available while Distriator handoff follows venue participation', async () => {
+  const notParticipating = betaPayApp({ configOverrides: { DISTRIATOR_ENABLED: 'false' } });
+  const page = await request(notParticipating.app).get('/pay').set('cookie', `hive_bar_session=${notParticipating.token}`).expect(200);
   assert.match(page.text, /href="\/pay"/);
   assert.match(page.text, /src="\/js\/pay-tab\.js\?v=[0-9a-f]{64}"/);
-  assert.match(page.text, /href="https:\/\/distriator\.com\/"/);
-  assert.match(page.text, /Distriator is a separate service that may recognize qualifying purchases/);
-  assert.match(page.text, /data-distriator-handoff hidden/);
-  assert.match(page.text, /data-distriator-handoff-link/);
-  assert.doesNotMatch(page.text, /data-distriator-claim/);
+  assert.doesNotMatch(page.text, /data-distriator-handoff/);
+  assert.doesNotMatch(page.text, /distriator\.com/i);
+
+  const participating = betaPayApp({ configOverrides: { DISTRIATOR_ENABLED: 'true' } });
+  const participatingPage = await request(participating.app).get('/pay').set('cookie', `hive_bar_session=${participating.token}`).expect(200);
+  assert.match(participatingPage.text, /data-distriator-handoff hidden/);
+  assert.match(participatingPage.text, /data-distriator-handoff-link/);
+  assert.match(participatingPage.text, /href="https:\/\/distriator\.com\/"/);
+  assert.match(participatingPage.text, /This venue is configured for Distriator rebate participation/);
 
   const disabled = betaPayApp({ configOverrides: { HIVE_PAYMENT_ENABLED: 'false', DISTRIATOR_ENABLED: 'false' } });
   const home = await request(disabled.app).get('/').set('cookie', `hive_bar_session=${disabled.token}`).expect(200);

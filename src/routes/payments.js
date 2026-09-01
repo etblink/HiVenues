@@ -8,9 +8,13 @@ const { RECEIPT_STATES } = require('../payments/receipt-store');
 
 function responseRecord(record, config, message) {
   const confirmed = record.state === RECEIPT_STATES.CHAIN_CONFIRMED;
+  // DISTRIATOR_ENABLED is a legacy environment-key spelling for a venue-local
+  // participation decision. It never enables or disables Distriator itself.
+  const venueParticipating = Boolean(config.distriator.enabled);
+  const handoffAvailable = confirmed && venueParticipating;
   const distriatorHandoff = Object.freeze({
-    available: confirmed,
-    url: confirmed ? config.distriator.claimUrl : null,
+    available: handoffAvailable,
+    url: handoffAvailable ? config.distriator.claimUrl : null,
     external: true,
   });
   return {
@@ -18,7 +22,7 @@ function responseRecord(record, config, message) {
     paid: confirmed,
     distriatorHandoff,
     // Compatibility alias for already-qualified clients. Active product semantics use
-    // distriatorHandoff; Hive-Bar does not determine Distriator eligibility or payout.
+    // distriatorHandoff; Hive-Venues does not determine transaction recognition or rebate payout.
     rebate: distriatorHandoff,
     message,
   };

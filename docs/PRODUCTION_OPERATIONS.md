@@ -66,7 +66,6 @@ PAYMENTS_ENABLED = true
 PAYMENT_MERCHANT_COUNT = 1
 PAYMENT_STORE = DURABLE__PRESENT_FILE
 PAYMENT_STORE_SCHEMA_VERSION = 2
-DISTRIATOR_ENABLED = false
 
 ONBOARDING_ENABLED = true
 ONBOARDING_ACTIVE = true
@@ -78,6 +77,21 @@ MODERATION_ENABLED = true
 MODERATION_OPERATOR_COUNT = 1
 MODERATION_STORE = DURABLE__PRESENT_FILE
 ```
+
+Distriator itself does not belong in that application enabled/disabled capability block. It is an **external service** that observes the Hive blockchain and applies its own transaction-recognition and rebate rules. Hive-Venues cannot enable or disable Distriator.
+
+Hive-Venues does, however, need a distinct **venue participation toggle**. A business must first complete the applicable Distriator onboarding before the venue operator turns that toggle on. In the current source configuration the historical environment-key spelling is `DISTRIATOR_ENABLED`; its corrected meaning is only: "this venue is onboarded for Distriator rebate participation and Hive-Venues may expose the post-confirmation external handoff." The local toggle does not assert that Distriator will recognize any particular transaction or issue a rebate.
+
+The currently safe production evidence does not establish Fourth Street's present participation/onboarding state under that corrected semantic contract, so it is not inferred from the old ambiguous flag name. Keep the distinct facts separate:
+
+```text
+DISTRIATOR_VENUE_PARTICIPATION = NOT_ESTABLISHED_IN_CURRENT_EVIDENCE
+HIVE_VENUES_TRANSACTION_VALID = UNKNOWN_UNTIL_A_SPECIFIC_TRANSACTION_IS_VERIFIED
+DISTRIATOR_RECOGNITION = NOT_ESTABLISHED_IN_CURRENT_EVIDENCE
+DISTRIATOR_REBATE_ISSUED = NOT_ESTABLISHED_IN_CURRENT_EVIDENCE
+```
+
+A future interoperability check may establish those facts for a concrete transaction, but it must not report the external Distriator service itself as an application capability state or treat venue participation as a guarantee of recognition/rebate.
 
 These are current production facts, not source defaults and not inferred historical state. Do not silently replace them with older milestone prose that described Pay, onboarding, or moderation as disabled or source-only.
 
@@ -119,7 +133,7 @@ Safe source-switch and recovery baseline. Hive writes and signing are disabled.
 
 Current production profile. Patrons sign only their own admitted beta operations locally through Hive Keychain. Server-side Hive private-key custody remains prohibited.
 
-Payments, onboarding, and moderation are currently active capabilities under separately configured production state; their presence must never be inferred solely from source capability. Distriator is currently disabled.
+Payments, onboarding, and moderation are currently active capabilities under separately configured production state; their presence must never be inferred solely from source capability. Distriator remains external to the application. A separately configured venue-participation toggle may expose the external handoff only after business onboarding; concrete transaction validity, external recognition, and rebate evidence remain separate facts.
 
 ### `privex-v1-self-signing`
 

@@ -24,7 +24,8 @@ HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSIT
 VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
 PROFILE_RECENT_ACTIVITY = ACCEPTED
 ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
-NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
+PORTABLE_VENUE_WORKSPACE = ACCEPTED
+NEXT_OPERATION = DEPLOYMENT_AGNOSTIC_VENUE_SOURCE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -54,53 +55,78 @@ Accepted post-foundation product slices are:
 - **Homepage community pulse** — commit `9310b2784f816d531b46d35d05ab57e4f996256b`, PR #92.
 - **Owner Recent activity** — commit `16fbdaa6e3b19c1eca1550a51d83a152eb0259a9`, PR #94.
 - **Isolated venue runtime admission** — commit `6b077b91cb7b958769c09befe8d0641689946a7d`, PR #96.
+- **Portable venue workspace** — commit `e1d31ae7805e7387ddab1a361bb3815ed54c5aa8`, PR #98.
 
-Runtime admission is the operability bridge the foundations previously lacked: an explicit non-secret validated bootstrap can now drive ordinary non-Fourth-Street isolated startup without source injection. Acceptance followed dual-OS qualification and four review-driven repairs in the real runtime graph: explicit-admission precedence, durable-store binding, non-reference release provenance, and observable Node/platform binding before listen.
+Runtime admission is the operability bridge the foundations previously lacked: an explicit non-secret validated bootstrap can drive ordinary non-Fourth-Street isolated startup without source injection. The portable workspace then adds an offline deterministic build boundary around one accepted HV-5 authoring document plus one explicit target deployment manifest, producing canonical reviewed inputs, the exact runtime bootstrap, and machine-readable file identities.
 
-## Current operation — portable venue workspace
+PR #98 acceptance followed dual-OS qualification and two review-driven repairs: the builder now enforces the same one-MiB bootstrap ceiling as runtime admission, and the CLI atomically claims its final output directory so its no-overwrite promise remains true under concurrent reservation.
 
-```text
-NEXT_OPERATION = PORTABLE_VENUE_WORKSPACE__PRODUCT_BUILD
-```
-
-The authoring/deployment/runtime layers are now individually sound but still developer-facing as separate files and commands.
-
-The next bounded product build is an offline deterministic **portable venue workspace** boundary:
-
-1. keep the validated HV-5 authoring document as canonical portable venue source;
-2. keep deployment manifests/profile facts separate and target-specific;
-3. accept one explicit authoring source plus one explicit target deployment definition;
-4. validate through existing HV-5/HV-2/HV-4 authorities rather than duplicate schemas;
-5. deterministically emit canonical reviewed source, validated target material, the exact bootstrap accepted by runtime admission, and a compact machine-readable identity/checksum manifest;
-6. make workspace-local file references host-portable while leaving target release/storage/runtime paths under deployment authority;
-7. make rebuild/verification offline and reproducible;
-8. reject secret/private material through existing safety boundaries;
-9. include no runtime databases, Hive private keys, payment secrets, production state, or other mutable operational custody;
-10. do not create a template taxonomy, deployment wizard, hosting-provider dependency, shared tenancy, or production action.
-
-The design rule is:
+## Current operation — deployment-agnostic venue source
 
 ```text
-PORTABLE_VENUE_SOURCE != PORTABLE_DEPLOYMENT_FACTS
+NEXT_OPERATION = DEPLOYMENT_AGNOSTIC_VENUE_SOURCE__PRODUCT_BUILD
 ```
 
-A future operator should be able to preserve the same venue source while choosing or regenerating a deployment target appropriate to a home PC, VPS, or custom server. Template/starter selection and guided deployment should be built on this workspace boundary rather than around repository internals.
+The accepted workspace made the next semantic boundary observable. HV-5 schema v1 was intentionally frozen with:
+
+```json
+{
+  "schemaVersion": 1,
+  "deploymentRef": { "id": "deployment-profile-id" },
+  "venueContext": {},
+  "venuePackage": {}
+}
+```
+
+`deploymentRef.id` is `DEPLOYMENT_OWNED`, and the real Fourth Street target is `fourth-street-privex`. Its separate deployment manifest owns Privex/provider, Node/platform, Cloudflare/Caddy topology, public hosts, `/opt/hive-bar`, service name, durable storage paths, and provenance filenames. Therefore the complete HV-5 document is correctly **deployment-bound**; it is not the byte-invariant source we want a future operator to preserve while moving a venue from a home PC to a VPS.
+
+This is not a retroactive HV-5 failure. HV-5 correctly satisfied its frozen authoring-contract question. The new operator-choice hosting goal introduces a stronger product requirement.
+
+The next bounded implementation must define one canonical non-secret **deployment-agnostic venue source** that:
+
+1. contains accepted venue context/package state but no deployment reference;
+2. delegates to HV-1/HV-3 validators instead of defining a shadow domain schema;
+3. reuses shared secret/private rejection and deterministic canonical-JSON semantics;
+4. preserves protected integration/security ownership rather than turning those fields into routine operator content;
+5. binds explicitly and later to one separately validated deployment target;
+6. produces the existing deployment-bound HV-5 authoring document and downstream HV-4/workspace artifacts rather than creating a second deployment system;
+7. proves one byte-identical source can bind to at least two distinct valid synthetic deployment targets;
+8. fails closed if binding changes venue/package identity or violates existing deployment/three-way authorities;
+9. performs no network access or external mutation;
+10. does not yet create starter/template taxonomy or deployment-wizard UX.
+
+The intended dependency is:
+
+```text
+DEPLOYMENT_AGNOSTIC_VENUE_SOURCE
+        |
+        +--> HV1/HV3 validation + protected ownership semantics
+        |
+        +--> EXPLICIT_DEPLOYMENT_BINDING
+                |
+                +--> DEPLOYMENT_BOUND_HV5_AUTHORING
+                +--> HV4_BOOTSTRAP
+                +--> PORTABLE_VENUE_WORKSPACE
+                +--> RUNTIME_ADMISSION
+```
 
 ## Product trajectory
 
 ```text
 STARTER_OR_CUSTOM_SOURCE
--> PORTABLE_VENUE_WORKSPACE
+-> DEPLOYMENT_AGNOSTIC_VENUE_SOURCE
 -> CUSTOMIZE / PREVIEW / CONFIRM
--> SELECT_OR_CREATE_DEPLOYMENT_TARGET
--> COMPILE_VALIDATED_BOOTSTRAP
--> READINESS
 -> CHOOSE_HOME_PC / VPS / CUSTOM_SERVER
+-> SELECT_OR_CREATE_DEPLOYMENT_TARGET
+-> COMPILE_DEPLOYMENT_BOUND_AUTHORING + BOOTSTRAP + WORKSPACE
+-> READINESS
 -> GUIDED_DEPLOYMENT
 -> HEALTH / BACKUP / UPDATE / ROLLBACK
 ```
 
 Self-hosting and VPS hosting are both intended first-class future choices. Central hosting is not an architectural requirement. Decentralization remains available by operator choice rather than imposed as ideology.
+
+The important portability contract is now precise: **venue source state should remain stable when only the hosting topology changes; deployment target state is expected to change.**
 
 ## Technology posture
 
@@ -125,6 +151,8 @@ CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
 SOURCE_CAPABILITY_PRESENT != PRODUCTION_CAPABILITY_ENABLED
 COMPATIBILITY_NAME != PLATFORM_PRODUCT_IDENTITY
 ONE_VENUE_RUNTIME = VALID_DEFAULT__NOT_IDEOLOGY
+DEPLOYMENT_AGNOSTIC_VENUE_SOURCE != DEPLOYMENT_BOUND_HV5_AUTHORING
+VENUE_SOURCE_PORTABILITY != DEPLOYMENT_TARGET_PORTABILITY
 ```
 
 ## Production and external-effect boundary
