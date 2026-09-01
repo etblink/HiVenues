@@ -2,8 +2,14 @@
 
 const express = require('express');
 const foundation = require('./reference/source-authoring-surface-core');
+const {
+  DEFAULT_VENUE_SOURCE_FILENAME,
+  loadDeploymentAgnosticVenueSourceFile,
+  serializeDeploymentAgnosticVenueSourceFile,
+} = require('./source-file');
 
 const QOL_SCRIPT_SUFFIX = '/qol.js';
+const SAFE_SOURCE_SAVE_PENDING = 'Keep or undo your preview changes before saving the venue file.';
 const QOL_SCRIPT = `'use strict';
 (() => {
   const sections = Array.from(document.querySelectorAll('.section[id]'));
@@ -109,6 +115,20 @@ const QOL_STYLE = `
     html.qol-sections .item-edit-group[open] summary::after { content: 'Hide'; }
     html.qol-sections .item-edit-group:not([open]) > .item-edit-fields { display: none; }
     html.qol-sections .item-edit-group[open] > .item-edit-fields { display: grid; gap: 12px; margin-top: 12px; }
+    .source-save {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #292524;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: white;
+      color: #292524;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .source-save:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+    .source-save--disabled { border-color: #a8a29e; color: #57534e; background: #f5f5f4; }
     @media (max-width: 560px) {
       html.qol-sections .preview { width: calc(100% + 24px); margin-left: -12px; max-width: none; border-left: 0; border-right: 0; border-radius: 0; }
     }
@@ -118,16 +138,28 @@ function progressiveScriptPath(editorPath) {
   return `${editorPath}${QOL_SCRIPT_SUFFIX}`;
 }
 
-function enhanceSourceAuthoringHtml(html, editorPath) {
+function venueSourceDownloadPath(editorPath) {
+  return `${editorPath}/${DEFAULT_VENUE_SOURCE_FILENAME}`;
+}
+
+function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false } = {}) {
   const scriptPath = progressiveScriptPath(editorPath);
+  const sourceFilePath = venueSourceDownloadPath(editorPath);
+  const saveControl = dirty
+    ? '<span class="source-save source-save--disabled" aria-disabled="true">Keep changes to save</span>'
+    : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
   return String(html)
     .replace('<html lang="en">', '<html lang="en" data-qol-progressive="section-picker">')
     .replace(
       'Change the words, details, and colors guests will see. Preview first, then keep or undo your changes. Hosting comes later—nothing on this screen publishes or deploys your venue.',
-      'Choose what you want to change, work on one section at a time, and check the preview as you go. Hosting comes later—nothing on this screen publishes or deploys your venue.',
+      'Choose what you want to change, work on one section at a time, and check the preview as you go. Keep changes first, then save a venue file when you want a durable copy. Hosting comes later—nothing on this screen publishes or deploys your venue.',
     )
     .replace('aria-label="Venue customization sections"', 'aria-label="Choose what to customize"')
     .replaceAll('Preview this change', 'Preview')
+    .replace(
+      '</form></div><nav class="nav" aria-label="Choose what to customize">',
+      `</form>${saveControl}</div><nav class="nav" aria-label="Choose what to customize">`,
+    )
     .replace('</style>', `${QOL_STYLE}</style>`)
     .replace('</head>', `<script defer src="${scriptPath}"></script></head>`);
 }
@@ -136,6 +168,7 @@ function renderSourceAuthoringDocument(options) {
   return enhanceSourceAuthoringHtml(
     foundation.renderSourceAuthoringDocument(options),
     options.editorPath,
+    { dirty: options.session?.status?.().dirty === true },
   );
 }
 
@@ -143,15 +176,26 @@ function createOfflineSourceAuthoringSurface(options = {}) {
   const surface = foundation.createOfflineSourceAuthoringSurface(options);
   const router = express.Router();
   const scriptPath = progressiveScriptPath(surface.editorPath);
+  const sourceFilePath = venueSourceDownloadPath(surface.editorPath);
 
   router.get(scriptPath, (req, res) => {
     res.type('application/javascript').send(QOL_SCRIPT);
+  });
+  router.get(sourceFilePath, (req, res) => {
+    if (surface.session.status().dirty) {
+      res.status(409).type('text').send(SAFE_SOURCE_SAVE_PENDING);
+      return;
+    }
+    res
+      .attachment(DEFAULT_VENUE_SOURCE_FILENAME)
+      .type('application/json')
+      .send(serializeDeploymentAgnosticVenueSourceFile(surface.session.acceptedSource));
   });
   router.use((req, res, next) => {
     if (req.method !== 'GET' || req.path !== surface.editorPath) return next();
     const send = res.send.bind(res);
     res.send = (body) => send(typeof body === 'string'
-      ? enhanceSourceAuthoringHtml(body, surface.editorPath)
+      ? enhanceSourceAuthoringHtml(body, surface.editorPath, { dirty: surface.session.status().dirty })
       : body);
     return next();
   });
@@ -160,13 +204,28 @@ function createOfflineSourceAuthoringSurface(options = {}) {
   return Object.freeze({
     ...surface,
     router,
+    sourceFilePath,
+  });
+}
+
+function createOfflineSourceAuthoringSurfaceFromFile({
+  sourceFilename,
+  ...options
+} = {}) {
+  const sourceInput = loadDeploymentAgnosticVenueSourceFile(sourceFilename);
+  return createOfflineSourceAuthoringSurface({
+    ...options,
+    sourceInput,
   });
 }
 
 module.exports = {
   ...foundation,
   createOfflineSourceAuthoringSurface,
+  createOfflineSourceAuthoringSurfaceFromFile,
   enhanceSourceAuthoringHtml,
   progressiveScriptPath,
   renderSourceAuthoringDocument,
+  SAFE_SOURCE_SAVE_PENDING,
+  venueSourceDownloadPath,
 };
