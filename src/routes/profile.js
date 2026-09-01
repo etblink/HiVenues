@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { readAccountNotifications } = require('../hive/account-notifications');
 const { requireHiveAccount } = require('../http/validation');
 const { AuthorizationError, NotFoundError } = require('../lib/errors');
 
@@ -33,6 +34,7 @@ function pageModel(req, username, activeView, values = {}) {
     wallet: null,
     connectionPage: null,
     wallPage: null,
+    activityPage: null,
     inboxPage: null,
     messageProfiles: {},
     profileSettings: null,
@@ -249,6 +251,40 @@ router.get('/:username/following', async (req, res, next) => {
       return res.render('pages/profile/partials/connections', values);
     }
     return res.render('pages/profile/index', pageModel(req, username, 'following', values));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/:username/activity', async (req, res, next) => {
+  try {
+    const username = requireHiveAccount(req.params.username);
+    requireProfileOwner(req, username);
+    res.set('Cache-Control', 'no-store');
+
+    const userProfile = await req.app.locals.services.hiveReads.getProfile(username);
+    if (!userProfile) throw new NotFoundError('Hive account not found');
+
+    let activityPage;
+    try {
+      const page = await readAccountNotifications(req.app.locals.services.rpcPool, {
+        account: username,
+        limit: 20,
+      });
+      activityPage = {
+        ...page,
+        status: page.items.length > 0 ? 'ready' : 'empty',
+      };
+    } catch (error) {
+      req.log.warn({ err: error, account: username }, 'recent account activity read failed');
+      activityPage = { items: [], status: 'unavailable' };
+    }
+
+    const values = { userProfile, activityPage };
+    if (req.get('HX-Request') === 'true') {
+      return res.render('pages/profile/partials/activity', values);
+    }
+    return res.render('pages/profile/index', pageModel(req, username, 'activity', values));
   } catch (error) {
     return next(error);
   }

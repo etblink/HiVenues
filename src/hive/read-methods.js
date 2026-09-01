@@ -3,6 +3,7 @@
 const READ_ONLY_RPC_METHODS = new Set([
   'account_history_api.get_account_history',
   'account_history_api.get_transaction',
+  'bridge.account_notifications',
   'bridge.get_account_posts',
   'bridge.get_community',
   'bridge.get_discussion',

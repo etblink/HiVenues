@@ -68,6 +68,107 @@
   font-size: 1rem;
 }
 
+.profile-activity {
+  padding-block: 0.25rem 2rem;
+}
+
+.profile-activity__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hb-border);
+}
+
+.profile-activity__header > p {
+  max-width: 34rem;
+  color: var(--hb-text-muted);
+  line-height: 1.55;
+}
+
+.profile-activity__scope-note {
+  margin-top: 0.9rem;
+  color: var(--hb-text-subtle);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.profile-activity__list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-activity__item {
+  border-bottom: 1px solid var(--hb-border);
+}
+
+.profile-activity-card {
+  padding-block: 1rem 1.15rem;
+}
+
+.profile-activity-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  color: var(--hb-text-subtle);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.profile-activity-card__type {
+  border: 1px solid var(--hb-border);
+  border-radius: 999px;
+  background: var(--hb-surface-raised);
+  color: var(--hb-accent);
+  padding: 0.25rem 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+}
+
+.profile-activity-card__message {
+  max-width: 48rem;
+  margin-top: 0.65rem;
+  color: var(--hb-text);
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+
+.profile-activity-card__open {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 0.45rem;
+  color: var(--hb-accent);
+  font-size: 0.86rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.profile-activity-card__open:hover,
+.profile-activity-card__open:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.profile-activity__state {
+  margin-top: 1rem;
+  border-block: 1px solid var(--hb-border);
+  padding-block: 1rem;
+  color: var(--hb-text-muted);
+  line-height: 1.55;
+}
+
+.profile-activity__state strong {
+  color: var(--hb-text);
+}
+
+.profile-activity__state p {
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 700px) {
   .social-comment > .composer--dialog-launcher {
     align-items: center;
@@ -77,5 +178,11 @@
 
   .social-comment > .composer--dialog-launcher .composer__dialog-trigger--social {
     align-self: center;
+  }
+
+  .profile-activity__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }

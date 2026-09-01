@@ -1,0 +1,44 @@
+<section class="profile-activity" aria-labelledby="profile-activity-heading" data-profile-activity-state="<%= activityPage.status %>">
+  <header class="profile-activity__header">
+    <div>
+      <p class="app-section-kicker">Your Hive activity</p>
+      <h2 id="profile-activity-heading">Recent activity</h2>
+    </div>
+    <p>Replies, mentions, votes, follows, and other recent activity involving @<%= userProfile.name %>.</p>
+  </header>
+
+  <p class="profile-activity__scope-note">
+    This is a recent activity view, not an unread inbox. Hive-Venues does not mark these events read or store notification state.
+  </p>
+
+  <% if (activityPage.status === 'ready') { %>
+    <ol class="profile-activity__list">
+      <% activityPage.items.forEach((item) => { %>
+        <li class="profile-activity__item">
+          <article class="profile-activity-card">
+            <div class="profile-activity-card__meta">
+              <span class="profile-activity-card__type"><%= item.label %></span>
+              <% if (item.date) { %>
+                <time datetime="<%= item.date %>"><%= formatHiveDate(item.date) %></time>
+              <% } %>
+            </div>
+            <p class="profile-activity-card__message"><%= item.message %></p>
+            <% if (item.localRoute) { %>
+              <a class="profile-activity-card__open" href="<%= item.localRoute %>">Open in Hive-Venues <span aria-hidden="true">→</span></a>
+            <% } %>
+          </article>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else if (activityPage.status === 'unavailable') { %>
+    <div class="profile-activity__state" role="status">
+      <strong>Recent activity is temporarily unavailable.</strong>
+      <p>Your profile and the rest of Hive-Venues are still available.</p>
+    </div>
+  <% } else { %>
+    <div class="profile-activity__state">
+      <strong>No recent activity to show.</strong>
+      <p>New supported Hive activity involving this account will appear here.</p>
+    </div>
+  <% } %>
+</section>

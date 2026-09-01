@@ -210,6 +210,10 @@ jobs:
         env:
           UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
         run: node scripts/capture-ux-1e-visual.js
+      - name: Capture and qualify owner Recent activity states
+        env:
+          PROFILE_ACTIVITY_VISUAL_OUTPUT: artifacts/profile-activity-visual
+        run: node scripts/capture-profile-activity-visual.js
 
       - name: Explain visual-evidence review boundary
         if: always()

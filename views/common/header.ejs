@@ -101,7 +101,10 @@
   <div class="app-account">
     <% if (hiveSession) { %>
       <div class="app-account__signed-in">
-        <a href="/profile/<%= hiveSession.account %>" class="app-account__identity">
+        <a
+          href="/profile/<%= hiveSession.account %>"
+          class="app-account__identity"
+          aria-label="View your profile, @<%= hiveSession.account %>">
           <span class="app-account__avatar" aria-hidden="true"><%= hiveSession.account.slice(0, 1).toUpperCase() %></span>
           <span class="min-w-0">
             <strong class="block truncate">@<%= hiveSession.account %></strong>

@@ -30,6 +30,14 @@
         </a>
         <% if (canManageProfile) { %>
           <a
+            href="/profile/<%= userProfile.name %>/activity"
+            hx-get="/profile/<%= userProfile.name %>/activity"
+            hx-target="#profile-content"
+            class="content-tab <%= activeView === 'activity' ? 'content-tab--active' : '' %>"
+            <% if (activeView === 'activity') { %>aria-current="page"<% } %>>
+            Activity
+          </a>
+          <a
             href="/profile/<%= userProfile.name %>/inbox"
             hx-get="/profile/<%= userProfile.name %>/inbox"
             hx-target="#profile-content"
@@ -55,6 +63,8 @@
           <%- include('wall-posts', { userProfile, wallPage, profileSettings, canManageProfile }) %>
         <% } else if (activeView === 'followers' || activeView === 'following') { %>
           <%- include('connections', { userProfile, connectionPage, connectionKind, connectionEmptyMessage }) %>
+        <% } else if (activeView === 'activity') { %>
+          <%- include('activity', { userProfile, activityPage }) %>
         <% } else if (activeView === 'inbox') { %>
           <%- include('inbox', { userProfile, inboxPage, profileSettings }) %>
         <% } else if (activeView === 'settings') { %>
