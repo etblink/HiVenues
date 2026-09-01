@@ -5,16 +5,41 @@ const path = require('node:path');
 
 const SHA40_PATTERN = /^[0-9a-f]{40}$/;
 const DEFAULT_RELEASE_ROOT = path.join(__dirname, '..', '..');
+const DEFAULT_COMMIT_FILENAME = '.hive-bar-commit';
+const DEFAULT_TREE_FILENAME = '.hive-bar-tree';
 
 function buildLabelForCommit(commit) {
   return commit ? `beta-${commit.slice(0, 7)}` : 'beta-dev';
 }
 
+function requireIdentityFilename(value, label) {
+  const filename = String(value || '').trim();
+  if (
+    !filename ||
+    filename === '.' ||
+    filename === '..' ||
+    filename.includes('/') ||
+    filename.includes('\\') ||
+    filename.includes('\0')
+  ) {
+    throw new Error(`${label} must be a filename without path separators`);
+  }
+  return filename;
+}
+
 function readDeploymentIdentity(options = {}) {
   const rootDir = options.rootDir || DEFAULT_RELEASE_ROOT;
   const strict = options.strict === true;
-  const commitPath = path.join(rootDir, '.hive-bar-commit');
-  const treePath = path.join(rootDir, '.hive-bar-tree');
+  const commitFilename = requireIdentityFilename(
+    options.commitFilename || DEFAULT_COMMIT_FILENAME,
+    'Deployment commit identity filename',
+  );
+  const treeFilename = requireIdentityFilename(
+    options.treeFilename || DEFAULT_TREE_FILENAME,
+    'Deployment tree identity filename',
+  );
+  const commitPath = path.join(rootDir, commitFilename);
+  const treePath = path.join(rootDir, treeFilename);
   const hasCommit = fs.existsSync(commitPath);
   const hasTree = fs.existsSync(treePath);
 
@@ -53,6 +78,9 @@ function readDeploymentIdentity(options = {}) {
 }
 
 module.exports = {
+  DEFAULT_COMMIT_FILENAME,
+  DEFAULT_TREE_FILENAME,
   buildLabelForCommit,
   readDeploymentIdentity,
+  requireIdentityFilename,
 };

@@ -6,12 +6,17 @@ const { loadConfig } = require('./config');
 const { applyReadConsistencyHardening } = require('./hive/read-consistency');
 const { HiveRpcPool } = require('./hive/rpc-pool');
 const { createLogger } = require('./lib/logger');
+const { parseOnboardingConfig } = require('./onboarding/config');
 const {
   LEGACY_FOURTH_STREET_DEPLOYMENT,
   PLATFORM_NAME,
 } = require('./platform/identity');
 const { readDeploymentIdentity } = require('./release/deployment-identity');
 const { createStaticAssetUrl } = require('./release/static-assets');
+const {
+  assertVenueRuntimeCoherence,
+  loadVenueRuntimeAdmission,
+} = require('./venue/runtime-admission');
 
 function isInstalledPrivexRelease(rootDir) {
   const normalized = path.posix.normalize(String(rootDir).replace(/\\/g, '/'));
@@ -20,15 +25,44 @@ function isInstalledPrivexRelease(rootDir) {
 }
 
 function startServer(options = {}) {
-  const config = options.config || loadConfig();
+  const environment = options.environment || process.env;
+  const shouldLoadDotenv = options.loadDotenv ?? environment === process.env;
+  const environmentAdmission = loadVenueRuntimeAdmission(environment, {
+    loadDotenv: shouldLoadDotenv,
+  });
+  const venueAdmission = environmentAdmission || options.venueAdmission || null;
+
+  const config =
+    options.config ||
+    loadConfig(environment, {
+      loadDotenv: false,
+      venue: venueAdmission?.composition.venueContext || null,
+    });
+  const onboardingEnvironment = options.onboardingEnvironment || environment;
+  const onboardingConfig =
+    options.onboardingConfig || parseOnboardingConfig(onboardingEnvironment, config.hive);
+
   const logger = options.logger || createLogger(config);
   const releaseRoot = options.releaseRoot || path.join(__dirname, '..');
+  const admittedDeployment = venueAdmission?.composition.deploymentProfile || null;
   const deploymentIdentity =
     options.deploymentIdentity ||
     readDeploymentIdentity({
       rootDir: releaseRoot,
-      strict: config.isProduction && isInstalledPrivexRelease(releaseRoot),
+      strict:
+        config.isProduction &&
+        (admittedDeployment?.release.exactCommitRequired === true ||
+          isInstalledPrivexRelease(releaseRoot)),
+      commitFilename: admittedDeployment?.provenance.commitFilename,
+      treeFilename: admittedDeployment?.provenance.treeFilename,
     });
+
+  assertVenueRuntimeCoherence(venueAdmission, config, {
+    onboardingConfig,
+    releaseRoot,
+    deploymentIdentity,
+  });
+
   const rpcPool =
     options.rpcPool ||
     new HiveRpcPool({
@@ -42,6 +76,8 @@ function startServer(options = {}) {
     options.app ||
     createApp({
       config,
+      venue: venueAdmission?.composition.venueContext,
+      venuePackage: venueAdmission?.composition.venuePackage,
       logger,
       rpcPool,
       deploymentIdentity,
@@ -50,8 +86,8 @@ function startServer(options = {}) {
       receiptStore: options.receiptStore,
       moderationStore: options.moderationStore,
       moderationService: options.moderationService,
-      onboardingConfig: options.onboardingConfig,
-      onboardingEnvironment: options.onboardingEnvironment,
+      onboardingConfig,
+      onboardingEnvironment,
       onboardingStore: options.onboardingStore,
       onboardingService: options.onboardingService,
     });
@@ -64,6 +100,9 @@ function startServer(options = {}) {
       {
         port: config.server.port,
         bindHost: config.server.bindHost,
+        venueId: config.venue.id,
+        venueBootstrapId: venueAdmission?.composition.bootstrapId || null,
+        deploymentProfileId: venueAdmission?.composition.deploymentProfile.id || null,
         communityId: config.hive.communityId,
         threadsContainerAccount: config.hive.threadsContainerAccount,
         writeMode: config.hive.writeMode,
@@ -128,7 +167,16 @@ function startServer(options = {}) {
     process.once('SIGINT', () => shutdown('SIGINT'));
   }
 
-  return { app, config, deploymentIdentity, logger, rpcPool, server, shutdown };
+  return {
+    app,
+    config,
+    deploymentIdentity,
+    logger,
+    rpcPool,
+    server,
+    shutdown,
+    venueAdmission,
+  };
 }
 
 if (require.main === module) {

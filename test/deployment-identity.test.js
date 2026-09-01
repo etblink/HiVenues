@@ -21,9 +21,14 @@ function tempRelease() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'hive-bar-identity-'));
 }
 
-function writeIdentity(rootDir, commit, tree) {
-  if (commit !== undefined) fs.writeFileSync(path.join(rootDir, '.hive-bar-commit'), `${commit}\n`);
-  if (tree !== undefined) fs.writeFileSync(path.join(rootDir, '.hive-bar-tree'), `${tree}\n`);
+function writeIdentity(
+  rootDir,
+  commit,
+  tree,
+  { commitFilename = '.hive-bar-commit', treeFilename = '.hive-bar-tree' } = {},
+) {
+  if (commit !== undefined) fs.writeFileSync(path.join(rootDir, commitFilename), `${commit}\n`);
+  if (tree !== undefined) fs.writeFileSync(path.join(rootDir, treeFilename), `${tree}\n`);
 }
 
 test('derives a deterministic beta build label from an exact deployed commit', () => {
@@ -45,6 +50,33 @@ test('reads exact release commit and tree identity without consulting Git or the
       tree,
       exact: true,
     });
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('reads profile-owned provenance filenames and rejects path-like filename overrides', () => {
+  const rootDir = tempRelease();
+  const commit = '0123456789abcdef0123456789abcdef01234567';
+  const tree = '89abcdef0123456789abcdef0123456789abcdef';
+  const commitFilename = '.lantern-commit';
+  const treeFilename = '.lantern-tree';
+  writeIdentity(rootDir, commit, tree, { commitFilename, treeFilename });
+
+  try {
+    assert.deepEqual(
+      readDeploymentIdentity({ rootDir, strict: true, commitFilename, treeFilename }),
+      {
+        build: 'beta-0123456',
+        commit,
+        tree,
+        exact: true,
+      },
+    );
+    assert.throws(
+      () => readDeploymentIdentity({ rootDir, commitFilename: '../escape', treeFilename }),
+      /filename without path separators/,
+    );
   } finally {
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
