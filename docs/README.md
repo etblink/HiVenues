@@ -5,21 +5,21 @@ This index points to documents needed to interpret the **current** successor sta
 ## Current documents
 
 - `../README.md` — product/developer entry point and current source boundary.
-- `ROADMAP.md` — current successor state and sequencing.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md` — accepted exact deploy candidate and qualification result; production mutation remains unauthorized.
-- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen HV-8 production-transition contract.
+- `ROADMAP.md` — current product state and sequencing.
+- `PRODUCTION_OPERATIONS.md` — freshly reconciled Fourth Street operating model and current durable-capability state.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md` — accepted technical convergence candidate/evidence; production transition is withheld.
+- `HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md` — frozen transition contract retained for use only if a future product/operational reason reopens deployment.
 - `HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md` — accepted HV-7 Tier-A result.
 - `HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md` — frozen Juniper requirements.
 - `HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` — accepted visual-authoring foundation.
 - `HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` — canonical authoring authority baseline.
 - `HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md` — accepted isolated-runtime strategy.
-- `PRODUCTION_OPERATIONS.md` — Fourth Street operating model.
 
 ## Current interpretation
 
 HV-1 through HV-6 are accepted foundations. Juniper Works Cooperative is the validated **synthetic** second venue nominee; its 24 frozen requirements passed at Tier-A product-and-architecture evidence.
 
-Current running Fourth Street identity is:
+Fresh HV-8 Phase A is complete. Fourth Street remains healthy and coherent at:
 
 ```text
 BUILD = beta-fdb5b5b
@@ -30,7 +30,9 @@ WRITE_MODE = beta
 READY = ready
 ```
 
-The HV-8 deployment preregistration is frozen. Exact candidate `02ac081d2cfaee599f98e4fb8d9367638cd8d500` / tree `49b7b561af89fc99534d2a2974215bfe7a3db3c3` is Project-Lead accepted after full exact-candidate qualification. Production mutation remains unauthorized. Canonical integrated source is moving `main`; the deploy target is the frozen historical candidate, not moving `main`.
+Operator-side identity agrees with the public edge. Current production has active durable Pay, onboarding, and moderation; Distriator remains disabled and controlled/delegated Hive authority is absent. HV-8 is technically qualified, but the **production transition is withheld** because deployment compatibility is not itself a product reason to replace the healthy reference deployment.
+
+Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
@@ -46,11 +48,10 @@ HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
 HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
 HV8_CURRENT_RUNNING_WRITE_MODE = beta
 HV8_CURRENT_RUNNING_READY = ready
-HV8_DEPLOYMENT_PREREGISTRATION = FROZEN_0_1_0
-HV8_DEPLOY_CANDIDATE = 02ac081d2cfaee599f98e4fb8d9367638cd8d500
-HV8_DEPLOY_CANDIDATE_TREE = 49b7b561af89fc99534d2a2974215bfe7a3db3c3
-HV8_CANDIDATE_QUALIFICATION = PROJECT_LEAD_ACCEPTED
-NEXT_OPERATION = HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
+HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
+HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
+HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
+NEXT_OPERATION = VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -63,9 +64,9 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE__PHASE_A_READ_ONLY_PRODUCTION_PREFLIGHT
+VENUE_HOME_COMMUNITY_PULSE__PRODUCT_BUILD
 ```
 
-Phase A is read-only. It must freshly reconcile public deployment identity/readiness with operator-side `current`, bind `last-good`, and record only cryptographic hashes/non-secret metadata for the accepted beta and read-only environments. It must stop on ambiguity.
+The next work is ordinary product engineering: use existing trusted Hive reads and existing venue moderation policy to make the homepage surface a compact community pulse alongside official venue updates. The target is a more socially alive, return-worthy venue front door without adding signing authority, persistence, infrastructure, or a new technology merely because it is available.
 
-No deployment, service restart, environment/symlink mutation, Hive/Keychain write, payment/onboarding/moderation/V1 activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
+No deployment, service restart, environment/symlink mutation, Hive/Keychain write, capability activation, public production authoring, secret/key change, infrastructure mutation, or venue outreach is authorized.
