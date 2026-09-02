@@ -238,6 +238,20 @@ function hasConcretePreviousReleaseRecovery(source, failureMessage) {
   );
 }
 
+function hasConcreteReadinessGate(source) {
+  return (
+    source.includes("profile.release.healthPath") &&
+    source.includes("profile.release.readinessPath") &&
+    source.includes('manifest?.release?.healthPath') &&
+    source.includes('manifest?.release?.readinessPath') &&
+    source.includes("fs.existsSync(profilePath)") &&
+    source.includes("applicationUrl.hostname !== '127.0.0.1'") &&
+    source.includes('readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url"') &&
+    source.includes('readiness_body_is_ready "$readiness"') &&
+    source.includes(']] &&\n      readiness_check; then')
+  );
+}
+
 function productionInvariantCoverageFromSources(deploy, rollback) {
   return Object.freeze({
     deployExactCommitResolution:
@@ -252,10 +266,11 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
     deployHealthBindsCommitTree:
       deploy.includes('\\"commit\\":\\"$commit\\"') &&
       deploy.includes('\\"tree\\":\\"$tree\\"') &&
-      deploy.includes('post-switch health check failed'),
+      deploy.includes('post-switch health/readiness gate failed'),
+    deployReadinessGateFromDeploymentProfile: hasConcreteReadinessGate(deploy),
     deployFailureRestoresPrevious: hasConcretePreviousReleaseRecovery(
       deploy,
-      'post-switch health check failed',
+      'post-switch health/readiness gate failed',
     ),
     rollbackExactCommitTreeVerification:
       rollback.includes('release tree identity does not match the reviewed repository'),
@@ -264,9 +279,10 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
     rollbackHealthBindsCommitTree:
       rollback.includes('\\"commit\\":\\"$commit\\"') &&
       rollback.includes('\\"tree\\":\\"$tree\\"'),
+    rollbackReadinessGateFromDeploymentProfile: hasConcreteReadinessGate(rollback),
     rollbackFailureRestoresPrior: hasConcretePreviousReleaseRecovery(
       rollback,
-      'rollback target failed its health check',
+      'rollback target failed its health/readiness gate',
     ),
   });
 }

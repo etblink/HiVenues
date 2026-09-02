@@ -117,8 +117,8 @@ test('production recovery invariant cross-check requires concrete recovery mecha
     '# injected test: recovery current switch removed',
   );
   const rollbackWithoutRecoveryRestart = rollback.replace(
-    'systemctl restart "$service"\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
-    '# injected test: recovery restart removed\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
+    'systemctl restart "$service"\nfi\nfail \'rollback target failed its health/readiness gate; the prior release was restored when available\'',
+    '# injected test: recovery restart removed\nfi\nfail \'rollback target failed its health/readiness gate; the prior release was restored when available\'',
   );
 
   const missingDeployRecovery = productionInvariantCoverageFromSources(

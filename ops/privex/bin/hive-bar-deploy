@@ -11,10 +11,11 @@ readonly environment_file=/etc/hive-bar/hive-bar.env
 readonly runtime=/usr/local/bin/node
 readonly npm_runtime=/usr/local/bin/npm
 readonly service=hive-bar.service
-readonly health_url=http://127.0.0.1:3000/healthz
 
 staging=
 last_good_staging=
+health_url=
+readiness_url=
 
 fail() {
   printf 'Hive-Bar deploy refused: %s\n' "$1" >&2
@@ -30,6 +31,77 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+load_probe_urls() {
+  local output
+  local -a urls
+  if ! output="$(
+    runuser -u hivebar -- env -i \
+      HOME=/nonexistent PATH=/usr/local/bin:/usr/bin:/bin RELEASE_ROOT="$release" \
+      "$runtime" <<'NODE'
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const releaseRoot = process.env.RELEASE_ROOT;
+const manifestPath = path.join(releaseRoot, 'ops', 'privex', 'manifest.json');
+const profilePath = path.join(releaseRoot, 'src', 'deployment', 'profile.js');
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+let base;
+let healthPath;
+let readinessPath;
+if (fs.existsSync(profilePath)) {
+  const { compileDeploymentProfile } = require(profilePath);
+  const profile = compileDeploymentProfile(manifest);
+  const application = profile.topology.application;
+  base = `http://${application.bindHost}:${application.port}`;
+  healthPath = profile.release.healthPath;
+  readinessPath = profile.release.readinessPath;
+} else {
+  const applicationAddress = String(manifest?.topology?.applicationAddress || '').trim();
+  healthPath = String(manifest?.release?.healthPath || '').trim();
+  readinessPath = String(manifest?.release?.readinessPath || '').trim();
+  const applicationUrl = new URL(`http://${applicationAddress}`);
+  const port = Number(applicationUrl.port);
+  if (
+    applicationUrl.hostname !== '127.0.0.1' ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535 ||
+    applicationUrl.pathname !== '/' ||
+    applicationUrl.search ||
+    applicationUrl.hash ||
+    applicationUrl.username ||
+    applicationUrl.password
+  ) {
+    throw new Error('legacy Privex applicationAddress must be a loopback host:port');
+  }
+  const routePattern = /^\/(?!\/)[^?#\s]*$/;
+  if (!routePattern.test(healthPath) || !routePattern.test(readinessPath) || healthPath === readinessPath) {
+    throw new Error('legacy Privex health/readiness routes are malformed');
+  }
+  base = applicationUrl.origin;
+}
+process.stdout.write(`${base}${healthPath}\n${base}${readinessPath}\n`);
+NODE
+  )"; then
+    fail 'release health/readiness probe URLs could not be derived from the reviewed deployment profile'
+  fi
+  mapfile -t urls <<<"$output"
+  [[ ${#urls[@]} -eq 2 && -n "${urls[0]}" && -n "${urls[1]}" ]] || \
+    fail 'release health/readiness probe URLs were malformed'
+  health_url="${urls[0]}"
+  readiness_url="${urls[1]}"
+}
+
+readiness_body_is_ready() {
+  [[ "$1" == '{"status":"ready"}' ]]
+}
+
+readiness_check() {
+  local readiness
+  readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null)" || return 1
+  readiness_body_is_ready "$readiness"
+}
 
 [[ $EUID -eq 0 ]] || fail 'run as root'
 [[ $# -eq 1 ]] || fail 'provide exactly one full 40-character commit SHA'
@@ -100,6 +172,8 @@ runuser -u hivebar -- /usr/bin/test -r "$release/scripts/start-privex.js" || fai
 [[ "$(<"$release/.hive-bar-commit")" == "$commit" ]] || fail 'stored release commit does not match'
 [[ "$(<"$release/.hive-bar-tree")" == "$tree" ]] || fail 'stored release tree does not match'
 
+load_probe_urls
+
 previous=
 if [[ -e "$current" || -L "$current" ]]; then
   previous="$(readlink -f "$current" 2>/dev/null || true)"
@@ -137,7 +211,8 @@ for _attempt in {1..20}; do
   if [[ "$health" == *'"writeMode":"disabled"'* &&
         "$health" == *"\"build\":\"$build\""* &&
         "$health" == *"\"commit\":\"$commit\""* &&
-        "$health" == *"\"tree\":\"$tree\""* ]]; then
+        "$health" == *"\"tree\":\"$tree\""* ]] &&
+      readiness_check; then
     deployed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     printf 'Hive-Bar deployed %s exact commit %s tree %s at %s subject: %s\n' "$build" "$commit" "$tree" "$deployed_at" "$subject"
     exit 0
@@ -151,4 +226,4 @@ if [[ -n "$previous" && -d "$previous" ]]; then
   mv -Tf "$recovery_link" "$current"
   systemctl restart "$service"
 fi
-fail 'post-switch health check failed; the previous release was restored when available'
+fail 'post-switch health/readiness gate failed; the previous release was restored when available'
