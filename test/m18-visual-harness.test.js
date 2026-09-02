@@ -99,7 +99,7 @@ test('M18.2 CI keeps dual-OS qualification and current-contract UI/UX evidence',
   assert.match(visualJob, /node scripts\/assemble-current-visual-evidence\.js/);
   assert.match(visualJob, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(visualJob, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  assert.match(visualJob, /does not by itself constitute Project Lead visual approval/);
+  assert.match(visualJob, /does not constitute Project Lead visual approval/);
   assert.ok(suite);
   assert.deepEqual(suite.command, ['npm', 'run', 'test:visual:m18']);
   assert.equal(suite.outputEnv, 'M18_VISUAL_OUTPUT');
