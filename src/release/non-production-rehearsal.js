@@ -242,6 +242,10 @@ function hasConcreteReadinessGate(source) {
   return (
     source.includes("profile.release.healthPath") &&
     source.includes("profile.release.readinessPath") &&
+    source.includes('manifest?.release?.healthPath') &&
+    source.includes('manifest?.release?.readinessPath') &&
+    source.includes("fs.existsSync(profilePath)") &&
+    source.includes("applicationUrl.hostname !== '127.0.0.1'") &&
     source.includes('readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url"') &&
     source.includes('readiness_body_is_ready "$readiness"') &&
     source.includes(']] &&\n      readiness_check; then')
