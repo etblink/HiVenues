@@ -54,6 +54,18 @@ test('venue beneficiary policy is default-off and enabled policy requires an exp
   );
 });
 
+test('venue admission rejects enabled beneficiary weights above 100 percent combined', () => {
+  assert.throws(
+    () => createVenueContext(venueInput({
+      beneficiaryPolicy: {
+        venueUserPost: { enabled: true, weight: 6000 },
+        creatorDonation: { enabled: true, weight: 5000 },
+      },
+    })),
+    /Combined enabled beneficiary policy weights cannot exceed 10000/,
+  );
+});
+
 test('explicit creator donation appends one reviewed comment_options operation and stays absent when unchecked', () => {
   const config = socialConfig({
     venueUserPost: { enabled: false, weight: null },

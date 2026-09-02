@@ -29,7 +29,18 @@ const beneficiaryPolicySchema = z
     venueUserPost: beneficiaryComponentSchema.default(DEFAULT_BENEFICIARY_POLICY.venueUserPost),
     creatorDonation: beneficiaryComponentSchema.default(DEFAULT_BENEFICIARY_POLICY.creatorDonation),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const totalEnabledWeight = [value.venueUserPost, value.creatorDonation]
+      .filter((component) => component.enabled)
+      .reduce((sum, component) => sum + (component.weight || 0), 0);
+    if (totalEnabledWeight > MAX_BENEFICIARY_WEIGHT) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Combined enabled beneficiary policy weights cannot exceed 10000',
+      });
+    }
+  });
 
 function httpsUrl(value, context) {
   let parsed;

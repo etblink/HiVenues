@@ -128,8 +128,11 @@ function selectThreadsContainer(rawPosts, {
     }
   }
 
-  if (!allowLegacyFallback || topLevel.length === 0) return null;
-  return Object.freeze({ item: topLevel[0], marker: null, legacyFallbackUsed: true });
+  if (!allowLegacyFallback) return null;
+  const legacy = topLevel.find((item) => !readThreadsContainerMarker(item.json_metadata));
+  return legacy
+    ? Object.freeze({ item: legacy, marker: null, legacyFallbackUsed: true })
+    : null;
 }
 
 function normalizeBeneficiaryComponent(component) {

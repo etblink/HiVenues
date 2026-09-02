@@ -24,10 +24,15 @@ function threadsFundsAppError(error) {
 
 function requireMerchantSession(config) {
   return (req, _res, next) => {
-    if (config.hive.signerMode !== 'keychain') {
-      return next(new FeatureUnavailableError('Hive Keychain is required to claim Threads funds.', {
-        code: 'THREADS_FUNDS_KEYCHAIN_REQUIRED',
-      }));
+    if (
+      config.hive.writeMode !== 'beta' ||
+      !config.hive.betaSelfSigningEnabled ||
+      config.hive.signerMode !== 'keychain'
+    ) {
+      return next(new FeatureUnavailableError(
+        'Threads funds claims require the accepted beta + Hive Keychain self-signing runtime.',
+        { code: 'THREADS_FUNDS_RUNTIME_UNAVAILABLE' },
+      ));
     }
     if (req.hiveSession?.account !== config.hive.officialAccount) {
       return next(new AuthorizationError('Only the venue merchant can claim Threads funds', {

@@ -91,6 +91,38 @@ test('marked container wins over newer unrelated roots and legacy fallback is ex
   }), null);
 });
 
+test('legacy fallback never selects a valid marker owned by another venue', () => {
+  const foreignMarked = {
+    author: 'fourthst.threads',
+    permlink: 'foreign-marked',
+    parent_author: '',
+    json_metadata: buildThreadsContainerMetadata({
+      venue: { ...venue, id: 'another-venue' },
+      appTag: 'hive-venues/0.1.0',
+    }),
+  };
+  const legacy = {
+    author: 'fourthst.threads',
+    permlink: 'legacy-unmarked',
+    parent_author: '',
+    json_metadata: '{}',
+  };
+
+  const selected = selectThreadsContainer([foreignMarked, legacy], {
+    account: 'fourthst.threads',
+    venueId: venue.id,
+    allowLegacyFallback: true,
+  });
+  assert.equal(selected.item.permlink, 'legacy-unmarked');
+  assert.equal(selected.legacyFallbackUsed, true);
+
+  assert.equal(selectThreadsContainer([foreignMarked], {
+    account: 'fourthst.threads',
+    venueId: venue.id,
+    allowLegacyFallback: true,
+  }), null);
+});
+
 test('machine root routes 100 percent of author reward to official venue account', () => {
   const envelope = buildThreadsContainerRoot({
     venue,
