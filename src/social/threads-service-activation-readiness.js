@@ -206,7 +206,19 @@ function assessThreadsServiceActivationReadiness(input = {}) {
 
   const authorityReady = accountMatches && postingDirect && merchantActive;
   const credentialBoundarySafe = prohibitedConfigured.length === 0;
-  const activationReady = authorityReady && credentialBoundarySafe && postingCredentialConfigured;
+  const preparationReady = authorityReady && credentialBoundarySafe;
+  const runtimeSignerActivationImplemented = false;
+  addCheck(
+    checks,
+    blockers,
+    'THREADS_RUNTIME_SIGNER_ACTIVATION_IMPLEMENTED',
+    runtimeSignerActivationImplemented,
+    {
+      implemented: false,
+      currentBoundary: 'CANONICAL_THREADS_SERVICE_SIGNER_REMAINS_SYNTHETIC_TEST_ONLY',
+    },
+  );
+  const activationReady = false;
 
   let nextStage;
   if (!accountMatches || !posting || !active) {
@@ -218,12 +230,13 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   } else if (!postingCredentialConfigured) {
     nextStage = 'SEPARATELY_AUTHORIZE_POSTING_KEY_PROVISIONING';
   } else {
-    nextStage = 'SEPARATELY_AUTHORIZE_DEPLOYMENT_ACTIVATION';
+    nextStage = 'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION';
   }
 
   return Object.freeze({
     schema: 'hive-venues-threads-service-activation-readiness-v1',
     activationReady,
+    preparationReady,
     authorityReady,
     credentialBoundarySafe,
     postingCredentialConfigured,
@@ -242,6 +255,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
       'VERIFY_POST_CHANGE_AUTHORITIES_FROM_FRESH_ON_CHAIN_READ_BEFORE_DEPLOYMENT',
       'NEVER_PROVISION_ACTIVE_OWNER_OR_MEMO_PRIVATE_KEYS_TO_THE_SERVER',
     ]),
+    currentRepositoryBoundary: 'REAL_THREADS_SERVICE_SIGNER_REMAINS_SYNTHETIC_TEST_ONLY',
     externalEffectBoundary: 'NO_LIVE_MUTATION_OR_SECRET_OPERATION_PERFORMED_BY_THIS_PREFLIGHT',
   });
 }

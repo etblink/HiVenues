@@ -50,14 +50,19 @@ function memoryIo() {
   };
 }
 
-test('fully prepared snapshot is ready only with direct Posting key, merchant Active auth, and Posting-only server custody', () => {
+test('fully prepared declared snapshot still cannot claim live activation while the canonical signer remains synthetic-only', () => {
   const report = assessThreadsServiceActivationReadiness(snapshot());
-  assert.equal(report.activationReady, true);
+  assert.equal(report.activationReady, false);
+  assert.equal(report.preparationReady, true);
   assert.equal(report.authorityReady, true);
   assert.equal(report.credentialBoundarySafe, true);
-  assert.equal(report.nextStage, 'SEPARATELY_AUTHORIZE_DEPLOYMENT_ACTIVATION');
-  assert.deepEqual(report.blockers, []);
+  assert.equal(
+    report.nextStage,
+    'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION',
+  );
+  assert.deepEqual(report.blockers, ['THREADS_RUNTIME_SIGNER_ACTIVATION_IMPLEMENTED']);
   assert.deepEqual(report.proposedAuthorityChanges, []);
+  assert.equal(report.currentRepositoryBoundary, 'REAL_THREADS_SERVICE_SIGNER_REMAINS_SYNTHETIC_TEST_ONLY');
 });
 
 test('prepared authorities without a provisioned Posting credential stop at the separate provisioning boundary', () => {
@@ -65,7 +70,10 @@ test('prepared authorities without a provisioned Posting credential stop at the 
   assert.equal(report.activationReady, false);
   assert.equal(report.authorityReady, true);
   assert.equal(report.nextStage, 'SEPARATELY_AUTHORIZE_POSTING_KEY_PROVISIONING');
-  assert.deepEqual(report.blockers, ['THREADS_POSTING_CREDENTIAL_CONFIGURED']);
+  assert.deepEqual(report.blockers, [
+    'THREADS_POSTING_CREDENTIAL_CONFIGURED',
+    'THREADS_RUNTIME_SIGNER_ACTIVATION_IMPLEMENTED',
+  ]);
 });
 
 test('missing direct Posting key and merchant Active account auth produce exact authority-change proposals', () => {
