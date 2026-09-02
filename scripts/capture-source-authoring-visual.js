@@ -60,7 +60,7 @@ function stageForSection(label) {
 
 async function chooseSection(page, label) {
   const stageId = stageForSection(label);
-  const stage = page.locator(`[data-studio-stage="${stageId}"]`);
+  const stage = page.locator(`button[data-studio-stage="${stageId}"]`);
   if (await stage.count()) await stage.click();
   const link = page.getByRole('link', { name: label, exact: true });
   await link.waitFor({ state: 'visible' });
@@ -96,7 +96,7 @@ async function inspectSimpleEditor(page, scenario) {
     }).length;
     return {
       progressiveMode: root.dataset.qolProgressive,
-      studioStageCount: globalThis.document.querySelectorAll('[data-studio-stage]').length,
+      studioStageCount: globalThis.document.querySelectorAll('button[data-studio-stage]').length,
       horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
       undersized: visibleControls.filter((control) => control.height < 44),
       sectionCount: globalThis.document.querySelectorAll('.section').length,
@@ -266,10 +266,22 @@ async function inspectPostInteraction(page, preview, scenario) {
   assert.equal(editor.activeSectionCount, 1, `${scenario.id}: ${JSON.stringify(editor)}`);
   assert.equal(editor.currentSectionLinkCount, 1, `${scenario.id}: ${JSON.stringify(editor)}`);
 
+  const structured = scenario.id.startsWith('juniper') ? await inspectStructuredPostInteraction(page, scenario) : null;
+  let previewHero;
+  if (scenario.id.startsWith('fourth-street') && scenario.width <= 900) {
+    await page.locator('button[data-studio-view="preview"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'preview');
+    previewHero = await inspectPreviewPostInteraction(preview, scenario);
+    await page.locator('button[data-studio-view="edit"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'edit');
+  } else {
+    previewHero = await inspectPreviewPostInteraction(preview, scenario);
+  }
+
   return {
     editor,
-    structured: scenario.id.startsWith('juniper') ? await inspectStructuredPostInteraction(page, scenario) : null,
-    previewHero: await inspectPreviewPostInteraction(preview, scenario),
+    structured,
+    previewHero,
   };
 }
 
