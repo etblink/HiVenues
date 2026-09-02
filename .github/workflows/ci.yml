@@ -77,11 +77,11 @@ jobs:
                 visual=true
                 break
                 ;;
-              scripts/capture-*-visual.js|scripts/capture-current-contract-visual.js|scripts/run-current-visual-contract.js|scripts/assemble-current-visual-evidence.js)
+              scripts/capture-*-visual.js|scripts/capture-current-contract-visual.js|scripts/capture-issue-130-presentation-review.js|scripts/run-current-visual-contract.js|scripts/assemble-current-visual-evidence.js)
                 visual=true
                 break
                 ;;
-              config/visual-qualification-contract.json|test/visual-qualification-contract.test.js)
+              config/visual-qualification-contract.json|config/issue-130-presentation-review.json|test/visual-qualification-contract.test.js|test/issue-130-presentation-quality.test.js)
                 visual=true
                 break
                 ;;
@@ -161,6 +161,10 @@ jobs:
         env:
           VISUAL_REVIEW_ROOT: artifacts/current-visual-review
         run: node scripts/capture-current-contract-visual.js
+      - name: Capture Issue 130 presentation review evidence
+        env:
+          ISSUE_130_PRESENTATION_REVIEW_ROOT: artifacts/issue-130-presentation-review
+        run: node scripts/capture-issue-130-presentation-review.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -173,14 +177,16 @@ jobs:
           const fs = require('node:fs');
           const machine = JSON.parse(fs.readFileSync('artifacts/current-visual-machine-summary.json', 'utf8'));
           const review = JSON.parse(fs.readFileSync('artifacts/current-visual-review/manifest.json', 'utf8'));
+          const presentation = JSON.parse(fs.readFileSync('artifacts/issue-130-presentation-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
           console.log(`- Bounded-concurrency machine wall time: ${machine.wallSeconds}s (CI #508 serial baseline: ~${machine.baselineVisualWallSecondsApprox}s)`);
           console.log(`- Human-review screenshots: ${review.reviewMetrics.screenshotCount} (CI #508 uploaded PNG baseline: ${review.baseline.pngCount})`);
           console.log(`- Human-review PNG bytes: ${review.reviewMetrics.screenshotBytes} (CI #508 artifact baseline: ${review.baseline.uploadedBytes} bytes)`);
+          console.log(`- Issue #130 presentation-review screenshots: ${presentation.captures.length}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
-          console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifact.');
+          console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
       - name: Preserve bounded current visual evidence
         if: success()
@@ -189,6 +195,7 @@ jobs:
           name: current-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             artifacts/current-visual-review
+            artifacts/issue-130-presentation-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90
