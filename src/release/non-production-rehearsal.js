@@ -219,26 +219,31 @@ function rollbackRelease({
   });
 }
 
-function recoveryBlockBeforeFailure(source, failureMessage) {
-  const failureIndex = source.indexOf(failureMessage);
-  if (failureIndex < 0) return '';
-  const recoveryStartMarker = 'if [[ -n "$previous" && -d "$previous" ]]; then';
-  const startIndex = source.lastIndexOf(recoveryStartMarker, failureIndex);
+function functionBlock(source, name) {
+  const marker = `${name}() {`;
+  const startIndex = source.indexOf(marker);
   if (startIndex < 0) return '';
-  return source.slice(startIndex, failureIndex);
+  const endIndex = source.indexOf('\n}', startIndex);
+  if (endIndex < 0) return '';
+  return source.slice(startIndex, endIndex + 2);
 }
 
-function hasConcretePreviousReleaseRecovery(source, failureMessage) {
-  const block = recoveryBlockBeforeFailure(source, failureMessage);
+function hasConcretePreviousReleaseRecovery(source, failureMarker) {
+  const recovery = functionBlock(source, 'restore_previous_release');
+  const failureIndex = source.indexOf(failureMarker);
+  if (failureIndex < 0) return false;
+  const beforeFailure = source.slice(0, failureIndex);
   return (
-    block.includes('recovery_link="$app_root/.current.recovery.$$"') &&
-    block.includes('ln -s "$previous" "$recovery_link"') &&
-    block.includes('mv -Tf "$recovery_link" "$current"') &&
-    block.includes('systemctl restart "$service"')
+    recovery.includes('local recovery_link="$app_root/.current.recovery.$$"') &&
+    recovery.includes('ln -s "$previous" "$recovery_link"') &&
+    recovery.includes('mv -Tf "$recovery_link" "$current"') &&
+    recovery.includes('systemctl restart "$service"') &&
+    beforeFailure.includes('restore_previous_release')
   );
 }
 
 function hasConcreteReadinessGate(source) {
+  const gate = functionBlock(source, 'release_gate_check');
   return (
     source.includes("profile.release.healthPath") &&
     source.includes("profile.release.readinessPath") &&
@@ -246,9 +251,26 @@ function hasConcreteReadinessGate(source) {
     source.includes('manifest?.release?.readinessPath') &&
     source.includes("fs.existsSync(profilePath)") &&
     source.includes("applicationUrl.hostname !== '127.0.0.1'") &&
-    source.includes('readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url"') &&
-    source.includes('readiness_body_is_ready "$readiness"') &&
-    source.includes(']] &&\n      readiness_check; then')
+    gate.includes("--write-out $'\\n%{http_code}'") &&
+    gate.includes('gate_failure="READINESS_HTTP_$http_status"') &&
+    gate.includes('gate_failure=READINESS_NOT_READY') &&
+    gate.includes('readiness_body_is_ready "$readiness"') &&
+    source.includes('if release_gate_check; then')
+  );
+}
+
+function hasDistinctGateFailureClassification(source) {
+  const gate = functionBlock(source, 'release_gate_check');
+  const reason = functionBlock(source, 'gate_failure_reason');
+  return (
+    gate.includes('gate_failure=HEALTH_UNREACHABLE') &&
+    gate.includes('gate_failure="HEALTH_HTTP_$http_status"') &&
+    gate.includes('gate_failure=HEALTH_IDENTITY_MISMATCH') &&
+    gate.includes('gate_failure=READINESS_UNREACHABLE') &&
+    gate.includes('gate_failure="READINESS_HTTP_$http_status"') &&
+    gate.includes('gate_failure=READINESS_NOT_READY') &&
+    reason.includes("HEALTH_*) printf 'health identity gate failed (%s)'") &&
+    reason.includes("READINESS_*) printf 'readiness gate failed (%s)'")
   );
 }
 
@@ -265,12 +287,12 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
       deploy.includes('mv -Tf "$last_good_staging" "$last_good"'),
     deployHealthBindsCommitTree:
       deploy.includes('\\"commit\\":\\"$commit\\"') &&
-      deploy.includes('\\"tree\\":\\"$tree\\"') &&
-      deploy.includes('post-switch health/readiness gate failed'),
+      deploy.includes('\\"tree\\":\\"$tree\\"'),
     deployReadinessGateFromDeploymentProfile: hasConcreteReadinessGate(deploy),
+    deployDistinctHealthReadinessFailureClassification: hasDistinctGateFailureClassification(deploy),
     deployFailureRestoresPrevious: hasConcretePreviousReleaseRecovery(
       deploy,
-      'post-switch health/readiness gate failed',
+      'fail "post-switch $(gate_failure_reason); the previous release was restored when available"',
     ),
     rollbackExactCommitTreeVerification:
       rollback.includes('release tree identity does not match the reviewed repository'),
@@ -280,9 +302,10 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
       rollback.includes('\\"commit\\":\\"$commit\\"') &&
       rollback.includes('\\"tree\\":\\"$tree\\"'),
     rollbackReadinessGateFromDeploymentProfile: hasConcreteReadinessGate(rollback),
+    rollbackDistinctHealthReadinessFailureClassification: hasDistinctGateFailureClassification(rollback),
     rollbackFailureRestoresPrior: hasConcretePreviousReleaseRecovery(
       rollback,
-      'rollback target failed its health/readiness gate',
+      'fail "rollback target $(gate_failure_reason); the prior release was restored when available"',
     ),
   });
 }
