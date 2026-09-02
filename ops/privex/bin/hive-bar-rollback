@@ -12,6 +12,7 @@ readonly service=hive-bar.service
 
 health_url=
 readiness_url=
+gate_failure=NOT_RUN
 
 fail() {
   printf 'Hive-Bar rollback refused: %s\n' "$1" >&2
@@ -83,10 +84,56 @@ readiness_body_is_ready() {
   [[ "$1" == '{"status":"ready"}' ]]
 }
 
-readiness_check() {
-  local readiness
-  readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null)" || return 1
-  readiness_body_is_ready "$readiness"
+release_gate_check() {
+  local response http_status health readiness
+
+  gate_failure=HEALTH_UNREACHABLE
+  response="$(curl --silent --show-error --max-time 5 --write-out $'\n%{http_code}' "$health_url" 2>/dev/null)" || return 1
+  http_status="${response##*$'\n'}"
+  health="${response%$'\n'*}"
+  if [[ "$http_status" != 200 ]]; then
+    gate_failure="HEALTH_HTTP_$http_status"
+    return 1
+  fi
+  if [[ "$health" != *'"writeMode":"disabled"'* ||
+        "$health" != *"\"build\":\"$build\""* ||
+        "$health" != *"\"commit\":\"$commit\""* ||
+        "$health" != *"\"tree\":\"$tree\""* ]]; then
+    gate_failure=HEALTH_IDENTITY_MISMATCH
+    return 1
+  fi
+
+  gate_failure=READINESS_UNREACHABLE
+  response="$(curl --silent --show-error --max-time 5 --write-out $'\n%{http_code}' "$readiness_url" 2>/dev/null)" || return 1
+  http_status="${response##*$'\n'}"
+  readiness="${response%$'\n'*}"
+  if [[ "$http_status" != 200 ]]; then
+    gate_failure="READINESS_HTTP_$http_status"
+    return 1
+  fi
+  if ! readiness_body_is_ready "$readiness"; then
+    gate_failure=READINESS_NOT_READY
+    return 1
+  fi
+
+  gate_failure=NONE
+  return 0
+}
+
+gate_failure_reason() {
+  case "$gate_failure" in
+    HEALTH_*) printf 'health identity gate failed (%s)' "$gate_failure" ;;
+    READINESS_*) printf 'readiness gate failed (%s)' "$gate_failure" ;;
+    *) printf 'release gate failed (%s)' "$gate_failure" ;;
+  esac
+}
+
+restore_previous_release() {
+  [[ -n "$previous" && -d "$previous" ]] || return 0
+  local recovery_link="$app_root/.current.recovery.$$"
+  ln -s "$previous" "$recovery_link"
+  mv -Tf "$recovery_link" "$current"
+  systemctl restart "$service"
 }
 
 [[ $EUID -eq 0 ]] || fail 'run as root'
@@ -131,12 +178,7 @@ mv -Tf "$next_link" "$current"
 systemctl restart "$service"
 
 for _attempt in {1..20}; do
-  health="$(curl --fail --silent --show-error --max-time 5 "$health_url" 2>/dev/null || true)"
-  if [[ "$health" == *'"writeMode":"disabled"'* &&
-        "$health" == *"\"build\":\"$build\""* &&
-        "$health" == *"\"commit\":\"$commit\""* &&
-        "$health" == *"\"tree\":\"$tree\""* ]] &&
-      readiness_check; then
+  if release_gate_check; then
     rolled_back_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     printf 'Hive-Bar rolled back to %s exact commit %s tree %s at %s subject: %s\n' "$build" "$commit" "$tree" "$rolled_back_at" "$subject"
     exit 0
@@ -144,10 +186,5 @@ for _attempt in {1..20}; do
   sleep 1
 done
 
-if [[ -n "$previous" && -d "$previous" ]]; then
-  recovery_link="$app_root/.current.recovery.$$"
-  ln -s "$previous" "$recovery_link"
-  mv -Tf "$recovery_link" "$current"
-  systemctl restart "$service"
-fi
-fail 'rollback target failed its health/readiness gate; the prior release was restored when available'
+restore_previous_release
+fail "rollback target $(gate_failure_reason); the prior release was restored when available"

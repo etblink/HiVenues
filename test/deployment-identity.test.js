@@ -153,16 +153,21 @@ test('surfaces exact release identity through health and the beta label through 
   }
 });
 
-test('deployment and rollback gates bind health to exact build, commit, tree, UTC time, and subject', () => {
+test('deployment and rollback gates bind exact health identity, readiness, UTC time, and subject', () => {
   const deploy = fs.readFileSync(path.join(ROOT, 'ops', 'privex', 'bin', 'hive-bar-deploy'), 'utf8');
   const rollback = fs.readFileSync(path.join(ROOT, 'ops', 'privex', 'bin', 'hive-bar-rollback'), 'utf8');
 
   for (const script of [deploy, rollback]) {
     assert.match(script, /build="beta-\$\{commit:0:7\}"/);
-    assert.match(script, /health="\$\(curl/);
+    assert.match(script, /release_gate_check\(\)/);
+    assert.match(script, /response="\$\(curl[\s\S]*--write-out \$'\\n%\{http_code\}'/);
     assert.match(script, /\$health[\s\S]*\$build/);
     assert.match(script, /\$health[\s\S]*\$commit/);
     assert.match(script, /\$health[\s\S]*\$tree/);
+    assert.match(script, /gate_failure=HEALTH_IDENTITY_MISMATCH/);
+    assert.match(script, /gate_failure="READINESS_HTTP_\$http_status"/);
+    assert.match(script, /gate_failure=READINESS_NOT_READY/);
+    assert.match(script, /readiness_body_is_ready "\$readiness"/);
     assert.match(script, /date -u/);
     assert.match(script, /--format=%s/);
     assert.match(script, /subject:/);
