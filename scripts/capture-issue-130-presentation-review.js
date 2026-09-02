@@ -116,9 +116,9 @@ async function waitForMainNavigation(page, submitter) {
 
 async function prepareStudio(page, fixture, scenario) {
   await page.goto(`${fixture.origin}${fixture.editorPath}`, { waitUntil: 'networkidle' });
-  await page.locator('[data-studio-stage="brand"]').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('[data-studio-stage]').count(), 4, `${scenario.id}: four Venue Studio stages required`);
-  assert.equal(await page.locator('[data-studio-view="preview"]').count(), 1, `${scenario.id}: mobile/compact preview toggle required`);
+  await page.locator('button[data-studio-stage="brand"]').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('button[data-studio-stage]').count(), 4, `${scenario.id}: four Venue Studio stages required`);
+  assert.equal(await page.locator('button[data-studio-view="preview"]').count(), 1, `${scenario.id}: mobile/compact preview toggle required`);
 
   let editedName = null;
   if (scenario.fixture === 'juniper-starter') {
@@ -137,7 +137,8 @@ async function prepareStudio(page, fixture, scenario) {
   const brandLink = page.locator('.nav a').filter({ hasText: /^Brand$/ });
   await brandLink.click();
   await page.locator('[data-studio-media="brand"]').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('html').getAttribute('data-studio-stage'), 'brand', scenario.id);
+  assert.equal(await page.locator('html').getAttribute('data-studio-active-stage'), 'brand', scenario.id);
+  assert.equal(await page.locator('html').getAttribute('data-studio-active-view'), 'edit', scenario.id);
   assert.equal(await page.locator('.nav a[aria-current="page"]').textContent(), 'Brand', scenario.id);
   assert.equal(await page.locator('[data-media-pointer="/venuePackage/brand/logo/src"]').count(), 1, scenario.id);
   return editedName;
@@ -185,7 +186,7 @@ async function captureScenario(browser, scenario) {
     const editedName = await prepareStudio(page, fixture, scenario);
     const layout = await geometry(page, scenario.id);
     const axeFindings = await runAxe(page, scenario.id);
-    const stageLabels = await page.locator('[data-studio-stage]').allTextContents();
+    const stageLabels = await page.locator('button[data-studio-stage]').allTextContents();
     assert.deepEqual(stageLabels.map((value) => value.replace(/^\s*\d+\s*/, '').trim()), ['Brand', 'Page', 'Details', 'Review'], scenario.id);
     assert.deepEqual(violations, [], `${scenario.id}: ${JSON.stringify(violations)}`);
     assert.deepEqual(authoring.rpcPool.calls, [], `${scenario.id}: Hive RPC calls`);
