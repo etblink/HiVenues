@@ -167,3 +167,57 @@ test('authority rejects more than 40 combined key and account members', () => {
   assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
+
+test('full 40-member authorities never propose adding a 41st direct member', () => {
+  const input = snapshot({ serverCredentialClasses: [], configuredPostingPublicKey: null });
+  input.threadsAccount.posting = {
+    weight_threshold: 1,
+    account_auths: Array.from(
+      { length: 40 },
+      (_, index) => [`pst${String(index).padStart(3, '0')}`, 1],
+    ),
+    key_auths: [],
+  };
+  input.threadsAccount.active = {
+    weight_threshold: 1,
+    account_auths: Array.from(
+      { length: 40 },
+      (_, index) => [`act${String(index).padStart(3, '0')}`, 1],
+    ),
+    key_auths: [],
+  };
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.authorityReady, false);
+  assert.deepEqual(report.proposedAuthorityChanges, [
+    {
+      authority: 'posting',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
+      publicKey: PUBLIC_KEY,
+      currentMembership: 40,
+      maximumMembership: 40,
+    },
+    {
+      authority: 'active',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
+      account: 'fourthstreetbar',
+      currentMembership: 40,
+      maximumMembership: 40,
+    },
+  ]);
+});
+
+test('authority identities are validated exactly without whitespace normalization', () => {
+  const keyInput = snapshot();
+  keyInput.threadsAccount.posting.key_auths = [[` ${PUBLIC_KEY}`, 1]];
+  const keyReport = assessThreadsServiceActivationReadiness(keyInput);
+  assert.equal(keyReport.authorityReady, false);
+  assert.equal(keyReport.blockers.includes('THREADS_POSTING_AUTHORITY_VALID'), true);
+  assert.deepEqual(keyReport.proposedAuthorityChanges, []);
+
+  const accountInput = snapshot();
+  accountInput.threadsAccount.active.account_auths = [[' fourthstreetbar ', 1]];
+  const accountReport = assessThreadsServiceActivationReadiness(accountInput);
+  assert.equal(accountReport.authorityReady, false);
+  assert.equal(accountReport.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.deepEqual(accountReport.proposedAuthorityChanges, []);
+});

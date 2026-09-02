@@ -136,10 +136,11 @@ function normalizeAuthorityEntries(entries, { identityValidator = null } = {}) {
   for (const entry of entries) {
     if (!Array.isArray(entry) || entry.length !== 2) return null;
     const rawIdentity = entry[0];
-    const identity = typeof rawIdentity === 'string' ? rawIdentity.trim() : '';
+    const identity = typeof rawIdentity === 'string' ? rawIdentity : '';
     const weight = entry[1];
     if (
       !identity
+      || identity !== identity.trim()
       || typeof weight !== 'number'
       || !Number.isSafeInteger(weight)
       || weight < 1
@@ -185,11 +186,23 @@ function normalizeAuthority(authority) {
   };
 }
 
+function authorityMembershipCount(authority) {
+  if (!authority) return 0;
+  return authority.keyAuths.length + authority.accountAuths.length;
+}
+
+function hasKeyAuth(authority, publicKey) {
+  return Boolean(authority && authority.keyAuths.some(([candidate]) => candidate === publicKey));
+}
+
+function hasAccountAuth(authority, account) {
+  return Boolean(authority && authority.accountAuths.some(([candidate]) => candidate === account));
+}
+
 function matchingKeyWeight(authority, publicKey) {
   if (!authority) return 0;
   return authority.keyAuths.reduce((sum, entry) => {
-    const [candidate, rawWeight] = Array.isArray(entry) ? entry : [];
-    const weight = Number(rawWeight);
+    const [candidate, weight] = Array.isArray(entry) ? entry : [];
     if (candidate !== publicKey || !Number.isSafeInteger(weight) || weight < 1) return sum;
     return sum + weight;
   }, 0);
@@ -198,12 +211,66 @@ function matchingKeyWeight(authority, publicKey) {
 function matchingAccountWeight(authority, account) {
   if (!authority) return 0;
   return authority.accountAuths.reduce((sum, entry) => {
-    const [candidateValue, rawWeight] = Array.isArray(entry) ? entry : [];
-    const candidate = String(candidateValue || '').trim();
-    const weight = Number(rawWeight);
+    const [candidate, weight] = Array.isArray(entry) ? entry : [];
     if (candidate !== account || !Number.isSafeInteger(weight) || weight < 1) return sum;
     return sum + weight;
   }, 0);
+}
+
+function directKeyAuthorityChange(authority, publicKey) {
+  const existingMember = hasKeyAuth(authority, publicKey);
+  if (authority.threshold > MAX_HIVE_AUTHORITY_WEIGHT) {
+    return {
+      authority: 'posting',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
+      publicKey,
+      currentThreshold: authority.threshold,
+      maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
+    };
+  }
+  if (!existingMember && authorityMembershipCount(authority) >= MAX_HIVE_AUTHORITY_MEMBERSHIP) {
+    return {
+      authority: 'posting',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
+      publicKey,
+      currentMembership: authorityMembershipCount(authority),
+      maximumMembership: MAX_HIVE_AUTHORITY_MEMBERSHIP,
+    };
+  }
+  return {
+    authority: 'posting',
+    action: existingMember ? 'RAISE_KEY_AUTH' : 'ADD_KEY_AUTH',
+    publicKey,
+    minimumWeight: authority.threshold,
+  };
+}
+
+function directAccountAuthorityChange(authority, account) {
+  const existingMember = hasAccountAuth(authority, account);
+  if (authority.threshold > MAX_HIVE_AUTHORITY_WEIGHT) {
+    return {
+      authority: 'active',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
+      account,
+      currentThreshold: authority.threshold,
+      maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
+    };
+  }
+  if (!existingMember && authorityMembershipCount(authority) >= MAX_HIVE_AUTHORITY_MEMBERSHIP) {
+    return {
+      authority: 'active',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
+      account,
+      currentMembership: authorityMembershipCount(authority),
+      maximumMembership: MAX_HIVE_AUTHORITY_MEMBERSHIP,
+    };
+  }
+  return {
+    authority: 'active',
+    action: existingMember ? 'RAISE_ACCOUNT_AUTH' : 'ADD_ACCOUNT_AUTH',
+    account,
+    minimumWeight: authority.threshold,
+  };
 }
 
 function addCheck(checks, blockers, id, pass, details = {}, { block = true } = {}) {
@@ -265,7 +332,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   if (!threadsAccount || typeof threadsAccount !== 'object' || Array.isArray(threadsAccount)) {
     throw new TypeError('threadsAccount must be an on-chain account snapshot object');
   }
-  const observedThreadsAccount = String(threadsAccount.name || '').trim();
+  const observedThreadsAccount = typeof threadsAccount.name === 'string' ? threadsAccount.name : '';
   const posting = normalizeAuthority(threadsAccount.posting);
   const active = normalizeAuthority(threadsAccount.active);
 
@@ -294,20 +361,9 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     requiredWeight: posting?.threshold || null,
   });
   if (accountMatches && posting && !postingDirect) {
-    proposedAuthorityChanges.push(Object.freeze(posting.threshold <= MAX_HIVE_AUTHORITY_WEIGHT
-      ? {
-        authority: 'posting',
-        action: 'ADD_OR_RAISE_KEY_AUTH',
-        publicKey: intendedPostingPublicKey,
-        minimumWeight: posting.threshold,
-      }
-      : {
-        authority: 'posting',
-        action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
-        publicKey: intendedPostingPublicKey,
-        currentThreshold: posting.threshold,
-        maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
-      }));
+    proposedAuthorityChanges.push(Object.freeze(
+      directKeyAuthorityChange(posting, intendedPostingPublicKey),
+    ));
   }
 
   const merchantActiveWeight = matchingAccountWeight(active, merchantAccount);
@@ -318,20 +374,9 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     requiredWeight: active?.threshold || null,
   });
   if (accountMatches && active && !merchantActive) {
-    proposedAuthorityChanges.push(Object.freeze(active.threshold <= MAX_HIVE_AUTHORITY_WEIGHT
-      ? {
-        authority: 'active',
-        action: 'ADD_OR_RAISE_ACCOUNT_AUTH',
-        account: merchantAccount,
-        minimumWeight: active.threshold,
-      }
-      : {
-        authority: 'active',
-        action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
-        account: merchantAccount,
-        currentThreshold: active.threshold,
-        maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
-      }));
+    proposedAuthorityChanges.push(Object.freeze(
+      directAccountAuthorityChange(active, merchantAccount),
+    ));
   }
 
   const prohibitedConfigured = serverCredentialClasses.filter((credentialClass) =>

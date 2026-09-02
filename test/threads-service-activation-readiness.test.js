@@ -115,13 +115,13 @@ test('missing direct Posting key and merchant Active account auth produce exact 
   assert.deepEqual(report.proposedAuthorityChanges, [
     {
       authority: 'posting',
-      action: 'ADD_OR_RAISE_KEY_AUTH',
+      action: 'ADD_KEY_AUTH',
       publicKey: PUBLIC_KEY,
       minimumWeight: 1,
     },
     {
       authority: 'active',
-      action: 'ADD_OR_RAISE_ACCOUNT_AUTH',
+      action: 'ADD_ACCOUNT_AUTH',
       account: 'fourthstreetbar',
       minimumWeight: 1,
     },
@@ -143,7 +143,7 @@ test('direct Posting key must independently satisfy threshold even when account 
   );
   assert.deepEqual(report.proposedAuthorityChanges[0], {
     authority: 'posting',
-    action: 'ADD_OR_RAISE_KEY_AUTH',
+    action: 'RAISE_KEY_AUTH',
     publicKey: PUBLIC_KEY,
     minimumWeight: 2,
   });
