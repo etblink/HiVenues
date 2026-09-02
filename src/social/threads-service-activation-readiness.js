@@ -1,17 +1,19 @@
 'use strict';
 
 const { ECDH, createHash } = require('node:crypto');
-const { HIVE_ACCOUNT_PATTERN } = require('../venue/context');
+const { isValidHiveAccountName } = require('../hive/account-name');
 
 const SERVER_CREDENTIAL_CLASSES = Object.freeze(['posting', 'active', 'owner', 'memo']);
 const PROHIBITED_SERVER_CREDENTIAL_CLASSES = Object.freeze(['active', 'owner', 'memo']);
 const WIF_PATTERN = /\b5[HJK][1-9A-HJ-NP-Za-km-z]{48,51}\b/;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_INDEX = new Map([...BASE58_ALPHABET].map((character, index) => [character, index]));
+const MAX_HIVE_AUTHORITY_WEIGHT = 65_535;
+const MAX_HIVE_AUTHORITY_THRESHOLD = 0xffff_ffff;
 
 function requireAccount(value, label) {
-  const account = String(value || '').trim().toLowerCase();
-  if (!HIVE_ACCOUNT_PATTERN.test(account)) {
+  const account = String(value || '').trim();
+  if (!isValidHiveAccountName(account)) {
     throw new TypeError(`${label} must be a valid Hive account`);
   }
   return account;
@@ -117,18 +119,32 @@ function normalizeCredentialClasses(value) {
   return [...new Set(normalized)].sort();
 }
 
-function normalizeAuthorityEntries(entries, { lowercaseIdentity = false } = {}) {
+function isValidHivePublicKey(value) {
+  try {
+    requirePublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeAuthorityEntries(entries, { identityValidator = null } = {}) {
   if (!Array.isArray(entries)) return null;
   const seen = new Set();
   const normalized = [];
   for (const entry of entries) {
     if (!Array.isArray(entry) || entry.length !== 2) return null;
     const rawIdentity = entry[0];
-    const identity = typeof rawIdentity === 'string'
-      ? (lowercaseIdentity ? rawIdentity.trim().toLowerCase() : rawIdentity.trim())
-      : '';
+    const identity = typeof rawIdentity === 'string' ? rawIdentity.trim() : '';
     const weight = Number(entry[1]);
-    if (!identity || !Number.isSafeInteger(weight) || weight < 1 || seen.has(identity)) {
+    if (
+      !identity
+      || !Number.isSafeInteger(weight)
+      || weight < 1
+      || weight > MAX_HIVE_AUTHORITY_WEIGHT
+      || seen.has(identity)
+      || (identityValidator && !identityValidator(identity))
+    ) {
       return null;
     }
     seen.add(identity);
@@ -139,10 +155,18 @@ function normalizeAuthorityEntries(entries, { lowercaseIdentity = false } = {}) 
 
 function normalizeAuthority(authority) {
   const threshold = Number(authority?.weight_threshold);
-  if (!Number.isSafeInteger(threshold) || threshold < 1) return null;
-  const keyAuths = normalizeAuthorityEntries(authority?.key_auths);
+  if (
+    !Number.isSafeInteger(threshold)
+    || threshold < 1
+    || threshold > MAX_HIVE_AUTHORITY_THRESHOLD
+  ) {
+    return null;
+  }
+  const keyAuths = normalizeAuthorityEntries(authority?.key_auths, {
+    identityValidator: isValidHivePublicKey,
+  });
   const accountAuths = normalizeAuthorityEntries(authority?.account_auths, {
-    lowercaseIdentity: true,
+    identityValidator: isValidHiveAccountName,
   });
   if (!keyAuths || !accountAuths) return null;
   return {
@@ -166,7 +190,7 @@ function matchingAccountWeight(authority, account) {
   if (!authority) return 0;
   return authority.accountAuths.reduce((sum, entry) => {
     const [candidateValue, rawWeight] = Array.isArray(entry) ? entry : [];
-    const candidate = String(candidateValue || '').trim().toLowerCase();
+    const candidate = String(candidateValue || '').trim();
     const weight = Number(rawWeight);
     if (candidate !== account || !Number.isSafeInteger(weight) || weight < 1) return sum;
     return sum + weight;
@@ -232,7 +256,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   if (!threadsAccount || typeof threadsAccount !== 'object' || Array.isArray(threadsAccount)) {
     throw new TypeError('threadsAccount must be an on-chain account snapshot object');
   }
-  const observedThreadsAccount = String(threadsAccount.name || '').trim().toLowerCase();
+  const observedThreadsAccount = String(threadsAccount.name || '').trim();
   const posting = normalizeAuthority(threadsAccount.posting);
   const active = normalizeAuthority(threadsAccount.active);
 
@@ -261,12 +285,20 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     requiredWeight: posting?.threshold || null,
   });
   if (accountMatches && posting && !postingDirect) {
-    proposedAuthorityChanges.push(Object.freeze({
-      authority: 'posting',
-      action: 'ADD_OR_RAISE_KEY_AUTH',
-      publicKey: intendedPostingPublicKey,
-      minimumWeight: posting.threshold,
-    }));
+    proposedAuthorityChanges.push(Object.freeze(posting.threshold <= MAX_HIVE_AUTHORITY_WEIGHT
+      ? {
+        authority: 'posting',
+        action: 'ADD_OR_RAISE_KEY_AUTH',
+        publicKey: intendedPostingPublicKey,
+        minimumWeight: posting.threshold,
+      }
+      : {
+        authority: 'posting',
+        action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
+        publicKey: intendedPostingPublicKey,
+        currentThreshold: posting.threshold,
+        maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
+      }));
   }
 
   const merchantActiveWeight = matchingAccountWeight(active, merchantAccount);
@@ -277,12 +309,20 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     requiredWeight: active?.threshold || null,
   });
   if (accountMatches && active && !merchantActive) {
-    proposedAuthorityChanges.push(Object.freeze({
-      authority: 'active',
-      action: 'ADD_OR_RAISE_ACCOUNT_AUTH',
-      account: merchantAccount,
-      minimumWeight: active.threshold,
-    }));
+    proposedAuthorityChanges.push(Object.freeze(active.threshold <= MAX_HIVE_AUTHORITY_WEIGHT
+      ? {
+        authority: 'active',
+        action: 'ADD_OR_RAISE_ACCOUNT_AUTH',
+        account: merchantAccount,
+        minimumWeight: active.threshold,
+      }
+      : {
+        authority: 'active',
+        action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
+        account: merchantAccount,
+        currentThreshold: active.threshold,
+        maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
+      }));
   }
 
   const prohibitedConfigured = serverCredentialClasses.filter((credentialClass) =>
@@ -375,11 +415,14 @@ function assessThreadsServiceActivationReadiness(input = {}) {
 }
 
 module.exports = {
+  MAX_HIVE_AUTHORITY_THRESHOLD,
+  MAX_HIVE_AUTHORITY_WEIGHT,
   PROHIBITED_SERVER_CREDENTIAL_CLASSES,
   SERVER_CREDENTIAL_CLASSES,
   assessThreadsServiceActivationReadiness,
   assertNoPrivateKeyMaterial,
   decodeBase58,
+  isValidHivePublicKey,
   normalizeAuthority,
   requirePublicKey,
 };

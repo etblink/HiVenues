@@ -80,3 +80,54 @@ test('duplicate merchant Active account entries invalidate the authority instead
   assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
+
+test('authority proposal never emits a single auth weight above Hive uint16 maximum', () => {
+  const input = snapshot();
+  input.threadsAccount.posting = {
+    weight_threshold: 70000,
+    account_auths: [['helper.account', 5000]],
+    key_auths: [[PUBLIC_KEY, 65535]],
+  };
+  input.threadsAccount.active = {
+    weight_threshold: 70000,
+    account_auths: [['fourthstreetbar', 65535], ['helper.account', 5000]],
+    key_auths: [],
+  };
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.authorityReady, false);
+  assert.deepEqual(report.proposedAuthorityChanges, [
+    {
+      authority: 'posting',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
+      publicKey: PUBLIC_KEY,
+      currentThreshold: 70000,
+      maximumSingleWeight: 65535,
+    },
+    {
+      authority: 'active',
+      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
+      account: 'fourthstreetbar',
+      currentThreshold: 70000,
+      maximumSingleWeight: 65535,
+    },
+  ]);
+});
+
+test('preflight rejects Hive account names that violate protocol label grammar', () => {
+  assert.throws(
+    () => assessThreadsServiceActivationReadiness(snapshot({
+      venue: {
+        officialAccount: 'abc-',
+        threadsContainerAccount: 'fourthst.threads',
+      },
+    })),
+    /valid Hive account/,
+  );
+
+  const input = snapshot();
+  input.threadsAccount.active.account_auths = [['abc-', 1]];
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.authorityReady, false);
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.deepEqual(report.proposedAuthorityChanges, []);
+});
