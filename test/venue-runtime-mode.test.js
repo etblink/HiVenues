@@ -14,6 +14,19 @@ const {
 } = require('../src/venue/runtime-admission');
 const { HV4_SYNTHETIC_BOOTSTRAP_INPUT } = require('./support/hv4-synthetic-bootstrap');
 
+
+const LEGACY_PRODUCTION_SOURCE = Object.freeze({
+  NODE_ENV: 'production',
+  SITE_NAME: '4th Street Bar',
+  BAR_ADDRESS: '1114 E. 4th Street, Reno, NV 89512',
+  BAR_PHONE: '(775) 324-7827',
+  BAR_HOURS: 'Daily, 12:00 p.m.–2:00 a.m.',
+  BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
+  BAR_MAP_URL: 'https://example.invalid/fourth-street-map',
+  HIVE_COMMUNITY_ID: 'hive-108590',
+  THREADS_CONTAINER_ACCOUNT: 'fourthst.threads',
+});
+
 function cloneBootstrap() {
   return JSON.parse(JSON.stringify(HV4_SYNTHETIC_BOOTSTRAP_INPUT));
 }
@@ -33,6 +46,50 @@ function loadVirtualBootstrap(source) {
 test('compatibility is the default admission policy and preserves the inherited no-bootstrap fallback', () => {
   assert.equal(resolveVenueAdmissionMode({}), VENUE_ADMISSION_MODES.COMPATIBILITY);
   assert.equal(loadVenueRuntimeAdmission({}, { loadDotenv: false }), null);
+});
+
+test('an explicit bootstrap path is mechanically classified as explicit admission when mode is omitted', () => {
+  assert.equal(
+    resolveVenueAdmissionMode({ [VENUE_BOOTSTRAP_PATH_ENV]: 'synthetic/venue-bootstrap.json' }),
+    VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP,
+  );
+});
+
+test('unrecognized production defaults to explicit-bootstrap instead of inheriting Fourth Street', () => {
+  const source = { NODE_ENV: 'production' };
+  assert.equal(resolveVenueAdmissionMode(source), VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP);
+  assert.throws(
+    () => loadVenueRuntimeAdmission(source, { loadDotenv: false }),
+    (error) =>
+      error instanceof VenueRuntimeAdmissionError &&
+      error.message.includes(`${VENUE_BOOTSTRAP_PATH_ENV} is required`),
+  );
+});
+
+test('complete legacy production configuration preserves compatibility without a new live env requirement', () => {
+  assert.equal(
+    resolveVenueAdmissionMode(LEGACY_PRODUCTION_SOURCE),
+    VENUE_ADMISSION_MODES.COMPATIBILITY,
+  );
+  assert.equal(
+    loadVenueRuntimeAdmission(LEGACY_PRODUCTION_SOURCE, { loadDotenv: false }),
+    null,
+  );
+});
+
+test('production cannot opt into compatibility without the complete legacy compatibility surface', () => {
+  assert.throws(
+    () =>
+      resolveVenueAdmissionMode({
+        NODE_ENV: 'production',
+        [VENUE_ADMISSION_MODE_ENV]: VENUE_ADMISSION_MODES.COMPATIBILITY,
+      }),
+    (error) =>
+      error instanceof VenueRuntimeAdmissionError &&
+      /compatibility in production requires the complete legacy flat-env compatibility configuration/.test(
+        error.message,
+      ),
+  );
 });
 
 test('successor-native explicit-bootstrap mode fails closed when the bootstrap path is absent', () => {

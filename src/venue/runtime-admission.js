@@ -3,6 +3,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const dotenv = require('dotenv');
+const {
+  LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS,
+} = require('../deployment/reference/fourth-street-env');
 const { composeVenueBootstrap } = require('./bootstrap');
 
 const VENUE_ADMISSION_MODE_ENV = 'HIVE_VENUE_ADMISSION_MODE';
@@ -22,12 +25,35 @@ class VenueRuntimeAdmissionError extends Error {
   }
 }
 
+function hasCompleteLegacyProductionSignature(source = process.env) {
+  return LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS.every(
+    (name) => source[name] !== undefined && String(source[name]).trim() !== '',
+  );
+}
+
 function resolveVenueAdmissionMode(source = process.env) {
   const raw = String(source[VENUE_ADMISSION_MODE_ENV] || '').trim();
-  if (!raw) return VENUE_ADMISSION_MODES.COMPATIBILITY;
+  const isProduction = String(source.NODE_ENV || '').trim() === 'production';
+  const hasLegacyProductionSignature = hasCompleteLegacyProductionSignature(source);
+  const hasBootstrapPath = String(source[VENUE_BOOTSTRAP_PATH_ENV] || '').trim() !== '';
+
+  if (!raw) {
+    return hasBootstrapPath || (isProduction && !hasLegacyProductionSignature)
+      ? VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP
+      : VENUE_ADMISSION_MODES.COMPATIBILITY;
+  }
   if (!Object.values(VENUE_ADMISSION_MODES).includes(raw)) {
     throw new VenueRuntimeAdmissionError(
       `${VENUE_ADMISSION_MODE_ENV} must be ${Object.values(VENUE_ADMISSION_MODES).join(' or ')}`,
+    );
+  }
+  if (
+    raw === VENUE_ADMISSION_MODES.COMPATIBILITY &&
+    isProduction &&
+    !hasLegacyProductionSignature
+  ) {
+    throw new VenueRuntimeAdmissionError(
+      `${VENUE_ADMISSION_MODE_ENV}=compatibility in production requires the complete legacy flat-env compatibility configuration`,
     );
   }
   return raw;
@@ -284,6 +310,7 @@ module.exports = {
   assertVenueRuntimeCoherence,
   classifyAdmittedReleaseRoot,
   currentRuntimeFacts,
+  hasCompleteLegacyProductionSignature,
   isAdmittedReleaseRoot,
   loadVenueRuntimeAdmission,
   resolveVenueAdmissionMode,
