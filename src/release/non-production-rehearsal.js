@@ -238,6 +238,46 @@ function hasConcretePreviousReleaseRecovery(source, failureMessage) {
   );
 }
 
+function acceptanceLoopBeforeFailure(source, failureMessage) {
+  const failureIndex = source.indexOf(failureMessage);
+  if (failureIndex < 0) return '';
+  const loopStart = source.lastIndexOf('for _attempt in {1..20}; do', failureIndex);
+  if (loopStart < 0) return '';
+  const loopEnd = source.indexOf('\ndone', loopStart);
+  if (loopEnd < 0 || loopEnd > failureIndex) return '';
+  return source.slice(loopStart, loopEnd + '\ndone'.length);
+}
+
+function hasConcreteHealthAndReadinessAcceptance(source, failureMessage) {
+  const loop = acceptanceLoopBeforeFailure(source, failureMessage);
+  if (!loop) return false;
+  const healthGateIndex = loop.indexOf("if [[ \"$health\" == *'\"writeMode\":\"disabled\"'* &&");
+  const readinessFetchIndex = loop.indexOf(
+    'readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null || true)"',
+  );
+  const readinessGateIndex = loop.indexOf(
+    "if [[ \"$readiness\" == *'\"status\":\"ready\"'* ]]; then",
+  );
+  return (
+    source.includes('readonly readiness_url=http://127.0.0.1:3000/readyz') &&
+    healthGateIndex >= 0 &&
+    readinessFetchIndex > healthGateIndex &&
+    readinessGateIndex > readinessFetchIndex &&
+    loop.includes('readiness_failure_observed=true')
+  );
+}
+
+function hasReadinessFailureClassification(source, readinessFailureMessage, healthFailureMessage) {
+  const readinessFailureIndex = source.indexOf(readinessFailureMessage);
+  const healthFailureIndex = source.indexOf(healthFailureMessage);
+  const branchIndex = source.indexOf('if [[ "$readiness_failure_observed" == true ]]; then');
+  return (
+    branchIndex >= 0 &&
+    readinessFailureIndex > branchIndex &&
+    healthFailureIndex > readinessFailureIndex
+  );
+}
+
 function productionInvariantCoverageFromSources(deploy, rollback) {
   return Object.freeze({
     deployExactCommitResolution:
@@ -252,10 +292,19 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
     deployHealthBindsCommitTree:
       deploy.includes('\\"commit\\":\\"$commit\\"') &&
       deploy.includes('\\"tree\\":\\"$tree\\"') &&
-      deploy.includes('post-switch health check failed'),
+      deploy.includes('post-switch health or exact identity check failed'),
+    deployReadinessBindsAcceptance: hasConcreteHealthAndReadinessAcceptance(
+      deploy,
+      'post-switch readiness check failed',
+    ),
+    deployReadinessFailureClassified: hasReadinessFailureClassification(
+      deploy,
+      'post-switch readiness check failed',
+      'post-switch health or exact identity check failed',
+    ),
     deployFailureRestoresPrevious: hasConcretePreviousReleaseRecovery(
       deploy,
-      'post-switch health check failed',
+      'post-switch readiness check failed',
     ),
     rollbackExactCommitTreeVerification:
       rollback.includes('release tree identity does not match the reviewed repository'),
@@ -263,10 +312,20 @@ function productionInvariantCoverageFromSources(deploy, rollback) {
       rollback.includes('mv -Tf "$next_link" "$current"'),
     rollbackHealthBindsCommitTree:
       rollback.includes('\\"commit\\":\\"$commit\\"') &&
-      rollback.includes('\\"tree\\":\\"$tree\\"'),
+      rollback.includes('\\"tree\\":\\"$tree\\"') &&
+      rollback.includes('rollback target failed its health or exact identity check'),
+    rollbackReadinessBindsAcceptance: hasConcreteHealthAndReadinessAcceptance(
+      rollback,
+      'rollback target failed its readiness check',
+    ),
+    rollbackReadinessFailureClassified: hasReadinessFailureClassification(
+      rollback,
+      'rollback target failed its readiness check',
+      'rollback target failed its health or exact identity check',
+    ),
     rollbackFailureRestoresPrior: hasConcretePreviousReleaseRecovery(
       rollback,
-      'rollback target failed its health check',
+      'rollback target failed its readiness check',
     ),
   });
 }

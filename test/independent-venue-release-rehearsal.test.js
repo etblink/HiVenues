@@ -117,8 +117,8 @@ test('production recovery invariant cross-check requires concrete recovery mecha
     '# injected test: recovery current switch removed',
   );
   const rollbackWithoutRecoveryRestart = rollback.replace(
-    'systemctl restart "$service"\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
-    '# injected test: recovery restart removed\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
+    '  systemctl restart "$service"\nfi\nif [[ "$readiness_failure_observed" == true ]]; then',
+    '  # injected test: recovery restart removed\nfi\nif [[ "$readiness_failure_observed" == true ]]; then',
   );
 
   const missingDeployRecovery = productionInvariantCoverageFromSources(
@@ -133,6 +133,58 @@ test('production recovery invariant cross-check requires concrete recovery mecha
   assert.equal(missingRollbackRecovery.rollbackFailureRestoresPrior, false);
   assert.match(deployWithoutRecoverySwitch, /the previous release was restored when available/);
   assert.match(rollbackWithoutRecoveryRestart, /the prior release was restored when available/);
+});
+
+test('production acceptance requires readiness after exact health and detects removal without trusting failure prose', () => {
+  const deploy = fs.readFileSync(path.join(root, 'ops', 'privex', 'bin', 'hive-bar-deploy'), 'utf8');
+  const rollback = fs.readFileSync(path.join(root, 'ops', 'privex', 'bin', 'hive-bar-rollback'), 'utf8');
+  const baseline = productionInvariantCoverageFromSources(deploy, rollback);
+
+  assert.equal(baseline.deployHealthBindsCommitTree, true);
+  assert.equal(baseline.deployReadinessBindsAcceptance, true);
+  assert.equal(baseline.deployReadinessFailureClassified, true);
+  assert.equal(baseline.rollbackHealthBindsCommitTree, true);
+  assert.equal(baseline.rollbackReadinessBindsAcceptance, true);
+  assert.equal(baseline.rollbackReadinessFailureClassified, true);
+  assert.match(deploy, /readonly readiness_url=http:\/\/127\.0\.0\.1:3000\/readyz/);
+  assert.match(rollback, /readonly readiness_url=http:\/\/127\.0\.0\.1:3000\/readyz/);
+  assert.match(
+    deploy,
+    /readiness="\$\(curl --fail --silent --show-error --max-time 5 "\$readiness_url"/,
+  );
+  assert.match(
+    rollback,
+    /readiness="\$\(curl --fail --silent --show-error --max-time 5 "\$readiness_url"/,
+  );
+  assert.match(deploy, /"status":"ready"/);
+  assert.match(rollback, /"status":"ready"/);
+
+  const deployWithoutReadinessProbe = deploy.replace(
+    'readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null || true)"',
+    'readiness=\'{"status":"ready"}\' # injected test: concrete readiness HTTP probe removed',
+  );
+  const rollbackWithoutReadyStatusGate = rollback.replace(
+    'if [[ "$readiness" == *\'"status":"ready"\'* ]]; then',
+    'if [[ "$readiness" == *\'"status":"never-ready"\'* ]]; then',
+  );
+
+  const missingDeployReadiness = productionInvariantCoverageFromSources(
+    deployWithoutReadinessProbe,
+    rollback,
+  );
+  const missingRollbackReadiness = productionInvariantCoverageFromSources(
+    deploy,
+    rollbackWithoutReadyStatusGate,
+  );
+  assert.equal(missingDeployReadiness.deployReadinessBindsAcceptance, false);
+  assert.equal(missingRollbackReadiness.rollbackReadinessBindsAcceptance, false);
+  assert.match(deployWithoutReadinessProbe, /post-switch readiness check failed/);
+  assert.match(rollbackWithoutReadyStatusGate, /rollback target failed its readiness check/);
+
+  // `curl --fail` makes an HTTP 503 `/readyz` response fail the probe before body matching,
+  // while a 200 response must still contain the explicit machine-readable ready state.
+  assert.equal(deploy.includes('curl --fail'), true);
+  assert.equal(rollback.includes('curl --fail'), true);
 });
 
 test('portable manifest path resolves to the same isolated filesystem root', (t) => {

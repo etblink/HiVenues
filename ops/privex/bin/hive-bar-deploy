@@ -12,6 +12,7 @@ readonly runtime=/usr/local/bin/node
 readonly npm_runtime=/usr/local/bin/npm
 readonly service=hive-bar.service
 readonly health_url=http://127.0.0.1:3000/healthz
+readonly readiness_url=http://127.0.0.1:3000/readyz
 
 staging=
 last_good_staging=
@@ -132,15 +133,20 @@ ln -s "$release" "$next_link"
 mv -Tf "$next_link" "$current"
 
 systemctl restart "$service"
+readiness_failure_observed=false
 for _attempt in {1..20}; do
   health="$(curl --fail --silent --show-error --max-time 5 "$health_url" 2>/dev/null || true)"
   if [[ "$health" == *'"writeMode":"disabled"'* &&
         "$health" == *"\"build\":\"$build\""* &&
         "$health" == *"\"commit\":\"$commit\""* &&
         "$health" == *"\"tree\":\"$tree\""* ]]; then
-    deployed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    printf 'Hive-Bar deployed %s exact commit %s tree %s at %s subject: %s\n' "$build" "$commit" "$tree" "$deployed_at" "$subject"
-    exit 0
+    readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null || true)"
+    if [[ "$readiness" == *'"status":"ready"'* ]]; then
+      deployed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+      printf 'Hive-Bar deployed %s exact commit %s tree %s at %s subject: %s\n' "$build" "$commit" "$tree" "$deployed_at" "$subject"
+      exit 0
+    fi
+    readiness_failure_observed=true
   fi
   sleep 1
 done
@@ -151,4 +157,7 @@ if [[ -n "$previous" && -d "$previous" ]]; then
   mv -Tf "$recovery_link" "$current"
   systemctl restart "$service"
 fi
-fail 'post-switch health check failed; the previous release was restored when available'
+if [[ "$readiness_failure_observed" == true ]]; then
+  fail 'post-switch readiness check failed; the previous release was restored when available'
+fi
+fail 'post-switch health or exact identity check failed; the previous release was restored when available'
