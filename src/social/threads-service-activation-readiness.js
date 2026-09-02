@@ -193,7 +193,8 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   );
   const serverCredentialClasses = normalizeCredentialClasses(input.serverCredentialClasses || []);
   const postingCredentialConfigured = serverCredentialClasses.includes('posting');
-  const configuredPostingPublicKey = input.configuredPostingPublicKey == null
+  const configuredPostingPublicKey = (input.configuredPostingPublicKey === null
+    || input.configuredPostingPublicKey === undefined)
     ? null
     : requirePublicKey(input.configuredPostingPublicKey, 'configuredPostingPublicKey');
   if (!postingCredentialConfigured && configuredPostingPublicKey !== null) {
