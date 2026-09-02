@@ -89,7 +89,7 @@ test('offline authoring saves only kept deployment-agnostic source and can reope
   const { app, surface } = simpleSurface(sourceOf(FOURTH_STREET_AUTHORING_INPUT));
   const editor = await request(app).get(surface.editorPath).expect(200);
   assert.match(editor.text, /Save venue file/);
-  assert.match(editor.text, /Keep changes first/);
+  assert.match(editor.text, /Keep changes in draft/);
   assert.equal(surface.sourceFilePath, venueSourceDownloadPath(surface.editorPath));
 
   const acceptedName = surface.session.acceptedSource.venueContext.displayName;
