@@ -196,9 +196,13 @@ async function captureAuthoringScenario(browser, scenario) {
   } else {
     assert.notEqual(originalName, '4th Street Bar');
     editedName = 'Juniper Works Community Lab';
+    await page.locator('[data-studio-stage="brand"]').click();
+    const basics = page.getByRole('link', { name: 'Basics', exact: true });
+    await basics.waitFor({ state: 'visible' });
+    await basics.click();
     const form = page.locator('form[data-field-pointer="/venueContext/displayName"]');
     await form.locator('[name="value"]').fill(editedName);
-    await waitForMainNavigation(page, () => form.locator('button[type="submit"]').click());
+    await waitForMainNavigation(page, () => page.locator('.section[data-qol-active="true"] .studio-preview-stage').click());
     assert.equal(fixture.session.status().dirty, true);
     assert.equal(fixture.session.previewProjection().siteName, editedName);
     const iframe = page.locator('iframe[title="Venue preview"]');
