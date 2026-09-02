@@ -36,6 +36,10 @@ Accepted post-foundation source/product work now includes:
 
 The CID investigation is complete. The frozen capsule construction established `CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY`, and the comparative experiment established the genuine capability gap `STABLE_SUBFILE_CONTENT_ADDRESS_REUSE`. That evidence did **not** establish enough current product value to justify a Kubo/CAR/import-profile/provider dependency. **CID adoption is deferred without prejudice**; canonical SHA-256 plus ordinary files/Git remains the selected baseline.
 
+The bounded Hive identity/key-management audit is also complete at the repository-design level. It establishes **two ordinary venue-owned Hive identities** as the minimum practical model: one official/merchant account and one low-value Threads automation account. The only future server Hive private credential that may be separately authorized is the Threads account's exact **Posting** credential. Merchant private keys and Threads Active/Owner private keys remain outside Hive-Venues custody.
+
+Normal machine Threads roots already route 100% of their author rewards directly to the official merchant through the canonical `comment_options` beneficiary. Direct RC delegation can fund the low-value Threads principal without making meaningful owned stake an operating requirement. The existing merchant Active account authorization is adjudicated as an **optional manual liquid-balance cleanup capability only**, not a machine Posting prerequisite.
+
 <!-- HV6_CURRENT_ROUTING_START -->
 ```text
 SUCCESSOR_FOUNDATIONS = HV1_THROUGH_HV6_ACCEPTED
@@ -64,7 +68,9 @@ LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
 CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
 CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
 CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
+THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
+NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -74,28 +80,21 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ```
 <!-- HV6_CURRENT_ROUTING_END -->
 
-## Current operation — Hive identity and key-management minimization
+## Current operation — decouple Posting activation from optional liquid cleanup
 
 ```text
-VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
 ```
 
-This is an evidence-gathering/design audit, not an account migration. It asks how to reduce ordinary venue key-management burden without weakening protocol/security boundaries.
+The identity/key audit found one concrete least-privilege coupling defect in the repository-local Threads activation preflight. Machine Posting readiness currently requires both the exact direct Threads Posting key **and** merchant Active `account_auths`. Those are separate capabilities and must be qualified separately.
 
-The current working hypothesis distinguishes **protocol roles** from **daily key sets**:
+The bounded repair must make machine Threads Posting readiness depend only on the exact Threads identity, threshold-satisfying Posting key, Posting-only server credential inventory, configured public-key binding, and a separately qualified runtime signer. Merchant Active account authorization belongs only to the optional manual transfer of stray liquid HIVE/HBD already sitting on the Threads account.
 
-- the venue's official/merchant account remains merchant-controlled and its private keys stay off the server;
-- the `hive-...` community identity remains a protocol/recovery boundary, with ordinary administration delegated where Hive permits;
-- a dedicated Threads identity may remain justified as a low-value automation principal for container-post lifecycle management, but normal server custody must stay limited to the minimum Posting authority required for that automation;
-- Resource Credits may be delegated rather than requiring meaningful owned stake;
-- container reward economics should preserve legitimate upside while avoiding server-held merchant Active/Owner keys.
+If the venue does not configure that cleanup authorization, the cleanup control must be unavailable/fail closed while Posting-only machine readiness remains independently eligible. No recurrent transfer or automatic sweep is introduced. The repair should also consider replacing the current `Claim funds` wording with language that accurately describes a liquid-balance transfer.
 
-The same bounded design lane will define two beneficiary policies at one canonical `comment_options` composition boundary:
+Issue #110 remains the separate live Threads activation gate. This repository operation does **not** authorize a real Posting key, an authority mutation, a live signer, RC delegation, a Hive/Keychain broadcast, funds movement, or production deployment.
 
-1. **Venue beneficiary policy** — venue-configured Off/On + percentage, derived trusted venue recipient, explicit eligible-content scope, plain-language disclosure before signing, and no hidden beneficiary.
-2. **Hive-Venues creator donation** — platform-configured recipient/percentage, but a per-post user checkbox that defaults unchecked and visibly states the exact percentage before Keychain.
-
-No beneficiary implementation, Hive write, account-role migration, key change, or production activation is authorized by this audit.
+The beneficiary economics lane remains separately unactivated. A venue beneficiary policy and any voluntary Hive-Venues creator donation must remain plainly disclosed before Keychain and must use the one canonical beneficiary-composition boundary.
 
 A separate engineering-health audit will classify the deterministic test inventory by live invariant, uniqueness, historical defect value, and true platform sensitivity before any test deletion or Windows-coverage reduction. The present dual-OS policy remains in force until that evidence exists.
 
@@ -129,7 +128,10 @@ This architecture is evidence-backed, not ideological. One isolated venue per ru
 
 - Hive Keychain remains the normal user-side signing/custody boundary.
 - The server holds no patron Hive private keys.
-- Any future service-account signing authority must be separately bounded and must not imply merchant Active/Owner custody.
+- The server holds no merchant Hive private keys.
+- Any future Threads service-account exception is exact Posting authority only and remains separately authorized.
+- Active/Owner/Memo private keys for the Threads account are never normal Hive-Venues server credentials.
+- Optional merchant Active `account_auths` for the Threads account is a human Keychain-side liquid-cleanup capability, not server custody.
 - User-owned writes require explicit review before signing.
 - Ambiguous post-Keychain acceptance is never automatically rebroadcast.
 - Payment replay/idempotency/receipt/confirmation boundaries remain fail-closed.
@@ -165,11 +167,12 @@ For current state use:
 
 1. `README.md`
 2. `docs/ROADMAP.md`
-3. `docs/PRODUCTION_OPERATIONS.md` when production is involved
-4. `docs/DEPLOYMENT_AGNOSTIC_VENUE_SOURCE.md`
-5. `docs/DEPLOYMENT_AGNOSTIC_VENUE_SOURCE_DURABILITY.md`
-6. `docs/PORTABLE_VENUE_WORKSPACE.md`
-7. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md`
-8. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
+3. `docs/HIVE_IDENTITY_KEY_MANAGEMENT_MINIMIZATION_AUDIT_0_1_0.md`
+4. `docs/PRODUCTION_OPERATIONS.md` when production is involved
+5. `docs/DEPLOYMENT_AGNOSTIC_VENUE_SOURCE.md`
+6. `docs/DEPLOYMENT_AGNOSTIC_VENUE_SOURCE_DURABILITY.md`
+7. `docs/PORTABLE_VENUE_WORKSPACE.md`
+8. `docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md`
+9. `docs/HIVE_VENUES_SUCCESSOR_ARCHITECTURE_DECISION_0_1_0.md`
 
 Superseded sequencing and transient evidence remain recoverable from Git/PR history rather than being carried as living routing.
