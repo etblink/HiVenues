@@ -147,11 +147,11 @@ const QOL_SCRIPT = `'use strict';
   for (const stage of stageDefinitions) for (const label of stage.sections) sectionStage.set(label, stage.id);
 
   const stageNav = document.querySelector('[data-studio-stage-nav]');
-  const stageButtons = Array.from(document.querySelectorAll('[data-studio-stage]'));
+  const stageButtons = Array.from(document.querySelectorAll('button[data-studio-stage]'));
   const reviewPanel = document.querySelector('[data-studio-review]');
   const editor = document.querySelector('.editor');
   const preview = document.querySelector('.preview');
-  const viewButtons = Array.from(document.querySelectorAll('[data-studio-view]'));
+  const viewButtons = Array.from(document.querySelectorAll('button[data-studio-view]'));
   const sectionIds = new Set(sections.map((section) => section.id));
   const storageKey = location.pathname + ':active-section';
   const stageStorageKey = location.pathname + ':active-stage';
@@ -255,8 +255,8 @@ const QOL_SCRIPT = `'use strict';
   }
 
   function setView(view) {
-    document.documentElement.dataset.studioView = view === 'preview' ? 'preview' : 'edit';
-    for (const button of viewButtons) button.setAttribute('aria-pressed', String(button.dataset.studioView === document.documentElement.dataset.studioView));
+    document.documentElement.dataset.studioActiveView = view === 'preview' ? 'preview' : 'edit';
+    for (const button of viewButtons) button.setAttribute('aria-pressed', String(button.dataset.studioView === document.documentElement.dataset.studioActiveView));
     if (view === 'preview' && preview) preview.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
   for (const button of viewButtons) button.addEventListener('click', () => setView(button.dataset.studioView));
@@ -315,9 +315,9 @@ const QOL_STYLE = `
     .nav { flex-wrap: wrap !important; overflow: visible !important; }
     @media (max-width: 900px) {
       .studio-view-toggle { display: grid; position: sticky; top: 8px; z-index: 20; box-shadow: 0 8px 24px rgba(28,25,23,.12); }
-      html[data-studio-view="edit"] .preview { display: none; }
-      html[data-studio-view="preview"] .editor, html[data-studio-view="preview"] .studio-review { display: none !important; }
-      html[data-studio-view="preview"] .preview { display: block; }
+      html[data-studio-active-view="edit"] .preview { display: none; }
+      html[data-studio-active-view="preview"] .editor, html[data-studio-active-view="preview"] .studio-review { display: none !important; }
+      html[data-studio-active-view="preview"] .preview { display: block; }
       .studio-stage-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .studio-review__steps { grid-template-columns: 1fr; }
     }
@@ -363,7 +363,7 @@ function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '
     : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
   const media = mediaControls(session, editorPath);
   let enhanced = String(html)
-    .replace('<html lang="en">', '<html lang="en" data-qol-progressive="section-picker" data-studio-view="edit" data-studio-active-stage="brand">')
+    .replace('<html lang="en">', '<html lang="en" data-qol-progressive="section-picker" data-studio-active-view="edit" data-studio-active-stage="brand">')
     .replace('<h1>Customize your venue</h1>', '<p class="studio-topline"><strong>Venue Studio</strong><span>Shape the brand, page, and venue details with a live preview.</span></p><h1>Customize your venue</h1>')
     .replace(
       'Change the words, details, and colors guests will see. Preview first, then keep or undo your changes. Hosting comes later—nothing on this screen publishes or deploys your venue.',
