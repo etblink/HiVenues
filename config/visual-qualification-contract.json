@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "contractId": "HV_CURRENT_VISUAL_QUALIFICATION_V1",
+  "baseline": {
+    "runNumber": 508,
+    "runId": 33666715245,
+    "commit": "c06487110047e35508c36cc96f8ccdedae9ac8bb",
+    "tree": "2a3a1b7cd0b582188438a62d7934ff8856286d75",
+    "visualWallSecondsApprox": 360,
+    "uploadedBytes": 56195537,
+    "pngCount": 177
+  },
+  "execution": {
+    "maxConcurrency": 3,
+    "rawRoot": "artifacts/raw-visual",
+    "reviewRoot": "artifacts/current-visual-review"
+  },
+  "breakpointContract": {
+    "source": "src/input.css",
+    "semanticTransitions": [
+      640,
+      1200
+    ],
+    "note": "Machine suites retain their own historical stress widths unless separately narrowed; the current review artifact uses representative mobile and desktop viewports rather than treating every historical width as a separate human-review obligation."
+  },
+  "machineSuites": [
+    {
+      "id": "m18-shell",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:m18"
+      ],
+      "outputEnv": "M18_VISUAL_OUTPUT",
+      "outputDir": "m18-visual",
+      "invariants": [
+        "signed-out auth-required shell",
+        "sign-in form",
+        "authenticated profile shell",
+        "confirmation dialog",
+        "busy state",
+        "responsive navigation and focus"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "m18-wall-pay",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:m18-3"
+      ],
+      "outputEnv": "M18_3_VISUAL_OUTPUT",
+      "outputDir": "m18-3-visual",
+      "invariants": [
+        "wall signed-out and authenticated states",
+        "public/private wall composer disclosure",
+        "Pay signed-out/ready/receipt states",
+        "responsive overflow and tap targets"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "m18-patron-surfaces",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:m18-4"
+      ],
+      "outputEnv": "M18_4_VISUAL_OUTPUT",
+      "outputDir": "m18-4-visual",
+      "invariants": [
+        "followers/following empty states",
+        "community composer",
+        "conversation reply",
+        "wallet",
+        "owner inbox",
+        "owner settings"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "moderation",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:c2-e"
+      ],
+      "outputEnv": "C2_E_VISUAL_OUTPUT",
+      "outputDir": "c2-e-visual",
+      "invariants": [
+        "moderation disclosure and focus return",
+        "suppressed thread/reply branches",
+        "management rules and audit history",
+        "store-unavailable fail-closed state"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "onboarding",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:c2-f"
+      ],
+      "outputEnv": "C2_F_VISUAL_OUTPUT",
+      "outputDir": "c2-f-visual",
+      "invariants": [
+        "customer account-creation surface",
+        "mobile onboarding",
+        "staff pending request",
+        "creator-capacity and ACT warnings",
+        "serious/critical accessibility gate"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "threads",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:ux-1a"
+      ],
+      "outputEnv": "UX_1A_VISUAL_OUTPUT",
+      "outputDir": "ux-1a-visual",
+      "invariants": [
+        "Threads empty/populated states",
+        "community-post relationship",
+        "mobile and desktop Threads presentation"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "composer",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:ux-1b"
+      ],
+      "outputEnv": "UX_1B_VISUAL_OUTPUT",
+      "outputDir": "ux-1b-visual",
+      "invariants": [
+        "composer idle/active states",
+        "funds/claim unavailable messaging",
+        "thread and conversation authoring hierarchy"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "weighted-voting",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:ux-1c"
+      ],
+      "outputEnv": "UX_1C_VISUAL_OUTPUT",
+      "outputDir": "ux-1c-visual",
+      "invariants": [
+        "weighted vote neutral/selected states",
+        "root/reply voting hierarchy",
+        "mobile and desktop voting controls"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "content-hierarchy",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:ux-1d"
+      ],
+      "outputEnv": "UX_1D_VISUAL_OUTPUT",
+      "outputDir": "ux-1d-visual",
+      "invariants": [
+        "community composer hierarchy",
+        "nested conversation hierarchy",
+        "multiple Threads composer hierarchy"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "homepage",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:ux-1f"
+      ],
+      "outputEnv": "UX_1F_VISUAL_OUTPUT",
+      "outputDir": "ux-1f-visual",
+      "invariants": [
+        "homepage ready/empty/unavailable states",
+        "hero hierarchy",
+        "documentary images",
+        "responsive navigation",
+        "focus and accessibility"
+      ],
+      "evidenceRole": "machine-oracle",
+      "supersedes": [
+        "M18.3 homepage screenshot obligation"
+      ]
+    },
+    {
+      "id": "second-venue",
+      "command": [
+        "npm",
+        "run",
+        "test:visual:hv7-juniper"
+      ],
+      "outputEnv": "HV7_JUNIPER_VISUAL_OUTPUT",
+      "outputDir": "hv7-juniper-visual",
+      "invariants": [
+        "Juniper Works independent venue rendering",
+        "second-venue authoring",
+        "mobile and desktop venue separation"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "source-authoring",
+      "command": [
+        "node",
+        "scripts/capture-source-authoring-visual.js"
+      ],
+      "outputEnv": "SOURCE_AUTHORING_VISUAL_OUTPUT",
+      "outputDir": "source-authoring-visual",
+      "invariants": [
+        "deployment-agnostic source authoring",
+        "progressive section navigation",
+        "real renderer preview",
+        "Fourth Street identity preservation",
+        "synthetic/second-venue generic editing"
+      ],
+      "evidenceRole": "machine-oracle",
+      "supersedes": [
+        "HV-6 native authoring visual acceptance obligation"
+      ]
+    },
+    {
+      "id": "wall-inbox",
+      "command": [
+        "node",
+        "scripts/capture-ux-1e-visual.js"
+      ],
+      "outputEnv": "UX_1E_VISUAL_OUTPUT",
+      "outputDir": "ux-1e-visual",
+      "invariants": [
+        "Wall social-feed hierarchy",
+        "Inbox locked/decrypted states",
+        "payment metadata subordinate to human message",
+        "touch targets"
+      ],
+      "evidenceRole": "machine-oracle"
+    },
+    {
+      "id": "profile-activity",
+      "command": [
+        "node",
+        "scripts/capture-profile-activity-visual.js"
+      ],
+      "outputEnv": "PROFILE_ACTIVITY_VISUAL_OUTPUT",
+      "outputDir": "profile-activity-visual",
+      "invariants": [
+        "owner recent-activity ready/empty/unavailable states",
+        "mobile and desktop profile activity"
+      ],
+      "evidenceRole": "machine-oracle"
+    }
+  ],
+  "supersededHistoricalSuites": [
+    {
+      "id": "hv6-native",
+      "oldCommand": "npm run test:visual:hv6-native",
+      "reason": "The later deployment-agnostic source-authoring surface plus Juniper Works second-venue qualification cover the current authoring model, and the dedicated current viewport review directly proves generic display-name editing on synthetic Juniper evidence while preserving Fourth Street as 4th Street Bar. HV-6 remains repository history, not a current acceptance oracle.",
+      "replacements": [
+        "source-authoring",
+        "second-venue",
+        "current-viewport-review"
+      ]
+    }
+  ],
+  "accessibilityContract": {
+    "blockingImpacts": [
+      "serious",
+      "critical"
+    ],
+    "classifiedNonBlocking": [
+      {
+        "suite": "wall-inbox",
+        "id": "page-has-heading-one",
+        "impact": "moderate",
+        "classification": "fixture-only",
+        "reason": "UX-1E intentionally renders profile Wall/Inbox partials inside a synthetic harness document rather than the production profile page heading. The partial hierarchy and serious/critical accessibility gate remain the subject of this oracle."
+      },
+      {
+        "suite": "source-authoring",
+        "id": "landmark-unique",
+        "impact": "moderate",
+        "classification": "compound-harness",
+        "reason": "The editor harness embeds a separately valid venue preview document. The editor-level Axe pass observes the compound editor-plus-preview landmark topology while the preview document is also checked separately and reports no violations. Any different or more severe finding is blocking."
+      }
+    ]
+  },
+  "knownIncidentalChurnSources": [
+    "c2-e-visual/screenshots/0390-moderation-management.png",
+    "c2-e-visual/screenshots/1440-moderation-management.png",
+    "c2-e-visual/screenshots/0390-moderation-store-unavailable.png",
+    "c2-e-visual/screenshots/1440-moderation-store-unavailable.png",
+    "c2-f-visual/staff-pending-desktop.png",
+    "m18-4-visual/screenshots/0390-wallet.png",
+    "m18-4-visual/screenshots/0768-wallet.png",
+    "m18-4-visual/screenshots/1440-wallet.png"
+  ],
+  "reviewRules": {
+    "screenshotMode": "viewport-only",
+    "fullPageScreenshotsAllowed": false,
+    "maxReviewHeight": 1100,
+    "note": "Human acceptance evidence is captured directly from current application/source-authoring browser viewports. Historical full-page PNGs are ephemeral machine intermediates only and are never used as the review-image source."
+  },
+  "reviewScenarios": [
+    {
+      "id": "home-mobile",
+      "kind": "application",
+      "surface": "home ready",
+      "path": "/",
+      "authenticated": false,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "expectText": "4th Street Bar"
+    },
+    {
+      "id": "home-desktop",
+      "kind": "application",
+      "surface": "home ready",
+      "path": "/",
+      "authenticated": false,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "expectText": "4th Street Bar"
+    },
+    {
+      "id": "community-mobile",
+      "kind": "application",
+      "surface": "community feed",
+      "path": "/community",
+      "authenticated": false,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "expectText": "Community"
+    },
+    {
+      "id": "community-desktop",
+      "kind": "application",
+      "surface": "community feed",
+      "path": "/community",
+      "authenticated": false,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "expectText": "Community"
+    },
+    {
+      "id": "threads-mobile",
+      "kind": "application",
+      "surface": "Threads",
+      "path": "/community/threads",
+      "authenticated": false,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "expectText": "Threads"
+    },
+    {
+      "id": "threads-desktop",
+      "kind": "application",
+      "surface": "Threads",
+      "path": "/community/threads",
+      "authenticated": false,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "expectText": "Threads"
+    },
+    {
+      "id": "pay-mobile",
+      "kind": "application",
+      "surface": "Hive Keychain payment entry",
+      "path": "/pay",
+      "authenticated": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "expectText": "Pay with HBD"
+    },
+    {
+      "id": "profile-mobile",
+      "kind": "application",
+      "surface": "patron profile",
+      "path": "/profile/etblink",
+      "authenticated": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "expectText": "Evan"
+    },
+    {
+      "id": "fourth-street-authoring-mobile",
+      "kind": "source-authoring",
+      "fixture": "fourth-street",
+      "surface": "Fourth Street reference authoring",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "id": "juniper-authoring-mobile",
+      "kind": "source-authoring",
+      "fixture": "juniper",
+      "surface": "synthetic generic identity authoring",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "currentReviewOracle": {
+    "id": "current-viewport-review",
+    "command": [
+      "node",
+      "scripts/capture-current-contract-visual.js"
+    ],
+    "invariants": [
+      "faithful viewport-only human review evidence",
+      "mobile fixed navigation in actual viewport geometry",
+      "current home/community/Threads/Pay/profile presentation",
+      "Fourth Street reference identity preservation",
+      "generic display-name editing exercised only on synthetic Juniper venue"
+    ],
+    "evidenceRole": "human-review-plus-targeted-machine-assertions"
+  }
+}
