@@ -226,13 +226,19 @@ const QOL_SCRIPT = `'use strict';
       params.append('value', control.value);
     }
     if (!params.getAll('pointer').length) return;
-    const response = await fetch(editorPath + '${STUDIO_PROPOSAL_SUFFIX}', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: params.toString(),
-      redirect: 'follow',
-    });
-    location.href = response.url || editorPath;
+    const post = document.createElement('form');
+    post.method = 'post';
+    post.action = editorPath + '${STUDIO_PROPOSAL_SUFFIX}';
+    post.hidden = true;
+    for (const [name, value] of params) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      post.appendChild(input);
+    }
+    document.body.appendChild(post);
+    post.submit();
   }
 
   for (const section of sections) {
