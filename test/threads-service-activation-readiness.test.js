@@ -9,6 +9,7 @@ const {
   assessThreadsServiceActivationReadiness,
   requirePublicKey,
 } = require('../src/social/threads-service-activation-readiness');
+const { buildThreadsFundsClaim } = require('../src/hive/threads-foundation');
 const { main } = require('../scripts/check-threads-service-activation');
 
 const PUBLIC_KEY = 'STM73MTSWz2Nks4Eaf8G8F7Nr6jbHorZSM774HFmtrdEuahXqi1ff';
@@ -58,6 +59,7 @@ test('fully prepared declared snapshot still cannot claim live activation while 
   assert.equal(report.activationReady, false);
   assert.equal(report.preparationReady, true);
   assert.equal(report.authorityReady, true);
+  assert.equal(report.optionalCleanupReady, true);
   assert.equal(report.credentialBoundarySafe, true);
   assert.equal(report.credentialIdentityReady, true);
   assert.equal(
@@ -65,11 +67,12 @@ test('fully prepared declared snapshot still cannot claim live activation while 
     'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION',
   );
   assert.deepEqual(report.blockers, ['THREADS_RUNTIME_SIGNER_ACTIVATION_IMPLEMENTED']);
+  assert.deepEqual(report.optionalCleanup.blockers, []);
   assert.deepEqual(report.proposedAuthorityChanges, []);
   assert.equal(report.currentRepositoryBoundary, 'REAL_THREADS_SERVICE_SIGNER_REMAINS_SYNTHETIC_TEST_ONLY');
 });
 
-test('prepared authorities without a provisioned Posting credential stop at the separate provisioning boundary', () => {
+test('prepared Posting authority without a provisioned Posting credential stops at the separate provisioning boundary', () => {
   const report = assessThreadsServiceActivationReadiness(snapshot({
     serverCredentialClasses: [],
     configuredPostingPublicKey: null,
@@ -104,14 +107,15 @@ test('configured Posting public key is rejected when no Posting credential class
   );
 });
 
-test('missing direct Posting key and merchant Active account auth produce exact authority-change proposals', () => {
+test('missing direct Posting key produces only the Posting authority-change proposal', () => {
   const input = snapshot({ serverCredentialClasses: [], configuredPostingPublicKey: null });
   input.threadsAccount.posting.key_auths = [];
   input.threadsAccount.active.account_auths = [];
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.activationReady, false);
   assert.equal(report.authorityReady, false);
-  assert.equal(report.nextStage, 'SEPARATELY_AUTHORIZE_AND_APPLY_HIVE_AUTHORITY_CHANGE');
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(report.nextStage, 'SEPARATELY_AUTHORIZE_AND_APPLY_POSTING_AUTHORITY_CHANGE');
   assert.deepEqual(report.proposedAuthorityChanges, [
     {
       authority: 'posting',
@@ -119,13 +123,74 @@ test('missing direct Posting key and merchant Active account auth produce exact 
       publicKey: PUBLIC_KEY,
       minimumWeight: 1,
     },
-    {
-      authority: 'active',
-      action: 'ADD_ACCOUNT_AUTH',
-      account: 'fourthstreetbar',
-      minimumWeight: 1,
-    },
   ]);
+  assert.deepEqual(report.optionalCleanup.blockers, [
+    'MERCHANT_ACCOUNT_DIRECTLY_SATISFIES_THREADS_ACTIVE_THRESHOLD',
+  ]);
+});
+
+test('merchant Active cleanup authorization is optional for Posting preparation but cleanup still fails closed', () => {
+  const input = snapshot();
+  input.threadsAccount.active.account_auths = [];
+  input.threadsAccount.balance = '1.000 HIVE';
+  input.threadsAccount.hbd_balance = '0.000 HBD';
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.preparationReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(
+    report.nextStage,
+    'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION',
+  );
+  assert.deepEqual(report.blockers, ['THREADS_RUNTIME_SIGNER_ACTIVATION_IMPLEMENTED']);
+  assert.deepEqual(report.proposedAuthorityChanges, []);
+  assert.deepEqual(report.optionalCleanup.blockers, [
+    'MERCHANT_ACCOUNT_DIRECTLY_SATISFIES_THREADS_ACTIVE_THRESHOLD',
+  ]);
+  assert.throws(
+    () => buildThreadsFundsClaim({
+      venue: {
+        id: 'fourth-street',
+        hive: {
+          communityId: 'hive-108590',
+          officialAccount: 'fourthstreetbar',
+          threadsContainerAccount: 'fourthst.threads',
+        },
+      },
+      accountRecord: input.threadsAccount,
+      signerAccount: 'fourthstreetbar',
+    }),
+    (error) => error.code === 'THREADS_ACTIVE_AUTH_REQUIRED',
+  );
+});
+
+test('Posting-cleanup decoupling is venue-neutral rather than Fourth Street platform truth', () => {
+  const input = snapshot({
+    venue: {
+      officialAccount: 'juniper.venue',
+      threadsContainerAccount: 'juniper.threads',
+    },
+    threadsAccount: {
+      name: 'juniper.threads',
+      posting: {
+        weight_threshold: 1,
+        account_auths: [],
+        key_auths: [[PUBLIC_KEY, 1]],
+      },
+      active: {
+        weight_threshold: 1,
+        account_auths: [],
+        key_auths: [],
+      },
+    },
+  });
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.identities.merchantAccount, 'juniper.venue');
+  assert.equal(report.identities.threadsAccount, 'juniper.threads');
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.preparationReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
 test('direct Posting key must independently satisfy threshold even when account auths exist', () => {
@@ -190,16 +255,20 @@ test('wrong Threads account snapshot fails closed without proposing changes agai
   input.threadsAccount.active.account_auths = [];
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.activationReady, false);
-  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT');
+  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_POSTING_AUTHORITY_INPUT');
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-test('invalid authority threshold is a blocker and never invents a mutation weight', () => {
+test('invalid Active authority does not block Posting preparation and remains cleanup-unavailable', () => {
   const input = snapshot();
   input.threadsAccount.active.weight_threshold = 0;
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.activationReady, false);
-  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.preparationReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+  assert.equal(report.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 

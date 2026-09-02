@@ -195,10 +195,6 @@ function hasKeyAuth(authority, publicKey) {
   return Boolean(authority && authority.keyAuths.some(([candidate]) => candidate === publicKey));
 }
 
-function hasAccountAuth(authority, account) {
-  return Boolean(authority && authority.accountAuths.some(([candidate]) => candidate === account));
-}
-
 function matchingKeyWeight(authority, publicKey) {
   if (!authority) return 0;
   return authority.keyAuths.reduce((sum, entry) => {
@@ -241,34 +237,6 @@ function directKeyAuthorityChange(authority, publicKey) {
     authority: 'posting',
     action: existingMember ? 'RAISE_KEY_AUTH' : 'ADD_KEY_AUTH',
     publicKey,
-    minimumWeight: authority.threshold,
-  };
-}
-
-function directAccountAuthorityChange(authority, account) {
-  const existingMember = hasAccountAuth(authority, account);
-  if (authority.threshold > MAX_HIVE_AUTHORITY_WEIGHT) {
-    return {
-      authority: 'active',
-      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
-      account,
-      currentThreshold: authority.threshold,
-      maximumSingleWeight: MAX_HIVE_AUTHORITY_WEIGHT,
-    };
-  }
-  if (!existingMember && authorityMembershipCount(authority) >= MAX_HIVE_AUTHORITY_MEMBERSHIP) {
-    return {
-      authority: 'active',
-      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
-      account,
-      currentMembership: authorityMembershipCount(authority),
-      maximumMembership: MAX_HIVE_AUTHORITY_MEMBERSHIP,
-    };
-  }
-  return {
-    authority: 'active',
-    action: existingMember ? 'RAISE_ACCOUNT_AUTH' : 'ADD_ACCOUNT_AUTH',
-    account,
     minimumWeight: authority.threshold,
   };
 }
@@ -338,6 +306,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
 
   const checks = [];
   const blockers = [];
+  const optionalCleanupBlockers = [];
   const proposedAuthorityChanges = [];
 
   const accountMatches = observedThreadsAccount === expectedThreadsAccount;
@@ -345,11 +314,12 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     expectedAccount: expectedThreadsAccount,
     observedAccount: observedThreadsAccount || null,
   });
+  if (!accountMatches) optionalCleanupBlockers.push('THREADS_ACCOUNT_MATCH');
 
   addCheck(checks, blockers, 'THREADS_POSTING_AUTHORITY_VALID', Boolean(posting), {
     threshold: posting?.threshold || null,
   });
-  addCheck(checks, blockers, 'THREADS_ACTIVE_AUTHORITY_VALID', Boolean(active), {
+  addCheck(checks, optionalCleanupBlockers, 'THREADS_ACTIVE_AUTHORITY_VALID', Boolean(active), {
     threshold: active?.threshold || null,
   });
 
@@ -368,16 +338,17 @@ function assessThreadsServiceActivationReadiness(input = {}) {
 
   const merchantActiveWeight = matchingAccountWeight(active, merchantAccount);
   const merchantActive = Boolean(active && merchantActiveWeight >= active.threshold);
-  addCheck(checks, blockers, 'MERCHANT_ACCOUNT_DIRECTLY_SATISFIES_THREADS_ACTIVE_THRESHOLD', merchantActive, {
-    merchantAccount,
-    observedWeight: merchantActiveWeight,
-    requiredWeight: active?.threshold || null,
-  });
-  if (accountMatches && active && !merchantActive) {
-    proposedAuthorityChanges.push(Object.freeze(
-      directAccountAuthorityChange(active, merchantAccount),
-    ));
-  }
+  addCheck(
+    checks,
+    optionalCleanupBlockers,
+    'MERCHANT_ACCOUNT_DIRECTLY_SATISFIES_THREADS_ACTIVE_THRESHOLD',
+    merchantActive,
+    {
+      merchantAccount,
+      observedWeight: merchantActiveWeight,
+      requiredWeight: active?.threshold || null,
+    },
+  );
 
   const prohibitedConfigured = serverCredentialClasses.filter((credentialClass) =>
     PROHIBITED_SERVER_CREDENTIAL_CLASSES.includes(credentialClass),
@@ -407,7 +378,8 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     { block: postingCredentialConfigured },
   );
 
-  const authorityReady = accountMatches && postingDirect && merchantActive;
+  const authorityReady = accountMatches && postingDirect;
+  const optionalCleanupReady = accountMatches && Boolean(active) && merchantActive;
   const credentialBoundarySafe = prohibitedConfigured.length === 0;
   const credentialIdentityReady = postingCredentialConfigured && configuredPostingKeyMatches === true;
   const preparationReady = authorityReady && credentialBoundarySafe && credentialIdentityReady;
@@ -425,12 +397,12 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   const activationReady = false;
 
   let nextStage;
-  if (!accountMatches || !posting || !active) {
-    nextStage = 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT';
+  if (!accountMatches || !posting) {
+    nextStage = 'REPAIR_IDENTITY_OR_POSTING_AUTHORITY_INPUT';
   } else if (!credentialBoundarySafe) {
     nextStage = 'REMOVE_PROHIBITED_SERVER_CREDENTIALS';
   } else if (!authorityReady) {
-    nextStage = 'SEPARATELY_AUTHORIZE_AND_APPLY_HIVE_AUTHORITY_CHANGE';
+    nextStage = 'SEPARATELY_AUTHORIZE_AND_APPLY_POSTING_AUTHORITY_CHANGE';
   } else if (!postingCredentialConfigured) {
     nextStage = 'SEPARATELY_AUTHORIZE_POSTING_KEY_PROVISIONING';
   } else if (!credentialIdentityReady) {
@@ -440,10 +412,11 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   }
 
   return Object.freeze({
-    schema: 'hive-venues-threads-service-activation-readiness-v1',
+    schema: 'hive-venues-threads-service-activation-readiness-v2',
     activationReady,
     preparationReady,
     authorityReady,
+    optionalCleanupReady,
     credentialBoundarySafe,
     postingCredentialConfigured,
     credentialIdentityReady,
@@ -457,10 +430,19 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     checks: Object.freeze(checks),
     blockers: Object.freeze([...new Set(blockers)]),
     proposedAuthorityChanges: Object.freeze(proposedAuthorityChanges),
+    optionalCleanup: Object.freeze({
+      ready: optionalCleanupReady,
+      activeAuthorityValid: Boolean(active),
+      merchantDirectActiveAuthorization: merchantActive,
+      blockers: Object.freeze([...new Set(optionalCleanupBlockers)]),
+      boundary: 'OPTIONAL_MANUAL_CLEANUP_REMAINS_FAIL_CLOSED_UNLESS_FRESH_ACTIVE_AUTHORIZATION_SATISFIES_THRESHOLD',
+      signerBoundary: 'MERCHANT_KEYCHAIN_ACTIVE_SIGNING_ONLY__NO_SERVER_ACTIVE_PRIVATE_KEY',
+    }),
     rollbackRequirements: Object.freeze([
-      'CAPTURE_EXACT_PRE_CHANGE_POSTING_AND_ACTIVE_AUTHORITIES_BEFORE_ANY_LIVE_MUTATION',
-      'PRECOMPUTE_EXACT_ROLLBACK_FROM_CAPTURED_PRE_CHANGE_AUTHORITIES',
-      'VERIFY_POST_CHANGE_AUTHORITIES_FROM_FRESH_ON_CHAIN_READ_BEFORE_DEPLOYMENT',
+      'CAPTURE_EXACT_PRE_CHANGE_POSTING_AUTHORITY_BEFORE_ANY_LIVE_POSTING_MUTATION',
+      'PRECOMPUTE_EXACT_ROLLBACK_FROM_CAPTURED_PRE_CHANGE_POSTING_AUTHORITY',
+      'VERIFY_POST_CHANGE_POSTING_AUTHORITY_FROM_FRESH_ON_CHAIN_READ_BEFORE_DEPLOYMENT',
+      'DO_NOT_REQUIRE_OR_MUTATE_THREADS_ACTIVE_AUTHORITY_FOR_POSTING_SERVICE_ACTIVATION',
       'NEVER_PROVISION_ACTIVE_OWNER_OR_MEMO_PRIVATE_KEYS_TO_THE_SERVER',
     ]),
     currentRepositoryBoundary: 'REAL_THREADS_SERVICE_SIGNER_REMAINS_SYNTHETIC_TEST_ONLY',

@@ -51,7 +51,7 @@ test('preparationReady requires the configured Posting credential identity', () 
   assert.equal(stale.preparationReady, false);
 });
 
-test('duplicate Posting key entries invalidate the authority instead of summing weights', () => {
+test('duplicate Posting key entries invalidate the Posting authority instead of summing weights', () => {
   const input = snapshot();
   input.threadsAccount.posting = {
     weight_threshold: 2,
@@ -61,12 +61,12 @@ test('duplicate Posting key entries invalidate the authority instead of summing 
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.authorityReady, false);
   assert.equal(report.preparationReady, false);
-  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT');
+  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_POSTING_AUTHORITY_INPUT');
   assert.equal(report.blockers.includes('THREADS_POSTING_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-test('duplicate merchant Active account entries invalidate the authority instead of summing weights', () => {
+test('duplicate merchant Active account entries affect only optional cleanup readiness', () => {
   const input = snapshot();
   input.threadsAccount.active = {
     weight_threshold: 2,
@@ -74,14 +74,19 @@ test('duplicate merchant Active account entries invalidate the authority instead
     key_auths: [],
   };
   const report = assessThreadsServiceActivationReadiness(input);
-  assert.equal(report.authorityReady, false);
-  assert.equal(report.preparationReady, false);
-  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT');
-  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.preparationReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(
+    report.nextStage,
+    'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION',
+  );
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+  assert.equal(report.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-test('authority proposal never emits a single auth weight above Hive uint16 maximum', () => {
+test('Posting authority proposal never emits a single auth weight above Hive uint16 maximum', () => {
   const input = snapshot();
   input.threadsAccount.posting = {
     weight_threshold: 70000,
@@ -95,18 +100,12 @@ test('authority proposal never emits a single auth weight above Hive uint16 maxi
   };
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.authorityReady, false);
+  assert.equal(report.optionalCleanupReady, false);
   assert.deepEqual(report.proposedAuthorityChanges, [
     {
       authority: 'posting',
       action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
       publicKey: PUBLIC_KEY,
-      currentThreshold: 70000,
-      maximumSingleWeight: 65535,
-    },
-    {
-      authority: 'active',
-      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
-      account: 'fourthstreetbar',
       currentThreshold: 70000,
       maximumSingleWeight: 65535,
     },
@@ -127,12 +126,14 @@ test('preflight rejects Hive account names that violate protocol label grammar',
   const input = snapshot();
   input.threadsAccount.active.account_auths = [['abc-', 1]];
   const report = assessThreadsServiceActivationReadiness(input);
-  assert.equal(report.authorityReady, false);
-  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+  assert.equal(report.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-test('authority thresholds and weights reject JSON type coercion', () => {
+test('authority thresholds and weights reject JSON type coercion without coupling Active cleanup to Posting readiness', () => {
   for (const malformedThreshold of ['1', true]) {
     const input = snapshot();
     input.threadsAccount.posting.weight_threshold = malformedThreshold;
@@ -145,12 +146,14 @@ test('authority thresholds and weights reject JSON type coercion', () => {
     const input = snapshot();
     input.threadsAccount.active.account_auths = [['fourthstreetbar', malformedWeight]];
     const report = assessThreadsServiceActivationReadiness(input);
-    assert.equal(report.authorityReady, false);
-    assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+    assert.equal(report.authorityReady, true);
+    assert.equal(report.optionalCleanupReady, false);
+    assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+    assert.equal(report.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   }
 });
 
-test('authority rejects more than 40 combined key and account members', () => {
+test('Active authority rejects more than 40 combined members only for optional cleanup', () => {
   const input = snapshot();
   input.threadsAccount.active = {
     weight_threshold: 1,
@@ -161,14 +164,15 @@ test('authority rejects more than 40 combined key and account members', () => {
     key_auths: [[PUBLIC_KEY, 1]],
   };
   const report = assessThreadsServiceActivationReadiness(input);
-  assert.equal(report.authorityReady, false);
-  assert.equal(report.preparationReady, false);
-  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT');
-  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.equal(report.authorityReady, true);
+  assert.equal(report.preparationReady, true);
+  assert.equal(report.optionalCleanupReady, false);
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+  assert.equal(report.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-test('full 40-member authorities never propose adding a 41st direct member', () => {
+test('full 40-member Posting authority never proposes adding a 41st direct member', () => {
   const input = snapshot({ serverCredentialClasses: [], configuredPostingPublicKey: null });
   input.threadsAccount.posting = {
     weight_threshold: 1,
@@ -188,18 +192,12 @@ test('full 40-member authorities never propose adding a 41st direct member', () 
   };
   const report = assessThreadsServiceActivationReadiness(input);
   assert.equal(report.authorityReady, false);
+  assert.equal(report.optionalCleanupReady, false);
   assert.deepEqual(report.proposedAuthorityChanges, [
     {
       authority: 'posting',
       action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_KEY_AUTH',
       publicKey: PUBLIC_KEY,
-      currentMembership: 40,
-      maximumMembership: 40,
-    },
-    {
-      authority: 'active',
-      action: 'RESTRUCTURE_AUTHORITY_FOR_DIRECT_ACCOUNT_AUTH',
-      account: 'fourthstreetbar',
       currentMembership: 40,
       maximumMembership: 40,
     },
@@ -217,7 +215,9 @@ test('authority identities are validated exactly without whitespace normalizatio
   const accountInput = snapshot();
   accountInput.threadsAccount.active.account_auths = [[' fourthstreetbar ', 1]];
   const accountReport = assessThreadsServiceActivationReadiness(accountInput);
-  assert.equal(accountReport.authorityReady, false);
-  assert.equal(accountReport.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.equal(accountReport.authorityReady, true);
+  assert.equal(accountReport.optionalCleanupReady, false);
+  assert.equal(accountReport.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), false);
+  assert.equal(accountReport.optionalCleanup.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(accountReport.proposedAuthorityChanges, []);
 });
