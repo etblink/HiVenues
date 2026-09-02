@@ -34,6 +34,12 @@ function pointerPath(rootDir, filename) {
   return path.join(rootDir, filename);
 }
 
+function expectedPointerKind(filename) {
+  if (filename === CURRENT_POINTER_FILENAME) return 'current';
+  if (filename === LAST_GOOD_POINTER_FILENAME) return 'last-good';
+  throw new NonProductionReleaseRehearsalError(`unsupported pointer filename ${filename}`);
+}
+
 function releasePath(rootDir, identity) {
   const exact = requireExactIdentity(identity);
   return path.join(rootDir, 'releases', exact.commit);
@@ -108,12 +114,21 @@ function atomicWriteJson(filename, value) {
 function readPointer(rootDir, filename) {
   const target = pointerPath(rootDir, filename);
   if (!fs.existsSync(target)) return null;
+  const expectedKind = expectedPointerKind(filename);
   let parsed;
   try {
     parsed = JSON.parse(fs.readFileSync(target, 'utf8'));
   } catch (error) {
     throw new NonProductionReleaseRehearsalError(
       `${filename} is not valid JSON: ${error.message}`,
+    );
+  }
+  if (parsed.schemaVersion !== 1) {
+    throw new NonProductionReleaseRehearsalError(`${filename} schemaVersion must be exactly 1`);
+  }
+  if (parsed.pointerKind !== expectedKind) {
+    throw new NonProductionReleaseRehearsalError(
+      `${filename} pointerKind must be ${expectedKind}`,
     );
   }
   const identity = requireExactIdentity(parsed.identity, `${filename}.identity`);
@@ -125,13 +140,19 @@ function readPointer(rootDir, filename) {
   }
   return Object.freeze({
     schemaVersion: 1,
-    pointerKind: parsed.pointerKind,
+    pointerKind: expectedKind,
     identity,
     releasePath: release,
   });
 }
 
 function writePointer(rootDir, filename, pointerKind, release) {
+  const expectedKind = expectedPointerKind(filename);
+  if (pointerKind !== expectedKind) {
+    throw new NonProductionReleaseRehearsalError(
+      `${filename} cannot be written with pointerKind ${pointerKind}`,
+    );
+  }
   atomicWriteJson(pointerPath(rootDir, filename), {
     schemaVersion: 1,
     pointerKind,

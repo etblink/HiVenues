@@ -11,8 +11,10 @@ const {
   runIndependentVenueReleaseRehearsal,
 } = require('../scripts/rehearse-independent-venue-release');
 const {
+  CURRENT_POINTER_FILENAME,
   NonProductionReleaseRehearsalError,
   promoteRelease,
+  readPointer,
   stageReleaseIdentity,
 } = require('../src/release/non-production-rehearsal');
 const { resolveHealthServiceName } = require('../src/routes/health');
@@ -108,6 +110,45 @@ test('portable manifest path resolves to the same isolated filesystem root', (t)
 
   assert.equal(path.posix.isAbsolute(manifestRoot), true);
   assert.equal(path.resolve(manifestRoot), path.resolve(nativeRoot));
+});
+
+test('portable release pointers reject schema and kind tampering', (t) => {
+  const rootDir = temporaryRoot(t);
+  const provenance = HV4_SYNTHETIC_BOOTSTRAP_INPUT.deploymentManifest.provenance;
+  stageReleaseIdentity({
+    rootDir,
+    identity: PREVIOUS_IDENTITY,
+    commitFilename: provenance.commitFilename,
+    treeFilename: provenance.treeFilename,
+  });
+  promoteRelease({
+    rootDir,
+    identity: PREVIOUS_IDENTITY,
+    commitFilename: provenance.commitFilename,
+    treeFilename: provenance.treeFilename,
+  });
+
+  const pointerPath = path.join(rootDir, CURRENT_POINTER_FILENAME);
+  const pointer = JSON.parse(fs.readFileSync(pointerPath, 'utf8'));
+  fs.writeFileSync(pointerPath, `${JSON.stringify({ ...pointer, schemaVersion: 2 })}\n`, 'utf8');
+  assert.throws(
+    () => readPointer(rootDir, CURRENT_POINTER_FILENAME),
+    (error) =>
+      error instanceof NonProductionReleaseRehearsalError &&
+      /schemaVersion must be exactly 1/.test(error.message),
+  );
+
+  fs.writeFileSync(
+    pointerPath,
+    `${JSON.stringify({ ...pointer, schemaVersion: 1, pointerKind: 'last-good' })}\n`,
+    'utf8',
+  );
+  assert.throws(
+    () => readPointer(rootDir, CURRENT_POINTER_FILENAME),
+    (error) =>
+      error instanceof NonProductionReleaseRehearsalError &&
+      /pointerKind must be current/.test(error.message),
+  );
 });
 
 test('portable release state refuses promotion after exact tree identity is tampered', (t) => {
