@@ -10,6 +10,7 @@ const { configFrom, logger } = require('./support/test-app');
 
 const ROOT = path.join(__dirname, '..');
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), 'utf8');
+const visualContract = () => JSON.parse(read('config/visual-qualification-contract.json'));
 
 function emptyConnectionApp() {
   const profile = {
@@ -37,11 +38,7 @@ test('M18.4 renders empty Followers and Following as full pages and HTMX fragmen
     assert.match(full.text, new RegExp(message.replace('.', '\\.')));
     assert.match(full.text, /<!doctype html>/i);
     assert.doesNotMatch(full.text, /ReferenceError|error is not defined/);
-
-    const fragment = await request(app)
-      .get(`/profile/emptyacct/${kind}`)
-      .set('HX-Request', 'true')
-      .expect(200);
+    const fragment = await request(app).get(`/profile/emptyacct/${kind}`).set('HX-Request', 'true').expect(200);
     assert.match(fragment.text, new RegExp(message.replace('.', '\\.')));
     assert.doesNotMatch(fragment.text, /<!doctype html>/i);
     assert.doesNotMatch(fragment.text, /ReferenceError|error is not defined/);
@@ -74,7 +71,6 @@ test('M18.4 keeps exact byte enforcement while presenting friendly length feedba
   assert.match(files, /data-max-bytes="512"/);
   assert.match(files, /maxBytes: privateOnly \? 1500 : 2000/);
   assert.doesNotMatch(files, /byte limit/);
-
   const client = read('public/js/composer-presentation.js');
   assert.match(client, /WALL_PRIVATE_LIMIT = 1500/);
   assert.match(client, /WALL_PUBLIC_LIMIT = 2000/);
@@ -94,23 +90,21 @@ test('M18.4 distinguishes future sign-in-required follow copy from unavailable c
   assert.match(profile, /Following isn’t available here yet\./);
 });
 
-test('M18.4 UI/UX evidence wiring and current production boundary remain intact', () => {
+test('M18.4 current visual-contract wiring and production boundary remain intact', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const workflow = read('.github/workflows/ci.yml');
-
-  assert.match(
-    operations,
-    /HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD/,
-  );
-  assert.match(
-    operations,
-    /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/,
-  );
+  const suite = visualContract().machineSuites.find(({ id }) => id === 'm18-patron-surfaces');
+  assert.match(operations, /HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD/);
+  assert.match(operations, /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/);
   assert.match(operations, /source advancement on `main` does not by itself authorize deployment/);
-
-  assert.match(workflow, /UI\/UX visual evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(workflow, /M18_4_VISUAL_OUTPUT: artifacts\/m18-4-visual/);
-  assert.match(workflow, /npm run test:visual:m18-4/);
+  assert.ok(suite);
+  assert.deepEqual(suite.command, ['npm', 'run', 'test:visual:m18-4']);
+  assert.equal(suite.outputEnv, 'M18_4_VISUAL_OUTPUT');
+  assert.equal(suite.outputDir, 'm18-4-visual');
+  assert.ok(suite.invariants.includes('wallet'));
+  assert.ok(suite.invariants.includes('owner inbox'));
+  assert.match(workflow, /UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
 });
 
 test('M18.4 live qualification explicitly reads both social-graph directions without writes', () => {

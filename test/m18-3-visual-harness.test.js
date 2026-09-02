@@ -9,6 +9,7 @@ const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-m18-3-visual.js'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
 test('M18.3 freezes seven scenarios at the accepted six widths', () => {
   assert.match(capture, /Object\.freeze\(\[360, 390, 768, 1024, 1440, 1600\]\)/);
@@ -62,12 +63,19 @@ test('M18.3 harness gates responsive geometry and long receipt proof', () => {
   assert.match(capture, /'b'\.repeat\(64\)/);
 });
 
-test('M18.2 and M18.3 remain distinct retained suites in UI/UX visual evidence', () => {
+test('M18.2 and M18.3 remain distinct retained machine suites in current visual qualification', () => {
   assert.equal(packageJson.scripts['test:visual:m18-3'], 'node scripts/capture-m18-3-visual.js');
   assert.equal(packageJson.scripts['test:visual:m18'], 'node scripts/capture-m18-visual.js');
-  assert.match(workflow, /UI\/UX visual evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(workflow, /M18_VISUAL_OUTPUT: artifacts\/m18-visual/);
-  assert.match(workflow, /npm run test:visual:m18/);
-  assert.match(workflow, /M18_3_VISUAL_OUTPUT: artifacts\/m18-3-visual/);
-  assert.match(workflow, /npm run test:visual:m18-3/);
+  const m18 = visualContract.machineSuites.find(({ id }) => id === 'm18-shell');
+  const m183 = visualContract.machineSuites.find(({ id }) => id === 'm18-wall-pay');
+  assert.ok(m18);
+  assert.ok(m183);
+  assert.deepEqual(m18.command, ['npm', 'run', 'test:visual:m18']);
+  assert.equal(m18.outputEnv, 'M18_VISUAL_OUTPUT');
+  assert.equal(m18.outputDir, 'm18-visual');
+  assert.deepEqual(m183.command, ['npm', 'run', 'test:visual:m18-3']);
+  assert.equal(m183.outputEnv, 'M18_3_VISUAL_OUTPUT');
+  assert.equal(m183.outputDir, 'm18-3-visual');
+  assert.match(workflow, /UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
+  assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
 });

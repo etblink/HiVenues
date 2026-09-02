@@ -11,6 +11,7 @@ const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1d-visual.js'), 'utf8');
 const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
 test('UX-1D visual fixture is authenticated, multi-item, nested, and mutation-fail-closed', async () => {
   const fixture = createUx1dVisualFixture();
@@ -18,7 +19,6 @@ test('UX-1D visual fixture is authenticated, multi-item, nested, and mutation-fa
   assert.equal(fixture.config.hive.writeMode, 'beta');
   assert.equal(fixture.config.hive.signerMode, 'keychain');
   assert.equal(fixture.config.hive.v1SelfSigningEnabled, false);
-
   const cookie = `hive_bar_session=${fixture.token}`;
   const community = await request(fixture.app).get('/community').set('cookie', cookie).expect(200);
   assert.equal((community.text.match(/class="social-feed-item"/g) || []).length, 4);
@@ -26,37 +26,22 @@ test('UX-1D visual fixture is authenticated, multi-item, nested, and mutation-fa
   assert.match(community.text, /Bar Friend/);
   assert.doesNotMatch(community.text, /Bar Friend &lt;script&gt;/);
   assert.doesNotMatch(community.text, /Technical Threads Container — Do Not Display/);
-
   const threads = await request(fixture.app).get('/community/threads').set('cookie', cookie).expect(200);
   assert.equal((threads.text.match(/social-comment--thread/g) || []).length, 5);
   assert.match(threads.text, /data-comment-depth="3"/);
   assert.doesNotMatch(threads.text, /Technical Threads Container — Do Not Display/);
-
-  const conversation = await request(fixture.app)
-    .get('/post/etblink/opening-night-update')
-    .set('cookie', cookie)
-    .expect(200);
+  const conversation = await request(fixture.app).get('/post/etblink/opening-night-update').set('cookie', cookie).expect(200);
   assert.equal((conversation.text.match(/social-comment--conversation/g) || []).length, 4);
   assert.match(conversation.text, /data-comment-depth="3"/);
-
-  await request(fixture.app)
-    .post('/api/social/preflight/vote')
-    .send({ author: 'etblink', permlink: 'opening-night-update', direction: 'upvote', percent: 50 })
-    .expect(405)
+  await request(fixture.app).post('/api/social/preflight/vote').send({ author: 'etblink', permlink: 'opening-night-update', direction: 'upvote', percent: 50 }).expect(405)
     .expect(({ body }) => assert.equal(body.error.code, 'UX_1D_VISUAL_MUTATION_FORBIDDEN'));
-  assert.deepEqual(fixture.mutationAttempts, [
-    { method: 'POST', path: '/api/social/preflight/vote' },
-  ]);
+  assert.deepEqual(fixture.mutationAttempts, [{ method: 'POST', path: '/api/social/preflight/vote' }]);
 });
 
 test('UX-1D pinned-Chromium contract covers posts, Threads, nesting, mobile, and hierarchy assertions', () => {
   assert.equal(packageJson.scripts['test:visual:ux-1d'], 'node scripts/capture-ux-1d-visual.js');
   assert.match(capture, /Object\.freeze\(\[390, 1440\]\)/);
-  for (const scenario of [
-    'community-posts-composer-active',
-    'threads-multiple-composer-active',
-    'conversation-nested-replies',
-  ]) assert.match(capture, new RegExp(scenario));
+  for (const scenario of ['community-posts-composer-active','threads-multiple-composer-active','conversation-nested-replies']) assert.match(capture, new RegExp(scenario));
   assert.match(capture, /UX-1D visual qualification forbids Keychain signing/);
   assert.match(capture, /containerExposed/);
   assert.match(capture, /replyParentErrors/);
@@ -71,23 +56,28 @@ test('UX-1D pinned-Chromium contract covers posts, Threads, nesting, mobile, and
   assert.match(capture, /assert\.equal\(evidence\.scrollY, 0\)/);
 });
 
-test('UX-1D consolidated CI retains every accepted predecessor suite and commit-bound evidence', () => {
+test('UX-1D current contract retains every accepted predecessor machine oracle', () => {
   const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   assert.ok(job);
   assert.match(job, /npx --no-install playwright install --with-deps chromium/);
-  for (const command of [
-    'npm run test:visual:m18',
-    'npm run test:visual:m18-3',
-    'npm run test:visual:m18-4',
-    'npm run test:visual:ux-1a',
-    'npm run test:visual:ux-1b',
-    'npm run test:visual:ux-1c',
-    'npm run test:visual:ux-1d',
-  ]) assert.ok(job.includes(command));
-  assert.match(job, /UX_1D_VISUAL_OUTPUT: artifacts\/ux-1d-visual/);
-  assert.match(
-    job,
-    /consolidated-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
-  );
+  const expected = new Map([
+    ['m18-shell', 'test:visual:m18'],
+    ['m18-wall-pay', 'test:visual:m18-3'],
+    ['m18-patron-surfaces', 'test:visual:m18-4'],
+    ['threads', 'test:visual:ux-1a'],
+    ['composer', 'test:visual:ux-1b'],
+    ['weighted-voting', 'test:visual:ux-1c'],
+    ['content-hierarchy', 'test:visual:ux-1d'],
+  ]);
+  for (const [id, script] of expected) {
+    const suite = visualContract.machineSuites.find((entry) => entry.id === id);
+    assert.ok(suite, `Missing retained suite ${id}`);
+    assert.deepEqual(suite.command, ['npm', 'run', script]);
+  }
+  const ux1d = visualContract.machineSuites.find(({ id }) => id === 'content-hierarchy');
+  assert.equal(ux1d.outputEnv, 'UX_1D_VISUAL_OUTPUT');
+  assert.equal(ux1d.outputDir, 'ux-1d-visual');
+  assert.match(job, /node scripts\/run-current-visual-contract\.js/);
+  assert.match(job, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
 });
