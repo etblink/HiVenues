@@ -12,12 +12,14 @@ const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1b-visual
 const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
-test('UX-1B visual fixture is authenticated, deterministic, and mutation-fail-closed', async () => {
+test('UX-1B visual fixture activates beneficiary and funds-claim states without mutations', async () => {
   const fixture = createUx1bVisualFixture();
   assert.equal(fixture.account, 'etblink');
   assert.equal(fixture.config.hive.writeMode, 'beta');
   assert.equal(fixture.config.hive.signerMode, 'keychain');
   assert.equal(fixture.config.hive.v1SelfSigningEnabled, false);
+  assert.equal(fixture.config.hive.beneficiaryPolicy.creatorDonation.enabled, true);
+  assert.equal(fixture.config.hive.beneficiaryPolicy.creatorDonation.weight, 125);
 
   const page = await request(fixture.app)
     .get('/community/threads')
@@ -25,6 +27,29 @@ test('UX-1B visual fixture is authenticated, deterministic, and mutation-fail-cl
     .expect(200);
   assert.match(page.text, /data-social-action="thread" data-signer-mode="keychain"/);
   assert.match(page.text, /Who is stopping by the bar tonight/);
+  assert.match(page.text, /name="creatorDonation" type="checkbox"/);
+  assert.match(page.text, /Donate 1\.25% of this content’s author reward to @fourthstreetbar/);
+  assert.doesNotMatch(page.text, /name="creatorDonation"[^>]*checked/);
+
+  const merchantPage = await request(fixture.app)
+    .get('/community/threads')
+    .set('cookie', `hive_bar_session=${fixture.merchantToken}`)
+    .expect(200);
+  assert.match(merchantPage.text, /data-threads-funds-alert/);
+  assert.match(merchantPage.text, /1\.234 HIVE/);
+  assert.match(merchantPage.text, /5\.678 HBD/);
+  assert.match(merchantPage.text, />\s*Claim funds\s*</);
+  assert.match(merchantPage.text, /Nothing transfers until you approve it/);
+
+  fixture.setThreadsFundsAuthorized(false);
+  const unavailablePage = await request(fixture.app)
+    .get('/community/threads')
+    .set('cookie', `hive_bar_session=${fixture.merchantToken}`)
+    .expect(200);
+  assert.match(unavailablePage.text, /data-threads-funds-alert/);
+  assert.match(unavailablePage.text, /Claiming is unavailable/);
+  assert.match(unavailablePage.text, /No automatic transfer will be attempted/);
+  assert.match(unavailablePage.text, /<button[\s\S]*?disabled[\s\S]*?>\s*Claim funds\s*<\/button>/);
 
   await request(fixture.app)
     .post('/api/social/preflight/thread')
@@ -36,7 +61,7 @@ test('UX-1B visual fixture is authenticated, deterministic, and mutation-fail-cl
   ]);
 });
 
-test('UX-1B pinned-Chromium contract covers five composer contexts at desktop and mobile widths', () => {
+test('UX-1B pinned-Chromium contract covers composers and new conditional economic UI', () => {
   assert.equal(packageJson.scripts['test:visual:ux-1b'], 'node scripts/capture-ux-1b-visual.js');
   assert.match(capture, /Object\.freeze\(\[390, 1440\]\)/);
   for (const scenario of [
@@ -45,9 +70,17 @@ test('UX-1B pinned-Chromium contract covers five composer contexts at desktop an
     'nested-reply-active',
     'public-wall-active',
     'private-message-active',
+    'threads-funds-claim-ready',
+    'threads-funds-claim-unavailable',
   ]) assert.match(capture, new RegExp(scenario));
   assert.match(capture, /open: '\[data-composer\^="reply-composer-"\] \[data-composer-dialog-trigger\]'/);
   assert.doesNotMatch(capture, /reply-composer-.*> summary/);
+  assert.match(capture, /creatorDonationPresent/);
+  assert.match(capture, /assert\.equal\(evidence\.creatorDonationChecked, false\)/);
+  assert.match(capture, /Donate 1\\\.25%/);
+  assert.match(capture, /captureThreadsFunds/);
+  assert.match(capture, /Nothing transfers until you approve it/);
+  assert.match(capture, /No automatic transfer will be attempted/);
   assert.match(capture, /UX-1B visual qualification forbids Keychain signing/);
   assert.match(capture, /UX-1B visual qualification forbids Keychain encryption/);
   assert.match(capture, /assert\.deepEqual\(fixture\.mutationAttempts, \[\]\)/);

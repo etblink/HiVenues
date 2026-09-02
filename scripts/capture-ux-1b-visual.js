@@ -57,6 +57,10 @@ const SCENARIOS = Object.freeze([
     action: 'inbox',
   },
 ]);
+const FUNDS_SCENARIOS = Object.freeze([
+  { id: 'threads-funds-claim-ready', authorized: true },
+  { id: 'threads-funds-claim-unavailable', authorized: false },
+]);
 const KEYCHAIN_STUB = `'use strict'; Object.defineProperty(window, '__UX_1B_KEYCHAIN_DISABLED__', { value: true }); window.HiveBarKeychain = Object.freeze({ KeychainAdapter: class { async broadcast() { throw new Error('UX-1B visual qualification forbids Keychain signing'); } async encodeMemo() { throw new Error('UX-1B visual qualification forbids Keychain encryption'); } async decodeMemo() { throw new Error('UX-1B visual qualification forbids Keychain decryption'); } } });`;
 const IMAGE_PLACEHOLDER = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
@@ -100,7 +104,7 @@ function listen(app) {
   });
 }
 
-async function capture({ baseUrl, browser, scenario, token, width }) {
+async function createVisualContext({ baseUrl, browser, token, width }) {
   const context = await browser.newContext({
     viewport: { width, height: HEIGHT },
     colorScheme: 'dark',
@@ -139,6 +143,16 @@ async function capture({ baseUrl, browser, scenario, token, width }) {
     httpOnly: true,
     sameSite: 'Lax',
   }]);
+  return { context, outboundBlockedOrSubstituted };
+}
+
+async function capture({ baseUrl, browser, scenario, token, width }) {
+  const { context, outboundBlockedOrSubstituted } = await createVisualContext({
+    baseUrl,
+    browser,
+    token,
+    width,
+  });
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', (message) => {
@@ -158,6 +172,14 @@ async function capture({ baseUrl, browser, scenario, token, width }) {
     const targetField = target?.closest('[data-composer-field]');
     const targetCounter = targetField?.querySelector('[data-byte-counter]');
     const targetDialog = target?.closest('dialog[data-composer-dialog]');
+    const creatorDonation = targetForm?.querySelector('[name="creatorDonation"]') || null;
+    const creatorDonationHelp = creatorDonation?.getAttribute('aria-describedby')
+      ?.split(/\s+/)
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent.trim() || '')
+      .filter(Boolean)
+      .join(' ') || null;
+    const creatorDonationLabel = creatorDonation?.closest('label')?.textContent.trim() || null;
     const ids = Array.from(document.querySelectorAll('[id]'), (element) => element.id);
     const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
     const composerControls = Array.from(document.querySelectorAll('[data-composer-input]'));
@@ -199,6 +221,10 @@ async function capture({ baseUrl, browser, scenario, token, width }) {
       brokenLabels,
       composerCount: document.querySelectorAll('[data-composer]').length,
       counterOwnershipErrors,
+      creatorDonationChecked: creatorDonation?.checked ?? null,
+      creatorDonationHelp,
+      creatorDonationLabel,
+      creatorDonationPresent: Boolean(creatorDonation),
       duplicateIds,
       hiddenAmount: targetForm?.querySelector('[name="amount"]')?.value || null,
       hiddenExpectedFee: targetForm?.querySelector('[name="expectedFee"]')?.value || null,
@@ -255,8 +281,87 @@ async function capture({ baseUrl, browser, scenario, token, width }) {
   }
   if (['post', 'thread', 'comment'].includes(scenario.action)) {
     assert.equal(evidence.signerMode, 'keychain');
+    assert.equal(evidence.creatorDonationPresent, true);
+    assert.equal(evidence.creatorDonationChecked, false);
+    assert.match(evidence.creatorDonationLabel, /Donate 1\.25%/);
+    assert.match(evidence.creatorDonationLabel, /author reward/);
+    assert.match(evidence.creatorDonationLabel, /@fourthstreetbar/);
+    assert.match(evidence.creatorDonationHelp, /Optional and unchecked by default/);
   } else {
     assert.equal(evidence.signerMode, null);
+    assert.equal(evidence.creatorDonationPresent, false);
+  }
+  assert.deepEqual(consoleErrors, []);
+
+  const filename = path.join(SHOTS, `${String(width).padStart(4, '0')}-${scenario.id}.png`);
+  const bytes = await page.screenshot({ path: filename, fullPage: true, animations: 'disabled' });
+  await context.close();
+  return {
+    scenario: scenario.id,
+    width,
+    path: path.relative(OUTPUT, filename).split(path.sep).join('/'),
+    sha256: sha256(bytes),
+    evidence,
+    outboundBlockedOrSubstituted,
+  };
+}
+
+async function captureThreadsFunds({
+  baseUrl,
+  browser,
+  fixture,
+  scenario,
+  width,
+}) {
+  fixture.setThreadsFundsAuthorized(scenario.authorized);
+  const { context, outboundBlockedOrSubstituted } = await createVisualContext({
+    baseUrl,
+    browser,
+    token: fixture.merchantToken,
+    width,
+  });
+  const page = await context.newPage();
+  const consoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  const response = await page.goto(`${baseUrl}/community/threads`, { waitUntil: 'networkidle' });
+  assert.equal(response.status(), 200);
+  await settleCaptureViewport(page);
+
+  const evidence = await page.evaluate((scenarioId) => {
+    const alert = document.querySelector('[data-threads-funds-alert]');
+    const button = alert?.querySelector('button[type="submit"]') || null;
+    const status = alert?.querySelector('[data-threads-funds-status]') || null;
+    return {
+      alertText: alert?.textContent.replace(/\s+/g, ' ').trim() || null,
+      alertVisible: Boolean(alert),
+      buttonDisabled: button?.disabled ?? null,
+      buttonText: button?.textContent.trim() || null,
+      overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+      scenario: scenarioId,
+      scrollY: window.scrollY,
+      statusText: status?.textContent.replace(/\s+/g, ' ').trim() || null,
+      technicalContainer: document.body.textContent.includes('Technical Threads Container — Do Not Display'),
+    };
+  }, scenario.id);
+
+  assert.equal(evidence.alertVisible, true);
+  assert.ok(evidence.overflow <= 1, JSON.stringify(evidence));
+  assert.equal(evidence.scrollY, 0);
+  assert.equal(evidence.technicalContainer, false);
+  assert.equal(evidence.buttonText, 'Claim funds');
+  assert.match(evidence.alertText, /1\.234 HIVE/);
+  assert.match(evidence.alertText, /5\.678 HBD/);
+  if (scenario.authorized) {
+    assert.equal(evidence.buttonDisabled, false);
+    assert.match(evidence.statusText, /@fourthstreetbar/);
+    assert.match(evidence.statusText, /@fourthst\.threads/);
+    assert.match(evidence.statusText, /Nothing transfers until you approve it/);
+  } else {
+    assert.equal(evidence.buttonDisabled, true);
+    assert.match(evidence.statusText, /not currently threshold-authorized/);
+    assert.match(evidence.statusText, /No automatic transfer will be attempted/);
   }
   assert.deepEqual(consoleErrors, []);
 
@@ -279,6 +384,8 @@ async function main() {
   assert.equal(fixture.config.hive.writeMode, 'beta');
   assert.equal(fixture.config.hive.signerMode, 'keychain');
   assert.equal(fixture.config.hive.v1SelfSigningEnabled, false);
+  assert.equal(fixture.config.hive.beneficiaryPolicy.creatorDonation.enabled, true);
+  assert.equal(fixture.config.hive.beneficiaryPolicy.creatorDonation.weight, 125);
   await fs.rm(OUTPUT, { recursive: true, force: true });
   await fs.mkdir(SHOTS, { recursive: true });
   const server = await listen(fixture.app);
@@ -289,7 +396,10 @@ async function main() {
     result: 'running',
     git: { commit: git('rev-parse', 'HEAD'), tree: git('rev-parse', 'HEAD^{tree}') },
     widths: WIDTHS,
-    scenarios: SCENARIOS.map(({ id }) => id),
+    scenarios: [
+      ...SCENARIOS.map(({ id }) => id),
+      ...FUNDS_SCENARIOS.map(({ id }) => id),
+    ],
     captures: [],
   };
   try {
@@ -304,8 +414,20 @@ async function main() {
           width,
         }));
       }
+      for (const scenario of FUNDS_SCENARIOS) {
+        manifest.captures.push(await captureThreadsFunds({
+          baseUrl,
+          browser,
+          fixture,
+          scenario,
+          width,
+        }));
+      }
     }
-    assert.equal(manifest.captures.length, WIDTHS.length * SCENARIOS.length);
+    assert.equal(
+      manifest.captures.length,
+      WIDTHS.length * (SCENARIOS.length + FUNDS_SCENARIOS.length),
+    );
     assert.deepEqual(fixture.mutationAttempts, []);
     manifest.result = 'passed';
   } catch (error) {
@@ -313,6 +435,7 @@ async function main() {
     manifest.error = { name: error.name, message: error.message, stack: error.stack };
     throw error;
   } finally {
+    fixture.setThreadsFundsAuthorized(true);
     manifest.rpcCalls = fixture.rpcPool.calls;
     manifest.mutationAttempts = fixture.mutationAttempts;
     await fs.writeFile(
