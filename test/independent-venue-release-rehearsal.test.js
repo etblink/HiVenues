@@ -27,17 +27,16 @@ function temporaryRoot(t) {
   return directory;
 }
 
-
-test('health service identity positively preserves Fourth Street compatibility and scopes generic venues', () => {
+test('health service identity preserves Fourth Street by stable venue id and scopes other venues', () => {
   assert.equal(
     resolveHealthServiceName({ venue: FOURTH_STREET_REFERENCE_VENUE }),
     'hive-bar',
   );
   assert.equal(
     resolveHealthServiceName({
-      venue: { ...FOURTH_STREET_REFERENCE_VENUE, displayName: 'Divergent reference-shaped venue' },
+      venue: { ...FOURTH_STREET_REFERENCE_VENUE, id: 'fourth-street-lookalike' },
     }),
-    FOURTH_STREET_REFERENCE_VENUE.id,
+    'fourth-street-lookalike',
   );
   assert.equal(
     resolveHealthServiceName({ venue: HV4_SYNTHETIC_BOOTSTRAP_INPUT.venueContext }),
@@ -102,7 +101,6 @@ test('independent venue completes health-gated promotion and identity-verified r
   assert.equal(result.identityOrigin, 'SYNTHETIC_REHEARSAL_ONLY__FORMAT_EXACT_NOT_GIT_PROVENANCE');
   assert.ok(Object.values(result.productionInvariantCrosscheck).every(Boolean));
 });
-
 
 test('portable manifest path resolves to the same isolated filesystem root', (t) => {
   const nativeRoot = temporaryRoot(t);

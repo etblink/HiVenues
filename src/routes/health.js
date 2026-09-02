@@ -1,16 +1,15 @@
 'use strict';
 
 const express = require('express');
-const { isDeepStrictEqual } = require('node:util');
 const { LEGACY_FOURTH_STREET_DEPLOYMENT } = require('../platform/identity');
 const { FOURTH_STREET_REFERENCE_VENUE } = require('../venue/reference/fourth-street');
 
 function resolveHealthServiceName(config) {
-  const venue = config?.venue;
-  if (!venue || isDeepStrictEqual(venue, FOURTH_STREET_REFERENCE_VENUE)) {
+  const venueId = String(config?.venue?.id || '').trim();
+  if (!venueId || venueId === FOURTH_STREET_REFERENCE_VENUE.id) {
     return LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName;
   }
-  return String(venue.id || '').trim() || LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName;
+  return venueId;
 }
 
 function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChecks = [] }) {
