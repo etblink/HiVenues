@@ -36,6 +36,8 @@ test('Issue #130 Venue Studio presents a four-step authoring workflow with immed
 
   assert.match(response.text, /Venue Studio/);
   assert.match(response.text, /data-studio-stage="brand"/);
+  assert.match(response.text, /data-studio-active-stage="brand"/);
+  assert.match(response.text, /data-studio-active-view="edit"/);
   assert.match(response.text, />Brand</);
   assert.match(response.text, />Page</);
   assert.match(response.text, />Details</);
@@ -45,12 +47,14 @@ test('Issue #130 Venue Studio presents a four-step authoring workflow with immed
   assert.match(response.text, /Keep changes in draft/);
   assert.match(response.text, /Save venue file/);
   assert.match(response.text, /\.nav\s*\{[^}]*flex-wrap:\s*wrap[^}]*overflow:\s*visible/s);
-  assert.match(response.text, /html\[data-studio-view="edit"\]\s+\.preview\s*\{\s*display:\s*none;/);
+  assert.match(response.text, /html\[data-studio-active-view="edit"\]\s+\.preview\s*\{\s*display:\s*none;/);
 
   const qol = await request(fixture.app).get(`${fixture.editorPath}/qol.js`).expect(200);
   assert.match(qol.text, /async function previewStage/);
   assert.match(qol.text, /studio-proposal/);
   assert.match(qol.text, /post\.submit\(\)/);
+  assert.match(qol.text, /studioActiveView/);
+  assert.doesNotMatch(qol.text, /document\.documentElement\.dataset\.studioView/);
   assert.doesNotMatch(qol.text, /redirect\s*:\s*['"]follow['"]/);
   assert.match(qol.text, /prefers-reduced-motion/);
 });
