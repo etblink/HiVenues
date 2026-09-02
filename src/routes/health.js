@@ -2,6 +2,15 @@
 
 const express = require('express');
 const { LEGACY_FOURTH_STREET_DEPLOYMENT } = require('../platform/identity');
+const { FOURTH_STREET_REFERENCE_VENUE } = require('../venue/reference/fourth-street');
+
+function resolveHealthServiceName(config) {
+  const venueId = String(config?.venue?.id || '').trim();
+  if (!venueId || venueId === FOURTH_STREET_REFERENCE_VENUE.id) {
+    return LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName;
+  }
+  return venueId;
+}
 
 function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChecks = [] }) {
   const router = express.Router();
@@ -9,7 +18,7 @@ function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChec
   router.get('/healthz', (_req, res) => {
     const body = {
       status: 'ok',
-      service: LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName,
+      service: resolveHealthServiceName(config),
       environment: config.env,
       writeMode: config.hive.writeMode,
     };
@@ -34,4 +43,4 @@ function createHealthRouter({ config, rpcPool, deploymentIdentity, readinessChec
   return router;
 }
 
-module.exports = { createHealthRouter };
+module.exports = { createHealthRouter, resolveHealthServiceName };
