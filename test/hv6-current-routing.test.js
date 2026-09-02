@@ -38,6 +38,8 @@ test('living current-routing blocks agree on current accepted invariants and one
     assert.match(block, /^CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY$/m);
     assert.match(block, /^CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE$/m);
     assert.match(block, /^CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE$/m);
+    assert.match(block, /^HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL$/m);
+    assert.match(block, /^THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE$/m);
     assert.match(block, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
     assert.match(block, /^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m);
   }
@@ -48,6 +50,7 @@ test('current branch retains governing evidence while completed product slices m
   const acceptance = read('docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md');
   const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
   const candidateAcceptance = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_ACCEPTANCE_0_1_0.md');
+  const identityAudit = read('docs/HIVE_IDENTITY_KEY_MANAGEMENT_MINIMIZATION_AUDIT_0_1_0.md');
   const readme = read('README.md');
   const docsIndex = read('docs/README.md');
   const roadmap = read('docs/ROADMAP.md');
@@ -57,6 +60,9 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(preregistration, /^PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
   assert.match(candidateAcceptance, /^DEPLOY_CANDIDATE = FROZEN$/m);
   assert.match(candidateAcceptance, /^DEPLOYMENT_AUTHORIZED = NO$/m);
+  assert.match(identityAudit, /^AUDIT_RESULT = PASS__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL__ZERO_SERVER_ACTIVE_OWNER_CUSTODY$/m);
+  assert.match(identityAudit, /^THREADS_MERCHANT_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE$/m);
+  assert.match(identityAudit, /^NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR$/m);
   assert.match(docsIndex, /recoverable from Git history/i);
   assert.match(readme, /community pulse is accepted/i);
   assert.match(readme, /Recent activity.*accepted/i);
@@ -71,8 +77,8 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(roadmap, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/);
   assert.match(roadmap, /CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE/);
   assert.match(roadmap, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/);
-  assert.match(roadmap, /NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT/);
-  assert.doesNotMatch(roadmap, /NEXT_OPERATION = VENUE_CAPSULE_CID_CONTENT_IDENTITY__BOUNDED_SPIKE/);
+  assert.match(roadmap, /NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR/);
+  assert.doesNotMatch(roadmap, /NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT/);
 });
 
 test('selected foundation has no GrapesJS dependency or hidden evaluation package', () => {

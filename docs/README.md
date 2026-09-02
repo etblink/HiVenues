@@ -6,6 +6,7 @@ This index points to documents needed to interpret the **current** successor sta
 
 - `../README.md` — product/developer entry point and current source boundary.
 - `ROADMAP.md` — current product state and sequencing.
+- `HIVE_IDENTITY_KEY_MANAGEMENT_MINIMIZATION_AUDIT_0_1_0.md` — accepted minimum venue Hive identity/key model and the evidence for decoupling Posting activation from optional liquid cleanup.
 - `DEPLOYMENT_AGNOSTIC_VENUE_SOURCE.md` — accepted topology-independent non-secret venue-source contract.
 - `DEPLOYMENT_AGNOSTIC_VENUE_SOURCE_DURABILITY.md` — accepted canonical venue-source save/open and downstream workspace bridge.
 - `PORTABLE_VENUE_WORKSPACE.md` — accepted deterministic offline workspace/build contract.
@@ -47,6 +48,17 @@ CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
 
 CIDv1 was technically viable and one genuine stable-subfile-reuse capability gap was demonstrated against the canonical SHA-256/files/Git baseline. Current product evidence does not justify adopting Kubo/CAR/import-profile/provider complexity, so ordinary SHA-256 plus files/Git remains canonical. This is a deferral, not a rejection of future CID use.
 
+The Hive identity/key minimization audit is also complete at the repository-design level:
+
+```text
+HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
+THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
+SERVER_ACTIVE_OWNER_PRIVATE_KEY_CUSTODY = FORBIDDEN
+RECURRENT_TRANSFER = NONE
+```
+
+The minimum ordinary venue model is one official/merchant identity plus one low-value Threads automation principal. Community, onboarding creator, staff/moderation, patron, payment-recipient, RC-sponsor, and recovery responsibilities remain explicit protocol/operator roles without becoming additional server private-key roles. Normal Threads-container author rewards route directly to the official venue through the 100% beneficiary policy; merchant Active account authorization is retained only as an optional Keychain-side capability for transferring stray liquid balances from the Threads account.
+
 Canonical integrated source is moving `main`; production remains independently pinned to its observed exact release.
 
 <!-- HV6_CURRENT_ROUTING_START -->
@@ -77,7 +89,9 @@ LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
 CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
 CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
 CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
+THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
+NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -90,18 +104,17 @@ DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
 ## Current operation
 
 ```text
-VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
 ```
 
-The current lane is a bounded **Hive identity and key-management minimization** audit. It does not change any Hive account, authority, key, community role, beneficiary, server secret, or production behavior.
+The next repository operation is a bounded **Posting activation versus optional liquid-cleanup readiness decoupling** repair. The accepted audit found that current Threads activation preflight correctly requires exact direct Posting authority and correctly forbids server Active/Owner/Memo credentials, but it currently also makes merchant Active account authorization a prerequisite for machine Posting readiness.
 
-The audit will distinguish protocol identities from ordinary operator key burden; evaluate the dedicated Threads account as a Posting-only automation principal for container lifecycle; keep the merchant account under merchant custody; preserve the community identity as a protocol/recovery boundary; and evaluate delegated RC, reward routing, and beneficiary composition without granting the server merchant Active/Owner authority.
+That coupling is stronger than necessary. The repair must keep machine Posting readiness scoped to the exact Threads Posting credential while moving merchant Active `account_auths` into a separate optional cleanup capability. Absence of merchant Active authorization must disable/fail-close only the manual liquid-balance transfer; it must not block Posting-only container lifecycle readiness.
 
-The same design boundary will adjudicate two separate beneficiary policies:
+Issue #110 remains the separate live-activation boundary. This routing does not authorize a real Threads key, authority mutation, signer activation, Hive transaction, RC delegation, funds movement, or production deployment.
 
-- a venue beneficiary policy configured by the venue and plainly disclosed to the posting user;
-- a voluntary Hive-Venues creator-donation beneficiary controlled by an unchecked per-post user checkbox.
+The beneficiary economics boundary remains separately unactivated: venue beneficiary policy and voluntary Hive-Venues creator donation still require explicit disclosure and exact-operation review before any future implementation/activation.
 
-A separate test-suite audit will classify the 700-test deterministic inventory by live invariant and true platform sensitivity before any deletion or Windows-scope reduction.
+A separate test-suite audit will classify the deterministic test inventory by live invariant and true platform sensitivity before any deletion or Windows-scope reduction.
 
 No production deployment, Hive/Keychain write, secret/key change, account-role migration, beneficiary activation, CI-policy reduction, venue outreach, or infrastructure mutation is authorized by this routing reconciliation.
