@@ -40,7 +40,7 @@ jobs:
 
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "visual=true" >> "$GITHUB_OUTPUT"
-            echo "Manual qualification: exhaustive UI/UX visual evidence selected."
+            echo "Manual qualification: current-contract UI/UX visual evidence selected."
             exit 0
           fi
 
@@ -57,15 +57,6 @@ jobs:
           changed="$(git diff --name-only "$base" HEAD)"
           printf 'Changed paths:\n%s\n' "$changed"
 
-          # Screenshot capture is UI/UX evidence, not a generic repository
-          # qualification tax. Keep this as a positive selector. Changes that
-          # do not plausibly affect rendered user experience still receive the
-          # universal deterministic Ubuntu/Windows gates below. If a normally
-          # non-visual change needs deliberate visual review, workflow_dispatch
-          # selects the exhaustive suite explicitly. The HV-8 deployment
-          # candidate marker is a permanent provenance trigger for the same
-          # exhaustive suite when workflow dispatch is unavailable to the
-          # Project Lead execution interface.
           visual=false
           while IFS= read -r path; do
             [[ -z "$path" ]] && continue
@@ -86,7 +77,11 @@ jobs:
                 visual=true
                 break
                 ;;
-              scripts/capture-*-visual.js)
+              scripts/capture-*-visual.js|scripts/capture-current-contract-visual.js|scripts/run-current-visual-contract.js|scripts/assemble-current-visual-evidence.js)
+                visual=true
+                break
+                ;;
+              config/visual-qualification-contract.json|test/visual-qualification-contract.test.js)
                 visual=true
                 break
                 ;;
@@ -128,13 +123,13 @@ jobs:
         run: npm run check
 
   visual-acceptance:
-    name: UI/UX visual evidence (Ubuntu / pinned Chromium)
+    name: UI/UX current-contract evidence (Ubuntu / pinned Chromium)
     needs:
       - scope
       - verify
     if: needs.scope.outputs.visual == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - name: Check out exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -153,92 +148,58 @@ jobs:
         run: npm ci --ignore-scripts --no-fund
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
-      - name: Qualify M19.3.1 onboarding browser modules
+      - name: Qualify onboarding browser modules
         run: npm run test:browser:m19-3-1
       - name: Build exact presentation assets once
         run: npm run build
-
-      - name: Capture and qualify M18.2 viewports
+      - name: Run current visual machine contract with bounded concurrency
         env:
-          M18_VISUAL_OUTPUT: artifacts/m18-visual
-        run: npm run test:visual:m18
-      - name: Capture and qualify M18.3 Home / Wall / Pay viewports
+          VISUAL_RAW_ROOT: artifacts/raw-visual
+          VISUAL_MAX_CONCURRENCY: '3'
+        run: node scripts/run-current-visual-contract.js
+      - name: Capture faithful current viewport review evidence
         env:
-          M18_3_VISUAL_OUTPUT: artifacts/m18-3-visual
-        run: npm run test:visual:m18-3
-      - name: Capture and qualify M18.4 patron surfaces
+          VISUAL_REVIEW_ROOT: artifacts/current-visual-review
+        run: node scripts/capture-current-contract-visual.js
+      - name: Assemble bounded human-review evidence
         env:
-          M18_4_VISUAL_OUTPUT: artifacts/m18-4-visual
-        run: npm run test:visual:m18-4
-      - name: Capture and qualify C2-E moderation states
-        env:
-          C2_E_VISUAL_OUTPUT: artifacts/c2-e-visual
-        run: npm run test:visual:c2-e
-      - name: Capture and qualify C2-F responsive onboarding states
-        env:
-          C2_F_VISUAL_OUTPUT: artifacts/c2-f-visual
-        run: npm run test:visual:c2-f
-      - name: Capture and qualify UX-1A Threads states
-        env:
-          UX_1A_VISUAL_OUTPUT: artifacts/ux-1a-visual
-        run: npm run test:visual:ux-1a
-      - name: Capture and qualify UX-1B composer states
-        env:
-          UX_1B_VISUAL_OUTPUT: artifacts/ux-1b-visual
-        run: npm run test:visual:ux-1b
-      - name: Capture and qualify UX-1C weighted voting states
-        env:
-          UX_1C_VISUAL_OUTPUT: artifacts/ux-1c-visual
-        run: npm run test:visual:ux-1c
-      - name: Capture and qualify UX-1D content hierarchy states
-        env:
-          UX_1D_VISUAL_OUTPUT: artifacts/ux-1d-visual
-        run: npm run test:visual:ux-1d
-      - name: Capture and qualify UX-1F homepage states
-        env:
-          UX_1F_VISUAL_OUTPUT: artifacts/ux-1f-visual
-        run: npm run test:visual:ux-1f
-      - name: Capture and qualify HV-6 native visual authoring candidate
-        env:
-          HV6_NATIVE_VISUAL_OUTPUT: artifacts/hv6-native-visual
-        run: npm run test:visual:hv6-native
-      - name: Capture and qualify HV-7 Juniper Works second-venue candidate
-        env:
-          HV7_JUNIPER_VISUAL_OUTPUT: artifacts/hv7-juniper-visual
-        run: npm run test:visual:hv7-juniper
-      - name: Capture and qualify deployment-agnostic source authoring
-        env:
-          SOURCE_AUTHORING_VISUAL_OUTPUT: artifacts/source-authoring-visual
-        run: node scripts/capture-source-authoring-visual.js
-      - name: Capture and qualify UX-1E Wall and Inbox states
-        env:
-          UX_1E_VISUAL_OUTPUT: artifacts/ux-1e-visual
-        run: node scripts/capture-ux-1e-visual.js
-      - name: Capture and qualify owner Recent activity states
-        env:
-          PROFILE_ACTIVITY_VISUAL_OUTPUT: artifacts/profile-activity-visual
-        run: node scripts/capture-profile-activity-visual.js
-
-      - name: Explain visual-evidence review boundary
-        if: always()
+          VISUAL_RAW_ROOT: artifacts/raw-visual
+          VISUAL_REVIEW_ROOT: artifacts/current-visual-review
+        run: node scripts/assemble-current-visual-evidence.js
+      - name: Publish visual-contract metrics
         shell: bash
         run: |
-          {
-            echo '## UI/UX visual evidence'
-            echo
-            echo 'A green capture job means the screenshots and automated browser assertions were produced successfully.'
-            echo 'It does not by itself constitute Project Lead visual approval.'
-            echo 'When visual evidence is material to acceptance, inspect the preserved artifact before approving the UI/UX result.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Preserve consolidated UI/UX visual evidence
-        if: always()
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const machine = JSON.parse(fs.readFileSync('artifacts/current-visual-machine-summary.json', 'utf8'));
+          const review = JSON.parse(fs.readFileSync('artifacts/current-visual-review/manifest.json', 'utf8'));
+          console.log('## Current visual qualification contract');
+          console.log('');
+          console.log(`- Machine suites: ${machine.suites.length}`);
+          console.log(`- Bounded-concurrency machine wall time: ${machine.wallSeconds}s (CI #508 serial baseline: ~${machine.baselineVisualWallSecondsApprox}s)`);
+          console.log(`- Human-review screenshots: ${review.reviewMetrics.screenshotCount} (CI #508 uploaded PNG baseline: ${review.baseline.pngCount})`);
+          console.log(`- Human-review PNG bytes: ${review.reviewMetrics.screenshotBytes} (CI #508 artifact baseline: ${review.baseline.uploadedBytes} bytes)`);
+          console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
+          console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifact.');
+          NODE
+      - name: Preserve bounded current visual evidence
+        if: success()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: consolidated-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts
-          if-no-files-found: warn
+          name: current-visual-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            artifacts/current-visual-review
+            artifacts/current-visual-machine-summary.json
+          if-no-files-found: error
           retention-days: 90
+      - name: Preserve visual failure logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: current-visual-failure-logs-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/visual-contract-logs
+          if-no-files-found: warn
+          retention-days: 30
 
   live-read-smoke:
     name: Live Hive read-only smoke
