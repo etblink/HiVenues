@@ -136,9 +136,10 @@ function normalizeAuthorityEntries(entries, { identityValidator = null } = {}) {
     if (!Array.isArray(entry) || entry.length !== 2) return null;
     const rawIdentity = entry[0];
     const identity = typeof rawIdentity === 'string' ? rawIdentity.trim() : '';
-    const weight = Number(entry[1]);
+    const weight = entry[1];
     if (
       !identity
+      || typeof weight !== 'number'
       || !Number.isSafeInteger(weight)
       || weight < 1
       || weight > MAX_HIVE_AUTHORITY_WEIGHT
@@ -154,9 +155,10 @@ function normalizeAuthorityEntries(entries, { identityValidator = null } = {}) {
 }
 
 function normalizeAuthority(authority) {
-  const threshold = Number(authority?.weight_threshold);
+  const threshold = authority?.weight_threshold;
   if (
-    !Number.isSafeInteger(threshold)
+    typeof threshold !== 'number'
+    || !Number.isSafeInteger(threshold)
     || threshold < 1
     || threshold > MAX_HIVE_AUTHORITY_THRESHOLD
   ) {

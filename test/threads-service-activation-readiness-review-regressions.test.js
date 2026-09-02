@@ -131,3 +131,22 @@ test('preflight rejects Hive account names that violate protocol label grammar',
   assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
+
+
+test('authority thresholds and weights reject JSON type coercion', () => {
+  for (const malformedThreshold of ['1', true]) {
+    const input = snapshot();
+    input.threadsAccount.posting.weight_threshold = malformedThreshold;
+    const report = assessThreadsServiceActivationReadiness(input);
+    assert.equal(report.authorityReady, false);
+    assert.equal(report.blockers.includes('THREADS_POSTING_AUTHORITY_VALID'), true);
+  }
+
+  for (const malformedWeight of ['1', true]) {
+    const input = snapshot();
+    input.threadsAccount.active.account_auths = [['fourthstreetbar', malformedWeight]];
+    const report = assessThreadsServiceActivationReadiness(input);
+    assert.equal(report.authorityReady, false);
+    assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  }
+});
