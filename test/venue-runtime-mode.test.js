@@ -22,7 +22,8 @@ const LEGACY_PRODUCTION_SOURCE = Object.freeze({
   BAR_PHONE: '(775) 324-7827',
   BAR_HOURS: 'Daily, 12:00 p.m.–2:00 a.m.',
   BAR_WEBSITE_URL: 'https://4thstreetbarreno.com/',
-  BAR_MAP_URL: 'https://example.invalid/fourth-street-map',
+  BAR_MAP_URL:
+    'https://www.google.com/maps/search/?api=1&query=1114%20E.%204th%20Street%2C%20Reno%2C%20NV%2089512',
   HIVE_COMMUNITY_ID: 'hive-108590',
   THREADS_CONTAINER_ACCOUNT: 'fourthst.threads',
 });
@@ -77,16 +78,37 @@ test('complete legacy production configuration preserves compatibility without a
   );
 });
 
-test('production cannot opt into compatibility without the complete legacy compatibility surface', () => {
+test('complete non-Fourth legacy flat-env production is still routed to explicit admission', () => {
+  const genericLegacySource = {
+    ...LEGACY_PRODUCTION_SOURCE,
+    SITE_NAME: 'The Lantern Room',
+    HIVE_COMMUNITY_ID: 'hive-654321',
+    THREADS_CONTAINER_ACCOUNT: 'lantern.threads',
+  };
+
+  assert.equal(
+    resolveVenueAdmissionMode(genericLegacySource),
+    VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP,
+  );
+  assert.throws(
+    () => loadVenueRuntimeAdmission(genericLegacySource, { loadDotenv: false }),
+    (error) =>
+      error instanceof VenueRuntimeAdmissionError &&
+      error.message.includes(`${VENUE_BOOTSTRAP_PATH_ENV} is required`),
+  );
+});
+
+test('production cannot opt into compatibility unless legacy config resolves to Fourth Street', () => {
   assert.throws(
     () =>
       resolveVenueAdmissionMode({
-        NODE_ENV: 'production',
+        ...LEGACY_PRODUCTION_SOURCE,
+        SITE_NAME: 'The Lantern Room',
         [VENUE_ADMISSION_MODE_ENV]: VENUE_ADMISSION_MODES.COMPATIBILITY,
       }),
     (error) =>
       error instanceof VenueRuntimeAdmissionError &&
-      /compatibility in production requires the complete legacy flat-env compatibility configuration/.test(
+      /compatibility in production requires the recognized Fourth Street legacy deployment identity/.test(
         error.message,
       ),
   );
