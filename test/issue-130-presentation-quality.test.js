@@ -6,7 +6,10 @@ const path = require('node:path');
 const test = require('node:test');
 const express = require('express');
 const request = require('supertest');
-const { extractDeploymentAgnosticVenueSource } = require('../src/venue/source');
+const {
+  createDeploymentAgnosticVenueSource,
+  extractDeploymentAgnosticVenueSource,
+} = require('../src/venue/source');
 const {
   SAFE_STUDIO_EDIT_ERROR,
   createOfflineSourceAuthoringSurface,
@@ -97,4 +100,25 @@ test('Issue #130 Juniper remains synthetic while using the same Venue Studio and
   assert.match(response.text, /Venue Studio/);
   assert.match(response.text, /#945500/i);
   assert.match(response.text, /\/fixtures\/juniper-works\/logo\.svg/);
+});
+
+test('Issue #130 product-facing Juniper starter is valid, explicit synthetic evidence with portable venue-owned assets', () => {
+  const sourcePath = path.join(root, 'examples', 'juniper', 'venue-source.json');
+  const readme = fs.readFileSync(path.join(root, 'examples', 'juniper', 'README.md'), 'utf8');
+  const source = createDeploymentAgnosticVenueSource(JSON.parse(fs.readFileSync(sourcePath, 'utf8')));
+
+  assert.equal(source.venueContext.id, 'juniper-works-example');
+  assert.equal(source.venueContext.displayName, 'Juniper Works Cooperative');
+  assert.equal(source.venuePackage.brand.theme.accent, '#945500');
+  assert.equal(source.venuePackage.brand.logo.src, '/examples/juniper/logo.svg');
+  assert.equal(source.venuePackage.home.hero.image.src, '/examples/juniper/workshop.svg');
+  assert.ok(source.venuePackage.home.gallery.items.every((item) => item.src.startsWith('/examples/juniper/')));
+  assert.match(readme, /illustrative, synthetic starter/i);
+  assert.match(readme, /not a real venue/i);
+  assert.match(readme, /venue-owned layer/i);
+  assert.match(readme, /platform-owned/i);
+
+  for (const filename of ['logo.svg', 'workshop.svg', 'project-a.svg', 'project-b.svg', 'project-c.svg']) {
+    assert.equal(fs.existsSync(path.join(root, 'public', 'examples', 'juniper', filename)), true, filename);
+  }
 });
