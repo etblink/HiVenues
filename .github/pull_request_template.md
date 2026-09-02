@@ -21,10 +21,10 @@
 
 ## Conditional presentation states
 
-<!-- Changed-path selection can trigger visual CI without exercising a new conditional UI branch. -->
+<!-- Changed-path selection can trigger visual CI without exercising a new or changed conditional UI branch. -->
 
 - [ ] This PR adds or materially changes no conditionally rendered presentation state.
-- [ ] This PR does add/change conditional presentation; every materially distinct new state is enumerated below, activated by deterministic fixture state, and covered by representative responsive browser evidence.
+- [ ] This PR does add/change conditional presentation; every materially distinct new or changed conditional state is enumerated below, deterministically activated by fixture state, and covered by representative responsive browser evidence.
 
 Conditional states and activation evidence (delete if not applicable):
 

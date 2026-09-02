@@ -11,10 +11,10 @@ const template = fs.readFileSync(templatePath, 'utf8');
 
 test('pull request template externalizes conditional visual-state acceptance', () => {
   assert.match(template, /## Conditional presentation states/);
-  assert.match(template, /every materially distinct new state is enumerated below/);
-  assert.match(template, /activated by deterministic fixture state/);
+  assert.match(template, /every materially distinct new or changed conditional state is enumerated below/);
+  assert.match(template, /deterministically activated by fixture state/);
   assert.match(template, /representative responsive browser evidence/);
-  assert.match(template, /Changed-path selection can trigger visual CI without exercising a new conditional UI branch/);
+  assert.match(template, /Changed-path selection can trigger visual CI without exercising a new or changed conditional UI branch/);
 });
 
 test('pull request template preserves qualification, acceptance, and authority boundaries', () => {
