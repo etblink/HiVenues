@@ -117,13 +117,38 @@ function normalizeCredentialClasses(value) {
   return [...new Set(normalized)].sort();
 }
 
+function normalizeAuthorityEntries(entries, { lowercaseIdentity = false } = {}) {
+  if (!Array.isArray(entries)) return null;
+  const seen = new Set();
+  const normalized = [];
+  for (const entry of entries) {
+    if (!Array.isArray(entry) || entry.length !== 2) return null;
+    const rawIdentity = entry[0];
+    const identity = typeof rawIdentity === 'string'
+      ? (lowercaseIdentity ? rawIdentity.trim().toLowerCase() : rawIdentity.trim())
+      : '';
+    const weight = Number(entry[1]);
+    if (!identity || !Number.isSafeInteger(weight) || weight < 1 || seen.has(identity)) {
+      return null;
+    }
+    seen.add(identity);
+    normalized.push([identity, weight]);
+  }
+  return normalized;
+}
+
 function normalizeAuthority(authority) {
   const threshold = Number(authority?.weight_threshold);
   if (!Number.isSafeInteger(threshold) || threshold < 1) return null;
+  const keyAuths = normalizeAuthorityEntries(authority?.key_auths);
+  const accountAuths = normalizeAuthorityEntries(authority?.account_auths, {
+    lowercaseIdentity: true,
+  });
+  if (!keyAuths || !accountAuths) return null;
   return {
     threshold,
-    keyAuths: Array.isArray(authority?.key_auths) ? authority.key_auths : [],
-    accountAuths: Array.isArray(authority?.account_auths) ? authority.account_auths : [],
+    keyAuths,
+    accountAuths,
   };
 }
 
@@ -291,7 +316,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
   const authorityReady = accountMatches && postingDirect && merchantActive;
   const credentialBoundarySafe = prohibitedConfigured.length === 0;
   const credentialIdentityReady = postingCredentialConfigured && configuredPostingKeyMatches === true;
-  const preparationReady = authorityReady && credentialBoundarySafe;
+  const preparationReady = authorityReady && credentialBoundarySafe && credentialIdentityReady;
   const runtimeSignerActivationImplemented = false;
   addCheck(
     checks,
