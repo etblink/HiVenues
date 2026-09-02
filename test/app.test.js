@@ -200,7 +200,7 @@ test('renders the one-post community with one bounded container read and no per-
   assert.deepEqual(rpcPool.calls[1].params, {
     sort: 'posts',
     account: 'fourthst.threads',
-    limit: 1,
+    limit: 10,
   });
   assert.equal(rpcPool.calls[2].params.tag, 'hive-108590');
   assert.equal(rpcPool.calls[2].params.sort, 'created');

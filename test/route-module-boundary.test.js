@@ -19,6 +19,7 @@ const ROUTE_FILES = Object.freeze([
   'payments.js',
   'profile.js',
   'social.js',
+  'threads-operator.js',
 ]);
 
 function filesUnder(directory) {
@@ -46,6 +47,7 @@ test('application route modules are source-owned under src/routes', () => {
   assert.match(appSource, /require\('\.\/routes\/moderation'\)/);
   assert.match(appSource, /require\('\.\/routes\/payments'\)/);
   assert.match(appSource, /require\('\.\/routes\/social'\)/);
+  assert.match(appSource, /require\('\.\/routes\/threads-operator'\)/);
   assert.match(appSource, /require\('\.\/routes\/index'\)/);
   assert.match(appSource, /require\('\.\/routes\/community'\)/);
   assert.match(appSource, /require\('\.\/routes\/profile'\)/);
@@ -80,6 +82,7 @@ test('route relocation preserves the public mount contract in src/app.js', () =>
   const mounts = [
     "'/auth'",
     "'/api/social'",
+    "'/api/threads-operator'",
     "'/api/m4'",
     "'/api/payments'",
     "app.use('/', indexRouter);",

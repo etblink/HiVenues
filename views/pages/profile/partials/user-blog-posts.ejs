@@ -24,6 +24,9 @@
         { id: 'profile-post-title', name: 'title', type: 'text', label: 'Title', required: true, maxBytes: 256, placeholder: 'Give your post a clear title', autocomplete: 'off' },
         { id: 'profile-post-body', name: 'body', type: 'textarea', label: 'Post', required: true, maxBytes: 32768, rows: 8, size: 'large', placeholder: 'What do you want to share?' },
         { id: 'profile-post-tags', name: 'tags', type: 'text', label: 'Tags', placeholder: 'reno, nightlife', autocomplete: 'off', help: 'Separate tags with commas. Profile posts use your first tag as the category, or blog if you leave tags blank. Community posts add the bar community automatically.' },
+        ...(typeof creatorDonationField === 'function'
+          ? [creatorDonationField('profile-post-creator-donation')].filter(Boolean)
+          : []),
       ],
       submitLabel: 'Review post',
       disclosure: 'You’ll review the exact post, attached image URL, and destination before Hive Keychain asks you to approve it.',

@@ -47,6 +47,9 @@
       ],
       fields: [
         { id: `reply-${comment.author}-${comment.permlink}`, name: 'body', type: 'textarea', label: 'Your reply', required: true, maxBytes: 8192, rows: 4, size: 'compact', placeholder: `Reply to @${comment.author}` },
+        ...(typeof creatorDonationField === 'function'
+          ? [creatorDonationField(`reply-${comment.author}-${comment.permlink}-creator-donation`)].filter(Boolean)
+          : []),
       ],
       submitLabel: 'Review reply',
       submitVariant: 'secondary',

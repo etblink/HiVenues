@@ -141,6 +141,12 @@ function ownershipForPath(pointer) {
   ) {
     return OWNERSHIP.SECURITY_PRIVILEGED;
   }
+  if (
+    pointer === '/venueContext/hive/beneficiaryPolicy' ||
+    /^\/venueContext\/hive\/beneficiaryPolicy\/(?:venueUserPost|creatorDonation)(?:\/(?:enabled|weight))?$/.test(pointer)
+  ) {
+    return OWNERSHIP.SECURITY_PRIVILEGED;
+  }
 
   if (isOperatorCollectionPath(pointer)) return OWNERSHIP.OPERATOR_AUTHORED_COLLECTION;
 

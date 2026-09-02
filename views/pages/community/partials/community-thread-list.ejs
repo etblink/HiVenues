@@ -1,3 +1,4 @@
+<%- include('threads-funds-alert', { threadsFundsAlert: typeof threadsFundsAlert === 'undefined' ? null : threadsFundsAlert }) %>
 <% if (hiveSession && canWriteAction('thread') && container) { %>
   <div class="composer-toolbar" role="toolbar" aria-label="Thread actions">
     <%- include('../../../common/composer', { composer: {
@@ -17,6 +18,9 @@
       imageAttachment: true,
       fields: [
         { id: 'new-thread-body', name: 'body', type: 'textarea', label: 'What do you want to share?', required: true, maxBytes: 500, rows: 4, size: 'medium', placeholder: 'What’s happening?' },
+        ...(typeof creatorDonationField === 'function'
+          ? [creatorDonationField('thread-creator-donation')].filter(Boolean)
+          : []),
       ],
       submitLabel: 'Review Thread',
       disclosure: 'You’ll review your Thread and attached image URL before Hive Keychain asks you to approve it. The image reference counts toward the 500-byte Thread limit.',

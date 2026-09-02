@@ -3,6 +3,7 @@
 const { createHash, randomBytes } = require('node:crypto');
 const { requireHiveAccount, requirePermlink } = require('../http/validation');
 const { ValidationError } = require('../lib/errors');
+const { commentOptionsOperation, composeUserContentBeneficiaries } = require('./threads-foundation');
 
 const LIMITS = Object.freeze({
   titleBytes: 256,
@@ -154,6 +155,41 @@ function imageSummary(imageUrl) {
   return imageUrl ? { image: imageUrl } : {};
 }
 
+function contentBeneficiaries(config, payload) {
+  const policy = config.hive.beneficiaryPolicy || {};
+  return composeUserContentBeneficiaries({
+    venuePolicy: policy.venueUserPost?.enabled
+      ? {
+          enabled: true,
+          account: config.hive.officialAccount,
+          weight: policy.venueUserPost.weight,
+        }
+      : null,
+    creatorDonation: policy.creatorDonation?.enabled
+      ? {
+          checked: payload?.creatorDonation === true || payload?.creatorDonation === 'true',
+          account: config.hive.officialAccount,
+          weight: policy.creatorDonation.weight,
+        }
+      : null,
+  });
+}
+
+function contentOperationArray(operation, config, payload) {
+  const composition = contentBeneficiaries(config, payload);
+  if (composition.beneficiaries.length === 0) return [operation];
+  const [, value] = operation;
+  return [
+    operation,
+    commentOptionsOperation({
+      author: value.author,
+      permlink: value.permlink,
+      beneficiaries: composition.beneficiaries,
+    }),
+  ];
+}
+
+
 function buildPost({ account: accountValue, payload, config }) {
   const account = requireHiveAccount(accountValue);
   const title = requireOptionalTitle(payload?.title);
@@ -182,7 +218,7 @@ function buildPost({ account: accountValue, payload, config }) {
   ];
 
   if (communityPost) {
-    return operationEnvelope('post', account, [operation], {
+    return operationEnvelope('post', account, contentOperationArray(operation, config, payload), {
       kind: 'Community post',
       author: account,
       community: config.hive.communityId,
@@ -194,7 +230,7 @@ function buildPost({ account: accountValue, payload, config }) {
     });
   }
 
-  return operationEnvelope('post', account, [operation], {
+  return operationEnvelope('post', account, contentOperationArray(operation, config, payload), {
     kind: 'Profile post',
     author: account,
     destination: 'My profile',
@@ -233,7 +269,7 @@ function buildThread({ account: accountValue, payload, config, threadContainer }
       json_metadata: jsonMetadata,
     },
   ];
-  return operationEnvelope('thread', account, [operation], {
+  return operationEnvelope('thread', account, contentOperationArray(operation, config, payload), {
     kind: 'Thread',
     author: account,
     parentAuthor,
@@ -263,7 +299,7 @@ function buildComment({ account: accountValue, payload, config }) {
       json_metadata: jsonMetadata,
     },
   ];
-  return operationEnvelope('comment', account, [operation], {
+  return operationEnvelope('comment', account, contentOperationArray(operation, config, payload), {
     kind: 'Comment',
     author: account,
     parentAuthor,

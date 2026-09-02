@@ -1,0 +1,31 @@
+<% if (threadsFundsAlert?.alertVisible) { %>
+  <section class="state-card mb-4" role="status" data-threads-funds-alert>
+    <p class="eyebrow">Merchant action</p>
+    <h2>Threads account has funds to claim</h2>
+    <p>
+      The machine Threads account currently holds
+      <strong><%= threadsFundsAlert.liquidHive %></strong> and
+      <strong><%= threadsFundsAlert.liquidHbd %></strong>.
+      Root-post author rewards are routed directly to the venue account, so this is an exceptional recovery action—not a scheduled sweep.
+    </p>
+    <form class="mt-5" data-threads-funds-claim>
+      <button
+        type="submit"
+        class="button-primary"
+        <%= threadsFundsAlert.claimButton?.enabled ? '' : 'disabled' %>>
+        Claim funds
+      </button>
+      <p class="mt-3 text-sm text-gray-300" data-threads-funds-status>
+        <% if (threadsFundsAlert.claimButton?.enabled) { %>
+          Hive Keychain will ask @<%= threadsFundsAlert.claimButton.signerAccount %> for Active approval
+          to transfer the current liquid balances from @<%= threadsFundsAlert.claimButton.operationAccount %>.
+          Nothing transfers until you approve it.
+        <% } else { %>
+          Claiming is unavailable because @<%= threadsFundsAlert.destination %> is not currently
+          threshold-authorized under @<%= threadsFundsAlert.source %>'s Active authority.
+          No automatic transfer will be attempted.
+        <% } %>
+      </p>
+    </form>
+  </section>
+<% } %>

@@ -6,6 +6,31 @@ const VENUE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,63}$/;
 const HIVE_ACCOUNT_PATTERN = /^(?=.{3,64}$)[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
 const COMMUNITY_PATTERN = /^hive-[0-9]{3,12}$/;
 
+const MAX_BENEFICIARY_WEIGHT = 10_000;
+const DEFAULT_BENEFICIARY_POLICY = Object.freeze({
+  venueUserPost: Object.freeze({ enabled: false, weight: null }),
+  creatorDonation: Object.freeze({ enabled: false, weight: null }),
+});
+
+const beneficiaryComponentSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    weight: z.number().int().min(1).max(MAX_BENEFICIARY_WEIGHT).nullable().default(null),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.enabled && value.weight === null) {
+      context.addIssue({ code: 'custom', message: 'Enabled beneficiary policy requires an explicit weight' });
+    }
+  });
+
+const beneficiaryPolicySchema = z
+  .object({
+    venueUserPost: beneficiaryComponentSchema.default(DEFAULT_BENEFICIARY_POLICY.venueUserPost),
+    creatorDonation: beneficiaryComponentSchema.default(DEFAULT_BENEFICIARY_POLICY.creatorDonation),
+  })
+  .strict();
+
 function httpsUrl(value, context) {
   let parsed;
   try {
@@ -42,6 +67,7 @@ const venueContextSchema = z
         paymentMerchantAccounts: z
           .array(z.string().trim().regex(HIVE_ACCOUNT_PATTERN))
           .transform((accounts) => [...new Set(accounts)]),
+        beneficiaryPolicy: beneficiaryPolicySchema.optional(),
       })
       .strict(),
   })
@@ -77,6 +103,9 @@ function withVenueContext(config, venueInput) {
       officialAccount: venue.hive.officialAccount,
       officialBarAccount: venue.hive.officialAccount,
       threadsContainerAccount: venue.hive.threadsContainerAccount,
+      ...(venue.hive.beneficiaryPolicy
+        ? { beneficiaryPolicy: venue.hive.beneficiaryPolicy }
+        : {}),
     },
     payments: {
       ...(config.payments || {}),

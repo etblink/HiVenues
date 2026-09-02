@@ -7,6 +7,7 @@ const {
   requireHiveAccount,
 } = require('../http/validation');
 const { NotFoundError } = require('../lib/errors');
+const { inspectThreadsFunds } = require('../hive/threads-foundation');
 
 const router = express.Router();
 
@@ -36,10 +37,33 @@ function enableModerationControls(req, res) {
   );
 }
 
+function threadContainerOptions(req) {
+  return { venueId: req.app.locals.config.venue.id, allowLegacyFallback: true };
+}
+
+async function threadsFundsAlertForSession(req) {
+  const config = req.app.locals.config;
+  if (req.hiveSession?.account !== config.hive.officialAccount) return null;
+  try {
+    const accountRecord = await req.app.locals.services.hiveReads.getAccountRecord(
+      config.hive.threadsContainerAccount,
+    );
+    return inspectThreadsFunds({
+      venue: config.venue,
+      accountRecord,
+      viewerAccount: req.hiveSession.account,
+    });
+  } catch (error) {
+    req.log.warn({ err: error }, 'Threads funds alert read failed');
+    return null;
+  }
+}
+
 async function communityPostsForRequest(req, { name, sort, cursor }) {
   const hiveReads = req.app.locals.services.hiveReads;
   const container = await hiveReads.getLatestThreadContainer(
     req.app.locals.config.hive.threadsContainerAccount,
+    threadContainerOptions(req),
   );
   return req.app.locals.services.moderation.getCommunityPosts({
     name,
@@ -91,13 +115,18 @@ router.get('/', async (req, res, next) => {
 router.get('/threads', async (req, res, next) => {
   try {
     enableModerationControls(req, res);
-    const threadsData = await req.app.locals.services.moderation.getLatestThreads(
-      req.app.locals.config.hive.threadsContainerAccount,
-    );
+    const [threadsData, threadsFundsAlert] = await Promise.all([
+      req.app.locals.services.moderation.getLatestThreads(
+        req.app.locals.config.hive.threadsContainerAccount,
+        threadContainerOptions(req),
+      ),
+      threadsFundsAlertForSession(req),
+    ]);
     if (req.get('HX-Request') === 'true') {
       return res.render('pages/community/partials/community-thread-list', {
         ...threadsData,
         threadsContainerAccount: req.app.locals.config.hive.threadsContainerAccount,
+        threadsFundsAlert,
       });
     }
 
@@ -113,6 +142,7 @@ router.get('/threads', async (req, res, next) => {
       feedError: false,
       postsPage: null,
       threadsData,
+      threadsFundsAlert,
       membership,
     });
   } catch (error) {
@@ -177,6 +207,7 @@ router.get('/api/latest-thread-container', async (req, res, next) => {
   try {
     const container = await req.app.locals.services.hiveReads.getLatestThreadContainer(
       req.app.locals.config.hive.threadsContainerAccount,
+      threadContainerOptions(req),
     );
     if (!container) throw new NotFoundError('No thread container is available yet');
     res.set('Cache-Control', 'public, max-age=30').json(container);

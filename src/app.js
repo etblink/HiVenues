@@ -13,6 +13,7 @@ const { withVenueContext } = require('./venue/context');
 const { selectVenuePackage } = require('./venue/package-selection');
 const { PostingAuthorityVerifier } = require('./hive/posting-authority');
 const { HiveReadService } = require('./hive/read-service');
+const { creatorDonationField } = require('./hive/beneficiary-ui');
 const { HiveRpcPool } = require('./hive/rpc-pool');
 const { PaymentObserver } = require('./payments/payment-observer');
 const { PAYMENT_SCHEMA_VERSION, ReceiptStore } = require('./payments/receipt-store');
@@ -35,6 +36,7 @@ const { createM4Router } = require('./routes/m4');
 const { createModerationRouter } = require('./routes/moderation');
 const { createPaymentRouter } = require('./routes/payments');
 const { createSocialRouter } = require('./routes/social');
+const { createThreadsOperatorRouter } = require('./routes/threads-operator');
 
 function securityMiddleware(config) {
   return helmet({
@@ -208,6 +210,7 @@ function createApp(options = {}) {
   app.locals.threadsContainerAccount = venue.hive.threadsContainerAccount;
   app.locals.writesEnabled = config.hive.writesEnabled;
   app.locals.signerMode = config.hive.signerMode;
+  app.locals.creatorDonationField = (id) => creatorDonationField(config, id);
   app.locals.buildLabel = deploymentIdentity.build;
   app.locals.showModerationControls = false;
   app.locals.canWriteAction = (action) => {
@@ -344,6 +347,7 @@ function createApp(options = {}) {
   );
   app.use(createModerationRouter({ config }));
   app.use('/api/social', createSocialRouter({ config }));
+  app.use('/api/threads-operator', createThreadsOperatorRouter({ config }));
   app.use('/api/m4', createM4Router({ config }));
   app.use('/api/payments', createPaymentRouter({ config, now: options.now || Date.now }));
 

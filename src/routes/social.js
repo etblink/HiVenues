@@ -148,8 +148,11 @@ function requireControlledAction(config, action) {
 
 function withGeneratedPermlink(action, body) {
   const payload = { ...(body || {}) };
-  if (CONTENT_ACTIONS.has(action) && !payload.permlink) {
-    payload.permlink = createPermlink(action === 'post' ? payload.title : payload.body);
+  if (CONTENT_ACTIONS.has(action)) {
+    payload.creatorDonation = payload.creatorDonation === true || payload.creatorDonation === 'true';
+    if (!payload.permlink) {
+      payload.permlink = createPermlink(action === 'post' ? payload.title : payload.body);
+    }
   }
   return payload;
 }
@@ -179,6 +182,7 @@ function createSocialRouter({ config }) {
       if (action === 'thread') {
         threadContainer = await req.app.locals.services.hiveReads.getLatestThreadContainer(
           config.hive.threadsContainerAccount,
+          { venueId: config.venue.id, allowLegacyFallback: true },
         );
         if (!threadContainer) {
           throw new FeatureUnavailableError('Threads aren’t available yet.');
@@ -260,7 +264,12 @@ function createSocialRouter({ config }) {
         req.params.id,
         req.hiveSession.id,
       );
-      const observed = await req.app.locals.services.hiveReads.observeSocialOperation(record);
+      const requiresExactTransactionObservation = record.operations.some((operation) => (
+        Array.isArray(operation) && operation[0] === 'comment_options'
+      ));
+      const observed = requiresExactTransactionObservation
+        ? await req.app.locals.services.hiveReads.observeExactTransaction(record)
+        : await req.app.locals.services.hiveReads.observeSocialOperation(record);
       const preflight = req.app.locals.services.preflightStore.markObserved(
         req.params.id,
         req.hiveSession.id,

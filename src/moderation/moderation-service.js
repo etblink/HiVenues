@@ -45,12 +45,19 @@ class ModerationService {
     });
   }
 
-  async getLatestThreads(account) {
-    if (!this.config.moderation.enabled) return this.hiveReads.getLatestThreads(account);
+  async getLatestThreads(account, options = {}) {
+    if (!this.config.moderation.enabled) return this.hiveReads.getLatestThreads(account, options);
+    const callerFilter = options.discussionFilter || null;
+    if (callerFilter !== null && typeof callerFilter !== 'function') {
+      throw new TypeError('discussionFilter must be a function');
+    }
     const policy = this.#policy();
     return this.hiveReads.getLatestThreads(account, {
-      discussionFilter: (discussion) =>
-        filterDiscussionBranches(discussion, policy, { protectRoot: true }),
+      ...options,
+      discussionFilter: (discussion) => {
+        const filtered = filterDiscussionBranches(discussion, policy, { protectRoot: true });
+        return callerFilter ? callerFilter(filtered) : filtered;
+      },
     });
   }
 

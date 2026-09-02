@@ -50,6 +50,9 @@
       ],
       fields: [
         { id: 'new-comment-body', name: 'body', type: 'textarea', label: 'Your reply', required: true, maxBytes: 8192, rows: 5, size: 'medium', placeholder: 'Add something to the conversation' },
+        ...(typeof creatorDonationField === 'function'
+          ? [creatorDonationField('post-reply-creator-donation')].filter(Boolean)
+          : []),
       ],
       submitLabel: 'Review reply',
       disclosure: 'You’ll review this reply and attached image URL before Hive Keychain asks you to approve it.',

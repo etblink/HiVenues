@@ -8,7 +8,17 @@ const {
   requirePermlink,
 } = require('../http/validation');
 const { NotFoundError } = require('../lib/errors');
-const { parseAsset } = require('./assets');
+const {
+  assetEquivalent,
+  operationEquivalent,
+  transactionMatchesRecord,
+  transactionOperationTuple,
+} = require('./operation-equivalence');
+const {
+  THREADS_ACCOUNT_POST_SCAN_LIMIT,
+  measureThreadsDiscussion,
+  selectThreadsContainer,
+} = require('./threads-foundation');
 const {
   HISTORY_PAGE_SIZE,
   TRANSFER_OPERATION_FILTER,
@@ -54,50 +64,6 @@ function connectionNames(rawItems, field, anchor) {
     names.push(name);
   }
   return names;
-}
-
-function transactionOperationTuple(operation) {
-  if (Array.isArray(operation) && operation.length === 2) return operation;
-  if (operation && typeof operation === 'object' && typeof operation.type === 'string') {
-    return [operation.type.replace(/_operation$/, ''), operation.value || {}];
-  }
-  return [null, null];
-}
-
-function assetEquivalent(left, right, symbol) {
-  const parsedLeft = parseAsset(left, symbol);
-  const parsedRight = parseAsset(right, symbol);
-  return Boolean(parsedLeft && parsedRight && parsedLeft.units === parsedRight.units);
-}
-
-function operationEquivalent(expected, actual) {
-  const [expectedType, expectedValue] = transactionOperationTuple(expected);
-  const [actualType, actualValue] = transactionOperationTuple(actual);
-  if (!expectedType || expectedType !== actualType) return false;
-
-  if (expectedType === 'account_update2') {
-    return (
-      expectedValue.account === actualValue.account &&
-      expectedValue.posting_json_metadata === actualValue.posting_json_metadata
-    );
-  }
-  if (expectedType === 'claim_reward_balance') {
-    return (
-      expectedValue.account === actualValue.account &&
-      assetEquivalent(expectedValue.reward_hive, actualValue.reward_hive, 'HIVE') &&
-      assetEquivalent(expectedValue.reward_hbd, actualValue.reward_hbd, 'HBD') &&
-      assetEquivalent(expectedValue.reward_vests, actualValue.reward_vests, 'VESTS')
-    );
-  }
-  if (expectedType === 'transfer') {
-    return (
-      expectedValue.from === actualValue.from &&
-      expectedValue.to === actualValue.to &&
-      assetEquivalent(expectedValue.amount, actualValue.amount, 'HBD') &&
-      expectedValue.memo === actualValue.memo
-    );
-  }
-  return JSON.stringify(expected) === JSON.stringify(actual);
 }
 
 function isUnknownTransaction(error, transactionId) {
@@ -351,34 +317,66 @@ class HiveReadService {
     return { ...discussion, profiles };
   }
 
-  async getLatestThreadContainer(accountValue) {
+  async getLatestThreadContainer(accountValue, { venueId = null, allowLegacyFallback = true } = {}) {
     const account = requireHiveAccount(accountValue, 'Threads container account');
+    const markedLookup = Boolean(venueId);
     const rawPosts = await this.rpcPool.call('bridge', 'get_account_posts', {
       sort: 'posts',
       account,
-      limit: 1,
+      limit: markedLookup ? THREADS_ACCOUNT_POST_SCAN_LIMIT : 1,
     });
-    const containerRaw = Array.isArray(rawPosts)
-      ? rawPosts.find((item) => item?.author === account && !item?.parent_author)
-      : null;
-    return containerRaw ? normalizeContent(containerRaw) : null;
+    if (!markedLookup) {
+      const containerRaw = Array.isArray(rawPosts)
+        ? rawPosts.find((item) => item?.author === account && !item?.parent_author)
+        : null;
+      return containerRaw ? normalizeContent(containerRaw) : null;
+    }
+    const selected = selectThreadsContainer(rawPosts, { account, venueId, allowLegacyFallback });
+    if (!selected) return null;
+    return {
+      ...normalizeContent(selected.item),
+      threadsContainerMarker: selected.marker,
+      legacyFallbackUsed: selected.legacyFallbackUsed,
+    };
   }
 
-  async getLatestThreads(accountValue, { discussionFilter = null } = {}) {
+  async getLatestThreads(
+    accountValue,
+    { discussionFilter = null, venueId = null, allowLegacyFallback = true } = {},
+  ) {
     if (discussionFilter !== null && typeof discussionFilter !== 'function') {
       throw new TypeError('Discussion filter must be a function');
     }
-    const container = await this.getLatestThreadContainer(accountValue);
-    if (!container) return { container: null, threads: [], profiles: {} };
+    const container = await this.getLatestThreadContainer(accountValue, {
+      venueId,
+      allowLegacyFallback,
+    });
+    if (!container) {
+      return venueId
+        ? { container: null, threads: [], profiles: {}, metrics: null }
+        : { container: null, threads: [], profiles: {} };
+    }
 
+    const startedAt = this.now();
     const rawDiscussion = await this.rpcPool.call('bridge', 'get_discussion', {
       author: container.author,
       permlink: container.permlink,
     });
+    const finishedAt = this.now();
     let discussion = normalizeDiscussion(rawDiscussion, container.author, container.permlink);
     if (discussionFilter) discussion = discussionFilter(discussion);
     const profiles = await this.getProfiles(discussion.comments.map((comment) => comment.author));
-    return { container, threads: discussion.comments, profiles };
+    const result = { container, threads: discussion.comments, profiles };
+    if (!venueId) return result;
+    return {
+      ...result,
+      metrics: measureThreadsDiscussion({
+        container,
+        rawDiscussion,
+        durationMs: Math.max(0, finishedAt - startedAt),
+        nowMs: finishedAt,
+      }),
+    };
   }
 
   async getWallet(accountValue) {
@@ -449,21 +447,20 @@ class HiveReadService {
     });
   }
 
-  async observeM4Operation(record) {
+  async observeExactTransaction(record) {
     if (!/^[0-9a-f]{40}$/i.test(String(record?.transactionId || ''))) {
       return { observed: false, blockNumber: null };
     }
     const transaction = await this.getTransaction(record.transactionId);
-    const actual = Array.isArray(transaction?.operations) ? transaction.operations : [];
-    const expected = Array.isArray(record?.operations) ? record.operations : [];
-    const matched =
-      transaction?.transaction_id?.toLowerCase() === record.transactionId.toLowerCase() &&
-      expected.length === actual.length &&
-      expected.every((operation, index) => operationEquivalent(operation, actual[index]));
+    const matched = transactionMatchesRecord(record, transaction);
     return {
       observed: matched,
-      blockNumber: matched && Number.isSafeInteger(transaction.block_num) ? transaction.block_num : null,
+      blockNumber: matched && Number.isSafeInteger(transaction?.block_num) ? transaction.block_num : null,
     };
+  }
+
+  async observeM4Operation(record) {
+    return this.observeExactTransaction(record);
   }
 
   async #connectionPage({ accountValue, cursorValue, method, field }) {

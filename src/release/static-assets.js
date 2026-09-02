@@ -34,6 +34,7 @@ const FIRST_PARTY_ASSETS = Object.freeze([
 
 const PAGE_SCOPED_ASSETS = Object.freeze([
   '/js/pay-tab.js',
+  '/js/threads-funds-claim.js',
 ]);
 
 const VERSIONED_ASSETS = Object.freeze([
