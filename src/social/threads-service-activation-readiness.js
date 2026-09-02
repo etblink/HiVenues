@@ -1,11 +1,13 @@
 'use strict';
 
+const { ECDH, createHash } = require('node:crypto');
 const { HIVE_ACCOUNT_PATTERN } = require('../venue/context');
 
 const SERVER_CREDENTIAL_CLASSES = Object.freeze(['posting', 'active', 'owner', 'memo']);
 const PROHIBITED_SERVER_CREDENTIAL_CLASSES = Object.freeze(['active', 'owner', 'memo']);
 const WIF_PATTERN = /\b5[HJK][1-9A-HJ-NP-Za-km-z]{48,51}\b/;
-const PUBLIC_KEY_PATTERN = /^STM[1-9A-HJ-NP-Za-km-z]{40,60}$/;
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BASE58_INDEX = new Map([...BASE58_ALPHABET].map((character, index) => [character, index]));
 
 function requireAccount(value, label) {
   const account = String(value || '').trim().toLowerCase();
@@ -15,11 +17,64 @@ function requireAccount(value, label) {
   return account;
 }
 
-function requirePublicKey(value) {
-  const publicKey = String(value || '').trim();
-  if (!PUBLIC_KEY_PATTERN.test(publicKey)) {
-    throw new TypeError('intendedPostingPublicKey must be a mainnet Hive public key');
+function decodeBase58(value) {
+  const text = String(value || '');
+  if (!text) throw new TypeError('Hive public key payload is empty');
+
+  let number = 0n;
+  for (const character of text) {
+    const digit = BASE58_INDEX.get(character);
+    if (digit === undefined) {
+      throw new TypeError('Hive public key contains invalid Base58 characters');
+    }
+    number = (number * 58n) + BigInt(digit);
   }
+
+  let hex = number.toString(16);
+  if (hex.length % 2 !== 0) hex = `0${hex}`;
+  let encoded = number === 0n ? Buffer.alloc(0) : Buffer.from(hex, 'hex');
+  let leadingZeros = 0;
+  for (const character of text) {
+    if (character !== '1') break;
+    leadingZeros += 1;
+  }
+  if (leadingZeros > 0) {
+    encoded = Buffer.concat([Buffer.alloc(leadingZeros), encoded]);
+  }
+  return encoded;
+}
+
+function requirePublicKey(value, label = 'Hive public key') {
+  const publicKey = String(value || '').trim();
+  if (!publicKey.startsWith('STM')) {
+    throw new TypeError(`${label} must use the STM mainnet Hive public-key prefix`);
+  }
+
+  const decoded = decodeBase58(publicKey.slice(3));
+  if (decoded.length !== 37) {
+    throw new TypeError(`${label} must decode to a 33-byte compressed key plus 4-byte checksum`);
+  }
+
+  const keyBytes = decoded.subarray(0, 33);
+  const checksum = decoded.subarray(33);
+  if (![0x02, 0x03].includes(keyBytes[0])) {
+    throw new TypeError(`${label} must contain a compressed secp256k1 public key`);
+  }
+
+  const expectedChecksum = createHash('ripemd160').update(keyBytes).digest().subarray(0, 4);
+  if (!checksum.equals(expectedChecksum)) {
+    throw new TypeError(`${label} has an invalid Hive public-key checksum`);
+  }
+
+  try {
+    const normalized = ECDH.convertKey(keyBytes, 'secp256k1', undefined, undefined, 'compressed');
+    if (!Buffer.from(normalized).equals(keyBytes)) {
+      throw new Error('compressed point changed during validation');
+    }
+  } catch {
+    throw new TypeError(`${label} is not a valid secp256k1 public key`);
+  }
+
   return publicKey;
 }
 
@@ -93,10 +148,10 @@ function matchingAccountWeight(authority, account) {
   }, 0);
 }
 
-function addCheck(checks, blockers, id, pass, details = {}) {
+function addCheck(checks, blockers, id, pass, details = {}, { block = true } = {}) {
   const result = Object.freeze({ id, pass: Boolean(pass), ...details });
   checks.push(result);
-  if (!result.pass) blockers.push(id);
+  if (block && !result.pass) blockers.push(id);
   return result;
 }
 
@@ -108,6 +163,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     'threadsAccount',
     'intendedPostingPublicKey',
     'serverCredentialClasses',
+    'configuredPostingPublicKey',
   ]);
   for (const key of Object.keys(input)) {
     if (!allowedTopLevel.has(key)) {
@@ -131,8 +187,20 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     venue.threadsContainerAccount,
     'venue.threadsContainerAccount',
   );
-  const intendedPostingPublicKey = requirePublicKey(input.intendedPostingPublicKey);
+  const intendedPostingPublicKey = requirePublicKey(
+    input.intendedPostingPublicKey,
+    'intendedPostingPublicKey',
+  );
   const serverCredentialClasses = normalizeCredentialClasses(input.serverCredentialClasses || []);
+  const postingCredentialConfigured = serverCredentialClasses.includes('posting');
+  const configuredPostingPublicKey = input.configuredPostingPublicKey == null
+    ? null
+    : requirePublicKey(input.configuredPostingPublicKey, 'configuredPostingPublicKey');
+  if (!postingCredentialConfigured && configuredPostingPublicKey !== null) {
+    throw new TypeError(
+      'configuredPostingPublicKey may be supplied only when serverCredentialClasses includes posting',
+    );
+  }
 
   const threadsAccount = input.threadsAccount;
   if (!threadsAccount || typeof threadsAccount !== 'object' || Array.isArray(threadsAccount)) {
@@ -199,13 +267,29 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     prohibitedConfigured,
   });
 
-  const postingCredentialConfigured = serverCredentialClasses.includes('posting');
   addCheck(checks, blockers, 'THREADS_POSTING_CREDENTIAL_CONFIGURED', postingCredentialConfigured, {
     configured: postingCredentialConfigured,
   });
 
+  const configuredPostingKeyMatches = !postingCredentialConfigured
+    ? null
+    : configuredPostingPublicKey === intendedPostingPublicKey;
+  addCheck(
+    checks,
+    blockers,
+    'CONFIGURED_POSTING_CREDENTIAL_MATCHES_INTENDED_PUBLIC_KEY',
+    configuredPostingKeyMatches !== false,
+    {
+      applicable: postingCredentialConfigured,
+      configuredPostingPublicKey,
+      intendedPostingPublicKey,
+    },
+    { block: postingCredentialConfigured },
+  );
+
   const authorityReady = accountMatches && postingDirect && merchantActive;
   const credentialBoundarySafe = prohibitedConfigured.length === 0;
+  const credentialIdentityReady = postingCredentialConfigured && configuredPostingKeyMatches === true;
   const preparationReady = authorityReady && credentialBoundarySafe;
   const runtimeSignerActivationImplemented = false;
   addCheck(
@@ -229,6 +313,8 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     nextStage = 'SEPARATELY_AUTHORIZE_AND_APPLY_HIVE_AUTHORITY_CHANGE';
   } else if (!postingCredentialConfigured) {
     nextStage = 'SEPARATELY_AUTHORIZE_POSTING_KEY_PROVISIONING';
+  } else if (!credentialIdentityReady) {
+    nextStage = 'REPAIR_OR_REPROVISION_THREADS_POSTING_CREDENTIAL';
   } else {
     nextStage = 'IMPLEMENT_AND_QUALIFY_SEPARATELY_AUTHORIZED_RUNTIME_SIGNER_ACTIVATION';
   }
@@ -240,11 +326,13 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     authorityReady,
     credentialBoundarySafe,
     postingCredentialConfigured,
+    credentialIdentityReady,
     nextStage,
     identities: Object.freeze({
       merchantAccount,
       threadsAccount: expectedThreadsAccount,
       intendedPostingPublicKey,
+      configuredPostingPublicKey,
     }),
     checks: Object.freeze(checks),
     blockers: Object.freeze([...new Set(blockers)]),
@@ -265,5 +353,7 @@ module.exports = {
   SERVER_CREDENTIAL_CLASSES,
   assessThreadsServiceActivationReadiness,
   assertNoPrivateKeyMaterial,
+  decodeBase58,
   normalizeAuthority,
+  requirePublicKey,
 };
