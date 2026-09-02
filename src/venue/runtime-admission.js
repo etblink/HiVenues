@@ -3,8 +3,19 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const dotenv = require('dotenv');
+const { isDeepStrictEqual } = require('node:util');
+const {
+  LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS,
+  loadFourthStreetCompatibleVenue,
+} = require('../deployment/reference/fourth-street-env');
+const { FOURTH_STREET_REFERENCE_VENUE } = require('./reference/fourth-street');
 const { composeVenueBootstrap } = require('./bootstrap');
 
+const VENUE_ADMISSION_MODE_ENV = 'HIVE_VENUE_ADMISSION_MODE';
+const VENUE_ADMISSION_MODES = Object.freeze({
+  COMPATIBILITY: 'compatibility',
+  EXPLICIT_BOOTSTRAP: 'explicit-bootstrap',
+});
 const VENUE_BOOTSTRAP_PATH_ENV = 'HIVE_VENUE_BOOTSTRAP_PATH';
 const MAX_VENUE_BOOTSTRAP_BYTES = 1024 * 1024;
 const MAX_BOOTSTRAP_PATH_BYTES = 4096;
@@ -15,6 +26,52 @@ class VenueRuntimeAdmissionError extends Error {
     super(`Venue runtime admission failed: ${message}`, options);
     this.name = 'VenueRuntimeAdmissionError';
   }
+}
+
+function hasCompleteLegacyProductionSignature(source = process.env) {
+  return LEGACY_FOURTH_STREET_PRODUCTION_REQUIRED_SETTINGS.every(
+    (name) => source[name] !== undefined && String(source[name]).trim() !== '',
+  );
+}
+
+function isRecognizedFourthStreetCompatibility(source = process.env) {
+  if (!hasCompleteLegacyProductionSignature(source)) return false;
+  try {
+    return isDeepStrictEqual(
+      loadFourthStreetCompatibleVenue(source),
+      FOURTH_STREET_REFERENCE_VENUE,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resolveVenueAdmissionMode(source = process.env) {
+  const raw = String(source[VENUE_ADMISSION_MODE_ENV] || '').trim();
+  const isProduction = String(source.NODE_ENV || '').trim() === 'production';
+  const isFourthStreetCompatibility = isRecognizedFourthStreetCompatibility(source);
+  const hasBootstrapPath = String(source[VENUE_BOOTSTRAP_PATH_ENV] || '').trim() !== '';
+
+  if (!raw) {
+    return hasBootstrapPath || (isProduction && !isFourthStreetCompatibility)
+      ? VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP
+      : VENUE_ADMISSION_MODES.COMPATIBILITY;
+  }
+  if (!Object.values(VENUE_ADMISSION_MODES).includes(raw)) {
+    throw new VenueRuntimeAdmissionError(
+      `${VENUE_ADMISSION_MODE_ENV} must be ${Object.values(VENUE_ADMISSION_MODES).join(' or ')}`,
+    );
+  }
+  if (
+    raw === VENUE_ADMISSION_MODES.COMPATIBILITY &&
+    isProduction &&
+    !isFourthStreetCompatibility
+  ) {
+    throw new VenueRuntimeAdmissionError(
+      `${VENUE_ADMISSION_MODE_ENV}=compatibility in production requires the recognized Fourth Street legacy deployment identity`,
+    );
+  }
+  return raw;
 }
 
 function resolveVenueBootstrapPath(source = process.env) {
@@ -39,8 +96,16 @@ function loadVenueRuntimeAdmission(
 ) {
   if (loadDotenv) dotenv.config({ quiet: true });
 
+  const admissionMode = resolveVenueAdmissionMode(source);
   const bootstrapPath = resolveVenueBootstrapPath(source);
-  if (!bootstrapPath) return null;
+  if (!bootstrapPath) {
+    if (admissionMode === VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP) {
+      throw new VenueRuntimeAdmissionError(
+        `${VENUE_BOOTSTRAP_PATH_ENV} is required when ${VENUE_ADMISSION_MODE_ENV}=${VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP}`,
+      );
+    }
+    return null;
+  }
 
   let stat;
   try {
@@ -92,6 +157,7 @@ function loadVenueRuntimeAdmission(
   }
 
   return Object.freeze({
+    mode: admissionMode,
     source: 'explicit-bootstrap-file',
     bootstrapPath,
     composition,
@@ -252,12 +318,17 @@ function assertVenueRuntimeCoherence(
 
 module.exports = {
   MAX_VENUE_BOOTSTRAP_BYTES,
+  VENUE_ADMISSION_MODE_ENV,
+  VENUE_ADMISSION_MODES,
   VENUE_BOOTSTRAP_PATH_ENV,
   VenueRuntimeAdmissionError,
   assertVenueRuntimeCoherence,
   classifyAdmittedReleaseRoot,
   currentRuntimeFacts,
+  hasCompleteLegacyProductionSignature,
+  isRecognizedFourthStreetCompatibility,
   isAdmittedReleaseRoot,
   loadVenueRuntimeAdmission,
+  resolveVenueAdmissionMode,
   resolveVenueBootstrapPath,
 };
