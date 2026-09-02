@@ -52,3 +52,30 @@ test('synthetic seam can exercise exact Posting envelope without any real key', 
     fingerprint: envelope.fingerprint,
   }]);
 });
+
+test('synthetic service signer rejects every non-Posting authority envelope', async () => {
+  let broadcasts = 0;
+  const signer = createThreadsServiceSigner({
+    enabled: true,
+    account: 'fourthst.threads',
+    credentialId: 'synthetic:threads-posting-fixture',
+    async broadcast() {
+      broadcasts += 1;
+      return { transactionId: 'must-not-broadcast' };
+    },
+  });
+
+  for (const authority of ['Active', 'Owner', 'Memo', '', null]) {
+    await assert.rejects(
+      signer.broadcastEnvelope({
+        account: 'fourthst.threads',
+        authority,
+        operations: [],
+        fingerprint: 'c'.repeat(64),
+      }),
+      /Posting-authority envelopes only/,
+      String(authority),
+    );
+  }
+  assert.equal(broadcasts, 0);
+});
