@@ -168,7 +168,7 @@ const QOL_SCRIPT = `'use strict';
   }
 
   function showSection(requestedId, focusHeading = false) {
-    const activeStage = document.documentElement.dataset.studioStage || 'brand';
+    const activeStage = document.documentElement.dataset.studioActiveStage || 'brand';
     const stageLinks = linksForStage(activeStage);
     const fallbackId = stageLinks[0]?.hash.slice(1) || sections[0].id;
     const activeId = sectionIds.has(requestedId) && stageForSection(requestedId) === activeStage ? requestedId : fallbackId;
@@ -187,7 +187,7 @@ const QOL_SCRIPT = `'use strict';
 
   function showStage(stageId, focus = false) {
     const stage = stageDefinitions.find((entry) => entry.id === stageId) || stageDefinitions[0];
-    document.documentElement.dataset.studioStage = stage.id;
+    document.documentElement.dataset.studioActiveStage = stage.id;
     writeStored(stageStorageKey, stage.id);
     for (const button of stageButtons) button.setAttribute('aria-current', String(button.dataset.studioStage === stage.id));
     for (const link of links) link.hidden = stage.id === 'review' || stageForSection(link.hash.slice(1)) !== stage.id;
@@ -212,7 +212,7 @@ const QOL_SCRIPT = `'use strict';
   }
 
   async function previewStage() {
-    const stageId = document.documentElement.dataset.studioStage || 'brand';
+    const stageId = document.documentElement.dataset.studioActiveStage || 'brand';
     const stageSections = sections.filter((section) => {
       const heading = section.querySelector('h2')?.textContent.trim() || '';
       return sectionStage.get(heading) === stageId;
@@ -363,7 +363,7 @@ function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '
     : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
   const media = mediaControls(session, editorPath);
   let enhanced = String(html)
-    .replace('<html lang="en">', '<html lang="en" data-qol-progressive="section-picker" data-studio-view="edit" data-studio-stage="brand">')
+    .replace('<html lang="en">', '<html lang="en" data-qol-progressive="section-picker" data-studio-view="edit" data-studio-active-stage="brand">')
     .replace('<h1>Customize your venue</h1>', '<p class="studio-topline"><strong>Venue Studio</strong><span>Shape the brand, page, and venue details with a live preview.</span></p><h1>Customize your venue</h1>')
     .replace(
       'Change the words, details, and colors guests will see. Preview first, then keep or undo your changes. Hosting comes later—nothing on this screen publishes or deploys your venue.',
