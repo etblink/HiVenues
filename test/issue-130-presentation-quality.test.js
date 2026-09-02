@@ -50,6 +50,8 @@ test('Issue #130 Venue Studio presents a four-step authoring workflow with immed
   const qol = await request(fixture.app).get(`${fixture.editorPath}/qol.js`).expect(200);
   assert.match(qol.text, /async function previewStage/);
   assert.match(qol.text, /studio-proposal/);
+  assert.match(qol.text, /post\.submit\(\)/);
+  assert.doesNotMatch(qol.text, /redirect\s*:\s*['"]follow['"]/);
   assert.match(qol.text, /prefers-reduced-motion/);
 });
 
