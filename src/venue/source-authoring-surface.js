@@ -69,8 +69,18 @@ function mediaControls(session, editorPath) {
 function insertSectionMarkup(html, heading, markup) {
   if (!markup) return html;
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const needle = new RegExp(`(<section id="section-\\d+" class="section"><h2>${escapedHeading}</h2>)`);
-  return html.replace(needle, `$1${markup}`);
+  const needle = new RegExp(`(<section id="section-[^"]+" class="section"><h2>${escapedHeading}</h2>)`);
+  if (needle.test(html)) return html.replace(needle, `$1${markup}`);
+  if (heading !== 'Brand') return html;
+  return html
+    .replace(
+      '<nav class="nav" aria-label="Choose what to customize">',
+      '<nav class="nav" aria-label="Choose what to customize"><a href="#section-brand-media">Brand</a>',
+    )
+    .replace(
+      '<div class="editor">',
+      `<div class="editor"><section id="section-brand-media" class="section"><h2>Brand</h2>${markup}<div class="fields"></div></section>`,
+    );
 }
 
 const QOL_SCRIPT = `'use strict';
@@ -324,7 +334,7 @@ function venueSourceDownloadPath(editorPath) {
 
 function studioStatusMarkup({ dirty = false, state = '' } = {}) {
   const kept = !dirty && (state === 'ACCEPTED' || state === 'CLEAN');
-  return `<div class="studio-workflow" aria-label="Editing status"><ul class="studio-workflow__state"><li data-active="${String(!dirty)}">Draft ${kept ? 'ready' : 'base'}</li><li data-active="${String(dirty)}">Preview ${dirty ? 'has changes' : 'clear'}</li><li data-active="false">Venue file saved when downloaded</li></ul></div>`;
+  return `<div class="studio-workflow" role="group" aria-label="Editing status"><ul class="studio-workflow__state"><li data-active="${String(!dirty)}">Draft ${kept ? 'ready' : 'base'}</li><li data-active="${String(dirty)}">Preview ${dirty ? 'has changes' : 'clear'}</li><li data-active="false">Venue file saved when downloaded</li></ul></div>`;
 }
 
 function stageNavMarkup() {
@@ -332,7 +342,7 @@ function stageNavMarkup() {
 }
 
 function viewToggleMarkup() {
-  return `<div class="studio-view-toggle" aria-label="Editor view"><button type="button" data-studio-view="edit" aria-pressed="true">Edit</button><button type="button" data-studio-view="preview" aria-pressed="false">Preview venue</button></div>`;
+  return `<div class="studio-view-toggle" role="group" aria-label="Editor view"><button type="button" data-studio-view="edit" aria-pressed="true">Edit</button><button type="button" data-studio-view="preview" aria-pressed="false">Preview venue</button></div>`;
 }
 
 function reviewMarkup() {
