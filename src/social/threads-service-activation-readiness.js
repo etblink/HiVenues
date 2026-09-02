@@ -314,6 +314,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
     expectedAccount: expectedThreadsAccount,
     observedAccount: observedThreadsAccount || null,
   });
+  if (!accountMatches) optionalCleanupBlockers.push('THREADS_ACCOUNT_MATCH');
 
   addCheck(checks, blockers, 'THREADS_POSTING_AUTHORITY_VALID', Boolean(posting), {
     threshold: posting?.threshold || null,
