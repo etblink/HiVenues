@@ -1,9 +1,9 @@
 'use strict';
 
 const { z } = require('zod');
+const { HIVE_ACCOUNT_PATTERN } = require('../hive/account-name');
 
 const VENUE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const HIVE_ACCOUNT_PATTERN = /^(?=.{3,64}$)[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
 const COMMUNITY_PATTERN = /^hive-[0-9]{3,12}$/;
 
 const MAX_BENEFICIARY_WEIGHT = 10_000;

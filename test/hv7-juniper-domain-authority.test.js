@@ -117,7 +117,7 @@ test('HV-5 still denies gallery topology and protected Hive identity changes', (
   assert.throws(() => applyOrdinaryOperatorEdit(base, galleryChange), /gallery\/items.*INTEGRATION_OWNED/i);
 
   const hiveChange = clone(base);
-  hiveChange.venueContext.hive.officialAccount = 'different-account';
+  hiveChange.venueContext.hive.officialAccount = 'otheraccount';
   assert.throws(() => applyOrdinaryOperatorEdit(base, hiveChange), /officialAccount.*INTEGRATION_OWNED/i);
 });
 
