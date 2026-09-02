@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "ISSUE_130_PRESENTATION_QUALITY_REVIEW_V1",
+  "screenshotMode": "viewport-only",
+  "fullPageScreenshots": false,
+  "blockingAccessibilityImpacts": ["serious", "critical"],
+  "scenarios": [
+    {
+      "id": "issue130-fourth-home-mobile",
+      "fixture": "fourth-street",
+      "surface": "rendered-home",
+      "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "issue130-fourth-home-desktop",
+      "fixture": "fourth-street",
+      "surface": "rendered-home",
+      "viewport": { "width": 1440, "height": 1000 }
+    },
+    {
+      "id": "issue130-fourth-authoring-mobile",
+      "fixture": "fourth-street",
+      "surface": "venue-studio",
+      "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "issue130-fourth-authoring-desktop",
+      "fixture": "fourth-street",
+      "surface": "venue-studio",
+      "viewport": { "width": 1440, "height": 1000 }
+    },
+    {
+      "id": "issue130-juniper-home-mobile",
+      "fixture": "juniper-starter",
+      "surface": "rendered-home",
+      "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "issue130-juniper-home-desktop",
+      "fixture": "juniper-starter",
+      "surface": "rendered-home",
+      "viewport": { "width": 1440, "height": 1000 }
+    },
+    {
+      "id": "issue130-juniper-authoring-mobile",
+      "fixture": "juniper-starter",
+      "surface": "venue-studio",
+      "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "issue130-juniper-authoring-desktop",
+      "fixture": "juniper-starter",
+      "surface": "venue-studio",
+      "viewport": { "width": 1440, "height": 1000 }
+    }
+  ]
+}
