@@ -4,7 +4,7 @@ const { read, requireMatch } = require('./io');
 
 const CURRENT_START = '<!-- HV6_CURRENT_ROUTING_START -->';
 const CURRENT_END = '<!-- HV6_CURRENT_ROUTING_END -->';
-const NEXT_SUCCESSOR_OPERATION = 'VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT';
+const NEXT_SUCCESSOR_OPERATION = 'THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR';
 
 function currentRouting(relativePath) {
   const source = read(relativePath);
@@ -46,7 +46,9 @@ function assertCurrentRoutingBlock(relativePath) {
     [/^CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY$/m, 'CID technical viability result must remain preserved'],
     [/^CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE$/m, 'CID capability-gap result must remain preserved'],
     [/^CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE$/m, 'CID adoption must remain deferred without prejudice'],
-    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must be the bounded Hive identity/key-management audit'],
+    [/^HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL$/m, 'identity/key minimization result must remain accepted'],
+    [/^THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE$/m, 'Threads Active account auth must remain cleanup-only'],
+    [new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'), 'next operation must decouple Posting activation from optional liquid cleanup'],
     [/^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m, 'live production mutation must remain unauthorized'],
     [/^PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED$/m, 'public production authoring must remain unauthorized'],
     [/^REAL_SECOND_VENUE_AUTHORIZED = NO$/m, 'real second venue must remain unauthorized'],
@@ -76,7 +78,8 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(readme, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/, 'README must preserve CID technical viability without authority');
   requireMatch(readme, /STABLE_SUBFILE_CONTENT_ADDRESS_REUSE/, 'README must preserve the proven CID capability gap');
   requireMatch(readme, /CID adoption.*deferred without prejudice/i, 'README must preserve CID adoption deferral');
-  requireMatch(readme, /Hive identity and key-management minimization/i, 'README must identify the selected next bounded audit');
+  requireMatch(readme, /two ordinary venue-owned Hive identities/i, 'README must preserve the accepted identity minimization result');
+  requireMatch(readme, /Posting activation from optional liquid cleanup/i, 'README must identify the selected decoupling repair');
   requireMatch(readme, /Production deployment is not authorized/i, 'README must preserve deployment boundary');
   requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
 
@@ -86,7 +89,8 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(docsReadme, /DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED/, 'docs index must record accepted deployment-agnostic venue source');
   requireMatch(docsReadme, /LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED/, 'docs index must record accepted local launcher');
   requireMatch(docsReadme, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/, 'docs index must preserve CID adoption deferral');
-  requireMatch(docsReadme, /VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT/, 'docs index must route to the bounded identity/key-management audit');
+  requireMatch(docsReadme, /HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL/, 'docs index must preserve identity/key minimization acceptance');
+  requireMatch(docsReadme, /THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR/, 'docs index must route to the bounded decoupling repair');
   requireMatch(docsReadme, /production transition.*withheld/i, 'docs index must preserve the HV-8 stop decision');
 
   requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
@@ -98,7 +102,8 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(roadmap, /source durability.*PR #103/is, 'roadmap must record accepted source durability');
   requireMatch(roadmap, /operator launcher.*PR #104/is, 'roadmap must record accepted local launcher');
   requireMatch(roadmap, /CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE/, 'roadmap must preserve CID adoption deferral');
-  requireMatch(roadmap, /Current operation.*Hive identity and key-management minimization/is, 'roadmap must select the bounded identity/key-management audit');
+  requireMatch(roadmap, /HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL/, 'roadmap must preserve accepted identity minimization');
+  requireMatch(roadmap, /Current operation.*Posting activation.*optional liquid cleanup/is, 'roadmap must select the bounded decoupling repair');
 
   for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
