@@ -13,6 +13,7 @@ const {
 const {
   CURRENT_POINTER_FILENAME,
   NonProductionReleaseRehearsalError,
+  productionInvariantCoverageFromSources,
   promoteRelease,
   readPointer,
   stageReleaseIdentity,
@@ -102,6 +103,36 @@ test('independent venue completes health-gated promotion and identity-verified r
   assert.match(result.pointerMechanism, /NOT_PRODUCTION_SYMLINK_MECHANISM/);
   assert.equal(result.identityOrigin, 'SYNTHETIC_REHEARSAL_ONLY__FORMAT_EXACT_NOT_GIT_PROVENANCE');
   assert.ok(Object.values(result.productionInvariantCrosscheck).every(Boolean));
+});
+
+test('production recovery invariant cross-check requires concrete recovery mechanics, not failure prose', () => {
+  const deploy = fs.readFileSync(path.join(root, 'ops', 'privex', 'bin', 'hive-bar-deploy'), 'utf8');
+  const rollback = fs.readFileSync(path.join(root, 'ops', 'privex', 'bin', 'hive-bar-rollback'), 'utf8');
+  const baseline = productionInvariantCoverageFromSources(deploy, rollback);
+  assert.equal(baseline.deployFailureRestoresPrevious, true);
+  assert.equal(baseline.rollbackFailureRestoresPrior, true);
+
+  const deployWithoutRecoverySwitch = deploy.replace(
+    'mv -Tf "$recovery_link" "$current"',
+    '# injected test: recovery current switch removed',
+  );
+  const rollbackWithoutRecoveryRestart = rollback.replace(
+    'systemctl restart "$service"\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
+    '# injected test: recovery restart removed\nfi\nfail \'rollback target failed its health check; the prior release was restored when available\'',
+  );
+
+  const missingDeployRecovery = productionInvariantCoverageFromSources(
+    deployWithoutRecoverySwitch,
+    rollback,
+  );
+  const missingRollbackRecovery = productionInvariantCoverageFromSources(
+    deploy,
+    rollbackWithoutRecoveryRestart,
+  );
+  assert.equal(missingDeployRecovery.deployFailureRestoresPrevious, false);
+  assert.equal(missingRollbackRecovery.rollbackFailureRestoresPrior, false);
+  assert.match(deployWithoutRecoverySwitch, /the previous release was restored when available/);
+  assert.match(rollbackWithoutRecoveryRestart, /the prior release was restored when available/);
 });
 
 test('portable manifest path resolves to the same isolated filesystem root', (t) => {

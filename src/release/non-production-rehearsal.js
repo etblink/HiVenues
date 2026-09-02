@@ -219,13 +219,27 @@ function rollbackRelease({
   });
 }
 
-function assertProductionInvariantCoverage(repositoryRoot) {
-  const deployPath = path.join(repositoryRoot, 'ops', 'privex', 'bin', 'hive-bar-deploy');
-  const rollbackPath = path.join(repositoryRoot, 'ops', 'privex', 'bin', 'hive-bar-rollback');
-  const deploy = fs.readFileSync(deployPath, 'utf8');
-  const rollback = fs.readFileSync(rollbackPath, 'utf8');
+function recoveryBlockBeforeFailure(source, failureMessage) {
+  const failureIndex = source.indexOf(failureMessage);
+  if (failureIndex < 0) return '';
+  const recoveryStartMarker = 'if [[ -n "$previous" && -d "$previous" ]]; then';
+  const startIndex = source.lastIndexOf(recoveryStartMarker, failureIndex);
+  if (startIndex < 0) return '';
+  return source.slice(startIndex, failureIndex);
+}
 
-  const checks = Object.freeze({
+function hasConcretePreviousReleaseRecovery(source, failureMessage) {
+  const block = recoveryBlockBeforeFailure(source, failureMessage);
+  return (
+    block.includes('recovery_link="$app_root/.current.recovery.$$"') &&
+    block.includes('ln -s "$previous" "$recovery_link"') &&
+    block.includes('mv -Tf "$recovery_link" "$current"') &&
+    block.includes('systemctl restart "$service"')
+  );
+}
+
+function productionInvariantCoverageFromSources(deploy, rollback) {
+  return Object.freeze({
     deployExactCommitResolution:
       deploy.includes('commit did not resolve exactly') && deploy.includes('${commit}^{tree}'),
     deployStoredCommitTreeVerification:
@@ -239,8 +253,10 @@ function assertProductionInvariantCoverage(repositoryRoot) {
       deploy.includes('\\"commit\\":\\"$commit\\"') &&
       deploy.includes('\\"tree\\":\\"$tree\\"') &&
       deploy.includes('post-switch health check failed'),
-    deployFailureRestoresPrevious:
-      deploy.includes('the previous release was restored when available'),
+    deployFailureRestoresPrevious: hasConcretePreviousReleaseRecovery(
+      deploy,
+      'post-switch health check failed',
+    ),
     rollbackExactCommitTreeVerification:
       rollback.includes('release tree identity does not match the reviewed repository'),
     rollbackAtomicCurrentSwitch:
@@ -248,9 +264,19 @@ function assertProductionInvariantCoverage(repositoryRoot) {
     rollbackHealthBindsCommitTree:
       rollback.includes('\\"commit\\":\\"$commit\\"') &&
       rollback.includes('\\"tree\\":\\"$tree\\"'),
-    rollbackFailureRestoresPrior:
-      rollback.includes('rollback target failed its health check; the prior release was restored when available'),
+    rollbackFailureRestoresPrior: hasConcretePreviousReleaseRecovery(
+      rollback,
+      'rollback target failed its health check',
+    ),
   });
+}
+
+function assertProductionInvariantCoverage(repositoryRoot) {
+  const deployPath = path.join(repositoryRoot, 'ops', 'privex', 'bin', 'hive-bar-deploy');
+  const rollbackPath = path.join(repositoryRoot, 'ops', 'privex', 'bin', 'hive-bar-rollback');
+  const deploy = fs.readFileSync(deployPath, 'utf8');
+  const rollback = fs.readFileSync(rollbackPath, 'utf8');
+  const checks = productionInvariantCoverageFromSources(deploy, rollback);
 
   const missing = Object.entries(checks)
     .filter(([, pass]) => !pass)
@@ -269,6 +295,7 @@ module.exports = {
   NonProductionReleaseRehearsalError,
   assertProductionInvariantCoverage,
   inspectReleaseIdentity,
+  productionInvariantCoverageFromSources,
   promoteRelease,
   readPointer,
   releasePath,
