@@ -176,7 +176,17 @@ async function exerciseJuniper(page, fixture) {
   assert.ok(added);
   assert.equal(added.id, 'repair-cafe');
   const preview = await getPreviewFrame(page);
+  const previewToggle = page.locator('button[data-studio-view="preview"]');
+  const compactMode = await previewToggle.isVisible();
+  if (compactMode) {
+    await previewToggle.click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'preview');
+  }
   await preview.locator('[data-program-id="repair-cafe"]').waitFor({ state: 'visible' });
+  if (compactMode) {
+    await page.locator('button[data-studio-view="edit"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'edit');
+  }
   return { generatedProgramId: added.id };
 }
 
