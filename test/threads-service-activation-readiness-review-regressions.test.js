@@ -132,7 +132,6 @@ test('preflight rejects Hive account names that violate protocol label grammar',
   assert.deepEqual(report.proposedAuthorityChanges, []);
 });
 
-
 test('authority thresholds and weights reject JSON type coercion', () => {
   for (const malformedThreshold of ['1', true]) {
     const input = snapshot();
@@ -149,4 +148,22 @@ test('authority thresholds and weights reject JSON type coercion', () => {
     assert.equal(report.authorityReady, false);
     assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
   }
+});
+
+test('authority rejects more than 40 combined key and account members', () => {
+  const input = snapshot();
+  input.threadsAccount.active = {
+    weight_threshold: 1,
+    account_auths: Array.from(
+      { length: 40 },
+      (_, index) => [`acct${String(index).padStart(3, '0')}`, 1],
+    ),
+    key_auths: [[PUBLIC_KEY, 1]],
+  };
+  const report = assessThreadsServiceActivationReadiness(input);
+  assert.equal(report.authorityReady, false);
+  assert.equal(report.preparationReady, false);
+  assert.equal(report.nextStage, 'REPAIR_IDENTITY_OR_AUTHORITY_INPUT');
+  assert.equal(report.blockers.includes('THREADS_ACTIVE_AUTHORITY_VALID'), true);
+  assert.deepEqual(report.proposedAuthorityChanges, []);
 });

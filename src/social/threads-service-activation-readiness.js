@@ -10,6 +10,7 @@ const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvw
 const BASE58_INDEX = new Map([...BASE58_ALPHABET].map((character, index) => [character, index]));
 const MAX_HIVE_AUTHORITY_WEIGHT = 65_535;
 const MAX_HIVE_AUTHORITY_THRESHOLD = 0xffff_ffff;
+const MAX_HIVE_AUTHORITY_MEMBERSHIP = 40;
 
 function requireAccount(value, label) {
   const account = String(value || '').trim();
@@ -170,7 +171,13 @@ function normalizeAuthority(authority) {
   const accountAuths = normalizeAuthorityEntries(authority?.account_auths, {
     identityValidator: isValidHiveAccountName,
   });
-  if (!keyAuths || !accountAuths) return null;
+  if (
+    !keyAuths
+    || !accountAuths
+    || keyAuths.length + accountAuths.length > MAX_HIVE_AUTHORITY_MEMBERSHIP
+  ) {
+    return null;
+  }
   return {
     threshold,
     keyAuths,
@@ -417,6 +424,7 @@ function assessThreadsServiceActivationReadiness(input = {}) {
 }
 
 module.exports = {
+  MAX_HIVE_AUTHORITY_MEMBERSHIP,
   MAX_HIVE_AUTHORITY_THRESHOLD,
   MAX_HIVE_AUTHORITY_WEIGHT,
   PROHIBITED_SERVER_CREDENTIAL_CLASSES,
