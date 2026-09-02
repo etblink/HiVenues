@@ -32,7 +32,9 @@ LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
 CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
 CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
 CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
+THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
+NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
 LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
 PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
 REAL_SECOND_VENUE_AUTHORIZED = NO
@@ -95,27 +97,68 @@ The frozen CID construction passed determinism, byte/path sensitivity, independe
 
 This result is evidence-responsive rather than ideological: CID/IPFS may be reconsidered if future venue workflows make the proven capability gap valuable enough to outweigh operational complexity.
 
-## Current operation — Hive identity and key-management minimization
+## Accepted Hive identity and key-management minimization
+
+The bounded identity/key audit is complete at the repository-design level:
 
 ```text
-NEXT_OPERATION = VENUE_HIVE_IDENTITY_AND_KEY_MANAGEMENT_MINIMIZATION__BOUNDED_AUDIT
+HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
+MERCHANT_PRIVATE_KEYS_ON_SERVER = 0
+THREADS_ACTIVE_OWNER_PRIVATE_KEYS_ON_SERVER = 0
+THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
+THREADS_RC_OPERATING_MODEL = DELEGATED_RC_PREFERRED
+RECURRENT_TRANSFER = NONE
+AUTOMATIC_SWEEP = NONE
 ```
 
-The current operation is a bounded **Hive identity and key-management minimization** audit. It asks whether the platform can reduce ordinary merchant key-management burden while preserving useful protocol separation and automation safety.
+The minimum ordinary venue model is:
 
-Working hypothesis to test rather than assume:
+1. **Official / merchant identity** — merchant-controlled; payment recipient and eligible operator roles may alias this account; private signing stays Keychain-side.
+2. **Threads automation identity** — low-value machine principal; the only future server Hive private credential that may be separately authorized is the exact Posting credential required for container lifecycle operations.
 
-1. **Merchant identity** — one ordinary venue account remains merchant-controlled; its Active/Owner/private posting keys are not placed on the Hive-Venues server.
-2. **Community identity** — the `hive-...` protocol identity remains a recovery/ownership boundary; routine venue administration should use delegated roles where Hive supports them rather than requiring daily community-owner key handling.
-3. **Threads service identity** — a dedicated low-value account may remain justified for automatic container-post lifecycle. If retained, server custody should be bounded to the minimum Posting authority needed for root-container creation/rotation; Resource Credits can be delegated instead of requiring meaningful owned stake.
-4. **Container economics** — preserve legitimate reward upside while avoiding server-held merchant Active/Owner authority. Prefer direct beneficiary routing to the merchant where protocol semantics support it; any residual-balance mechanism must not widen production-server authority without explicit justification.
-5. **Rotation policy** — do not invent a hard thread-count limit. Determine container rotation from actual Hive/Hivemind retrieval behavior, pagination, age, child count, or other measured operational constraints.
+Community identity, onboarding creator, payment recipient, staff/moderation, patrons, RC sponsor, and recovery authority remain explicit roles without becoming extra server private-key roles. An onboarding creator can be the official merchant when that is operationally appropriate; RC can be delegated without making the Threads account a meaningful-value treasury.
 
-No Hive account, role, key, authority, community permission, server secret, or on-chain state changes during this audit.
+Normal Threads-container roots already route 100% of author rewards to the official merchant through `comment_options` beneficiary weight `10000`. The existing `Claim funds` feature is instead an Active-authority transfer of already-liquid HIVE/HBD from the Threads account. Merchant Active `account_auths` is therefore useful only as an optional human cleanup capability, not as a prerequisite for the Posting service.
+
+See `HIVE_IDENTITY_KEY_MANAGEMENT_MINIMIZATION_AUDIT_0_1_0.md` for the role inventory, protocol evidence, CI criterion map, and exact least-privilege adjudication.
+
+## Current operation — Posting activation versus optional liquid cleanup
+
+```text
+NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
+```
+
+The current operation is a bounded repository repair to separate **machine Posting activation readiness** from **optional manual liquid-balance cleanup readiness**.
+
+Current activation preflight correctly requires a direct threshold-satisfying Threads Posting key and rejects Active/Owner/Memo server credential classes. It is nevertheless over-constrained because it also requires the official merchant to satisfy the Threads Active threshold before the Posting service can be considered authority-ready.
+
+The repair target is:
+
+```text
+THREADS_POSTING_SERVICE_READINESS
+  = exact_threads_identity
+  + direct_threshold_satisfying_posting_key
+  + posting_only_server_credential_inventory
+  + exact_configured_public_key_binding
+  + separately_qualified_runtime_signer
+
+OPTIONAL_THREADS_LIQUID_CLEANUP_READINESS
+  = merchant_keychain_signing
+  + threshold_satisfying_threads_active_account_auth
+  + manual_transfer_only
+  + no_recurrent_transfer
+  + no_automatic_sweep
+```
+
+Absence of merchant Active account authorization must disable/fail-close only the optional cleanup control. It must not block Posting-only machine readiness. Issue #110 remains a separate live-activation boundary and is not authorized by this repair.
+
+The repair should also evaluate whether `Claim funds` should be renamed to describe the operation it actually performs, such as `Move Threads balance`, so the UI does not imply `claim_reward_balance` semantics.
+
+No real authority/key mutation, key provisioning, live Hive transaction, RC delegation, funds movement, or production activation is authorized.
 
 ## Beneficiary economics design boundary
 
-The identity audit shares one protocol seam with two product beneficiary policies. They should be designed together so `comment_options` composition, beneficiary merging, total-weight bounds, disclosure, and exact-operation review are solved once.
+Two user-content beneficiary policies remain a separate product-design boundary. They should share the canonical `comment_options` composition, beneficiary merging, total-weight bounds, disclosure, and exact-operation review seams.
 
 ### Venue beneficiary policy
 
@@ -193,6 +236,7 @@ DEPLOYMENT_AGNOSTIC_VENUE_SOURCE != DEPLOYMENT_BOUND_HV5_AUTHORING
 VENUE_SOURCE_PORTABILITY != DEPLOYMENT_TARGET_PORTABILITY
 PROTOCOL_ROLE_COUNT != DAILY_KEY_SET_COUNT
 AUTOMATION_AUTHORITY = MINIMUM_REQUIRED_AUTHORITY
+OPTIONAL_CLEANUP_AUTHORITY != MACHINE_POSTING_AUTHORITY
 USER_BENEFICIARY_CONSENT = VISIBLE_EXACT_OPERATION
 ```
 
