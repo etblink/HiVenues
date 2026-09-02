@@ -9,11 +9,51 @@ readonly current="$app_root/current"
 readonly environment_file=/etc/hive-bar/hive-bar.env
 readonly runtime=/usr/local/bin/node
 readonly service=hive-bar.service
-readonly health_url=http://127.0.0.1:3000/healthz
+
+health_url=
+readiness_url=
 
 fail() {
   printf 'Hive-Bar rollback refused: %s\n' "$1" >&2
   exit 1
+}
+
+load_probe_urls() {
+  local output
+  local -a urls
+  if ! output="$(
+    runuser -u hivebar -- env -i \
+      HOME=/nonexistent PATH=/usr/local/bin:/usr/bin:/bin RELEASE_ROOT="$release" \
+      "$runtime" <<'NODE'
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const releaseRoot = process.env.RELEASE_ROOT;
+const { compileDeploymentProfile } = require(path.join(releaseRoot, 'src', 'deployment', 'profile.js'));
+const manifest = JSON.parse(fs.readFileSync(path.join(releaseRoot, 'ops', 'privex', 'manifest.json'), 'utf8'));
+const profile = compileDeploymentProfile(manifest);
+const application = profile.topology.application;
+const base = `http://${application.bindHost}:${application.port}`;
+process.stdout.write(`${base}${profile.release.healthPath}\n${base}${profile.release.readinessPath}\n`);
+NODE
+  )"; then
+    fail 'release health/readiness probe URLs could not be derived from the reviewed deployment profile'
+  fi
+  mapfile -t urls <<<"$output"
+  [[ ${#urls[@]} -eq 2 && -n "${urls[0]}" && -n "${urls[1]}" ]] || \
+    fail 'release health/readiness probe URLs were malformed'
+  health_url="${urls[0]}"
+  readiness_url="${urls[1]}"
+}
+
+readiness_body_is_ready() {
+  [[ "$1" == '{"status":"ready"}' ]]
+}
+
+readiness_check() {
+  local readiness
+  readiness="$(curl --fail --silent --show-error --max-time 5 "$readiness_url" 2>/dev/null)" || return 1
+  readiness_body_is_ready "$readiness"
 }
 
 [[ $EUID -eq 0 ]] || fail 'run as root'
@@ -49,6 +89,8 @@ runuser -u hivebar -- env -i HOME=/nonexistent PATH=/usr/local/bin:/usr/bin:/bin
   node scripts/check-privex-release.js
 ' sh "$release"
 
+load_probe_urls
+
 previous="$(readlink -f "$current" 2>/dev/null || true)"
 next_link="$app_root/.current.rollback.${commit}.$$"
 ln -s "$release" "$next_link"
@@ -60,7 +102,8 @@ for _attempt in {1..20}; do
   if [[ "$health" == *'"writeMode":"disabled"'* &&
         "$health" == *"\"build\":\"$build\""* &&
         "$health" == *"\"commit\":\"$commit\""* &&
-        "$health" == *"\"tree\":\"$tree\""* ]]; then
+        "$health" == *"\"tree\":\"$tree\""* ]] &&
+      readiness_check; then
     rolled_back_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     printf 'Hive-Bar rolled back to %s exact commit %s tree %s at %s subject: %s\n' "$build" "$commit" "$tree" "$rolled_back_at" "$subject"
     exit 0
@@ -74,4 +117,4 @@ if [[ -n "$previous" && -d "$previous" ]]; then
   mv -Tf "$recovery_link" "$current"
   systemctl restart "$service"
 fi
-fail 'rollback target failed its health check; the prior release was restored when available'
+fail 'rollback target failed its health/readiness gate; the prior release was restored when available'
