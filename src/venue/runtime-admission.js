@@ -5,6 +5,11 @@ const path = require('node:path');
 const dotenv = require('dotenv');
 const { composeVenueBootstrap } = require('./bootstrap');
 
+const VENUE_ADMISSION_MODE_ENV = 'HIVE_VENUE_ADMISSION_MODE';
+const VENUE_ADMISSION_MODES = Object.freeze({
+  COMPATIBILITY: 'compatibility',
+  EXPLICIT_BOOTSTRAP: 'explicit-bootstrap',
+});
 const VENUE_BOOTSTRAP_PATH_ENV = 'HIVE_VENUE_BOOTSTRAP_PATH';
 const MAX_VENUE_BOOTSTRAP_BYTES = 1024 * 1024;
 const MAX_BOOTSTRAP_PATH_BYTES = 4096;
@@ -15,6 +20,17 @@ class VenueRuntimeAdmissionError extends Error {
     super(`Venue runtime admission failed: ${message}`, options);
     this.name = 'VenueRuntimeAdmissionError';
   }
+}
+
+function resolveVenueAdmissionMode(source = process.env) {
+  const raw = String(source[VENUE_ADMISSION_MODE_ENV] || '').trim();
+  if (!raw) return VENUE_ADMISSION_MODES.COMPATIBILITY;
+  if (!Object.values(VENUE_ADMISSION_MODES).includes(raw)) {
+    throw new VenueRuntimeAdmissionError(
+      `${VENUE_ADMISSION_MODE_ENV} must be ${Object.values(VENUE_ADMISSION_MODES).join(' or ')}`,
+    );
+  }
+  return raw;
 }
 
 function resolveVenueBootstrapPath(source = process.env) {
@@ -39,8 +55,16 @@ function loadVenueRuntimeAdmission(
 ) {
   if (loadDotenv) dotenv.config({ quiet: true });
 
+  const admissionMode = resolveVenueAdmissionMode(source);
   const bootstrapPath = resolveVenueBootstrapPath(source);
-  if (!bootstrapPath) return null;
+  if (!bootstrapPath) {
+    if (admissionMode === VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP) {
+      throw new VenueRuntimeAdmissionError(
+        `${VENUE_BOOTSTRAP_PATH_ENV} is required when ${VENUE_ADMISSION_MODE_ENV}=${VENUE_ADMISSION_MODES.EXPLICIT_BOOTSTRAP}`,
+      );
+    }
+    return null;
+  }
 
   let stat;
   try {
@@ -92,6 +116,7 @@ function loadVenueRuntimeAdmission(
   }
 
   return Object.freeze({
+    mode: admissionMode,
     source: 'explicit-bootstrap-file',
     bootstrapPath,
     composition,
@@ -252,6 +277,8 @@ function assertVenueRuntimeCoherence(
 
 module.exports = {
   MAX_VENUE_BOOTSTRAP_BYTES,
+  VENUE_ADMISSION_MODE_ENV,
+  VENUE_ADMISSION_MODES,
   VENUE_BOOTSTRAP_PATH_ENV,
   VenueRuntimeAdmissionError,
   assertVenueRuntimeCoherence,
@@ -259,5 +286,6 @@ module.exports = {
   currentRuntimeFacts,
   isAdmittedReleaseRoot,
   loadVenueRuntimeAdmission,
+  resolveVenueAdmissionMode,
   resolveVenueBootstrapPath,
 };
