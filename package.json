@@ -36,6 +36,7 @@
     "test:visual:c2-e": "node scripts/capture-c2-e-visual.js",
     "test:visual:c2-f": "node scripts/capture-c2-f-visual.js",
     "rehearse:m9": "node --test --test-concurrency=1 test/m9-bounded-bar-publishing.test.js",
+    "rehearse:independent-venue-release": "node scripts/rehearse-independent-venue-release.js",
     "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 test/*.test.js",
     "check:secrets": "node scripts/check-secrets.js",
     "check:release-coherence": "node scripts/check-release-coherence.js",
