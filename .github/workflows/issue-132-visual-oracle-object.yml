@@ -1,0 +1,105 @@
+name: Issue 132 visual oracle repair object
+
+on:
+  push:
+    branches:
+      - release/issue-132-turnkey-v1
+    paths:
+      - '.github/workflows/issue-132-visual-oracle-object.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-object:
+    name: Build unreferenced visual-oracle repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact helper head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build exact repair object without moving a ref
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import urllib.request
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          target = Path('scripts/capture-hv7-juniper-visual.js')
+          helper = '.github/workflows/issue-132-visual-oracle-object.yml'
+          expected_blob = '9861438171b899277c1a00c519f65b878223d2fd'
+          old_selector = 'iframe[title="Real Hive-Venues home-page preview"]'
+          new_selector = 'iframe[title="Venue preview"]'
+          old_assertion = 'assert.match(text, /Hive-Venues/);'
+          new_assertion = 'assert.match(text, /HiVenues/);'
+
+          actual_blob = subprocess.check_output(['git', 'hash-object', str(target)], text=True).strip()
+          assert actual_blob == expected_blob, (actual_blob, expected_blob)
+          source = target.read_text(encoding='utf-8')
+          assert source.count(old_selector) == 1
+          assert source.count(old_assertion) == 1
+          assert new_selector not in source
+          source = source.replace(old_selector, new_selector).replace(old_assertion, new_assertion)
+          target.write_text(source, encoding='utf-8', newline='\n')
+          subprocess.check_call(['node', '--check', str(target)])
+
+          def api(method, endpoint, payload=None):
+              data = None if payload is None else json.dumps(payload).encode('utf-8')
+              req = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}{endpoint}', data=data, method=method,
+                  headers={
+                      'Authorization': f'Bearer {token}',
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'User-Agent': 'issue-132-visual-oracle-object',
+                      **({'Content-Type': 'application/json'} if data is not None else {}),
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=60) as response:
+                  raw = response.read()
+                  return None if not raw else json.loads(raw.decode('utf-8'))
+
+          parent = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          base_tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
+          encoded = base64.b64encode(target.read_bytes()).decode('ascii')
+          blob = api('POST', '/git/blobs', {'content': encoded, 'encoding': 'base64'})
+          tree = api('POST', '/git/trees', {'base_tree': base_tree, 'tree': [
+              {'path': str(target), 'mode': '100644', 'type': 'blob', 'sha': blob['sha']},
+              {'path': helper, 'mode': '100644', 'type': 'blob', 'sha': None},
+          ]})
+          commit = api('POST', '/git/commits', {
+              'message': 'Repair Juniper current visual oracle',
+              'tree': tree['sha'],
+              'parents': [parent],
+          })
+          result = {
+              'candidate_commit': commit['sha'],
+              'candidate_tree': tree['sha'],
+              'parent': parent,
+              'target_blob': blob['sha'],
+              'source_blob': expected_blob,
+              'helper_deleted_in_candidate': True,
+              'ref_updated': False,
+          }
+          Path('/tmp/issue132-visual-oracle-object.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(result, indent=2))
+          PY
+      - name: Preserve object identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue-132-visual-oracle-object-${{ github.sha }}
+          path: /tmp/issue132-visual-oracle-object.json
+          if-no-files-found: error
+          retention-days: 30
