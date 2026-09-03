@@ -1,0 +1,91 @@
+name: Issue 132 v1.0.0 tag custody
+
+on:
+  push:
+    branches:
+      - release/issue-132-turnkey-v1
+    paths:
+      - .github/workflows/issue-132-v1-tag-custody.yml
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify canonical release and create exact tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          EXPECTED_MAIN: 2037371e207be94f57aca7e7b26ae6c688262adb
+          EXPECTED_TREE: 6997f8e16e81692b3de4171b6b07754263d130ba
+          TAG_NAME: v1.0.0
+        run: |
+          python - <<'PY'
+          import json, os, urllib.error, urllib.request
+          from pathlib import Path
+
+          repo = os.environ['REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          expected_main = os.environ['EXPECTED_MAIN']
+          expected_tree = os.environ['EXPECTED_TREE']
+          tag = os.environ['TAG_NAME']
+
+          def api(method, path, payload=None, allow_404=False):
+              req = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}{path}',
+                  data=None if payload is None else json.dumps(payload).encode('utf-8'),
+                  method=method,
+                  headers={
+                      'Authorization': f'Bearer {token}',
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'Content-Type': 'application/json',
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req) as response:
+                      return response.status, json.load(response)
+              except urllib.error.HTTPError as error:
+                  if allow_404 and error.code == 404:
+                      return 404, None
+                  raise
+
+          _, main_ref = api('GET', '/git/ref/heads/main')
+          assert main_ref['object']['sha'] == expected_main, main_ref
+          _, commit = api('GET', f'/git/commits/{expected_main}')
+          assert commit['tree']['sha'] == expected_tree, commit['tree']
+
+          status, existing = api('GET', f'/git/ref/tags/{tag}', allow_404=True)
+          assert status == 404 and existing is None, f'tag already exists: {existing}'
+
+          create_status, created = api('POST', '/git/refs', {'ref': f'refs/tags/{tag}', 'sha': expected_main})
+          assert create_status == 201, create_status
+          assert created['ref'] == f'refs/tags/{tag}', created
+          assert created['object']['sha'] == expected_main, created
+
+          _, verified = api('GET', f'/git/ref/tags/{tag}')
+          assert verified['ref'] == f'refs/tags/{tag}', verified
+          assert verified['object']['sha'] == expected_main, verified
+
+          result = {
+              'release': 'HiVenues v1.0.0',
+              'tag': tag,
+              'target_commit': expected_main,
+              'target_tree': expected_tree,
+              'created': True,
+              'verified': True,
+              'production_effect': False,
+          }
+          Path('issue-132-v1-tag-result.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(result, sort_keys=True))
+          PY
+
+      - name: Preserve tag custody result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: issue-132-v1-tag-result-${{ github.sha }}
+          path: issue-132-v1-tag-result.json
+          if-no-files-found: error
+          retention-days: 90
