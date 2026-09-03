@@ -231,7 +231,7 @@ Independent desktop and mobile page trees should be rejected. They raise drift, 
 
 ### Observation
 
-Webflow documents autosave and recoverable backups ([WF-7]). Wix Studio autosaves changes, shows saved state, and provides Site History, while its editor does not provide a full visible undo-history log ([WIX-4], [WIX-5], [WIX-6]). Squarespace supports undo/redo primarily within the current editing session and explicitly notes exclusions ([SQ-4]). Framer exposes file and published version history ([FR-6]).
+Webflow documents autosave and recoverable backups ([WF-7]). Wix Studio autosaves changes, shows saved state, and provides Site History, while its editor does not provide a full visible undo-history log ([WIX-4], [WIX-5], [WIX-6]). Squarespace supports undo/redo primarily within the current editing session and explicitly notes exclusions ([SQ-4]). Framer exposes file version history ([FR-6]).
 
 The current HiVenues model deliberately separates preview changes, retained draft changes, and workspace save. That boundary prevents an attractive interface from silently gaining authority.
 
