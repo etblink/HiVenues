@@ -78,6 +78,8 @@ async function main() {
   try {
     runtime = await startTurnkeyStudio({ workspaceDirectory });
     browser = await chromium.launch({ headless: true });
+
+    // Exercise and capture the product under its real CSP. This context must not bypass policy.
     const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
     const page = await context.newPage();
     await page.goto(runtime.url, { waitUntil: 'networkidle' });
@@ -100,18 +102,31 @@ async function main() {
       returnUrl: runtime.url,
     });
 
-    const studioDesktopViolations = await accessibilityViolations(page);
     await page.screenshot({ path: path.join(outputRoot, 'track-a-studio-desktop.png') });
-
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(runtime.url, { waitUntil: 'networkidle' });
-    const studioMobileViolations = await accessibilityViolations(page);
     await page.screenshot({ path: path.join(outputRoot, 'track-a-studio-mobile.png') });
-
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.goto(`${runtime.origin}${runtime.editorPath}/preview`, { waitUntil: 'networkidle' });
-    const outputViolations = await accessibilityViolations(page);
     await page.screenshot({ path: path.join(outputRoot, 'track-b-real-renderer-output.png') });
+
+    // Axe is an audit instrument, not product code. Use a separate context that bypasses CSP only
+    // for deterministic injection; product workflow and review screenshots above ran under real CSP.
+    const auditContext = await browser.newContext({
+      viewport: { width: 1440, height: 1100 },
+      deviceScaleFactor: 1,
+      bypassCSP: true,
+    });
+    const auditPage = await auditContext.newPage();
+    await auditPage.goto(runtime.url, { waitUntil: 'networkidle' });
+    const studioDesktopViolations = await accessibilityViolations(auditPage);
+    await auditPage.setViewportSize({ width: 390, height: 844 });
+    await auditPage.goto(runtime.url, { waitUntil: 'networkidle' });
+    const studioMobileViolations = await accessibilityViolations(auditPage);
+    await auditPage.setViewportSize({ width: 1440, height: 1100 });
+    await auditPage.goto(`${runtime.origin}${runtime.editorPath}/preview`, { waitUntil: 'networkidle' });
+    const outputViolations = await accessibilityViolations(auditPage);
+    await auditContext.close();
 
     const source = loadDeploymentAgnosticVenueSourceFile(path.join(workspaceDirectory, 'venue-source.json'));
     const readiness = qualifyTurnkeyWorkspace({ workspaceDirectory });
