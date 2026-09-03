@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - release/issue-132-turnkey-v1
+    paths:
+      - '.github/workflows/issue-132-gate-diagnostic.yml'
 
 permissions:
   contents: read
@@ -16,7 +18,7 @@ jobs:
   diagnose:
     name: Reproduce Issue 132 full-gate failure
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out exact diagnostic head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,6 +30,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
       - name: Reproduce bounded current-UI repair in runner only
@@ -55,7 +59,8 @@ jobs:
             exit 1
           fi
           node --test test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js test/turnkey-release.test.js
-      - name: Run complete deterministic quality gate with failure digest
+      - name: Run complete deterministic quality gate and collect report
+        id: full_gate
         shell: bash
         run: |
           set -uo pipefail
@@ -63,11 +68,40 @@ jobs:
           npm run check 2>&1 | tee /tmp/issue132-check.log
           status=${PIPESTATUS[0]}
           set -e
-          if [ "$status" -ne 0 ]; then
+
+          printf '%s\n' "$status" > /tmp/issue132-check.status
+          {
+            echo "ISSUE132_FULL_CHECK_EXIT=${status}"
             echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_BEGIN ====='
-            grep -nE 'not ok|AssertionError|ERR_ASSERTION|npm error|Error:|FAILED|FAIL|eslint|HiVenues release-name audit failed|expected|actual' /tmp/issue132-check.log | head -n 160 || true
+            grep -nE 'not ok|AssertionError|ERR_ASSERTION|npm error|Error:|FAILED|FAIL|eslint|HiVenues release-name audit failed|expected|actual|mismatch|stale|forbidden|missing' /tmp/issue132-check.log | head -n 180 || true
             echo '===== ISSUE132_FULL_GATE_TAIL_BEGIN ====='
-            tail -n 180 /tmp/issue132-check.log || true
+            tail -n 220 /tmp/issue132-check.log || true
             echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_END ====='
+          } > /tmp/issue132-diagnostic.txt
+
+          cat /tmp/issue132-diagnostic.txt
+          exit 0
+      - name: Preserve compact diagnostic report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue-132-gate-diagnostic-${{ github.sha }}
+          path: |
+            /tmp/issue132-diagnostic.txt
+            /tmp/issue132-check.status
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve full-gate failure semantics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f /tmp/issue132-check.status ]]; then
+            echo 'Diagnostic did not reach the full deterministic gate.' >&2
+            exit 2
+          fi
+          status="$(cat /tmp/issue132-check.status)"
+          if [[ "$status" != "0" ]]; then
+            echo "Issue 132 runner-only branding repair full gate failed with exit ${status}." >&2
             exit "$status"
           fi
