@@ -42,7 +42,7 @@ async function assertNoHorizontalOverflow(page, label) {
 }
 
 async function getPreviewFrame(page) {
-  const iframe = page.locator('iframe[title="Real Hive-Venues home-page preview"]');
+  const iframe = page.locator('iframe[title="Venue preview"]');
   await iframe.waitFor({ state: 'attached' });
   const handle = await iframe.elementHandle();
   assert.ok(handle, 'Juniper preview iframe is missing');
@@ -111,7 +111,7 @@ async function inspectPublicHome(page) {
   assert.match(text, /Maintenance/);
   assert.match(text, /Available/);
   assert.match(text, /Limited/);
-  assert.match(text, /Hive-Venues/);
+  assert.match(text, /HiVenues/);
   assert.doesNotMatch(text, /Hive-Bar|Fourth Street|\bbeer\b|\bbartender\b|\bpatron\b/i);
   assert.equal(await page.locator('a[href="/pay"]').count(), 0);
   assert.equal(await page.locator('[data-program-state="full"]').textContent(), 'Full');
