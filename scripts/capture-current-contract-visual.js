@@ -88,13 +88,28 @@ async function installReadOnlyNetworkGuard(context, origin, violations) {
 
 async function settle(page) {
   await page.addStyleTag({ content: '*{animation-duration:0s!important;transition-duration:0s!important;caret-color:transparent!important}' });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    const images = Array.from(document.images);
-    await Promise.all(images.map((image) => image.complete ? Promise.resolve() : image.decode().catch(() => {})));
+  const pendingVisibleImages = await page.evaluate(async () => {
+    const pause = (ms) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+    await Promise.race([document.fonts.ready, pause(3000)]);
+    const images = Array.from(document.images).filter((image) => {
+      const rect = image.getBoundingClientRect();
+      return rect.bottom > 0 && rect.right > 0 && rect.top < globalThis.innerHeight && rect.left < globalThis.innerWidth;
+    });
+    await Promise.all(images.map(async (image) => {
+      if (image.complete) return;
+      await Promise.race([
+        new Promise((resolve) => {
+          image.addEventListener('load', resolve, { once: true });
+          image.addEventListener('error', resolve, { once: true });
+        }),
+        pause(3000),
+      ]);
+    }));
     await new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)));
     globalThis.scrollTo(0, 0);
+    return images.filter((image) => !image.complete).map((image) => image.currentSrc || image.src);
   });
+  assert.deepEqual(pendingVisibleImages, [], `Viewport images did not settle: ${JSON.stringify(pendingVisibleImages)}`);
 }
 
 async function captureApplicationScenario(browser, baseUrl, token, scenario) {
@@ -162,7 +177,10 @@ async function captureApplicationScenario(browser, baseUrl, token, scenario) {
 }
 
 async function waitForMainNavigation(page, submitter) {
-  const navigation = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
+  const navigation = page.waitForEvent('framenavigated', {
+    predicate: (frame) => frame === page.mainFrame(),
+    timeout: 10000,
+  });
   await submitter();
   await navigation;
   await page.waitForLoadState('networkidle');
@@ -257,13 +275,19 @@ async function main() {
   const captures = [];
   try {
     for (const scenario of contract.reviewScenarios.filter(({ kind }) => kind === 'application')) {
+      const startedAt = Date.now();
+      process.stdout.write(`[START] ${scenario.id}\n`);
       captures.push(await captureApplicationScenario(browser, baseUrl, fixture.token, {
         ...scenario,
         expectText: new RegExp(scenario.expectText, 'i'),
       }));
+      process.stdout.write(`[PASS] ${scenario.id} ${((Date.now() - startedAt) / 1000).toFixed(1)}s\n`);
     }
     for (const scenario of contract.reviewScenarios.filter(({ kind }) => kind === 'source-authoring')) {
+      const startedAt = Date.now();
+      process.stdout.write(`[START] ${scenario.id}\n`);
       captures.push(await captureAuthoringScenario(browser, scenario));
+      process.stdout.write(`[PASS] ${scenario.id} ${((Date.now() - startedAt) / 1000).toFixed(1)}s\n`);
     }
   } finally {
     await browser.close().catch(() => {});
