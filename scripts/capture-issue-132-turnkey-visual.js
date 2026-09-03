@@ -15,7 +15,7 @@ const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
 
 async function accessibilityViolations(page) {
   await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
-  const result = await page.evaluate(async () => globalThis.axe.run(document, {
+  const result = await page.evaluate(async () => globalThis.axe.run(globalThis.document, {
     runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
   }));
   return result.violations.map((violation) => ({
