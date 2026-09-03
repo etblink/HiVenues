@@ -1,0 +1,188 @@
+name: Issue 132 branding repair
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/issue-132-branding-repair.yml'
+      - 'views/**'
+      - 'src/venue/**'
+      - 'src/release/hivenues-name-audit.js'
+      - 'test/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: issue-132-branding-repair-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    name: Repair current-facing HiVenues branding
+    if: github.event.pull_request.head.ref == 'release/issue-132-turnkey-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact PR head branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Apply bounded current-UI branding repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          stale = re.compile(r'\b(?:Hive-Bar|Hive[ -]Venues)\b')
+          current_ui = sorted((root / 'views').rglob('*.ejs')) + [
+              root / 'src/venue/source-authoring-surface.js',
+              root / 'src/venue/reference/source-authoring-surface-core.js',
+          ]
+          changed = []
+          for filename in current_ui:
+              text = filename.read_text(encoding='utf-8')
+              repaired = stale.sub('HiVenues', text)
+              if repaired != text:
+                  filename.write_text(repaired, encoding='utf-8', newline='\n')
+                  changed.append(str(filename))
+
+          for relative in [
+              'test/venue-source-authoring-surface.test.js',
+              'test/hv7-juniper-rendering.test.js',
+          ]:
+              filename = root / relative
+              text = filename.read_text(encoding='utf-8')
+              repaired = text.replace('Hive-Venues', 'HiVenues')
+              if repaired != text:
+                  filename.write_text(repaired, encoding='utf-8', newline='\n')
+                  changed.append(str(filename))
+
+          audit = root / 'src/release/hivenues-name-audit.js'
+          audit.write_text("""'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const RELEASE_FACING_FILES = Object.freeze([
+  'README.md',
+  'scripts/create-venue.js',
+  'scripts/open-turnkey-studio.js',
+  'scripts/check-turnkey-readiness.js',
+  'scripts/check-hivenues-v1-release.js',
+  'src/venue/source-authoring-surface.js',
+  'src/venue/reference/source-authoring-surface-core.js',
+]);
+const RELEASE_FACING_DIRECTORIES = Object.freeze(['views']);
+const STALE_RELEASE_NAME_PATTERN = /\\b(?:Hive-Bar|Hive[ -]Venues)\\b/g;
+
+class HiVenuesNameAuditError extends Error {
+  constructor(message) {
+    super(`HiVenues release-name audit failed: ${message}`);
+    this.name = 'HiVenuesNameAuditError';
+  }
+}
+
+function collectTextFiles(directory, root, fsImpl) {
+  const files = [];
+  const entries = fsImpl.readdirSync(directory, { withFileTypes: true })
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectTextFiles(absolute, root, fsImpl));
+    } else if (entry.isFile() && entry.name.endsWith('.ejs')) {
+      files.push(path.relative(root, absolute).split(path.sep).join('/'));
+    }
+  }
+  return files;
+}
+
+function releaseFacingFiles(root, fsImpl) {
+  const discovered = RELEASE_FACING_DIRECTORIES.flatMap((relative) =>
+    collectTextFiles(path.join(root, relative), root, fsImpl));
+  return [...new Set([...RELEASE_FACING_FILES, ...discovered])].sort();
+}
+
+function auditHiVenuesReleaseNames({ root = path.resolve(__dirname, '../..'), fsImpl = fs } = {}) {
+  const pkg = JSON.parse(fsImpl.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  if (pkg.name !== 'hivenues') throw new HiVenuesNameAuditError(`package.json name must be hivenues, found ${pkg.name}`);
+  if (pkg.version !== '1.0.0') throw new HiVenuesNameAuditError(`package.json version must be 1.0.0, found ${pkg.version}`);
+  if (!String(pkg.description || '').startsWith('HiVenues')) {
+    throw new HiVenuesNameAuditError('package.json description must present HiVenues as the product');
+  }
+
+  const auditedFiles = releaseFacingFiles(root, fsImpl);
+  for (const relative of auditedFiles) {
+    const filename = path.join(root, relative);
+    const text = fsImpl.readFileSync(filename, 'utf8');
+    const matches = [...text.matchAll(STALE_RELEASE_NAME_PATTERN)].map((match) => match[0]);
+    if (matches.length) {
+      throw new HiVenuesNameAuditError(`${relative} contains stale release-facing name: ${matches[0]}`);
+    }
+  }
+  return Object.freeze({ product: 'HiVenues', version: '1.0.0', auditedFiles: Object.freeze(auditedFiles) });
+}
+
+module.exports = {
+  HiVenuesNameAuditError,
+  RELEASE_FACING_FILES,
+  RELEASE_FACING_DIRECTORIES,
+  STALE_RELEASE_NAME_PATTERN,
+  auditHiVenuesReleaseNames,
+};
+""", encoding='utf-8', newline='\n')
+          if str(audit) not in changed:
+              changed.append(str(audit))
+
+          print('Bounded repair files:')
+          for filename in sorted(changed):
+              print(f'  {filename}')
+          PY
+      - name: Prove current UI has no stale product names
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run release:check:name
+          if grep -RInE '\b(Hive-Bar|Hive[ -]Venues)\b' views src/venue/source-authoring-surface.js src/venue/reference/source-authoring-surface-core.js; then
+            echo 'Stale current-facing product name remains.' >&2
+            exit 1
+          fi
+      - name: Run targeted regressions
+        run: node --test test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js test/turnkey-release.test.js
+      - name: Run complete deterministic quality gate
+        run: npm run check
+      - name: Validate patch shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          git diff -- views src/venue/source-authoring-surface.js src/venue/reference/source-authoring-surface-core.js src/release/hivenues-name-audit.js test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js
+      - name: Commit bounded repair to Issue 132 branch
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No repair diff remains.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add views src/venue/source-authoring-surface.js src/venue/reference/source-authoring-surface-core.js src/release/hivenues-name-audit.js test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js
+          git commit -m 'Fix HiVenues current UI branding'
+          git push origin "HEAD:${HEAD_BRANCH}"
