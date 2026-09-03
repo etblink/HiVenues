@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { EXPECTED_APP_TAG, EXPECTED_V1_ACTIONS, EXPECTED_VERSION, assertFunctionalV1Baseline } = require('../scripts/check-functional-v1-baseline');
+const { EXPECTED_APP_TAG, EXPECTED_V1_ACTIONS, assertFunctionalV1Baseline } = require('../scripts/check-functional-v1-baseline');
 const { NEXT_SUCCESSOR_OPERATION } = require('../scripts/release-coherence/current-routing');
 const { BETA_ACTIONS } = require('../src/beta/actions');
 const { V1_ACTIONS } = require('../src/v1/actions');
@@ -12,16 +12,15 @@ const { V1_ACTIONS } = require('../src/v1/actions');
 const root = path.join(__dirname, '..');
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), 'utf8'); }
 
-test('functional V1 remains pre-final while successor routing advances independently', () => {
+test('functional Fourth Street V1 boundary remains preserved under HiVenues 1.0.0', () => {
   const summary = assertFunctionalV1Baseline();
-  assert.equal(EXPECTED_VERSION, '0.1.0');
   assert.equal(EXPECTED_APP_TAG, 'fourth-street-bar-app/0.1.0');
   assert.deepEqual(EXPECTED_V1_ACTIONS, ['post','thread','comment','vote','follow','unfollow','subscribe','unsubscribe','profile','claim-rewards','wall','inbox']);
   assert.deepEqual(V1_ACTIONS, EXPECTED_V1_ACTIONS);
   assert.deepEqual(BETA_ACTIONS, ['post','comment','vote','follow','unfollow','subscribe','unsubscribe','profile','claim-rewards','wall','inbox','thread']);
   assert.deepEqual(summary, {
     profile: 'm17-functional-v1-baseline',
-    packageVersion: '0.1.0',
+    packageVersion: '1.0.0',
     appTag: 'fourth-street-bar-app/0.1.0',
     v1ActionCount: 12,
     productionProfile: 'privex-beta-self-signing',
@@ -47,17 +46,22 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('HV8 current state binds observed production identity and keeps the transition withheld', () => {
+test('HV8 historical production state stays in governance and operations while README remains product-first', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
 
-  assert.match(readme, /^HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e$/m);
-  assert.match(readme, /^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m);
-  assert.match(readme, /^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m);
-  assert.match(readme, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
-  assert.match(readme, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
+  assert.match(readme, /^# HiVenues$/m);
+  assert.match(readme, /Fourth Street Bar remains the reference deployment/i);
+  assert.match(readme, /Production deployment and live Hive effects require their own explicit authorization/i);
+  assert.doesNotMatch(readme, /^HV8_CURRENT_RUNNING_COMMIT = /m);
+  assert.doesNotMatch(readme, /^NEXT_OPERATION = /m);
+
+  assert.match(roadmap, /^HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e$/m);
+  assert.match(roadmap, /^HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c$/m);
+  assert.match(roadmap, /^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m);
   assert.match(roadmap, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
+  assert.match(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
   assert.match(roadmap, new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'));
   assert.match(operations, /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/);
   assert.match(operations, /`last-good` is evidence and a recovery candidate, not permission to mutate the host/);

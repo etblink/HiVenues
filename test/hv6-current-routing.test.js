@@ -12,12 +12,11 @@ const {
 const root = path.join(__dirname, '..');
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), 'utf8'); }
 
-test('living current-routing blocks agree on current accepted invariants and one product-valued next operation', () => {
-  const readme = assertCurrentRoutingBlock('README.md');
+test('governance current-routing blocks agree on accepted invariants and one product-valued next operation', () => {
   const docsIndex = assertCurrentRoutingBlock('docs/README.md');
   const roadmap = assertCurrentRoutingBlock('docs/ROADMAP.md');
 
-  for (const block of [readme, docsIndex, roadmap]) {
+  for (const block of [docsIndex, roadmap]) {
     assert.match(block, new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'));
     assert.match(block, /^SUCCESSOR_FOUNDATIONS = HV1_THROUGH_HV6_ACCEPTED$/m);
     assert.match(block, /^HV7_SECOND_VENUE_NOMINEE_STATUS = VALIDATED__SYNTHETIC_TIER_A$/m);
@@ -45,7 +44,7 @@ test('living current-routing blocks agree on current accepted invariants and one
   }
 });
 
-test('current branch retains governing evidence while completed product slices move into current accepted state', () => {
+test('current branch retains governing evidence while the product README stays turnkey and product-first', () => {
   const requirements = read('docs/HV7_SECOND_VENUE_NOMINEE_JUNIPER_WORKS_REQUIREMENTS_0_1_0.md');
   const acceptance = read('docs/HV7_JUNIPER_WORKS_PLATFORM_GENERALITY_REPAIR_ACCEPTANCE_0_1_0.md');
   const preregistration = read('docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_DEPLOYMENT_PREREGISTRATION_0_1_0.md');
@@ -64,14 +63,17 @@ test('current branch retains governing evidence while completed product slices m
   assert.match(identityAudit, /^THREADS_MERCHANT_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE$/m);
   assert.match(identityAudit, /^NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR$/m);
   assert.match(docsIndex, /recoverable from Git history/i);
-  assert.match(readme, /community pulse is accepted/i);
-  assert.match(readme, /Recent activity.*accepted/i);
-  assert.match(readme, /Isolated venue runtime admission is accepted/i);
-  assert.match(readme, /portable venue workspace is accepted/i);
-  assert.match(readme, /deployment-agnostic venue source is accepted/i);
-  assert.match(readme, /deployment-agnostic source authoring is accepted/i);
-  assert.match(readme, /durable venue-source save\/open/i);
-  assert.match(readme, /local source-authoring operator launcher is accepted/i);
+
+  assert.match(readme, /^# HiVenues$/m);
+  assert.match(readme, /multi-venue community and social platform powered by Hive/i);
+  assert.match(readme, /npm run venue:create/);
+  assert.match(readme, /npm run venue:studio/);
+  assert.match(readme, /npm run venue:ready/);
+  assert.match(readme, /Fourth Street Bar remains the reference deployment/i);
+  assert.match(readme, /Production deployment and live Hive effects require their own explicit authorization/i);
+  assert.doesNotMatch(readme, /^NEXT_OPERATION = /m);
+  assert.doesNotMatch(readme, /^HV8_CURRENT_RUNNING_COMMIT = /m);
+
   assert.match(roadmap, /ABILITY_TO_DEPLOY != REASON_TO_DEPLOY/);
   assert.match(roadmap, /## Completed CID lane/);
   assert.match(roadmap, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/);

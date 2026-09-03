@@ -1,6 +1,6 @@
 'use strict';
 
-const PLATFORM_NAME = 'Hive-Venues';
+const PLATFORM_NAME = 'HiVenues';
 
 const LEGACY_FOURTH_STREET_DEPLOYMENT = Object.freeze({
   serviceName: 'hive-bar',

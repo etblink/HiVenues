@@ -34,8 +34,8 @@ test('V1 action manifest remains the accepted twelve-action boundary', () => {
   assert.equal(Object.isFrozen(V1_ACTIONS), true);
 });
 
-test('derives the application tag from the package version', () => {
-  assert.equal(PACKAGE_VERSION, '0.1.0');
+test('keeps final HiVenues package version separate from the preserved Fourth Street application tag', () => {
+  assert.equal(PACKAGE_VERSION, '1.0.0');
   assert.equal(RELEASE_APP_TAG, 'fourth-street-bar-app/0.1.0');
 });
 
@@ -77,8 +77,8 @@ test('runs the dormant V1 release check without network access or server startup
   assert.equal(result.stdout.includes(sessionSecret), false);
 });
 
-test('release and successor living-document sources are mechanically coherent', () => {
+test('release and successor living-document sources remain coherent across final package and historical deployment identities', () => {
   assert.deepEqual(assertReleaseCoherence(), {
-    product:'Hive-Venues',packageVersion:'0.1.0',appTag:'fourth-street-bar-app/0.1.0',v1ActionCount:12,acceptedSuccessorMilestones:6,nextOperation:NEXT_SUCCESSOR_OPERATION,
+    product:'HiVenues',packageVersion:'1.0.0',appTag:'fourth-street-bar-app/0.1.0',v1ActionCount:12,acceptedSuccessorMilestones:6,nextOperation:NEXT_SUCCESSOR_OPERATION,
   });
 });
