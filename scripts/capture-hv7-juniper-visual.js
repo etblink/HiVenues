@@ -42,7 +42,7 @@ async function assertNoHorizontalOverflow(page, label) {
 }
 
 async function getPreviewFrame(page) {
-  const iframe = page.locator('iframe[title="Venue preview"]');
+  const iframe = page.locator('iframe[title="Real Hive-Venues home-page preview"]');
   await iframe.waitFor({ state: 'attached' });
   const handle = await iframe.elementHandle();
   assert.ok(handle, 'Juniper preview iframe is missing');
