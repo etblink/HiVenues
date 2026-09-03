@@ -70,85 +70,21 @@ jobs:
                   changed.append(str(filename))
 
           audit = root / 'src/release/hivenues-name-audit.js'
-          audit.write_text("""'use strict';
-
-const fs = require('node:fs');
-const path = require('node:path');
-
-const RELEASE_FACING_FILES = Object.freeze([
-  'README.md',
-  'scripts/create-venue.js',
-  'scripts/open-turnkey-studio.js',
-  'scripts/check-turnkey-readiness.js',
-  'scripts/check-hivenues-v1-release.js',
-  'src/venue/source-authoring-surface.js',
-  'src/venue/reference/source-authoring-surface-core.js',
-]);
-const RELEASE_FACING_DIRECTORIES = Object.freeze(['views']);
-const STALE_RELEASE_NAME_PATTERN = /\\b(?:Hive-Bar|Hive[ -]Venues)\\b/g;
-
-class HiVenuesNameAuditError extends Error {
-  constructor(message) {
-    super(`HiVenues release-name audit failed: ${message}`);
-    this.name = 'HiVenuesNameAuditError';
-  }
-}
-
-function collectTextFiles(directory, root, fsImpl) {
-  const files = [];
-  const entries = fsImpl.readdirSync(directory, { withFileTypes: true })
-    .slice()
-    .sort((left, right) => left.name.localeCompare(right.name));
-  for (const entry of entries) {
-    const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...collectTextFiles(absolute, root, fsImpl));
-    } else if (entry.isFile() && entry.name.endsWith('.ejs')) {
-      files.push(path.relative(root, absolute).split(path.sep).join('/'));
-    }
-  }
-  return files;
-}
-
-function releaseFacingFiles(root, fsImpl) {
-  const discovered = RELEASE_FACING_DIRECTORIES.flatMap((relative) =>
-    collectTextFiles(path.join(root, relative), root, fsImpl));
-  return [...new Set([...RELEASE_FACING_FILES, ...discovered])].sort();
-}
-
-function auditHiVenuesReleaseNames({ root = path.resolve(__dirname, '../..'), fsImpl = fs } = {}) {
-  const pkg = JSON.parse(fsImpl.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  if (pkg.name !== 'hivenues') throw new HiVenuesNameAuditError(`package.json name must be hivenues, found ${pkg.name}`);
-  if (pkg.version !== '1.0.0') throw new HiVenuesNameAuditError(`package.json version must be 1.0.0, found ${pkg.version}`);
-  if (!String(pkg.description || '').startsWith('HiVenues')) {
-    throw new HiVenuesNameAuditError('package.json description must present HiVenues as the product');
-  }
-
-  const auditedFiles = releaseFacingFiles(root, fsImpl);
-  for (const relative of auditedFiles) {
-    const filename = path.join(root, relative);
-    const text = fsImpl.readFileSync(filename, 'utf8');
-    const matches = [...text.matchAll(STALE_RELEASE_NAME_PATTERN)].map((match) => match[0]);
-    if (matches.length) {
-      throw new HiVenuesNameAuditError(`${relative} contains stale release-facing name: ${matches[0]}`);
-    }
-  }
-  return Object.freeze({ product: 'HiVenues', version: '1.0.0', auditedFiles: Object.freeze(auditedFiles) });
-}
-
-module.exports = {
-  HiVenuesNameAuditError,
-  RELEASE_FACING_FILES,
-  RELEASE_FACING_DIRECTORIES,
-  STALE_RELEASE_NAME_PATTERN,
-  auditHiVenuesReleaseNames,
-};
-""", encoding='utf-8', newline='\n')
-          if str(audit) not in changed:
-              changed.append(str(audit))
+          text = audit.read_text(encoding='utf-8')
+          text = text.replace(
+              "  'scripts/check-hivenues-v1-release.js',\n]);\nconst STALE_RELEASE_NAME_PATTERN",
+              "  'scripts/check-hivenues-v1-release.js',\n  'src/venue/source-authoring-surface.js',\n  'src/venue/reference/source-authoring-surface-core.js',\n]);\nconst RELEASE_FACING_DIRECTORIES = Object.freeze(['views']);\nconst STALE_RELEASE_NAME_PATTERN",
+          )
+          helper = "function collectTextFiles(directory, root, fsImpl) {\n  const files = [];\n  const entries = fsImpl.readdirSync(directory, { withFileTypes: true })\n    .slice()\n    .sort((left, right) => left.name.localeCompare(right.name));\n  for (const entry of entries) {\n    const absolute = path.join(directory, entry.name);\n    if (entry.isDirectory()) {\n      files.push(...collectTextFiles(absolute, root, fsImpl));\n    } else if (entry.isFile() && entry.name.endsWith('.ejs')) {\n      files.push(path.relative(root, absolute).split(path.sep).join('/'));\n    }\n  }\n  return files;\n}\n\nfunction releaseFacingFiles(root, fsImpl) {\n  const discovered = RELEASE_FACING_DIRECTORIES.flatMap((relative) =>\n    collectTextFiles(path.join(root, relative), root, fsImpl));\n  return [...new Set([...RELEASE_FACING_FILES, ...discovered])].sort();\n}\n\n"
+          text = text.replace('class HiVenuesNameAuditError extends Error {', helper + 'class HiVenuesNameAuditError extends Error {')
+          text = text.replace('  for (const relative of RELEASE_FACING_FILES) {', '  const auditedFiles = releaseFacingFiles(root, fsImpl);\n  for (const relative of auditedFiles) {')
+          text = text.replace("  return Object.freeze({ product: 'HiVenues', version: '1.0.0', auditedFiles: RELEASE_FACING_FILES });", "  return Object.freeze({ product: 'HiVenues', version: '1.0.0', auditedFiles: Object.freeze(auditedFiles) });")
+          text = text.replace('module.exports = { HiVenuesNameAuditError, RELEASE_FACING_FILES, STALE_RELEASE_NAME_PATTERN, auditHiVenuesReleaseNames };', "module.exports = {\n  HiVenuesNameAuditError,\n  RELEASE_FACING_FILES,\n  RELEASE_FACING_DIRECTORIES,\n  STALE_RELEASE_NAME_PATTERN,\n  auditHiVenuesReleaseNames,\n};")
+          audit.write_text(text, encoding='utf-8', newline='\n')
+          changed.append(str(audit))
 
           print('Bounded repair files:')
-          for filename in sorted(changed):
+          for filename in sorted(set(changed)):
               print(f'  {filename}')
           PY
       - name: Prove current UI has no stale product names
