@@ -61,29 +61,14 @@ function assertCurrentRoutingBlock(relativePath) {
 }
 
 function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
-  requireMatch(readme, /^# Hive-Venues$/m, 'README must identify Hive-Venues');
-  requireMatch(readme, /Fourth Street Bar in Reno is a real venue, Hive-Venues' first real client, its first venue nominee, and the reference deployment/i, 'README must preserve Fourth Street roles');
-  requireMatch(readme, /24 frozen requirements passed at \*\*Tier-A product-and-architecture evidence\*\*/i, 'README must preserve HV-7 evidence result');
-  requireMatch(readme, /Phase A.*complete/i, 'README must record the completed HV-8 observation');
-  requireMatch(readme, /production transition is withheld/i, 'README must state that technical deployment ability is not a deployment reason');
-  requireMatch(readme, /community pulse is accepted/i, 'README must record the accepted homepage product slice');
-  requireMatch(readme, /Recent activity.*accepted/i, 'README must record the accepted signed-in return-loop slice');
-  requireMatch(readme, /Isolated venue runtime admission is accepted/i, 'README must record accepted runtime admission');
-  requireMatch(readme, /portable venue workspace is accepted/i, 'README must record accepted portable workspace');
-  requireMatch(readme, /Distriator remains an external service[\s\S]*current evidence does not establish Fourth Street's venue-participation, transaction-recognition, or rebate state/i, 'README must preserve Distriator external-service and evidence boundaries');
-  requireMatch(readme, /deployment-agnostic venue source is accepted/i, 'README must record accepted deployment-agnostic venue source');
-  requireMatch(readme, /deployment-agnostic source authoring is accepted/i, 'README must record accepted source authoring');
-  requireMatch(readme, /durable venue-source save\/open/i, 'README must record accepted source durability');
-  requireMatch(readme, /local source-authoring operator launcher is accepted/i, 'README must record accepted local launcher');
-  requireMatch(readme, /CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY/, 'README must preserve CID technical viability without authority');
-  requireMatch(readme, /STABLE_SUBFILE_CONTENT_ADDRESS_REUSE/, 'README must preserve the proven CID capability gap');
-  requireMatch(readme, /CID adoption.*deferred without prejudice/i, 'README must preserve CID adoption deferral');
-  requireMatch(readme, /two ordinary venue-owned Hive identities/i, 'README must preserve the accepted identity minimization result');
-  requireMatch(readme, /Posting activation from optional liquid cleanup/i, 'README must identify the selected decoupling repair');
-  requireMatch(readme, /Production deployment is not authorized/i, 'README must preserve deployment boundary');
-  requireMatch(readme, /Canonical source is moving `main` in `etblink\/Hive-Venues`/i, 'README must identify moving source');
+  requireMatch(readme, /^# HiVenues$/m, 'README must identify HiVenues');
+  requireMatch(readme, /Fourth Street Bar remains the reference deployment/i, 'README must preserve Fourth Street as the reference deployment');
+  requireMatch(readme, /npm run venue:create/, 'README must document fresh venue creation');
+  requireMatch(readme, /npm run venue:studio/, 'README must document Venue Studio');
+  requireMatch(readme, /npm run venue:ready/, 'README must document offline readiness');
+  requireMatch(readme, /Production deployment and live Hive effects require their own explicit authorization/i, 'README must preserve external-effect authority boundaries');
 
-  requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'docs index must identify Hive-Venues');
+  requireMatch(docsReadme, /^# Hive-Venues Documentation Index$/m, 'historical docs index identity must remain preserved until separately migrated');
   requireMatch(docsReadme, /Superseded sequencing, temporary holds, and intermediate routing are recoverable from Git history/i, 'docs index must use Git history rather than living archival state');
   requireMatch(docsReadme, /PORTABLE_VENUE_WORKSPACE = ACCEPTED/, 'docs index must record accepted workspace');
   requireMatch(docsReadme, /DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED/, 'docs index must record accepted deployment-agnostic venue source');
@@ -93,7 +78,7 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(docsReadme, /THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR/, 'docs index must route to the bounded decoupling repair');
   requireMatch(docsReadme, /production transition.*withheld/i, 'docs index must preserve the HV-8 stop decision');
 
-  requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'roadmap must identify Hive-Venues');
+  requireMatch(roadmap, /^# Hive-Venues Living Roadmap$/m, 'historical roadmap identity must remain preserved until separately migrated');
   requireMatch(roadmap, /Superseded states remain recoverable from Git history/i, 'roadmap must keep superseded state in Git history');
   requireMatch(roadmap, /HV-8 established.*technically deployable/is, 'roadmap must preserve the HV-8 stop decision');
   requireMatch(roadmap, /Portable venue workspace.*PR #98/is, 'roadmap must record accepted portable workspace');
@@ -105,7 +90,7 @@ function assertLivingRoutingCoherence({ readme, docsReadme, roadmap }) {
   requireMatch(roadmap, /HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL/, 'roadmap must preserve accepted identity minimization');
   requireMatch(roadmap, /Current operation.*Posting activation.*optional liquid cleanup/is, 'roadmap must select the bounded decoupling repair');
 
-  for (const relativePath of ['README.md', 'docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
+  for (const relativePath of ['docs/README.md', 'docs/ROADMAP.md']) assertCurrentRoutingBlock(relativePath);
 }
 
 function assertLivingDocumentGuardrails({ readme }) {
