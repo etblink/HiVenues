@@ -187,8 +187,8 @@ async function captureScenario(browser, scenario) {
       assert.match(text, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), scenario.id);
       const brandText = await page.locator('.app-brand').innerText();
       assert.match(brandText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), scenario.id);
-      assert.doesNotMatch(brandText, /Hive-Venues/, scenario.id);
-      assert.match(await page.locator('.app-technology-attribution').innerText(), /Built with Hive-Venues/, scenario.id);
+      assert.doesNotMatch(brandText, /HiVenues/, scenario.id);
+      assert.match(await page.locator('.app-technology-attribution').innerText(), /Built with HiVenues/, scenario.id);
       if (scenario.fixture === 'juniper-starter') {
         assert.doesNotMatch(text, /4th Street|Fourth Street|bartender|beer/i, scenario.id);
         assert.equal(await page.locator('img[src="/examples/juniper/workshop.svg"]').count(), 1, scenario.id);

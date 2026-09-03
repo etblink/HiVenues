@@ -91,7 +91,7 @@ test('Juniper renders through the real shared application path with structured v
     assert.match(html, /First visit/);
     assert.match(html, /steward/i);
     assert.match(html, /member/i);
-    assert.match(html, /Hive-Venues/);
+    assert.match(html, /HiVenues/);
     assert.match(html, /data-hv7-venue-theme/);
     assert.match(html, /--venue-accent:\s*#945500/);
     assert.match(html, /--venue-on-accent:\s*#f4f1e8/);
@@ -123,7 +123,7 @@ test('Juniper shared FAQ uses venue-neutral platform language without losing Hiv
     assert.match(visibleText, /use Juniper Works Cooperative/);
     assert.match(visibleText, /workshop temporarily delegates Hive Power/i);
     assert.match(visibleText, /give it to the steward/i);
-    assert.match(visibleText, /Hive-Venues/);
+    assert.match(visibleText, /HiVenues/);
     assert.match(visibleText, /Using the community/);
     assert.doesNotMatch(visibleText, /\b(?:bar|beer|bartender|patron)\b/i);
     assert.doesNotMatch(visibleText, /\bHive-Bar\b/i);
@@ -147,7 +147,7 @@ test('Juniper direct Pay route remains dormant and does not imply a merchant cap
 
     assert.equal(document.title, 'Pay — Juniper Works Cooperative');
     assert.match(visibleText, /Payments aren’t available at Juniper Works Cooperative/);
-    assert.match(visibleText, /Juniper Works Cooperative does not currently offer payments through Hive-Venues/);
+    assert.match(visibleText, /Juniper Works Cooperative does not currently offer payments through HiVenues/);
     assert.equal(document.querySelector('[data-pay-form]'), null);
     assert.equal(document.querySelector('[data-pay-receipt]'), null);
     assert.equal(document.querySelector('script[src*="pay-tab.js"]'), null);
@@ -172,15 +172,15 @@ test('Juniper onboarding preserves custody semantics while using venue/successor
     assert.match(html, /show the one-time QR to the steward/i);
     assert.match(html, /does not give the workshop your private keys/i);
     assert.match(html, /In-person account creation isn’t active yet/i);
-    assert.match(html, /Hive-Venues never asks for or stores private keys/i);
+    assert.match(html, /HiVenues never asks for or stores private keys/i);
     assert.doesNotMatch(html, /Hive-Bar/i);
 
     const onboardingSource = fs.readFileSync(
       path.join(__dirname, '..', 'views', 'pages', 'onboarding', 'index.ejs'),
       'utf8',
     );
-    assert.match(onboardingSource, /Hive-Venues receives only the four public keys/i);
-    assert.match(onboardingSource, /Hive-Venues removes the recovery download/i);
+    assert.match(onboardingSource, /HiVenues receives only the four public keys/i);
+    assert.match(onboardingSource, /HiVenues removes the recovery download/i);
 
     await assertAccessibleHtml(html, 'https://juniper-works.example/create-account');
   } finally {

@@ -164,7 +164,7 @@ test('HV-3 synthetic fixture renders through the shared platform path without ne
   assert.match(home.text, /Anyone can browse the public community/);
   assert.match(home.text, /Your private keys stay in Keychain/);
   assert.doesNotMatch(home.text, /4th Street Bar|fourth-street-bar-|1114 East 4th Street/i);
-  assert.match(home.text, /Hive-Venues/);
+  assert.match(home.text, /HiVenues/);
   assert.doesNotMatch(home.text, /\bHive-Bar\b/);
   assert.deepEqual(calls, [{ account: 'lanternroom', community: 'hive-654321', limit: 3 }]);
 
@@ -180,7 +180,7 @@ test('HV-3 synthetic fixture renders through the shared platform path without ne
     path.join(ROOT, 'views/pages/onboarding/index.ejs'),
     'utf8',
   );
-  assert.match(onboardingSource, /Hive-Venues receives only the four public keys/);
+  assert.match(onboardingSource, /HiVenues receives only the four public keys/);
   assert.doesNotMatch(onboardingSource, /\bHive-Bar\b/);
 
   app.locals.services.receiptStore?.close?.();

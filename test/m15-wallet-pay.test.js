@@ -73,7 +73,7 @@ test('M15.4 disabled Pay is explicit before sign-in and exposes no new-payment w
 
   assert.match(response.text, /data-m15-surface="pay"/);
   assert.match(response.text, /Payments aren’t available at 4th Street Bar/);
-  assert.match(response.text, /4th Street Bar does not currently offer payments through Hive-Venues/);
+  assert.match(response.text, /4th Street Bar does not currently offer payments through HiVenues/);
   assert.doesNotMatch(response.text, /Pay with HBD/);
   assert.doesNotMatch(response.text, /Verified destination/);
   assert.doesNotMatch(response.text, /Sign in to pay/);
@@ -93,7 +93,7 @@ test('M15.4 explicitly enabled Pay presents venue identity and the no-duplicate-
   assert.match(response.text, /Paid means confirmed/);
   assert.match(response.text, /independent Hive nodes confirm the same transfer is final/);
   assert.match(response.text, /If confirmation is unclear, don’t pay again/);
-  assert.match(response.text, /Keychain approval can happen before Hive-Venues sees final confirmation/);
+  assert.match(response.text, /Keychain approval can happen before HiVenues sees final confirmation/);
   assert.match(response.text, /Sign in to pay/);
   assert.doesNotMatch(response.text, /data-pay-form/);
 });
@@ -117,8 +117,8 @@ test('M15.4 explicitly enabled beta Pay keeps every payment hook and the partici
   assert.match(response.text, /data-pay-recheck/);
   assert.match(response.text, /Check payment details/);
   assert.match(response.text, /HBD payment QR provided by 4th Street Bar/);
-  assert.match(response.text, /Hive-Venues checks the payment and shows you exactly what will be sent/);
-  assert.match(response.text, /Hive-Venues never receives your private keys/);
+  assert.match(response.text, /HiVenues checks the payment and shows you exactly what will be sent/);
+  assert.match(response.text, /HiVenues never receives your private keys/);
   assert.match(response.text, /data-distriator-handoff hidden/);
   assert.match(response.text, /data-distriator-handoff-link/);
   assert.match(response.text, /href="https:\/\/distriator\.com\/#\/claim"/);

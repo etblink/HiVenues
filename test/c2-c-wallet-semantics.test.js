@@ -45,7 +45,7 @@ test('C2-C Wallet leads with patron semantics while keeping exact Hive terminolo
   assert.match(body, /href="\/faq#wallet"/);
   assert.match(body, /What do these Hive terms mean\?/);
   assert.match(body, /This page only reads public Hive data/);
-  assert.match(body, /Hive-Venues cannot move funds or access private keys/);
+  assert.match(body, /HiVenues cannot move funds or access private keys/);
   assert.doesNotMatch(body, /\bHive-Bar\b/);
   assert.doesNotMatch(body, /data-m4-action="claim-rewards"/);
 });
@@ -72,7 +72,7 @@ test('C2-C Wallet presentation continues to bind directly to the accepted exact 
   );
   assert.match(TEMPLATE, /data-m4-action="claim-rewards"/);
   assert.match(TEMPLATE, /Review reward claim/);
-  assert.match(TEMPLATE, /Hive-Venues checks your current rewards again before Keychain asks for approval/);
+  assert.match(TEMPLATE, /HiVenues checks your current rewards again before Keychain asks for approval/);
   assert.doesNotMatch(TEMPLATE, /\bHive-Bar\b/);
 });
 

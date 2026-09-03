@@ -54,7 +54,7 @@ test('M19.1 states the encrypted-message and public-settings boundaries accurate
     .expect(200);
   assert.match(inbox.text, /Messages are stored on Hive as encrypted text/);
   assert.match(inbox.text, /Hive Keychain uses your Memo key in this browser to decrypt the message locally/);
-  assert.match(inbox.text, /decrypted message is not sent back to Hive-Venues/);
+  assert.match(inbox.text, /decrypted message is not sent back to HiVenues/);
   assert.doesNotMatch(inbox.text, /\bHive-Bar\b/);
   assert.doesNotMatch(inbox.text, /Message text is encrypted on Hive/);
 
@@ -64,7 +64,7 @@ test('M19.1 states the encrypted-message and public-settings boundaries accurate
     .expect(200);
   assert.match(settings.text, /saved in public Hive profile metadata/);
   assert.match(settings.text, /minimum message fee and the list of accounts whose messages you hide/);
-  assert.match(settings.text, /Hive-Venues reloads your current profile so unrelated settings from other apps stay intact/);
+  assert.match(settings.text, /HiVenues reloads your current profile so unrelated settings from other apps stay intact/);
   assert.match(settings.text, /This list is stored in public Hive metadata/);
   assert.doesNotMatch(settings.text, /\bHive-Bar\b/);
 });

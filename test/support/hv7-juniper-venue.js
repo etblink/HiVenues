@@ -39,7 +39,7 @@ function createJuniperWorksPackageInput() {
       },
     },
     seo: {
-      defaultDescription: 'Synthetic community workshop fixture used to test Hive-Venues platform generality.',
+      defaultDescription: 'Synthetic community workshop fixture used to test HiVenues platform generality.',
     },
     home: {
       hero: {

@@ -61,8 +61,8 @@ test('M16.5 public pages speak to visitors rather than operators', async () => {
 
   const pay = await request(app).get('/pay').expect(200);
   assert.match(pay.text, /Payments aren’t available at 4th Street Bar/);
-  assert.match(pay.text, /4th Street Bar does not currently offer payments through Hive-Venues/);
-  assert.match(pay.text, /Hive-Venues never asks for or stores private keys/);
+  assert.match(pay.text, /4th Street Bar does not currently offer payments through HiVenues/);
+  assert.match(pay.text, /HiVenues never asks for or stores private keys/);
   assert.doesNotMatch(pay.text, /Sign in to pay|data-pay-form|\bHive-Bar\b/);
 });
 
@@ -122,7 +122,7 @@ test('M16.5 owner pages explain privacy and settings in ordinary language', asyn
     .set('cookie', owner.cookie)
     .expect(200);
   assert.match(inbox.text, /Your encrypted inbox/);
-  assert.match(inbox.text, /decrypted message is not sent back to Hive-Venues/);
+  assert.match(inbox.text, /decrypted message is not sent back to HiVenues/);
   assert.doesNotMatch(inbox.text, /\bHive-Bar\b/);
   assert.match(inbox.text, /Transaction details/);
   assert.doesNotMatch(visibleText(inbox.text), FORBIDDEN_VISIBLE_COPY);

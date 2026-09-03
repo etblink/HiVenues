@@ -8,7 +8,7 @@
   </header>
 
   <p class="profile-activity__scope-note">
-    This is a recent activity view, not an unread inbox. Hive-Venues does not mark these events read or store notification state.
+    This is a recent activity view, not an unread inbox. HiVenues does not mark these events read or store notification state.
   </p>
 
   <% if (activityPage.status === 'ready') { %>
@@ -24,7 +24,7 @@
             </div>
             <p class="profile-activity-card__message"><%= item.message %></p>
             <% if (item.localRoute) { %>
-              <a class="profile-activity-card__open" href="<%= item.localRoute %>">Open in Hive-Venues <span aria-hidden="true">→</span></a>
+              <a class="profile-activity-card__open" href="<%= item.localRoute %>">Open in HiVenues <span aria-hidden="true">→</span></a>
             <% } %>
           </article>
         </li>
@@ -33,7 +33,7 @@
   <% } else if (activityPage.status === 'unavailable') { %>
     <div class="profile-activity__state" role="status">
       <strong>Recent activity is temporarily unavailable.</strong>
-      <p>Your profile and the rest of Hive-Venues are still available.</p>
+      <p>Your profile and the rest of HiVenues are still available.</p>
     </div>
   <% } else { %>
     <div class="profile-activity__state">
