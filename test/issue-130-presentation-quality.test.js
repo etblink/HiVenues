@@ -66,14 +66,19 @@ test('Issue #130 generated mobile homepage keeps longer venue identity readable 
   assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.app-brand__wordmark strong\s*\{[\s\S]*max-width:\s*min\(13rem, calc\(100vw - 7rem\)\);[\s\S]*text-overflow:\s*clip;[\s\S]*white-space:\s*normal;/);
 });
 
-test('Issue #130 generated non-desktop homepage keeps longer venue identity readable before the rail begins', () => {
-  const cssPath = path.join(root, 'public', 'css', 'venue-home-shell.css');
-  const css = fs.readFileSync(cssPath, 'utf8');
+test('Issue #130 generated non-desktop shell keeps longer venue identity readable before the rail begins', () => {
+  const headerTemplate = fs.readFileSync(path.join(root, 'views', 'common', 'header.ejs'), 'utf8');
   const homeTemplate = fs.readFileSync(path.join(root, 'views', 'pages', 'home', 'index.ejs'), 'utf8');
+  const failedAssetPath = path.join(root, 'public', 'css', 'venue-home-shell.css');
 
-  assert.match(homeTemplate, /\/css\/venue-home-shell\.css/);
-  assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.app-brand__wordmark strong\s*\{[\s\S]*max-width:\s*min\(20rem, calc\(100vw - 10rem\)\);[\s\S]*text-overflow:\s*clip;[\s\S]*white-space:\s*normal;/);
-  assert.match(css, /@media \(max-width: 519px\)[\s\S]*max-width:\s*min\(13rem, calc\(100vw - 7rem\)\);/);
+  assert.doesNotMatch(homeTemplate, /venue-home-shell\.css/);
+  assert.equal(fs.existsSync(failedAssetPath), false);
+  assert.match(headerTemplate, /max-\[1200px\]:max-w-\[20rem\]!/);
+  assert.match(headerTemplate, /max-\[1200px\]:overflow-visible!/);
+  assert.match(headerTemplate, /max-\[1200px\]:text-clip!/);
+  assert.match(headerTemplate, /max-\[1200px\]:whitespace-normal!/);
+  assert.match(headerTemplate, /max-\[1200px\]:leading-\[1\.05\]!/);
+  assert.match(headerTemplate, /max-\[520px\]:max-w-\[13rem\]!/);
 });
 
 test('Issue #130 exposes operator-owned logo, hero, and gallery media without raw JSON editing', async () => {
