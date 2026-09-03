@@ -66,6 +66,16 @@ test('Issue #130 generated mobile homepage keeps longer venue identity readable 
   assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.app-brand__wordmark strong\s*\{[\s\S]*max-width:\s*min\(13rem, calc\(100vw - 7rem\)\);[\s\S]*text-overflow:\s*clip;[\s\S]*white-space:\s*normal;/);
 });
 
+test('Issue #130 generated non-desktop homepage keeps longer venue identity readable before the rail begins', () => {
+  const cssPath = path.join(root, 'public', 'css', 'venue-home-shell.css');
+  const css = fs.readFileSync(cssPath, 'utf8');
+  const homeTemplate = fs.readFileSync(path.join(root, 'views', 'pages', 'home', 'index.ejs'), 'utf8');
+
+  assert.match(homeTemplate, /\/css\/venue-home-shell\.css/);
+  assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.app-brand__wordmark strong\s*\{[\s\S]*max-width:\s*min\(20rem, calc\(100vw - 10rem\)\);[\s\S]*text-overflow:\s*clip;[\s\S]*white-space:\s*normal;/);
+  assert.match(css, /@media \(max-width: 519px\)[\s\S]*max-width:\s*min\(13rem, calc\(100vw - 7rem\)\);/);
+});
+
 test('Issue #130 exposes operator-owned logo, hero, and gallery media without raw JSON editing', async () => {
   const fixture = createSurface(FOURTH_STREET_AUTHORING_INPUT);
   const response = await request(fixture.app).get(fixture.editorPath).expect(200);
