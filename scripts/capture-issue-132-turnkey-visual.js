@@ -35,7 +35,16 @@ async function submitStudioForm(page, { buttonName, postUrl, returnUrl }) {
     page.getByRole('button', { name: buttonName, exact: true }).click(),
   ]);
   if (response.status() !== 303) {
-    throw new Error(`${buttonName} returned HTTP ${response.status()} instead of 303`);
+    const requestHeaders = await response.request().allHeaders();
+    const responseBody = await response.text().catch(() => '<unavailable>');
+    const diagnostics = {
+      origin: requestHeaders.origin ?? null,
+      secFetchSite: requestHeaders['sec-fetch-site'] ?? null,
+      referer: requestHeaders.referer ?? null,
+      host: requestHeaders.host ?? null,
+      responseBody,
+    };
+    throw new Error(`${buttonName} returned HTTP ${response.status()} instead of 303; ${JSON.stringify(diagnostics)}`);
   }
   await page.waitForURL(returnUrl);
   await page.waitForLoadState('networkidle');
