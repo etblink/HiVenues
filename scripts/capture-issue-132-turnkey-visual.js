@@ -29,6 +29,18 @@ function blockingViolations(violations) {
   return violations.filter((violation) => BLOCKING_IMPACTS.has(violation.impact));
 }
 
+async function submitStudioForm(page, { buttonName, postUrl, returnUrl }) {
+  const [response] = await Promise.all([
+    page.waitForResponse((candidate) => candidate.request().method() === 'POST' && candidate.url() === postUrl),
+    page.getByRole('button', { name: buttonName, exact: true }).click(),
+  ]);
+  if (response.status() !== 303) {
+    throw new Error(`${buttonName} returned HTTP ${response.status()} instead of 303`);
+  }
+  await page.waitForURL(returnUrl);
+  await page.waitForLoadState('networkidle');
+}
+
 async function main() {
   const outputRoot = path.resolve(process.env.ISSUE_132_TURNKEY_REVIEW_ROOT || 'artifacts/issue-132-turnkey-review');
   fs.rmSync(outputRoot, { recursive: true, force: true });
@@ -68,10 +80,16 @@ async function main() {
       page.waitForURL(runtime.url),
       page.getByRole('button', { name: 'Import into preview' }).click(),
     ]);
-    await page.getByRole('button', { name: 'Keep changes in draft' }).click();
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: 'Save to workspace' }).click();
-    await page.waitForLoadState('networkidle');
+    await submitStudioForm(page, {
+      buttonName: 'Keep changes in draft',
+      postUrl: `${runtime.origin}${runtime.editorPath}/apply`,
+      returnUrl: runtime.url,
+    });
+    await submitStudioForm(page, {
+      buttonName: 'Save to workspace',
+      postUrl: `${runtime.origin}${runtime.editorPath}/save-workspace`,
+      returnUrl: runtime.url,
+    });
 
     const studioDesktopViolations = await accessibilityViolations(page);
     await page.screenshot({ path: path.join(outputRoot, 'track-a-studio-desktop.png') });
@@ -138,4 +156,4 @@ if (require.main === module) main().catch((error) => {
   process.stderr.write(`${error.stack || error.message}\n`);
   process.exitCode = 1;
 });
-module.exports = { accessibilityViolations, blockingViolations, main };
+module.exports = { accessibilityViolations, blockingViolations, main, submitStudioForm };
