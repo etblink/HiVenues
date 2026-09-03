@@ -1,0 +1,107 @@
+name: Issue 132 Juniper selector repair object
+
+on:
+  push:
+    branches:
+      - release/issue-132-turnkey-v1
+    paths:
+      - .github/workflows/issue-132-juniper-selector-repair-object.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-object:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact helper head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build unreferenced repair commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HELPER_PATH: .github/workflows/issue-132-juniper-selector-repair-object.yml
+        run: |
+          python - <<'PY'
+          import base64, json, os, subprocess, urllib.request
+          from pathlib import Path
+
+          repo = os.environ['REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          helper_path = os.environ['HELPER_PATH']
+          target_path = 'scripts/capture-hv7-juniper-visual.js'
+          old = 'iframe[title="Venue preview"]'
+          new = 'iframe[title="Real Hive-Venues home-page preview"]'
+
+          target = Path(target_path)
+          text = target.read_text(encoding='utf-8')
+          assert text.count(old) == 1, text.count(old)
+          assert text.count(new) == 0, text.count(new)
+          assert 'assert.match(text, /HiVenues/);' in text
+          repaired = text.replace(old, new, 1)
+          assert repaired.count(old) == 0
+          assert repaired.count(new) == 1
+          assert repaired.count('assert.match(text, /HiVenues/);') == 1
+
+          def api(method, path, payload=None):
+              req = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}{path}',
+                  data=None if payload is None else json.dumps(payload).encode('utf-8'),
+                  method=method,
+                  headers={
+                      'Authorization': f'Bearer {token}',
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'Content-Type': 'application/json',
+                  },
+              )
+              with urllib.request.urlopen(req) as response:
+                  return json.load(response)
+
+          parent = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          base_tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
+          blob = api('POST', '/git/blobs', {
+              'content': base64.b64encode(repaired.encode('utf-8')).decode('ascii'),
+              'encoding': 'base64',
+          })
+          tree = api('POST', '/git/trees', {
+              'base_tree': base_tree,
+              'tree': [
+                  {'path': target_path, 'mode': '100644', 'type': 'blob', 'sha': blob['sha']},
+                  {'path': helper_path, 'mode': '100644', 'type': 'blob', 'sha': None},
+              ],
+          })
+          commit = api('POST', '/git/commits', {
+              'message': 'Correct Juniper historical preview selector',
+              'tree': tree['sha'],
+              'parents': [parent],
+          })
+          remote = api('GET', f"/git/commits/{commit['sha']}")
+          assert remote['tree']['sha'] == tree['sha']
+          assert [item['sha'] for item in remote['parents']] == [parent]
+          result = {
+              'candidate_commit': commit['sha'],
+              'candidate_tree': tree['sha'],
+              'parent': parent,
+              'target_blob': blob['sha'],
+              'ref_updated': False,
+              'old_selector_count': repaired.count(old),
+              'historical_selector_count': repaired.count(new),
+              'hivenues_assertion_count': repaired.count('assert.match(text, /HiVenues/);'),
+          }
+          Path('issue-132-juniper-selector-object.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(result, sort_keys=True))
+          PY
+
+      - name: Preserve object identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: issue-132-juniper-selector-object-${{ github.sha }}
+          path: issue-132-juniper-selector-object.json
+          if-no-files-found: error
+          retention-days: 30
