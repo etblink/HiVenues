@@ -9,8 +9,8 @@ const {
 } = require('../src/platform/identity');
 const { isInstalledPrivexRelease } = require('../src/server');
 
-test('distinguishes successor platform identity from preserved Fourth Street deployment identity', () => {
-  assert.equal(PLATFORM_NAME, 'Hive-Venues');
+test('distinguishes HiVenues platform identity from preserved Fourth Street deployment identity', () => {
+  assert.equal(PLATFORM_NAME, 'HiVenues');
   assert.match(pkg.description, /multi-venue community and social platform powered by Hive/i);
   assert.match(pkg.description, /Fourth Street Bar as the reference deployment/i);
 
@@ -21,7 +21,7 @@ test('distinguishes successor platform identity from preserved Fourth Street dep
   assert.equal(isInstalledPrivexRelease('/opt/hive-venues/current'), false);
 });
 
-test('private npm package-manager identity remains unchanged until an atomic lockfile rename', () => {
+test('private npm package-manager identity is final HiVenues while historical deploy paths remain stable', () => {
   assert.equal(pkg.private, true);
-  assert.equal(pkg.name, 'hive-bar');
+  assert.equal(pkg.name, 'hivenues');
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 const { REFERENCE_DEPLOYMENT_PROFILE } = require('../../src/deployment/reference/fourth-street-privex');
-const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../../src/release/release-version');
+const { RELEASE_APP_TAG } = require('../../src/release/release-version');
 const { V1_ACTIONS } = require('../../src/v1/actions');
 
 function assertReferenceDeploymentProfile() {
@@ -48,8 +48,8 @@ function assertReferenceDeploymentProfile() {
   for (const [actual, frozen, label] of expected) {
     if (actual !== frozen) throw new Error(`reference deployment ${label} drifted`);
   }
-  if (deployment.release.hiveAppTag !== `fourth-street-bar-app/${PACKAGE_VERSION}`) {
-    throw new Error('reference deployment app tag must remain derived from the package version');
+  if (deployment.release.hiveAppTag !== 'fourth-street-bar-app/0.1.0') {
+    throw new Error('reference deployment historical app tag drifted');
   }
   if (!Object.isFrozen(deployment) || !Object.isFrozen(deployment.release) || !Object.isFrozen(deployment.storage)) {
     throw new Error('reference deployment profile must be deeply immutable');

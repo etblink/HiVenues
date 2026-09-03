@@ -315,7 +315,7 @@ test('renders the post-confirmation Distriator handoff only for an onboarded par
       assert.match(page.text, /target="_blank" rel="noopener noreferrer"/);
       assert.match(page.text, /This venue is configured for Distriator rebate participation/);
       assert.match(page.text, /Distriator is a separate service that independently decides whether a particular transaction qualifies/);
-      assert.match(page.text, /Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
+      assert.match(page.text, /HiVenues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
     } else {
       assert.doesNotMatch(page.text, /data-distriator-handoff/);
       assert.doesNotMatch(page.text, /distriator\.com/i);

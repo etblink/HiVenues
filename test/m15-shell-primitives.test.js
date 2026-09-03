@@ -158,7 +158,7 @@ test('M15.2 venue identity leads while successor technology attribution remains 
   const attributionText = document.querySelector('.app-technology-attribution')?.textContent || '';
   assert.match(brandText, /4th Street Bar/);
   assert.doesNotMatch(brandText, /Hive-Venues/);
-  assert.match(attributionText, /Built with Hive-Venues/);
+  assert.match(attributionText, /Built with HiVenues/);
   assert.match(attributionText, /Hive-powered community/);
   assert.doesNotMatch(attributionText, /Hive-Bar/);
 

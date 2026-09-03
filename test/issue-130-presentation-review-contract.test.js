@@ -45,7 +45,7 @@ test('Issue #130 visual evidence is an exact-head CI obligation and a bounded up
   assert.match(capture, /horizontalOverflow/);
   assert.match(capture, /data-studio-stage/);
   assert.match(capture, /juniper-starter/);
-  assert.match(capture, /Built with Hive-Venues/);
+  assert.match(capture, /Built with HiVenues/);
   assert.match(capture, /Hive RPC calls/);
 
   assert.match(workflow, /Capture Issue 130 presentation review evidence/);

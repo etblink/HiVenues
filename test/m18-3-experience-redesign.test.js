@@ -198,7 +198,7 @@ test('M18.3 Pay is task-first without changing payment hooks or no-retry semanti
   assert.match(pay.textContent, /Paid means confirmed/);
   assert.match(pay.textContent, /independent Hive nodes confirm the same transfer is final/);
   assert.match(pay.textContent, /If confirmation is unclear, don’t pay again/);
-  assert.match(pay.textContent, /Keychain approval can happen before Hive-Venues sees final confirmation/);
+  assert.match(pay.textContent, /Keychain approval can happen before HiVenues sees final confirmation/);
   assert.doesNotMatch(pay.textContent, /\bUSD\b|subtotal|line item|suggested tip/i);
   assert.equal(pay.querySelector('[data-distriator-claim]'), null);
 });
@@ -215,7 +215,7 @@ test('M18.3 signed-out disabled Pay remains unavailable with no payment form', a
 
   assert.ok(pay);
   assert.match(pay.textContent, /Payments aren’t available at 4th Street Bar/);
-  assert.match(pay.textContent, /4th Street Bar does not currently offer payments through Hive-Venues/);
+  assert.match(pay.textContent, /4th Street Bar does not currently offer payments through HiVenues/);
   assert.equal(pay.querySelector('[data-pay-form]'), null);
   assert.doesNotMatch(pay.textContent, /Sign in to pay|If confirmation is unclear, don’t pay again/);
 });

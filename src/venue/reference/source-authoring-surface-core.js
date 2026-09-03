@@ -86,7 +86,7 @@ function fieldLabel(pointer) {
 
 function fieldHelp(field) {
   if (field.controlKind === 'datetime-offset') return 'Include the time zone so guests see the correct local time. Example: 2026-09-10 18:00 -07:00.';
-  if (field.controlKind === 'color') return 'Choose a color; Hive-Venues will reject combinations that are hard to read.';
+  if (field.controlKind === 'color') return 'Choose a color; HiVenues will reject combinations that are hard to read.';
   if (field.controlKind === 'optional-url') return 'Optional. Use a secure https:// link.';
   if (field.pointer.endsWith('/alt')) return 'Briefly describe what is in the image for people using screen readers.';
   return '';

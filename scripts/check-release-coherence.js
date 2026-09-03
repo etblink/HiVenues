@@ -38,7 +38,7 @@ function assertReleaseCoherence() {
   assertRequiredLivingReleaseDocuments();
 
   return Object.freeze({
-    product: 'Hive-Venues',
+    product: 'HiVenues',
     packageVersion: PACKAGE_VERSION,
     appTag: RELEASE_APP_TAG,
     v1ActionCount: V1_ACTIONS.length,
@@ -51,7 +51,7 @@ if (require.main === module) {
   try {
     process.stdout.write(`${JSON.stringify(assertReleaseCoherence())}\n`);
   } catch (error) {
-    process.stderr.write(`Hive-Venues release coherence refused: ${error.message}\n`);
+    process.stderr.write(`HiVenues release coherence refused: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

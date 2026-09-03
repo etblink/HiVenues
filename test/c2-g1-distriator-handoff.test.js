@@ -97,7 +97,7 @@ test('C2-G.1c-R5.1 server markup omits the external handoff when the venue is no
   assert.match(receiptTemplate, /target="_blank" rel="noopener noreferrer"/);
   assert.match(receiptTemplate, /This venue is configured for Distriator rebate participation/);
   assert.match(receiptTemplate, /Distriator is a separate service that independently decides whether a particular transaction qualifies/);
-  assert.match(receiptTemplate, /Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
+  assert.match(receiptTemplate, /HiVenues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout/);
   assert.match(receiptTemplate, /<%= siteName %>’s own records remain the final source of truth for the underlying purchase/);
   assert.doesNotMatch(receiptTemplate, /\bHive-Bar\b|The bar’s point-of-sale system|final record for your tab/);
 

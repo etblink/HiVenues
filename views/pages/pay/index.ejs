@@ -11,7 +11,7 @@
       <section class="pay-state-panel mt-6" aria-labelledby="pay-disabled-heading">
         <p class="app-kicker">Payments</p>
         <h1 id="pay-disabled-heading" class="app-page-title">Payments aren’t available at <%= siteName %></h1>
-        <p><%= siteName %> does not currently offer payments through Hive-Venues.</p>
+        <p><%= siteName %> does not currently offer payments through HiVenues.</p>
         <% if (hiveSession && payment.merchants.length > 0) { %>
           <p class="mt-3 text-sm text-gray-400">New payments are off. An existing receipt can still be checked without preparing or sending another payment.</p>
         <% } %>
@@ -62,7 +62,7 @@
                 <button type="submit" class="button-primary w-full">Check payment details</button>
               </form>
               <p class="pay-panel-copy">Camera and imported-image data stay in this browser. Use the HBD payment QR provided by <%= siteName %>; Lightning and LNURL invoices are not supported here.</p>
-              <p class="pay-signing-boundary"><strong>Before Keychain opens:</strong> Hive-Venues checks the payment and shows you exactly what will be sent: recipient, amount, memo, and transaction details.</p>
+              <p class="pay-signing-boundary"><strong>Before Keychain opens:</strong> HiVenues checks the payment and shows you exactly what will be sent: recipient, amount, memo, and transaction details.</p>
               <p class="pay-status" role="status" aria-live="polite" data-pay-status>Ready to scan, import, or paste an HBD payment request.</p>
             </section>
             <%- include('partials/receipt', { receiptClass: '' }) %>
@@ -75,11 +75,11 @@
         <section class="pay-safety" aria-labelledby="pay-safety-heading">
           <h2 id="pay-safety-heading" class="sr-only">Payment safety</h2>
           <div class="pay-safety__item"><strong>Review before you pay</strong><span>You’ll see who you’re paying, the amount, memo, and transaction details before Keychain opens.</span></div>
-          <div class="pay-safety__item"><strong>Approve in Keychain</strong><span>Hive-Venues never receives your private keys.</span></div>
-          <div class="pay-safety__item"><strong>Paid means confirmed</strong><span>Hive-Venues marks a payment Paid only after independent Hive nodes confirm the same transfer is final.</span></div>
+          <div class="pay-safety__item"><strong>Approve in Keychain</strong><span>HiVenues never receives your private keys.</span></div>
+          <div class="pay-safety__item"><strong>Paid means confirmed</strong><span>HiVenues marks a payment Paid only after independent Hive nodes confirm the same transfer is final.</span></div>
         </section>
       </details>
-      <p class="pay-no-retry"><strong>If confirmation is unclear, don’t pay again.</strong> Check the receipt first. Keychain approval can happen before Hive-Venues sees final confirmation.</p>
+      <p class="pay-no-retry"><strong>If confirmation is unclear, don’t pay again.</strong> Check the receipt first. Keychain approval can happen before HiVenues sees final confirmation.</p>
     <% } %>
   </main>
   <%- include('../../common/footer') %>

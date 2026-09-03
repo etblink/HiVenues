@@ -1,7 +1,7 @@
 {
-  "name": "hive-bar",
-  "version": "0.1.0",
-  "description": "A multi-venue community and social platform powered by Hive, with Fourth Street Bar as the reference deployment.",
+  "name": "hivenues",
+  "version": "1.0.0",
+  "description": "HiVenues is a multi-venue community and social platform powered by Hive, with Fourth Street Bar as the reference deployment.",
   "private": true,
   "main": "src/server.js",
   "engines": { "node": ">=24.15 <25", "npm": ">=11" },
@@ -11,11 +11,16 @@
     "build": "npm run build:css",
     "build:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --minify",
     "watch:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --watch",
+    "venue:create": "node scripts/create-venue.js",
+    "venue:studio": "node scripts/open-turnkey-studio.js",
+    "venue:ready": "node scripts/check-turnkey-readiness.js",
     "smoke:live": "node scripts/live-read-smoke.js",
     "release:check:read-only": "node scripts/check-read-only-release.js",
     "release:check:privex": "node scripts/check-privex-release.js",
     "release:check:beta": "node scripts/check-beta-release.js",
     "release:check:v1": "node scripts/check-v1-release.js",
+    "release:check:hivenues-v1": "node scripts/check-hivenues-v1-release.js",
+    "release:check:name": "node scripts/check-hivenues-name.js",
     "release:check:functional-v1": "node scripts/check-functional-v1-baseline.js",
     "release:check:runtime": "node scripts/check-pinned-runtime.js",
     "start:read-only": "npm run release:check:read-only && node src/server.js",
@@ -41,7 +46,7 @@
     "check:secrets": "node scripts/check-secrets.js",
     "check:release-coherence": "node scripts/check-release-coherence.js",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "check": "npm run check:secrets && npm run check:release-coherence && npm run release:check:functional-v1 && npm run lint && npm run build && npm test && npm run audit:prod"
+    "check": "npm run check:secrets && npm run check:release-coherence && npm run release:check:hivenues-v1 && npm run release:check:functional-v1 && npm run lint && npm run build && npm test && npm run audit:prod"
   },
   "dependencies": {
     "@zxing/browser": "0.2.1", "compression": "1.8.1", "dotenv": "17.4.2", "ejs": "6.0.1", "express": "5.2.1", "express-rate-limit": "8.6.2", "helmet": "8.3.0", "hive-tx": "7.2.0", "htmx.org": "2.0.10", "markdown-it": "15.0.0", "pino": "10.3.1", "sanitize-html": "2.17.6", "zod": "4.4.3"
