@@ -40,9 +40,7 @@ function silentLogger() {
 
 function stateChangeIsSameOrigin(req, origin) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
-  const requestOrigin = req.get('origin');
-  if (requestOrigin !== undefined) return requestOrigin === origin;
-  return req.get('sec-fetch-site') === 'same-origin';
+  return req.get('origin') === origin;
 }
 
 function localSecurityMiddleware(origin) {
@@ -72,7 +70,7 @@ function localSecurityMiddleware(origin) {
       crossOriginEmbedderPolicy: false,
       crossOriginResourcePolicy: { policy: 'same-origin' },
       hsts: false,
-      referrerPolicy: { policy: 'no-referrer' },
+      referrerPolicy: { policy: 'same-origin' },
     }),
   ];
 }

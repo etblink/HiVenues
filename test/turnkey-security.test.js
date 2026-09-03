@@ -12,14 +12,14 @@ function request(method, headers = {}) {
   };
 }
 
-test('Venue Studio state-change guard accepts exact Origin or browser same-origin metadata only', () => {
+test('Venue Studio state-change guard requires the exact loopback Origin', () => {
   const origin = 'http://127.0.0.1:43123';
 
   assert.equal(stateChangeIsSameOrigin(request('GET'), origin), true);
   assert.equal(stateChangeIsSameOrigin(request('POST', { origin }), origin), true);
   assert.equal(stateChangeIsSameOrigin(request('POST', { origin: 'http://127.0.0.1:43124' }), origin), false);
   assert.equal(stateChangeIsSameOrigin(request('POST', { origin: 'null', 'sec-fetch-site': 'same-origin' }), origin), false);
-  assert.equal(stateChangeIsSameOrigin(request('POST', { 'sec-fetch-site': 'same-origin' }), origin), true);
+  assert.equal(stateChangeIsSameOrigin(request('POST', { 'sec-fetch-site': 'same-origin' }), origin), false);
   assert.equal(stateChangeIsSameOrigin(request('POST', { 'sec-fetch-site': 'cross-site' }), origin), false);
   assert.equal(stateChangeIsSameOrigin(request('POST'), origin), false);
 });
