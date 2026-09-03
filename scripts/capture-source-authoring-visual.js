@@ -1,4 +1,5 @@
 'use strict';
+/* global document */
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -52,8 +53,18 @@ async function runAxe(target) {
   return result.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.length }));
 }
 
+function stageForSection(label) {
+  if (['Basics', 'Brand', 'Colors', 'Welcome', 'Gallery'].includes(label)) return 'brand';
+  if (['Updates', 'Programs', 'Equipment', 'Getting started', 'Visit', 'Community'].includes(label)) return 'page';
+  return 'details';
+}
+
 async function chooseSection(page, label) {
+  const stageId = stageForSection(label);
+  const stage = page.locator(`button[data-studio-stage="${stageId}"]`);
+  if (await stage.count()) await stage.click();
   const link = page.getByRole('link', { name: label, exact: true });
+  await link.waitFor({ state: 'visible' });
   await link.click();
   const active = page.locator('.section[data-qol-active="true"]');
   await active.waitFor({ state: 'visible' });
@@ -65,9 +76,10 @@ async function inspectSimpleEditor(page, scenario) {
   const text = await page.locator('body').innerText();
   assert.match(text, /Customize your venue/);
   assert.match(text, /Hosting comes later/);
-  assert.match(text, /one section at a time/i);
+  assert.match(text, /four simple steps/i);
   assert.match(text, /Keep changes/);
   assert.match(text, /Undo preview changes/);
+  assert.match(text, /Venue Studio/);
   assert.doesNotMatch(text, /deploymentRef|Stable item ID|Operator-owned|ISO date\/time|Local image path|raw JSON/i);
   assert.equal(await page.locator('form[data-field-pointer$="/src"]').count(), 0);
   const geometry = await page.evaluate(() => {
@@ -85,6 +97,7 @@ async function inspectSimpleEditor(page, scenario) {
     }).length;
     return {
       progressiveMode: root.dataset.qolProgressive,
+      studioStageCount: globalThis.document.querySelectorAll('button[data-studio-stage]').length,
       horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
       undersized: visibleControls.filter((control) => control.height < 44),
       sectionCount: globalThis.document.querySelectorAll('.section').length,
@@ -97,6 +110,7 @@ async function inspectSimpleEditor(page, scenario) {
     };
   });
   assert.equal(geometry.progressiveMode, 'section-picker', `${scenario.id}: ${JSON.stringify(geometry)}`);
+  assert.equal(geometry.studioStageCount, 4, `${scenario.id}: ${JSON.stringify(geometry)}`);
   assert.ok(geometry.horizontalOverflow <= 1, `${scenario.id}: ${JSON.stringify(geometry)}`);
   assert.deepEqual(geometry.undersized, [], `${scenario.id}: ${JSON.stringify(geometry)}`);
   assert.ok(geometry.sectionCount >= 8, `${scenario.id}: ${JSON.stringify(geometry)}`);
@@ -105,7 +119,6 @@ async function inspectSimpleEditor(page, scenario) {
   assert.ok(geometry.fieldCount >= 20, `${scenario.id}: ${JSON.stringify(geometry)}`);
   assert.ok(geometry.visibleFieldCount > 0, `${scenario.id}: ${JSON.stringify(geometry)}`);
   assert.ok(geometry.visibleFieldCount < geometry.fieldCount, `${scenario.id}: ${JSON.stringify(geometry)}`);
-  if (scenario.width <= 900) assert.ok(geometry.previewTop < geometry.editorTop, `${scenario.id}: ${JSON.stringify(geometry)}`);
   return geometry;
 }
 
@@ -123,7 +136,7 @@ async function exerciseFourthStreet(page, fixture) {
   await chooseSection(page, 'Welcome');
   const form = page.locator('form[data-field-pointer="/venuePackage/home/hero/lede"]');
   await form.locator('[name="value"]').fill(editedLede);
-  await submitAndWait(page, () => form.locator('button[type="submit"]').click());
+  await submitAndWait(page, () => page.locator('.section[data-qol-active="true"] .studio-preview-stage').click());
   assert.equal(fixture.session.status().dirty, true);
   assert.equal(await page.locator('.nav a[aria-current="page"]').textContent(), 'Welcome');
   let preview = await getPreviewFrame(page);
@@ -163,7 +176,17 @@ async function exerciseJuniper(page, fixture) {
   assert.ok(added);
   assert.equal(added.id, 'repair-cafe');
   const preview = await getPreviewFrame(page);
+  const previewToggle = page.locator('button[data-studio-view="preview"]');
+  const compactMode = await previewToggle.isVisible();
+  if (compactMode) {
+    await previewToggle.click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'preview');
+  }
   await preview.locator('[data-program-id="repair-cafe"]').waitFor({ state: 'visible' });
+  if (compactMode) {
+    await page.locator('button[data-studio-view="edit"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'edit');
+  }
   return { generatedProgramId: added.id };
 }
 
@@ -254,10 +277,22 @@ async function inspectPostInteraction(page, preview, scenario) {
   assert.equal(editor.activeSectionCount, 1, `${scenario.id}: ${JSON.stringify(editor)}`);
   assert.equal(editor.currentSectionLinkCount, 1, `${scenario.id}: ${JSON.stringify(editor)}`);
 
+  const structured = scenario.id.startsWith('juniper') ? await inspectStructuredPostInteraction(page, scenario) : null;
+  let previewHero;
+  if (scenario.id.startsWith('fourth-street') && scenario.width <= 900) {
+    await page.locator('button[data-studio-view="preview"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'preview');
+    previewHero = await inspectPreviewPostInteraction(preview, scenario);
+    await page.locator('button[data-studio-view="edit"]').click();
+    await page.waitForFunction(() => document.documentElement.dataset.studioActiveView === 'edit');
+  } else {
+    previewHero = await inspectPreviewPostInteraction(preview, scenario);
+  }
+
   return {
     editor,
-    structured: scenario.id.startsWith('juniper') ? await inspectStructuredPostInteraction(page, scenario) : null,
-    previewHero: await inspectPreviewPostInteraction(preview, scenario),
+    structured,
+    previewHero,
   };
 }
 

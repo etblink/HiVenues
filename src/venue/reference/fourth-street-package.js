@@ -14,6 +14,15 @@ const FOURTH_STREET_REFERENCE_PACKAGE = createVenuePackage(
         width: 720,
         height: 720,
       },
+      theme: {
+        canvas: '#12100e',
+        surface: '#1d1915',
+        border: '#766250',
+        text: '#f7f0e5',
+        mutedText: '#c7b9a7',
+        accent: '#e8b85f',
+        accentHover: '#f2c978',
+      },
     },
     seo: {
       defaultDescription: 'Visit 4th Street Bar in Reno and browse its public Hive community.',
