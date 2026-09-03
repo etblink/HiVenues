@@ -1,0 +1,73 @@
+name: Issue 132 deterministic gate diagnostic
+
+on:
+  push:
+    branches:
+      - release/issue-132-turnkey-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue-132-gate-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Reproduce Issue 132 full-gate failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact diagnostic head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Reproduce bounded current-UI repair in runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PYRUN'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/issue-132-branding-repair.yml').read_text(encoding='utf-8')
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          lines = workflow[start:end].splitlines()
+          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
+          exec(compile(code, 'issue-132-branding-repair-inline.py', 'exec'), {})
+          PYRUN
+      - name: Re-run bounded name proof and targeted regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run release:check:name
+          if grep -RInE '\b(Hive-Bar|Hive[ -]Venues)\b' views src/venue/source-authoring-surface.js src/venue/reference/source-authoring-surface-core.js; then
+            echo 'Stale current-facing product name remains.' >&2
+            exit 1
+          fi
+          node --test test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js test/turnkey-release.test.js
+      - name: Run complete deterministic quality gate with failure digest
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          npm run check 2>&1 | tee /tmp/issue132-check.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_BEGIN ====='
+            grep -nE 'not ok|AssertionError|ERR_ASSERTION|npm error|Error:|FAILED|FAIL|eslint|HiVenues release-name audit failed|expected|actual' /tmp/issue132-check.log | head -n 160 || true
+            echo '===== ISSUE132_FULL_GATE_TAIL_BEGIN ====='
+            tail -n 180 /tmp/issue132-check.log || true
+            echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_END ====='
+            exit "$status"
+          fi
