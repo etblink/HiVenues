@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   repair-lock-metadata:
@@ -31,7 +31,23 @@ jobs:
           lock.packages[''].version = pkg.version;
           fs.writeFileSync('package-lock.json', `${JSON.stringify(lock, null, 2)}\n`);
           NODE
-      - name: Preserve repaired lock
+      - name: Upload exact repaired bytes as an unreferenced Git blob
+        id: blob
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node - <<'NODE' > blob-request.json
+          const fs = require('node:fs');
+          process.stdout.write(JSON.stringify({
+            content: fs.readFileSync('package-lock.json').toString('base64'),
+            encoding: 'base64',
+          }));
+          NODE
+          sha="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/git/blobs" --input blob-request.json --jq .sha)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "PACKAGE_LOCK_BLOB_SHA=$sha"
+      - name: Preserve repaired lock and blob identity
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: issue-132-package-lock-${{ github.event.pull_request.head.sha }}
