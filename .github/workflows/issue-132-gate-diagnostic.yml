@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   diagnose:
-    name: Reproduce Issue 132 full-gate failure
+    name: Reproduce final Issue 132 branding candidate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -34,22 +34,61 @@ jobs:
         run: npm run release:check:runtime
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
-      - name: Reproduce bounded current-UI repair in runner only
+      - name: Build bounded current-facing branding candidate in runner only
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PYRUN'
+          python - <<'PY'
           from pathlib import Path
+          import re
 
-          workflow = Path('.github/workflows/issue-132-branding-repair.yml').read_text(encoding='utf-8')
-          marker = "          python - <<'PY'\n"
-          start = workflow.index(marker) + len(marker)
-          end = workflow.index("\n          PY\n", start)
-          lines = workflow[start:end].splitlines()
-          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
-          exec(compile(code, 'issue-132-branding-repair-inline.py', 'exec'), {})
-          PYRUN
-      - name: Re-run bounded name proof and targeted regressions
+          current_source_paths = sorted(Path('views').rglob('*.ejs')) + [
+              Path('src/venue/source-authoring-surface.js'),
+              Path('src/venue/reference/source-authoring-surface-core.js'),
+          ]
+          product_pattern = re.compile(r'\b(?:Hive-Bar|Hive[ -]Venues)\b')
+
+          exact_test_phrases = {
+              'decrypted message is not sent back to Hive-Venues': 'decrypted message is not sent back to HiVenues',
+              'Hive-Venues cannot move funds or access private keys': 'HiVenues cannot move funds or access private keys',
+              'Hive-Venues checks your current rewards again before Keychain asks for approval': 'HiVenues checks your current rewards again before Keychain asks for approval',
+              'Hive-Venues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout': 'HiVenues does not control or guarantee transaction recognition, rebate amount, claim processing, or payout',
+              'Built with Hive-Venues': 'Built with HiVenues',
+              '4th Street Bar does not currently offer payments through Hive-Venues': '4th Street Bar does not currently offer payments through HiVenues',
+              'Keychain approval can happen before Hive-Venues sees final confirmation': 'Keychain approval can happen before HiVenues sees final confirmation',
+              'Hive-Venues checks the payment and shows you exactly what will be sent': 'HiVenues checks the payment and shows you exactly what will be sent',
+              'Hive-Venues receives only the four public keys': 'HiVenues receives only the four public keys',
+          }
+
+          changed = []
+          for path in current_source_paths:
+              if not path.is_file():
+                  continue
+              before = path.read_text(encoding='utf-8')
+              after = product_pattern.sub('HiVenues', before)
+              if after != before:
+                  path.write_text(after, encoding='utf-8', newline='\n')
+                  changed.append(path.as_posix())
+
+          for path in sorted(Path('test').rglob('*.js')):
+              before = path.read_text(encoding='utf-8')
+              after = before
+              for old, new in exact_test_phrases.items():
+                  after = after.replace(old, new)
+              if after != before:
+                  path.write_text(after, encoding='utf-8', newline='\n')
+                  changed.append(path.as_posix())
+
+          changed = sorted(set(changed))
+          if not changed:
+              raise SystemExit('No bounded current-facing branding changes were produced.')
+          Path('/tmp/issue132-changed-paths.txt').write_text('\n'.join(changed) + '\n', encoding='utf-8')
+          print('ISSUE132_CANDIDATE_CHANGED_PATHS=' + str(len(changed)))
+          for path in changed:
+              print(path)
+          PY
+          tar -cf /tmp/issue132-candidate-files.tar -T /tmp/issue132-changed-paths.txt
+      - name: Re-run bounded current-name proof
         shell: bash
         run: |
           set -euo pipefail
@@ -58,7 +97,6 @@ jobs:
             echo 'Stale current-facing product name remains.' >&2
             exit 1
           fi
-          node --test test/venue-source-authoring-surface.test.js test/hv7-juniper-rendering.test.js test/turnkey-release.test.js
       - name: Run complete deterministic quality gate and collect report
         id: full_gate
         shell: bash
@@ -68,20 +106,18 @@ jobs:
           npm run check 2>&1 | tee /tmp/issue132-check.log
           status=${PIPESTATUS[0]}
           set -e
-
           printf '%s\n' "$status" > /tmp/issue132-check.status
           {
             echo "ISSUE132_FULL_CHECK_EXIT=${status}"
             echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_BEGIN ====='
-            grep -nE 'not ok|AssertionError|ERR_ASSERTION|npm error|Error:|FAILED|FAIL|eslint|HiVenues release-name audit failed|expected|actual|mismatch|stale|forbidden|missing' /tmp/issue132-check.log | head -n 180 || true
+            grep -nE 'not ok|AssertionError|ERR_ASSERTION|npm error|Error:|FAILED|FAIL|eslint|HiVenues release-name audit failed|expected|actual|mismatch|stale|forbidden|missing' /tmp/issue132-check.log | head -n 220 || true
             echo '===== ISSUE132_FULL_GATE_TAIL_BEGIN ====='
-            tail -n 220 /tmp/issue132-check.log || true
+            tail -n 240 /tmp/issue132-check.log || true
             echo '===== ISSUE132_FULL_GATE_FAILURE_DIGEST_END ====='
           } > /tmp/issue132-diagnostic.txt
-
           cat /tmp/issue132-diagnostic.txt
           exit 0
-      - name: Preserve compact diagnostic report
+      - name: Preserve candidate and diagnostic report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -89,6 +125,8 @@ jobs:
           path: |
             /tmp/issue132-diagnostic.txt
             /tmp/issue132-check.status
+            /tmp/issue132-changed-paths.txt
+            /tmp/issue132-candidate-files.tar
           if-no-files-found: error
           retention-days: 30
       - name: Preserve full-gate failure semantics
@@ -102,6 +140,6 @@ jobs:
           fi
           status="$(cat /tmp/issue132-check.status)"
           if [[ "$status" != "0" ]]; then
-            echo "Issue 132 runner-only branding repair full gate failed with exit ${status}." >&2
+            echo "Issue 132 runner-only branding candidate full gate failed with exit ${status}." >&2
             exit "$status"
           fi
