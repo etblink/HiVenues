@@ -83,6 +83,9 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
     const page = await context.newPage();
     await page.goto(runtime.url, { waitUntil: 'networkidle' });
+    if (await page.getByText('Save venue file', { exact: true }).count()) {
+      throw new Error('Turnkey Studio exposed the generic download control alongside workspace persistence.');
+    }
     await page.locator('[data-turnkey-media-form] select[name="pointer"]').selectOption('/venuePackage/home/hero/image/src');
     await page.locator('[data-turnkey-media-form] input[type="file"]').setInputFiles({
       name: 'juniper-hero.png', mimeType: 'image/png', buffer: TEST_PNG,
@@ -106,6 +109,7 @@ async function main() {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(runtime.url, { waitUntil: 'networkidle' });
     await page.screenshot({ path: path.join(outputRoot, 'track-a-studio-mobile.png') });
+    await page.locator('.turnkey-tools').screenshot({ path: path.join(outputRoot, 'track-a-studio-mobile-workspace-tools.png') });
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.goto(`${runtime.origin}${runtime.editorPath}/preview`, { waitUntil: 'networkidle' });
     await page.screenshot({ path: path.join(outputRoot, 'track-b-real-renderer-output.png') });
@@ -134,7 +138,11 @@ async function main() {
     const tracks = {
       A: {
         role: 'HiVenues Venue Studio authoring experience',
-        screenshots: ['track-a-studio-desktop.png', 'track-a-studio-mobile.png'],
+        screenshots: [
+          'track-a-studio-desktop.png',
+          'track-a-studio-mobile.png',
+          'track-a-studio-mobile-workspace-tools.png',
+        ],
         accessibilityViolations: [...studioDesktopViolations, ...studioMobileViolations],
       },
       B: {

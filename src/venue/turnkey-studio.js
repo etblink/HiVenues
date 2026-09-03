@@ -132,6 +132,12 @@ function turnkeyPanel(session, editorPath) {
   </section>`;
 }
 
+function removeGenericDownloadControl(html) {
+  return String(html)
+    .replace(/<a class="source-save"[^>]*>Save venue file<\/a>/, '')
+    .replace(/<span class="source-save source-save--disabled"[^>]*>Keep changes to save<\/span>/, '');
+}
+
 const TURNKEY_CLIENT_SCRIPT = `'use strict';
 (() => {
   const form = document.querySelector('[data-turnkey-media-form]');
@@ -254,7 +260,8 @@ async function startTurnkeyStudio({ workspaceDirectory, port = 0, fetchImpl = gl
       if (req.method !== 'GET' || req.path !== surface.editorPath) return next();
       const send = res.send.bind(res);
       res.send = (body) => send(typeof body === 'string'
-        ? body.replace('</head>', `<script defer src="${scriptPath}"></script></head>`)
+        ? removeGenericDownloadControl(body)
+          .replace('</head>', `<script defer src="${scriptPath}"></script></head>`)
           .replace('<div class="layout">', `${turnkeyPanel(surface.session, surface.editorPath)}<div class="layout">`)
         : body);
       return next();
@@ -291,6 +298,7 @@ module.exports = {
   TURNKEY_SAVE_SUFFIX,
   TURNKEY_SCRIPT_SUFFIX,
   atomicSaveSource,
+  removeGenericDownloadControl,
   startTurnkeyStudio,
   stateChangeIsSameOrigin,
   turnkeyPanel,

@@ -94,6 +94,7 @@ test('fresh workspace opens Studio, imports media, saves, reopens, renders, and 
     assert.match(editorHtml, /HiVenues|Venue Studio/);
     assert.match(editorHtml, /type="file"/);
     assert.match(editorHtml, /Save to workspace/);
+    assert.doesNotMatch(editorHtml, /Save venue file|Keep changes to save/);
 
     const pointer = '/venuePackage/home/hero/image/src';
     const imported = await post(runtime, `${runtime.editorPath}/media-import?pointer=${encodeURIComponent(pointer)}`, {
