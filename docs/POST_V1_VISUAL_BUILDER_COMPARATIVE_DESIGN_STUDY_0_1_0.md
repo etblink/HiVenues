@@ -80,6 +80,21 @@ The v1 interaction model answers “which form field changes this venue property
 
 The post-v1 design should close that gap without broadening authority.
 
+### Canonical internal evidence reviewed
+
+All paths in this table were reviewed at the base commit named in the status block.
+
+| Evidence | Role in this study |
+| --- | --- |
+| `src/venue/turnkey-studio.js` and `src/venue/turnkey-workspace.js` | Shipped Studio composition, actions, responsive workspace, and project persistence surface |
+| `src/venue/reference/source-authoring-surface-core.js` and `src/venue/native-authoring-surface.js` | Form-first editing surface and native authoring behavior |
+| `src/venue/visual-authoring-session.js` and `src/venue/authoring.js` | Preview/draft boundaries, typed edits, and authority behavior |
+| `docs/HV5_VENUE_AUTHORING_CONTRACT_FOUNDATION_ACCEPTANCE_0_1_0.md` | Canonical source-authoring contract and accepted authority boundary |
+| `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_ACCEPTANCE_0_1_0.md` | Accepted visual-adapter boundary |
+| `docs/HV6_OPERATOR_VISUAL_AUTHORING_ADAPTER_FOUNDATION_TECHNOLOGY_SELECTION_0_1_0.md` | Prior native-versus-embedded-builder evaluation |
+| `test/hv6-native-authoring-surface.test.js`, `test/hv6-visual-authoring-session.test.js`, and `test/turnkey-release.test.js` | Existing behavior and release assertions |
+| CI run `573`, artifact `9913117552`, manifest paths `issue-132-turnkey-review/track-a-studio-{desktop,mobile}.png` and `track-b-real-renderer-output.png` | Deterministic current Studio and generated-site visual evidence |
+
 ## Comparator synthesis
 
 | Reference | Strong signal | Adapt for HiVenues | Do not import |
