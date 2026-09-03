@@ -47,6 +47,7 @@ test('Issue #130 Venue Studio presents a four-step authoring workflow with immed
   assert.match(response.text, /Keep changes in draft/);
   assert.match(response.text, /Save venue file/);
   assert.match(response.text, /\.nav\s*\{[^}]*flex-wrap:\s*wrap[^}]*overflow:\s*visible/s);
+  assert.match(response.text, /html\.qol-sections\s+\.nav\s+a\[hidden\]\s*\{\s*display:\s*none\s*!important;/);
   assert.match(response.text, /html\[data-studio-active-view="edit"\]\s+\.preview\s*\{\s*display:\s*none;/);
 
   const qol = await request(fixture.app).get(`${fixture.editorPath}/qol.js`).expect(200);
@@ -57,6 +58,12 @@ test('Issue #130 Venue Studio presents a four-step authoring workflow with immed
   assert.doesNotMatch(qol.text, /document\.documentElement\.dataset\.studioView/);
   assert.doesNotMatch(qol.text, /redirect\s*:\s*['"]follow['"]/);
   assert.match(qol.text, /prefers-reduced-motion/);
+});
+
+test('Issue #130 generated mobile homepage keeps longer venue identity readable without shell ellipsis', () => {
+  const css = fs.readFileSync(path.join(root, 'public', 'css', 'ux-1f-home.css'), 'utf8');
+
+  assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.app-brand__wordmark strong\s*\{[\s\S]*max-width:\s*min\(13rem, calc\(100vw - 7rem\)\);[\s\S]*text-overflow:\s*clip;[\s\S]*white-space:\s*normal;/);
 });
 
 test('Issue #130 exposes operator-owned logo, hero, and gallery media without raw JSON editing', async () => {

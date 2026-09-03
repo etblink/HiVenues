@@ -271,6 +271,7 @@ const QOL_SCRIPT = `'use strict';
 const QOL_STYLE = `
     html.qol-sections .section { display: none; }
     html.qol-sections .section[data-qol-active="true"] { display: block; }
+    html.qol-sections .nav a[hidden] { display: none !important; }
     html.qol-sections .nav a[aria-current="page"] { background: #292524; border-color: #292524; color: #fff; }
     html.qol-sections .nav { margin-bottom: 4px; }
     html.qol-sections .item-edit-group { border-top: 1px solid #e7e5e4; padding-top: 10px; }

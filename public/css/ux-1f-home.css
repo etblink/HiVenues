@@ -488,6 +488,16 @@
 }
 
 @media (max-width: 519px) {
+  /* Keep the venue-owned identity legible in the generated mobile shell even
+   * when an operator chooses a longer ordinary venue name. */
+  .app-brand__wordmark strong {
+    overflow: visible;
+    max-width: min(13rem, calc(100vw - 7rem));
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.05;
+  }
+
   /* Human-review regression: reserve top-of-hero space so a reasonable longer
    * operator-authored venue name cannot collide with the image caption. */
   .home-hero__frame {
