@@ -38,6 +38,13 @@ function silentLogger() {
   return Object.freeze({ child() { return this; }, debug() {}, error() {}, info() {}, warn() {} });
 }
 
+function stateChangeIsSameOrigin(req, origin) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
+  const requestOrigin = req.get('origin');
+  if (requestOrigin !== undefined) return requestOrigin === origin;
+  return req.get('sec-fetch-site') === 'same-origin';
+}
+
 function localSecurityMiddleware(origin) {
   return [
     (req, res, next) => {
@@ -47,7 +54,7 @@ function localSecurityMiddleware(origin) {
         res.status(403).type('text').send('Venue Studio rejected an unexpected Host header.');
         return;
       }
-      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.get('origin') !== origin) {
+      if (!stateChangeIsSameOrigin(req, origin)) {
         res.status(403).type('text').send('Venue Studio rejected a cross-origin state change.');
         return;
       }
@@ -287,5 +294,6 @@ module.exports = {
   TURNKEY_SCRIPT_SUFFIX,
   atomicSaveSource,
   startTurnkeyStudio,
+  stateChangeIsSameOrigin,
   turnkeyPanel,
 };
