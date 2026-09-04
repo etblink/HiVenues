@@ -106,6 +106,31 @@ test('HTTP advisory-service failure is distinct, retried, and never treated as c
   assert.deepEqual(waits, [5_000]);
 });
 
+test('top-level npm audit statusCode retries transient endpoint failures', async () => {
+  const npmEndpointFailure = outcome({
+    exitCode: 1,
+    stdout: JSON.stringify({
+      error: {
+        summary: 'Unexpected response from the bulk advisory endpoint',
+        detail: '',
+      },
+      statusCode: 520,
+    }),
+  });
+
+  assert.equal(classifyAuditAttempt(npmEndpointFailure).kind, 'network_failure');
+  const result = await runAuditPolicy({
+    runAttempt: sequence([npmEndpointFailure, outcome()]),
+    sleep: async () => {},
+  });
+
+  assert.equal(result.kind, 'success');
+  assert.deepEqual(result.attempts.map((attempt) => attempt.classification.kind), [
+    'network_failure',
+    'success',
+  ]);
+});
+
 test('timed-out advisory call is distinct and can recover on a bounded retry', async () => {
   const timeout = outcome({
     exitCode: null,

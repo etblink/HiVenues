@@ -102,7 +102,15 @@ function errorText(report, outcome) {
     .join(' ');
 }
 
-function isTransientNetworkFailure(code, text) {
+function isTransientNetworkFailure(code, text, statusCode) {
+  if (
+    statusCode === 408
+    || statusCode === 425
+    || statusCode === 429
+    || (statusCode >= 500 && statusCode <= 599)
+  ) {
+    return true;
+  }
   if (TRANSIENT_NETWORK_CODES.has(code) || /^E5\d\d$/.test(code)) return true;
 
   const value = String(text || '');
@@ -132,12 +140,19 @@ function classifyAuditAttempt(outcome) {
   }
 
   const code = errorCode(report, outcome.error);
+  const statusCode = Number.isInteger(report?.statusCode) ? report.statusCode : null;
   const combinedErrorText = errorText(report, outcome);
-  if (isTransientNetworkFailure(code, combinedErrorText)) {
+  if (isTransientNetworkFailure(code, combinedErrorText, statusCode)) {
     return {
       kind: 'network_failure',
       retryable: true,
-      detail: compactDetail(code || report?.error?.summary || combinedErrorText || 'network failure'),
+      detail: compactDetail(
+        code
+        || (statusCode === null ? '' : `HTTP ${statusCode}`)
+        || report?.error?.summary
+        || combinedErrorText
+        || 'network failure',
+      ),
     };
   }
 
