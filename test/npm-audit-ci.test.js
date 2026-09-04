@@ -178,7 +178,11 @@ test('workflow separates both OS audit lanes from the deterministic verification
 
   assert.equal(packageJson.scripts['audit:prod'], 'npm audit --omit=dev --audit-level=high');
   assert.equal(packageJson.scripts['audit:prod:ci'], 'node scripts/run-npm-audit-ci.js');
-  assert.match(packageJson.scripts.check, /^npm run check:deterministic && npm run audit:prod:ci$/);
+  assert.equal(
+    packageJson.scripts.check,
+    `${packageJson.scripts['check:deterministic']} && npm run audit:prod:ci`,
+  );
+  assert.match(packageJson.scripts.check, /release:check:hivenues-v1/);
   assert.match(verifyBlock, /run: npm run check:deterministic/);
   assert.doesNotMatch(verifyBlock, /audit:prod/);
   assert.match(auditBlock, /ubuntu-latest/);
