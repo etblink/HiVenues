@@ -35,65 +35,12 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            echo "visual=true" >> "$GITHUB_OUTPUT"
-            echo "Manual qualification: current-contract UI/UX visual evidence selected."
-            exit 0
-          fi
-
-          if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            base="$PR_BASE_SHA"
-          else
-            base="$PUSH_BEFORE_SHA"
-          fi
-
-          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
-            base="$(git rev-parse HEAD^)"
-          fi
-
-          changed="$(git diff --name-only "$base" HEAD)"
-          printf 'Changed paths:\n%s\n' "$changed"
-
-          visual=false
-          while IFS= read -r path; do
-            [[ -z "$path" ]] && continue
-            case "$path" in
-              docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md)
-                visual=true
-                break
-                ;;
-              views/*|public/*|src/input.css|src/app.js|routes/*|src/routes/*)
-                visual=true
-                break
-                ;;
-              src/content/*|src/onboarding/*|src/moderation/*|src/payments/*)
-                visual=true
-                break
-                ;;
-              src/venue/native-authoring-surface.js|src/venue/visual-authoring-session.js|src/venue/source-authoring.js|src/venue/source-authoring-session.js|src/venue/source-authoring-surface.js|src/venue/context.js|src/venue/package.js|src/venue/package-selection.js|src/venue/reference/*|src/venue/turnkey-studio.js|src/venue/managed-assets.js|src/venue/turnkey-workspace.js|src/venue/turnkey-readiness.js)
-                visual=true
-                break
-                ;;
-              scripts/capture-*-visual.js|scripts/capture-current-contract-visual.js|scripts/capture-issue-130-presentation-review.js|scripts/run-current-visual-contract.js|scripts/assemble-current-visual-evidence.js)
-                visual=true
-                break
-                ;;
-              config/visual-qualification-contract.json|config/issue-130-presentation-review.json|test/visual-qualification-contract.test.js|test/issue-130-presentation-quality.test.js|test/turnkey-release.test.js)
-                visual=true
-                break
-                ;;
-              test/support/*visual*|test/support/hv6-native-editor-fixture.js|test/support/source-authoring-fixture.js)
-                visual=true
-                break
-                ;;
-            esac
-          done <<< "$changed"
-
-          echo "visual=$visual" >> "$GITHUB_OUTPUT"
-          echo "UI/UX visual evidence required: $visual"
+        # Policy lives in the executable below: visual=false unless a trigger matches;
+        # workflow_dispatch always selects visual=true. Existing trigger examples include
+        # views/*|public/*|src/input.css, scripts/capture-*-visual.js, and
+        # src/venue/source-authoring-surface.js and test/turnkey-release.test.js.
+        # Git-fixture tests verify actual selection for these documented examples.
+        run: node scripts/classify-qualification-scope.js
 
   verify:
     name: Node 24.19.0 / npm 11.17.0 verification (${{ matrix.os }})
