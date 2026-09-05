@@ -3,6 +3,7 @@
 const express = require('express');
 const foundation = require('./reference/source-authoring-surface-core');
 const { createSourceAuthoringSession } = require('./source-authoring-session');
+const { SAFE_READ_ONLY_VENUE_CANVAS_ERROR, parseReadOnlyVenueCanvasQuery, readOnlyVenueCanvasPath, renderReadOnlyVenueCanvasSurface } = require('./read-only-venue-canvas-surface');
 const {
   DEFAULT_VENUE_SOURCE_FILENAME,
   loadDeploymentAgnosticVenueSourceFile,
@@ -290,8 +291,8 @@ const QOL_STYLE = `
     .studio-view-toggle { display: none; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; background: white; border: 1px solid #d6d3d1; border-radius: 12px; margin: 10px 0; }
     .studio-view-toggle button { background: transparent; color: #292524; border-color: transparent; }
     .studio-view-toggle button[aria-pressed="true"] { background: #292524; color: white; }
-    .source-save { min-height: 44px; display: inline-flex; align-items: center; border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: white; color: #292524; font-weight: 700; text-decoration: none; }
-    .source-save:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+    .source-save, .studio-canvas-link { min-height: 44px; display: inline-flex; align-items: center; border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: white; color: #292524; font-weight: 700; text-decoration: none; }
+    .source-save:focus-visible, .studio-canvas-link:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
     .source-save--disabled { border-color: #a8a29e; color: #57534e; background: #f5f5f4; }
     .studio-workflow { background: #fff; border: 1px solid #d6d3d1; border-radius: 14px; padding: 10px 12px; }
     .studio-workflow__state { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
@@ -359,6 +360,7 @@ function reviewMarkup() {
 function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '', session = null, notice = null } = {}) {
   const scriptPath = progressiveScriptPath(editorPath);
   const sourceFilePath = venueSourceDownloadPath(editorPath);
+  const canvasControl = `<a class="studio-canvas-link" href="${escapeHtml(readOnlyVenueCanvasPath(editorPath))}">Open read-only Canvas</a>`;
   const saveControl = dirty
     ? '<span class="source-save source-save--disabled" aria-disabled="true">Keep changes to save</span>'
     : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
@@ -375,7 +377,7 @@ function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '
     .replace('Keep changes</button>', 'Keep changes in draft</button>')
     .replace(
       '</form></div><nav class="nav" aria-label="Choose what to customize">',
-      `</form>${saveControl}</div>${studioStatusMarkup({ dirty, state })}${viewToggleMarkup()}${stageNavMarkup()}<nav class="nav" aria-label="Choose what to customize">`,
+      `</form>${saveControl}${canvasControl}</div>${studioStatusMarkup({ dirty, state })}${viewToggleMarkup()}${stageNavMarkup()}<nav class="nav" aria-label="Choose what to customize">`,
     )
     .replace('<div class="layout"><div class="editor">', `<div class="layout"><div>${reviewMarkup()}<div class="editor">`)
     .replace('</div><section class="preview" aria-label="Venue preview">', '</div></div><section class="preview" aria-label="Venue preview">')
@@ -409,9 +411,24 @@ function createOfflineSourceAuthoringSurface(options = {}) {
   const router = express.Router();
   const scriptPath = progressiveScriptPath(surface.editorPath);
   const sourceFilePath = venueSourceDownloadPath(surface.editorPath);
+  const canvasPath = readOnlyVenueCanvasPath(surface.editorPath);
   let studioNotice = null;
 
   router.use(express.urlencoded({ extended: false, limit: '64kb' }));
+  router.get(canvasPath, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      res.type('html').send(renderReadOnlyVenueCanvasSurface({
+        sourceInput: surface.session.proposalDraft,
+        selectionInput: parseReadOnlyVenueCanvasQuery(req.query),
+        editorPath: surface.editorPath,
+        previewPath: surface.previewPath,
+        dirty: surface.session.status().dirty,
+      }));
+    } catch {
+      res.status(400).type('text').send(SAFE_READ_ONLY_VENUE_CANVAS_ERROR);
+    }
+  });
   router.get(scriptPath, (req, res) => {
     res.type('application/javascript').send(QOL_SCRIPT);
   });
@@ -489,6 +506,7 @@ function createOfflineSourceAuthoringSurface(options = {}) {
   return Object.freeze({
     ...surface,
     router,
+    canvasPath,
     sourceFilePath,
   });
 }

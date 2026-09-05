@@ -36,17 +36,23 @@ function accessibilityEvidence() {
   const source = readJson(rawRoot, 'source-authoring-visual/manifest.json');
   const sourceEditor = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.axeEditor || []));
   const sourcePreview = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.axePreview || []));
+  const canvas = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.readOnlyCanvas?.axeCanvas || []));
+  const canvasPreview = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.readOnlyCanvas?.axeCanvasPreview || []));
 
   const declared = contract.accessibilityContract.classifiedNonBlocking;
   const declaredFor = (suite) => normalizeFindings(declared.filter((item) => item.suite === suite));
   assert.deepEqual(ux1eFindings, declaredFor('wall-inbox'), 'UX-1E accessibility findings changed from the classified contract');
   assert.deepEqual(sourceEditor, declaredFor('source-authoring'), 'Source-authoring accessibility findings changed from the classified contract');
   assert.deepEqual(sourcePreview, [], 'Source-authoring preview must remain free of Axe violations');
+  for (const finding of canvas) assert.ok(declaredFor('source-authoring').some((entry) => entry.id === finding.id && entry.impact === finding.impact), `Unclassified Canvas Axe finding: ${JSON.stringify(finding)}`);
+  assert.deepEqual(canvasPreview, [], 'Canvas renderer preview must remain free of Axe violations');
   return {
     blockingImpacts: contract.accessibilityContract.blockingImpacts,
     wallInbox: ux1eFindings,
     sourceAuthoringEditor: sourceEditor,
     sourceAuthoringPreview: sourcePreview,
+    readOnlyCanvas: canvas,
+    readOnlyCanvasPreview: canvasPreview,
     classifiedNonBlocking: declared,
   };
 }
@@ -101,6 +107,43 @@ function verifyViewportReview() {
   return { review, screenshotBytes };
 }
 
+function readOnlyCanvasEvidence(captures) {
+  const expectedIds = ['fourth-street-canvas-desktop', 'juniper-canvas-mobile'];
+  const selected = captures.filter(({ mode }) => mode === 'canvas');
+  assert.deepEqual(selected.map(({ id }) => id), expectedIds);
+  const source = readJson(rawRoot, 'source-authoring-visual/manifest.json');
+  const machine = Object.entries(source.scenarios).map(([id, scenario]) => ({ id, ...scenario.readOnlyCanvas }));
+  assert.equal(machine.length, 4);
+  for (const evidence of [...machine, ...selected]) {
+    const metrics = evidence.metrics || evidence.geometry;
+    assert.equal(evidence.sourceNeutral, true, evidence.id);
+    assert.equal(metrics.readOnlyCanvas, true, evidence.id);
+    assert.equal(metrics.selectedCanvasCardCount, 1, evidence.id);
+    assert.equal(metrics.selectedTreeRowCount, 1, evidence.id);
+    assert.equal(metrics.selectedInspectorFieldCount, 1, evidence.id);
+    assert.equal(metrics.exactSelectedControls, true, evidence.id);
+    assert.equal(metrics.selectionMirrorCount, 7, evidence.id);
+    assert.equal(metrics.selectionSummaryFocused, true, evidence.id);
+    assert.ok(metrics.visibleAnchorMinimumHeight >= 44 && metrics.visibleAnchorMinimumWidth >= 44, evidence.id);
+    assert.ok(metrics.horizontalOverflow <= 1, evidence.id);
+    assert.equal(metrics.mutationControlCount, 0, evidence.id);
+    assert.equal(metrics.rendererIframeCount, 1, evidence.id);
+  }
+  for (const capture of selected) {
+    const declared = contract.reviewScenarios.find(({ id }) => id === capture.id);
+    assert.deepEqual(capture.selection, declared.selection);
+    assert.equal(capture.editedName, null);
+    assert.equal(capture.externalRequests, 0);
+    assert.equal(capture.hiveRpcCalls, 0);
+  }
+  assert.equal(selected[0].preservedFourthStreetIdentity, true);
+  assert.equal(selected[0].rendererVenueName, '4th Street Bar');
+  assert.equal(selected[1].syntheticFixture, true);
+  assert.equal(selected[1].rendererVenueName, 'Juniper Works Cooperative');
+  assert.ok(machine.every(({ keyboardRoundTrip }) => keyboardRoundTrip));
+  return { machine, viewport: selected };
+}
+
 function main() {
   const { review, screenshotBytes } = verifyViewportReview();
   const machineSummary = readJson(path.join(ROOT, 'artifacts'), 'current-visual-machine-summary.json');
@@ -134,6 +177,7 @@ function main() {
       fullPageScreenshotsAllowed: contract.reviewRules.fullPageScreenshotsAllowed,
     },
     accessibility,
+    readOnlyCanvas: readOnlyCanvasEvidence(captures),
     authoringIdentity: {
       historicalMachineEvidence: historicalAuthoring,
       currentViewportEvidence: {

@@ -16,6 +16,9 @@ const { FOURTH_STREET_AUTHORING_INPUT } = require('../test/support/hv5-authoring
 const { JUNIPER_WORKS_AUTHORING_INPUT } = require('../test/support/hv7-juniper-venue');
 const { createSourceAuthoringFixture } = require('../test/support/source-authoring-fixture');
 const { listenLoopback, closeServer } = require('./support/visual-harness');
+const { inspectReadOnlyCanvas, getPreviewFrame } = require('./capture-source-authoring-visual');
+const { createVenueCanvasSelection } = require('../src/venue/read-only-venue-canvas-projection');
+const { selectionHref } = require('../src/venue/read-only-venue-canvas-surface');
 
 const ROOT = path.resolve(__dirname, '..');
 const contract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
@@ -186,7 +189,59 @@ async function waitForMainNavigation(page, submitter) {
   await page.waitForLoadState('networkidle');
 }
 
+async function captureCanvasScenario(browser, scenario) {
+  const source = extractDeploymentAgnosticVenueSource(scenario.fixture === 'fourth-street' ? FOURTH_STREET_AUTHORING_INPUT : JUNIPER_WORKS_AUTHORING_INPUT);
+  const fixture = createSourceAuthoringFixture(source);
+  const server = await listenLoopback(fixture.app);
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+  const context = await browser.newContext({ viewport: scenario.viewport, deviceScaleFactor: 1, locale: 'en-US', reducedMotion: 'reduce' });
+  const violations = [];
+  await context.route('**/*', async (route) => {
+    const request = route.request();
+    if (new URL(request.url()).origin === baseUrl && ['GET', 'HEAD'].includes(request.method())) return route.continue();
+    violations.push({ url: request.url(), method: request.method() });
+    return route.abort('blockedbyclient');
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('pageerror', (error) => errors.push(error.message));
+  const before = { accepted: fixture.session.canonicalAccepted(), proposal: fixture.session.canonicalProposal(), status: fixture.session.status() };
+  try {
+    const href = selectionHref(fixture.editorPath + '/canvas', createVenueCanvasSelection(scenario.selection));
+    const response = await page.goto(baseUrl + href, { waitUntil: 'networkidle' });
+    assert.equal(response.status(), 200);
+    assert.equal(response.headers()['cache-control'], 'no-store');
+    const preview = await getPreviewFrame(page, 'Real venue renderer preview');
+    const rendererVenueName = (await preview.locator('#home-heading').textContent()).trim();
+    assert.equal(rendererVenueName, source.venueContext.displayName);
+    if (scenario.fixture === 'fourth-street') assert.equal(rendererVenueName, '4th Street Bar');
+    else assert.match(await preview.locator('body').innerText(), /synthetic fixture/i);
+    await settle(page);
+    const geometry = await inspectReadOnlyCanvas(page, scenario.selection, scenario.viewport);
+    assert.deepEqual({ accepted: fixture.session.canonicalAccepted(), proposal: fixture.session.canonicalProposal(), status: fixture.session.status() }, before);
+    assert.deepEqual(violations, []);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(fixture.rpcPool.calls, []);
+    const filename = `${scenario.id}.png`;
+    const bytes = await page.screenshot({ path: path.join(SHOTS, filename), fullPage: false, animations: 'disabled' });
+    return {
+      id: scenario.id, kind: 'source-authoring', mode: 'canvas', surface: scenario.surface,
+      viewport: scenario.viewport, file: `screenshots/${filename}`, bytes: bytes.length, sha256: sha256(bytes),
+      readOnlyCanvas: true, selection: scenario.selection, geometry, sourceNeutral: true,
+      rendererVenueName, originalName: source.venueContext.displayName, editedName: null,
+      preservedFourthStreetIdentity: scenario.fixture === 'fourth-street' ? rendererVenueName === '4th Street Bar' : null,
+      syntheticFixture: scenario.fixture === 'juniper', externalRequests: violations.length, hiveRpcCalls: fixture.rpcPool.calls.length,
+    };
+  } finally {
+    await context.close();
+    await closeServer(server);
+    fixture.previewApplication.locals.services.receiptStore?.close?.();
+  }
+}
+
 async function captureAuthoringScenario(browser, scenario) {
+  if (scenario.mode === 'canvas') return captureCanvasScenario(browser, scenario);
   const input = scenario.fixture === 'fourth-street'
     ? FOURTH_STREET_AUTHORING_INPUT
     : JUNIPER_WORKS_AUTHORING_INPUT;
