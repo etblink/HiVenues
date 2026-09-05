@@ -8,6 +8,8 @@ const axe = require('axe-core');
 const { chromium } = require('playwright');
 const playwrightPackage = require('playwright/package.json');
 const { extractDeploymentAgnosticVenueSource } = require('../src/venue/source');
+const { createVenueCanvasSelection } = require('../src/venue/read-only-venue-canvas-projection');
+const { selectionHref } = require('../src/venue/read-only-venue-canvas-surface');
 const {
   FOURTH_STREET_AUTHORING_INPUT,
 } = require('../test/support/hv5-authoring-fixtures');
@@ -33,8 +35,8 @@ function sourceOf(authoring) {
   return extractDeploymentAgnosticVenueSource(authoring);
 }
 
-async function getPreviewFrame(page) {
-  const iframe = page.locator('iframe[title="Venue preview"]');
+async function getPreviewFrame(page, title = 'Venue preview') {
+  const iframe = page.locator(`iframe[title="${title}"]`);
   await iframe.waitFor({ state: 'attached' });
   const handle = await iframe.elementHandle();
   assert.ok(handle, 'source-authoring preview iframe is missing');
@@ -51,6 +53,107 @@ async function runAxe(target) {
   const blocking = result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
   assert.deepEqual(blocking, [], JSON.stringify(blocking, null, 2));
   return result.violations.map((violation) => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.length }));
+}
+
+async function inspectReadOnlyCanvas(page, selection, viewport) {
+  const result = await page.evaluate((expected) => {
+    const root = document.documentElement;
+    const summary = document.querySelector('#selection-summary');
+    const rect = (selector) => document.querySelector(selector).getBoundingClientRect();
+    const anchors = [...document.querySelectorAll('a')].filter((node) => node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
+    const mirrors = ['[data-read-only-canvas-surface]', '[data-canvas]', '[data-tree]', '[data-inspector]', '#selection-summary', '[data-diagnostics]', '[data-current-navigation-target]'];
+    const selectedCards = [...document.querySelectorAll('[data-canvas-card][data-selected="true"]')];
+    const selectedRows = [...document.querySelectorAll('[data-tree-row][data-selected="true"]')];
+    const selectedFields = [...document.querySelectorAll('[data-inspector-field][data-selected="true"]')];
+    return {
+      readOnlyCanvas: root.dataset.readOnlyVenueCanvas === 'true',
+      blockId: summary.dataset.selectionBlockId, fieldId: summary.dataset.selectionFieldId,
+      selectionMirrorCount: mirrors.filter((selector) => {
+        const node = document.querySelector(selector);
+        return node.dataset.selectionBlockId === expected.blockId && node.dataset.selectionFieldId === expected.fieldId;
+      }).length,
+      selectedCanvasCardCount: selectedCards.length, selectedTreeRowCount: selectedRows.length,
+      selectedInspectorFieldCount: selectedFields.length,
+      exactSelectedControls: selectedCards[0]?.dataset.blockId === expected.blockId && selectedRows[0]?.dataset.blockId === expected.blockId && selectedFields[0]?.dataset.fieldId === expected.fieldId,
+      selectionSummaryFocused: document.activeElement === summary,
+      visibleAnchorMinimumHeight: Math.min(...anchors.map((node) => node.getBoundingClientRect().height)),
+      visibleAnchorMinimumWidth: Math.min(...anchors.map((node) => node.getBoundingClientRect().width)),
+      horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+      mutationControlCount: document.querySelectorAll('form,input,textarea,select,button,[contenteditable]').length,
+      rendererIframeCount: document.querySelectorAll('iframe[title="Real venue renderer preview"]').length,
+      canvasWidth: rect('[data-canvas]').width, treeWidth: rect('[data-tree]').width, inspectorWidth: rect('[data-inspector]').width,
+      canvasTop: rect('[data-canvas]').top, treeTop: rect('[data-tree]').top, inspectorTop: rect('[data-inspector]').top,
+      workspaceDisplay: globalThis.getComputedStyle(document.querySelector('.workspace')).display,
+      workspaceDirection: globalThis.getComputedStyle(document.querySelector('.workspace')).flexDirection,
+      focusOutlineStyle: globalThis.getComputedStyle(summary).outlineStyle,
+      focusOutlineWidth: parseFloat(globalThis.getComputedStyle(summary).outlineWidth),
+      reducedMotion: globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      scrollBehavior: globalThis.getComputedStyle(root).scrollBehavior,
+    };
+  }, selection);
+  assert.equal(result.readOnlyCanvas, true);
+  assert.equal(result.blockId, selection.blockId);
+  assert.equal(result.fieldId, selection.fieldId);
+  assert.equal(result.selectionMirrorCount, 7);
+  assert.equal(result.selectedCanvasCardCount, 1);
+  assert.equal(result.selectedTreeRowCount, 1);
+  assert.equal(result.selectedInspectorFieldCount, 1);
+  assert.equal(result.exactSelectedControls, true);
+  assert.equal(result.selectionSummaryFocused, true);
+  assert.ok(result.focusOutlineWidth >= 3 && result.focusOutlineStyle !== 'none');
+  assert.ok(result.visibleAnchorMinimumHeight >= 44, JSON.stringify(result));
+  assert.ok(result.visibleAnchorMinimumWidth >= 44, JSON.stringify(result));
+  assert.ok(result.horizontalOverflow <= 1, JSON.stringify(result));
+  assert.equal(result.mutationControlCount, 0);
+  assert.equal(result.rendererIframeCount, 1);
+  if (viewport.width > 1100) {
+    assert.equal(result.workspaceDisplay, 'grid');
+    assert.ok(result.canvasWidth > result.treeWidth && result.canvasWidth > result.inspectorWidth);
+  } else if (viewport.width <= 700) {
+    assert.equal(result.workspaceDisplay, 'flex');
+    assert.equal(result.workspaceDirection, 'column');
+    assert.ok(result.canvasTop < result.inspectorTop && result.inspectorTop < result.treeTop);
+  }
+  if (result.reducedMotion) assert.equal(result.scrollBehavior, 'auto');
+  return result;
+}
+
+async function exerciseReadOnlyCanvas(page, fixture, scenario) {
+  const selection = scenario.id.startsWith('fourth-street')
+    ? { blockId: 'home.hero', fieldId: 'lede' }
+    : { blockId: 'home.equipment-status.item.wood-shop', fieldId: 'name' };
+  const before = { accepted: fixture.session.canonicalAccepted(), proposal: fixture.session.canonicalProposal(), status: fixture.session.status() };
+  const canvasPath = fixture.editorPath + '/canvas';
+  assert.equal(await page.locator('.studio-canvas-link').getAttribute('href'), canvasPath);
+  await submitAndWait(page, () => page.locator('.studio-canvas-link').click());
+  assert.equal(await page.locator('#selection-summary').getAttribute('autofocus'), null);
+  assert.equal(await page.evaluate(() => document.activeElement?.id === 'selection-summary'), false);
+  assert.equal(await page.locator('[data-canvas]').getAttribute('data-selection-block-id'), 'page.home');
+  // Ordinary links prove keyboard navigation as well as pointer selection.
+  const block = page.locator(`[data-tree-row][data-block-id="${selection.blockId}"]`);
+  await block.focus();
+  await submitAndWait(page, () => page.keyboard.press('Enter'));
+  const field = page.locator(`[data-inspector-field][data-field-id="${selection.fieldId}"]`);
+  await field.focus();
+  await submitAndWait(page, () => page.keyboard.press('Enter'));
+  assert.equal(new URL(page.url()).search, new URL(selectionHref(canvasPath, createVenueCanvasSelection(selection)), page.url()).search);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const metrics = await inspectReadOnlyCanvas(page, selection, { width: scenario.width, height: scenario.height });
+  const preview = await getPreviewFrame(page, 'Real venue renderer preview');
+  const rendererVenueName = (await preview.locator('#home-heading').textContent()).trim();
+  assert.equal(rendererVenueName, fixture.session.previewProjection().siteName);
+  const previewGeometry = await preview.evaluate(() => ({ width: document.documentElement.clientWidth, horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth) }));
+  assert.ok(previewGeometry.width >= 320 && previewGeometry.horizontalOverflow <= 1, JSON.stringify(previewGeometry));
+  const axeCanvas = await runAxe(page);
+  const axeCanvasPreview = await runAxe(preview);
+  await page.screenshot({ path: path.join(SHOTS, `${scenario.id}-canvas.png`), fullPage: true });
+  // Native Tab leaves the selected summary; the form editor remains reachable.
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(() => document.activeElement?.tagName), 'A');
+  await submitAndWait(page, () => page.getByRole('link', { name: 'Back to form editor', exact: true }).click());
+  assert.equal(await page.locator('[data-studio-stage]').count(), 4);
+  assert.deepEqual({ accepted: fixture.session.canonicalAccepted(), proposal: fixture.session.canonicalProposal(), status: fixture.session.status() }, before);
+  return { selection, metrics, previewGeometry, rendererVenueName, sourceNeutral: true, keyboardRoundTrip: true, axeCanvas, axeCanvasPreview };
 }
 
 function stageForSection(label) {
@@ -314,6 +417,7 @@ async function runScenario(browser, scenario) {
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   try {
     await page.goto(`${origin}${fixture.editorPath}`, { waitUntil: 'networkidle' });
@@ -325,10 +429,11 @@ async function runScenario(browser, scenario) {
     const postInteraction = await inspectPostInteraction(page, preview, scenario);
     const axeEditor = await runAxe(page);
     const axePreview = await runAxe(preview);
+    await page.screenshot({ path: path.join(SHOTS, `${scenario.id}.png`), fullPage: true });
+    const readOnlyCanvas = await exerciseReadOnlyCanvas(page, fixture, scenario);
     assert.deepEqual(externalRequests, [], JSON.stringify(externalRequests, null, 2));
     assert.deepEqual(fixture.rpcPool.calls, [], JSON.stringify(fixture.rpcPool.calls, null, 2));
     assert.deepEqual(consoleErrors, [], JSON.stringify(consoleErrors, null, 2));
-    await page.screenshot({ path: path.join(SHOTS, `${scenario.id}.png`), fullPage: true });
     return {
       width: scenario.width,
       height: scenario.height,
@@ -337,6 +442,7 @@ async function runScenario(browser, scenario) {
       postInteraction,
       axeEditor,
       axePreview,
+      readOnlyCanvas,
       externalNetworkRequests: externalRequests.length,
       hiveRpcCalls: fixture.rpcPool.calls.length,
     };
@@ -372,7 +478,11 @@ async function run() {
   }
 }
 
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { inspectReadOnlyCanvas, getPreviewFrame };
