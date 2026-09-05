@@ -44,6 +44,8 @@ const visualPatterns = [
   'test/support/hv6-native-editor-fixture.js',
   'test/support/source-authoring-fixture.js',
   'src/venue/read-only-venue-canvas-surface.js',
+  'src/venue/canvas-source-preview.js',
+  'src/venue/editable-venue-canvas-surface.js',
   '.github/workflows/ci.yml',
   'scripts/classify-qualification-scope.js',
   'test/qualification-scope-classifier.test.js',

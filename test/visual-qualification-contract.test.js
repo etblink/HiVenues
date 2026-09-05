@@ -14,6 +14,21 @@ function unique(values, label) {
   assert.equal(new Set(values).size, values.length, `${label} must be unique`);
 }
 
+test('Issue146 adds exactly four synthetic edit outcomes while retaining the 14-suite envelope', () => {
+  assert.equal(contract.machineSuites.length, 14);
+  assert.equal(contract.reviewScenarios.length, 16);
+  const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit');
+  assert.deepEqual(states.map(x => [x.id, x.outcome, x.viewport.width]), [
+    ['juniper-canvas-edit-desktop', 'ready', 1440], ['juniper-canvas-preview-mobile', 'success', 390],
+    ['juniper-canvas-invalid-mobile', 'invalid', 390], ['juniper-canvas-conflict-desktop', 'conflict', 1440],
+  ]);
+  for (const state of states) {
+    assert.equal(state.fixture, 'juniper');
+    assert.deepEqual(state.selection, { blockId: 'home.hero', fieldId: 'lede' });
+  }
+  assert.equal(contract.reviewScenarios.filter(x => x.mode === 'canvas').length, 2);
+});
+
 test('current visual qualification contract is explicit and machine-readable', () => {
   assert.equal(contract.schemaVersion, 1);
   assert.equal(contract.contractId, 'HV_CURRENT_VISUAL_QUALIFICATION_V1');
