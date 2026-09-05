@@ -14,6 +14,21 @@ function unique(values, label) {
   assert.equal(new Set(values).size, values.length, `${label} must be unique`);
 }
 
+test('Canvas fixture navigation refreshes fragment-only transitions without repeating real document loads', async () => {
+  const { navigateCanvasDocument } = require('../scripts/capture-source-authoring-visual');
+  for (const fragmentOnly of [false, true]) {
+    const calls = [];
+    const response = { status: () => 200 };
+    const page = {
+      async goto(href, options) { calls.push(['goto', href, options]); return fragmentOnly ? null : response; },
+      async reload(options) { calls.push(['reload', options]); return response; },
+    };
+    assert.equal(await navigateCanvasDocument(page, '/canvas-editor?blockId=home.hero#selection-summary'), response);
+    assert.equal(calls.length, fragmentOnly ? 2 : 1);
+    if (fragmentOnly) assert.deepEqual(calls[1], ['reload', { waitUntil: 'networkidle' }]);
+  }
+});
+
 test('Issue146 adds exactly four synthetic edit outcomes while retaining the 14-suite envelope', () => {
   assert.equal(contract.machineSuites.length, 14);
   assert.equal(contract.reviewScenarios.length, 16);

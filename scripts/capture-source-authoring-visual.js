@@ -400,13 +400,20 @@ async function inspectPostInteraction(page, preview, scenario) {
 }
 
 // Shared deterministic activation used by the machine suite and current viewports.
+async function navigateCanvasDocument(page, href) {
+  const response = await page.goto(href, { waitUntil: 'networkidle' });
+  // Repeated selection URLs include a fragment: Chromium may only move focus.
+  // Each fixture state needs current server data and a fresh native form.
+  return response || await page.reload({ waitUntil: 'networkidle' });
+}
+
 async function exerciseEditableCanvasState(page, fixture, viewport, outcome, checkAxe = true) {
   const origin = new URL(page.url()).origin;
   const pathname = fixture.editorPath + '/canvas-editor';
   const selection = { blockId: 'home.hero', fieldId: outcome === 'unsupported' ? 'image.src' : 'lede' };
   const href = origin + selectionHref(pathname, createVenueCanvasSelection(selection));
   const accepted = fixture.session.canonicalAccepted();
-  const response = await page.goto(href, { waitUntil: 'networkidle' });
+  const response = await navigateCanvasDocument(page, href);
   assert.equal(response.status(), 200);
   assert.equal(response.headers()['cache-control'], 'no-store');
   const before = fixture.session.canonicalProposal();
@@ -585,4 +592,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inspectReadOnlyCanvas, getPreviewFrame, exerciseEditableCanvasState, assertCanvasBrowserErrors };
+module.exports = { inspectReadOnlyCanvas, getPreviewFrame, exerciseEditableCanvasState, assertCanvasBrowserErrors, navigateCanvasDocument };
