@@ -1,5 +1,7 @@
 'use strict';
 
+const { createEditableVenueCanvasRouter } = require('./editable-venue-canvas-surface');
+
 const express = require('express');
 const foundation = require('./reference/source-authoring-surface-core');
 const { createSourceAuthoringSession } = require('./source-authoring-session');
@@ -291,8 +293,8 @@ const QOL_STYLE = `
     .studio-view-toggle { display: none; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; background: white; border: 1px solid #d6d3d1; border-radius: 12px; margin: 10px 0; }
     .studio-view-toggle button { background: transparent; color: #292524; border-color: transparent; }
     .studio-view-toggle button[aria-pressed="true"] { background: #292524; color: white; }
-    .source-save, .studio-canvas-link { min-height: 44px; display: inline-flex; align-items: center; border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: white; color: #292524; font-weight: 700; text-decoration: none; }
-    .source-save:focus-visible, .studio-canvas-link:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+    .source-save, .studio-canvas-link, .studio-canvas-edit-link { min-height: 44px; display: inline-flex; align-items: center; border: 1px solid #292524; border-radius: 10px; padding: 10px 14px; background: white; color: #292524; font-weight: 700; text-decoration: none; }
+    .source-save:focus-visible, .studio-canvas-link:focus-visible, .studio-canvas-edit-link:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
     .source-save--disabled { border-color: #a8a29e; color: #57534e; background: #f5f5f4; }
     .studio-workflow { background: #fff; border: 1px solid #d6d3d1; border-radius: 14px; padding: 10px 12px; }
     .studio-workflow__state { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
@@ -360,7 +362,7 @@ function reviewMarkup() {
 function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '', session = null, notice = null } = {}) {
   const scriptPath = progressiveScriptPath(editorPath);
   const sourceFilePath = venueSourceDownloadPath(editorPath);
-  const canvasControl = `<a class="studio-canvas-link" href="${escapeHtml(readOnlyVenueCanvasPath(editorPath))}">Open read-only Canvas</a>`;
+  const canvasControl = `<a class="studio-canvas-link" href="${escapeHtml(readOnlyVenueCanvasPath(editorPath))}">Open read-only Canvas</a><a class="studio-canvas-edit-link" href="${escapeHtml(editorPath)}/canvas-editor">Edit text on Canvas</a>`;
   const saveControl = dirty
     ? '<span class="source-save source-save--disabled" aria-disabled="true">Keep changes to save</span>'
     : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
@@ -414,6 +416,7 @@ function createOfflineSourceAuthoringSurface(options = {}) {
   const canvasPath = readOnlyVenueCanvasPath(surface.editorPath);
   let studioNotice = null;
 
+  router.use(createEditableVenueCanvasRouter(surface));
   router.use(express.urlencoded({ extended: false, limit: '64kb' }));
   router.get(canvasPath, (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -507,6 +510,7 @@ function createOfflineSourceAuthoringSurface(options = {}) {
     ...surface,
     router,
     canvasPath,
+    canvasEditorPath: surface.editorPath + '/canvas-editor',
     sourceFilePath,
   });
 }

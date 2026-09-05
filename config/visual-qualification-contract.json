@@ -230,7 +230,8 @@
         "native read-only Canvas shared semantic selection and deterministic focus",
         "source-neutral keyboard navigation, 44px targets, responsive geometry and accessibility",
         "Fourth Street identity preservation",
-        "synthetic/second-venue generic editing"
+        "synthetic/second-venue generic editing",
+        "contextual text preview ready/success/invalid/conflict/unsupported states with revision binding, keyboard focus and Axe"
       ],
       "evidenceRole": "machine-oracle",
       "supersedes": [
@@ -452,6 +453,26 @@
       "surface": "Synthetic Juniper read-only Venue Canvas",
       "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "name" },
       "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "juniper-canvas-edit-desktop", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
+      "surface": "Contextual text editing", "outcome": "ready",
+      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 1440, "height": 1000 }
+    },
+    {
+      "id": "juniper-canvas-preview-mobile", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
+      "surface": "Contextual text preview result", "outcome": "success",
+      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "juniper-canvas-invalid-mobile", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
+      "surface": "Text validation feedback", "outcome": "invalid",
+      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 390, "height": 844 }
+    },
+    {
+      "id": "juniper-canvas-conflict-desktop", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
+      "surface": "Stale text form recovery", "outcome": "conflict",
+      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 1440, "height": 1000 }
     }
   ],
   "currentReviewOracle": {

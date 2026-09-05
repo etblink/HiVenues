@@ -38,6 +38,9 @@ function accessibilityEvidence() {
   const sourcePreview = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.axePreview || []));
   const canvas = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.readOnlyCanvas?.axeCanvas || []));
   const canvasPreview = normalizeFindings(Object.values(source.scenarios || {}).flatMap((scenario) => scenario.readOnlyCanvas?.axeCanvasPreview || []));
+  const editableStates = Object.values(source.scenarios).flatMap(s => s.editableCanvas || []);
+  const editableCanvas = normalizeFindings(editableStates.flatMap(s => s.axeCanvas));
+  const editablePreview = normalizeFindings(editableStates.flatMap(s => s.axePreview));
 
   const declared = contract.accessibilityContract.classifiedNonBlocking;
   const declaredFor = (suite) => normalizeFindings(declared.filter((item) => item.suite === suite));
@@ -46,6 +49,8 @@ function accessibilityEvidence() {
   assert.deepEqual(sourcePreview, [], 'Source-authoring preview must remain free of Axe violations');
   for (const finding of canvas) assert.ok(declaredFor('source-authoring').some((entry) => entry.id === finding.id && entry.impact === finding.impact), `Unclassified Canvas Axe finding: ${JSON.stringify(finding)}`);
   assert.deepEqual(canvasPreview, [], 'Canvas renderer preview must remain free of Axe violations');
+  for (const finding of editableCanvas) assert.ok(declaredFor('source-authoring').some(entry => entry.id === finding.id && entry.impact === finding.impact), `Unclassified editable Canvas Axe finding: ${JSON.stringify(finding)}`);
+  assert.deepEqual(editablePreview, [], 'Editable Canvas preview must remain free of Axe violations');
   return {
     blockingImpacts: contract.accessibilityContract.blockingImpacts,
     wallInbox: ux1eFindings,
@@ -53,6 +58,8 @@ function accessibilityEvidence() {
     sourceAuthoringPreview: sourcePreview,
     readOnlyCanvas: canvas,
     readOnlyCanvasPreview: canvasPreview,
+    editableCanvas,
+    editablePreview,
     classifiedNonBlocking: declared,
   };
 }
@@ -144,6 +151,42 @@ function readOnlyCanvasEvidence(captures) {
   return { machine, viewport: selected };
 }
 
+function editableCanvasEvidence(captures) {
+  const selected = captures.filter(s => s.mode === 'canvas-edit');
+  const declared = contract.reviewScenarios.filter(s => s.mode === 'canvas-edit');
+  assert.equal(selected.length, 4);
+  assert.deepEqual(selected.map(s => s.id), declared.map(s => s.id));
+  const source = readJson(rawRoot, 'source-authoring-visual/manifest.json');
+  const machine = Object.entries(source.scenarios).flatMap(([id, scenario]) => {
+    assert.deepEqual(scenario.editableCanvas.map(s => s.outcome), id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported'] : ['ready', 'unsupported']);
+    assert.equal(scenario.externalNetworkRequests, 0);
+    assert.equal(scenario.hiveRpcCalls, 0);
+    return scenario.editableCanvas.map(s => ({ id, ...s }));
+  });
+  assert.equal(machine.length, 14);
+  for (const state of [...machine, ...selected]) {
+    assert.equal(state.acceptedUnchanged, true);
+    assert.equal(state.rendererTextVerified, true);
+    assert.equal(state.proposalUnchanged, state.outcome !== 'success');
+    assert.equal(state.geometry.selectionMirrorCount, 7);
+    assert.equal(state.geometry.selectionSummaryFocused, true);
+    assert.ok(state.geometry.horizontalOverflow <= 1);
+    assert.ok(state.geometry.minimumTargetHeight >= 44 && state.geometry.minimumTargetWidth >= 44);
+    assert.equal(state.geometry.formCount, state.outcome === 'unsupported' ? 0 : 1);
+    assert.equal(state.geometry.iframeCount, 1);
+    assert.deepEqual(state.expectedHttpErrors, state.outcome === 'invalid' ? [400] : state.outcome === 'conflict' ? [409] : []);
+    if (state.id.startsWith('fourth-street')) assert.equal(state.rendererVenueName, '4th Street Bar');
+  }
+  for (let i = 0; i < selected.length; i += 1) {
+    assert.equal(selected[i].outcome, declared[i].outcome);
+    assert.deepEqual(selected[i].selection, declared[i].selection);
+    assert.equal(selected[i].syntheticFixture, true);
+    assert.equal(selected[i].externalRequests, 0);
+    assert.equal(selected[i].hiveRpcCalls, 0);
+  }
+  return { machine, viewport: selected };
+}
+
 function main() {
   const { review, screenshotBytes } = verifyViewportReview();
   const machineSummary = readJson(path.join(ROOT, 'artifacts'), 'current-visual-machine-summary.json');
@@ -178,6 +221,7 @@ function main() {
     },
     accessibility,
     readOnlyCanvas: readOnlyCanvasEvidence(captures),
+    editableCanvas: editableCanvasEvidence(captures),
     authoringIdentity: {
       historicalMachineEvidence: historicalAuthoring,
       currentViewportEvidence: {

@@ -16,7 +16,7 @@ const { FOURTH_STREET_AUTHORING_INPUT } = require('../test/support/hv5-authoring
 const { JUNIPER_WORKS_AUTHORING_INPUT } = require('../test/support/hv7-juniper-venue');
 const { createSourceAuthoringFixture } = require('../test/support/source-authoring-fixture');
 const { listenLoopback, closeServer } = require('./support/visual-harness');
-const { inspectReadOnlyCanvas, getPreviewFrame } = require('./capture-source-authoring-visual');
+const { inspectReadOnlyCanvas, getPreviewFrame, exerciseEditableCanvasState, assertCanvasBrowserErrors } = require('./capture-source-authoring-visual');
 const { createVenueCanvasSelection } = require('../src/venue/read-only-venue-canvas-projection');
 const { selectionHref } = require('../src/venue/read-only-venue-canvas-surface');
 
@@ -242,6 +242,7 @@ async function captureCanvasScenario(browser, scenario) {
 
 async function captureAuthoringScenario(browser, scenario) {
   if (scenario.mode === 'canvas') return captureCanvasScenario(browser, scenario);
+  if (scenario.mode === 'canvas-edit') return captureEditableCanvasScenario(browser, scenario);
   const input = scenario.fixture === 'fourth-street'
     ? FOURTH_STREET_AUTHORING_INPUT
     : JUNIPER_WORKS_AUTHORING_INPUT;
@@ -318,6 +319,47 @@ async function captureAuthoringScenario(browser, scenario) {
     preservedFourthStreetIdentity: scenario.fixture === 'fourth-street' ? originalName === '4th Street Bar' : null,
     syntheticIdentityEdit: scenario.fixture === 'juniper' ? editedName === 'Juniper Works Community Lab' : null,
   };
+}
+
+async function captureEditableCanvasScenario(browser, scenario) {
+  assert.equal(scenario.fixture, 'juniper');
+  const fixture = createSourceAuthoringFixture(extractDeploymentAgnosticVenueSource(JUNIPER_WORKS_AUTHORING_INPUT));
+  const server = await listenLoopback(fixture.app);
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const context = await browser.newContext({ viewport: scenario.viewport, deviceScaleFactor: 1, locale: 'en-US', reducedMotion: 'reduce' });
+  const violations = [];
+  await context.route('**/*', async route => {
+    const req = route.request();
+    const url = new URL(req.url());
+    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && url.pathname === fixture.editorPath + '/canvas-editor'))) return route.continue();
+    violations.push({ url: req.url(), method: req.method() });
+    return route.abort('blockedbyclient');
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('console', message => { if (message.type() === 'error') errors.push({ text: message.text(), url: message.location().url }); });
+  page.on('pageerror', error => errors.push({ text: error.message, url: '' }));
+  try {
+    await page.goto(origin + fixture.editorPath, { waitUntil: 'networkidle' });
+    const evidence = await exerciseEditableCanvasState(page, fixture, scenario.viewport, scenario.outcome, false);
+    assert.deepEqual(evidence.selection, scenario.selection);
+    await settle(page);
+    if (scenario.viewport.width < 700) {
+      await page.locator(scenario.outcome === 'success' ? 'iframe' : '[data-edit-outcome]').scrollIntoViewIfNeeded();
+    }
+    assertCanvasBrowserErrors(errors, evidence.expectedHttpErrors, fixture.editorPath + '/canvas-editor');
+    assert.deepEqual(violations, []);
+    assert.deepEqual(fixture.rpcPool.calls, []);
+    const file = `screenshots/${scenario.id}.png`;
+    const bytes = await page.screenshot({ path: path.join(OUTPUT, file), fullPage: false, animations: 'disabled' });
+    return { id: scenario.id, kind: scenario.kind, mode: scenario.mode, surface: scenario.surface,
+      viewport: scenario.viewport, file, bytes: bytes.length, sha256: sha256(bytes), ...evidence,
+      syntheticFixture: true, externalRequests: 0, hiveRpcCalls: 0 };
+  } finally {
+    await context.close();
+    await closeServer(server);
+    fixture.previewApplication.locals.services.receiptStore?.close?.();
+  }
 }
 
 async function main() {

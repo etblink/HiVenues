@@ -399,6 +399,108 @@ async function inspectPostInteraction(page, preview, scenario) {
   };
 }
 
+// Shared deterministic activation used by the machine suite and current viewports.
+async function navigateCanvasDocument(page, href) {
+  const response = await page.goto(href, { waitUntil: 'networkidle' });
+  // Repeated selection URLs include a fragment: Chromium may only move focus.
+  // Each fixture state needs current server data and a fresh native form.
+  return response || await page.reload({ waitUntil: 'networkidle' });
+}
+
+async function exerciseEditableCanvasState(page, fixture, viewport, outcome, checkAxe = true) {
+  const origin = new URL(page.url()).origin;
+  const pathname = fixture.editorPath + '/canvas-editor';
+  const selection = { blockId: 'home.hero', fieldId: outcome === 'unsupported' ? 'image.src' : 'lede' };
+  const href = origin + selectionHref(pathname, createVenueCanvasSelection(selection));
+  const accepted = fixture.session.canonicalAccepted();
+  const response = await navigateCanvasDocument(page, href);
+  assert.equal(response.status(), 200);
+  assert.equal(response.headers()['cache-control'], 'no-store');
+  const before = fixture.session.canonicalProposal();
+  const expectedHttpErrors = [];
+  async function submit(target, value, status) {
+    await target.locator('[name=value]').fill(value);
+    await target.locator('[name=value]').press('Tab');
+    assert.equal(await target.locator('button[type=submit]').evaluate(el => el === document.activeElement), true);
+    const pending = target.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === pathname);
+    const navigation = target.waitForEvent('framenavigated', { predicate: frame => frame === target.mainFrame() });
+    await target.keyboard.press('Enter');
+    const result = await pending;
+    assert.equal(result.status(), status);
+    await navigation;
+    await target.waitForLoadState('networkidle');
+  }
+  if (outcome === 'conflict') {
+    const other = await page.context().newPage();
+    try {
+      await other.goto(href, { waitUntil: 'networkidle' });
+      await submit(other, 'Updated in another editor. Review this current draft.', 200);
+    } finally { await other.close(); }
+  }
+  const currentBeforeSubmit = fixture.session.canonicalProposal();
+  if (['success', 'invalid', 'conflict'].includes(outcome)) {
+    const status = outcome === 'invalid' ? 400 : outcome === 'conflict' ? 409 : 200;
+    await submit(page, outcome === 'invalid' ? '' : 'Make something together. Explore our open workshops.', status);
+    if (status !== 200) expectedHttpErrors.push(status);
+  }
+  assert.equal(await page.locator('[data-edit-outcome]').getAttribute('data-edit-outcome'), outcome);
+  assert.equal(fixture.session.canonicalAccepted(), accepted);
+  const proposalUnchanged = fixture.session.canonicalProposal() === currentBeforeSubmit;
+  if (outcome !== 'success') assert.equal(proposalUnchanged, true);
+  else assert.equal(proposalUnchanged, false);
+  const expectedText = fixture.session.proposalDraft.venuePackage.home.hero.lede;
+  if (outcome !== 'unsupported') {
+    assert.equal(await page.locator('[name=value]').inputValue(), outcome === 'invalid' ? '' : expectedText);
+  }
+  const preview = await getPreviewFrame(page, 'Real venue renderer preview');
+  assert.ok((await preview.locator('body').innerText()).includes(expectedText));
+  const rendererVenueName = (await preview.locator('#home-heading').textContent()).trim();
+  assert.equal(rendererVenueName, fixture.session.acceptedSource.venueContext.displayName);
+  const geometry = await page.evaluate(expected => {
+    const root = document.documentElement;
+    const mirrors = ['[data-editable-canvas-surface]', '[data-canvas]', '[data-tree]', '[data-inspector]', '#selection-summary', '[data-diagnostics]', '[data-current-navigation-target]'];
+    const controls = [...document.querySelectorAll('a,button,summary,input:not([type=hidden]),textarea')].filter(x => x.checkVisibility() && x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0);
+    const summary = document.querySelector('#selection-summary');
+    return {
+      selectionMirrorCount: mirrors.filter(s => document.querySelector(s)?.dataset.selectionBlockId === expected.blockId && document.querySelector(s)?.dataset.selectionFieldId === expected.fieldId).length,
+      selectionSummaryFocused: document.activeElement === summary,
+      focusOutlineWidth: parseFloat(globalThis.getComputedStyle(summary).outlineWidth),
+      horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+      minimumTargetHeight: Math.min(...controls.map(x => x.getBoundingClientRect().height)),
+      minimumTargetWidth: Math.min(...controls.map(x => x.getBoundingClientRect().width)),
+      formCount: document.querySelectorAll('[data-canvas-edit-form]').length,
+      iframeCount: document.querySelectorAll('iframe[title="Real venue renderer preview"]').length,
+      selectedCanvasCardCount: document.querySelectorAll('[data-canvas-card][data-selected=true]').length,
+      selectedTreeRowCount: document.querySelectorAll('[data-tree-row][data-selected=true]').length,
+      selectedInspectorFieldCount: document.querySelectorAll('[data-inspector-field][data-selected=true]').length,
+      workspaceDisplay: globalThis.getComputedStyle(document.querySelector('.workspace')).display,
+    };
+  }, selection);
+  assert.equal(geometry.selectionMirrorCount, 7);
+  assert.equal(geometry.selectionSummaryFocused, true);
+  assert.ok(geometry.focusOutlineWidth >= 3);
+  assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
+  assert.ok(geometry.minimumTargetHeight >= 44 && geometry.minimumTargetWidth >= 44, JSON.stringify(geometry));
+  assert.equal(geometry.formCount, outcome === 'unsupported' ? 0 : 1);
+  assert.equal(geometry.iframeCount, 1);
+  for (const key of ['selectedCanvasCardCount', 'selectedTreeRowCount', 'selectedInspectorFieldCount']) assert.equal(geometry[key], 1);
+  assert.equal(geometry.workspaceDisplay, viewport.width > 1100 ? 'grid' : 'flex');
+  return { outcome, selection, geometry, acceptedUnchanged: true, proposalUnchanged,
+    proposalChangedFromInitial: before !== fixture.session.canonicalProposal(), rendererTextVerified: true,
+    rendererVenueName, expectedHttpErrors, axeCanvas: checkAxe ? await runAxe(page) : [], axePreview: checkAxe ? await runAxe(preview) : [] };
+}
+
+function assertCanvasBrowserErrors(errors, expectedStatuses, pathname) {
+  const remaining = [...errors];
+  for (const status of expectedStatuses) {
+    const text = `Failed to load resource: the server responded with a status of ${status} (${status === 400 ? 'Bad Request' : 'Conflict'})`;
+    const index = remaining.findIndex(error => error.text === text && new URL(error.url).pathname === pathname);
+    assert.ok(index >= 0, 'Missing precisely classified expected HTTP error: ' + JSON.stringify({ status, remaining }));
+    remaining.splice(index, 1);
+  }
+  assert.deepEqual(remaining, [], JSON.stringify(remaining));
+}
+
 async function runScenario(browser, scenario) {
   const fixture = createSourceAuthoringFixture(sourceOf(scenario.input));
   const server = await listen(fixture.app);
@@ -415,9 +517,9 @@ async function runScenario(browser, scenario) {
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() === 'error') consoleErrors.push({ text: message.text(), url: message.location().url });
   });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
+  page.on('pageerror', (error) => consoleErrors.push({ text: error.message, url: '' }));
 
   try {
     await page.goto(`${origin}${fixture.editorPath}`, { waitUntil: 'networkidle' });
@@ -431,9 +533,13 @@ async function runScenario(browser, scenario) {
     const axePreview = await runAxe(preview);
     await page.screenshot({ path: path.join(SHOTS, `${scenario.id}.png`), fullPage: true });
     const readOnlyCanvas = await exerciseReadOnlyCanvas(page, fixture, scenario);
+    const editableCanvas = [];
+    for (const outcome of scenario.id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported'] : ['ready', 'unsupported']) {
+      editableCanvas.push(await exerciseEditableCanvasState(page, fixture, scenario, outcome));
+    }
     assert.deepEqual(externalRequests, [], JSON.stringify(externalRequests, null, 2));
     assert.deepEqual(fixture.rpcPool.calls, [], JSON.stringify(fixture.rpcPool.calls, null, 2));
-    assert.deepEqual(consoleErrors, [], JSON.stringify(consoleErrors, null, 2));
+    assertCanvasBrowserErrors(consoleErrors, editableCanvas.flatMap(x => x.expectedHttpErrors), fixture.editorPath + '/canvas-editor');
     return {
       width: scenario.width,
       height: scenario.height,
@@ -443,6 +549,7 @@ async function runScenario(browser, scenario) {
       axeEditor,
       axePreview,
       readOnlyCanvas,
+      editableCanvas,
       externalNetworkRequests: externalRequests.length,
       hiveRpcCalls: fixture.rpcPool.calls.length,
     };
@@ -485,4 +592,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { inspectReadOnlyCanvas, getPreviewFrame };
+module.exports = { inspectReadOnlyCanvas, getPreviewFrame, exerciseEditableCanvasState, assertCanvasBrowserErrors, navigateCanvasDocument };
