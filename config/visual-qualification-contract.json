@@ -233,7 +233,8 @@
         "synthetic/second-venue generic editing",
         "contextual text preview ready/success/invalid/conflict/unsupported states with revision binding, keyboard focus and Axe",
         "session-only Canvas Undo/Redo history with exact inverse replay, stale invalidation and no persistence",
-        "stable-ID equipment reorder with one-step and stable-destination Move to controls, exact inverse history, and no insert/remove Canvas authority"
+        "stable-ID equipment reorder with one-step and stable-destination Move to controls, exact inverse history, and no insert/remove Canvas authority",
+        "Equipment add/remove lifecycle: empty, full, invalid, added, named confirmation and removed states on both viewports; stable selection, exact real-renderer item order, accessible targets and source neutrality."
       ],
       "evidenceRole": "machine-oracle",
       "supersedes": [
@@ -592,6 +593,94 @@
       "viewport": {
         "width": 390,
         "height": 844
+      }
+    },
+    {
+      "id": "juniper-canvas-equipment-empty-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Empty equipment list and add form",
+      "outcome": "equipment-empty",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "selection": {
+        "blockId": "home.equipment-status"
+      }
+    },
+    {
+      "id": "juniper-canvas-equipment-full-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment capacity reached",
+      "outcome": "equipment-full",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "selection": {
+        "blockId": "home.equipment-status"
+      }
+    },
+    {
+      "id": "juniper-canvas-equipment-invalid-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment validation with retained entries",
+      "outcome": "equipment-invalid",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "selection": {
+        "blockId": "home.equipment-status"
+      }
+    },
+    {
+      "id": "juniper-canvas-equipment-added-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Added equipment selection",
+      "outcome": "equipment-added",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "selectionSource": "new-equipment-item"
+    },
+    {
+      "id": "juniper-canvas-equipment-confirm-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Named equipment removal confirmation",
+      "outcome": "equipment-confirm",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "selection": {
+        "blockId": "home.equipment-status.item.wood-shop"
+      }
+    },
+    {
+      "id": "juniper-canvas-equipment-removed-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Removed equipment and Undo recovery",
+      "outcome": "equipment-removed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "selection": {
+        "blockId": "home.equipment-status"
       }
     }
   ],

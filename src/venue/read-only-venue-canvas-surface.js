@@ -68,8 +68,10 @@ function projectStudioSource(sourceInput, selectionInput) {
 }
 
 function label(value) {
-  return value.replace(/^Venue equipment status item: /, '').replace(/^Venue program: /, '')
-    .replace(/^Venue /, '').replace(/ fixed topology$/, '');
+  for (const prefix of ['Venue equipment status item: ', 'Venue program: ']) {
+    if (value.startsWith(prefix)) return value.slice(prefix.length);
+  }
+  return value.replace(/^Venue /, '').replace(/ fixed topology$/, '');
 }
 
 function selectionAttributes(selection) {

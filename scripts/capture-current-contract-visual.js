@@ -331,7 +331,7 @@ async function captureEditableCanvasScenario(browser, scenario) {
   await context.route('**/*', async route => {
     const req = route.request();
     const url = new URL(req.url());
-    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history', fixture.editorPath + '/canvas-editor/move', fixture.editorPath + '/canvas-editor/move-to'].includes(url.pathname)))) return route.continue();
+    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history', fixture.editorPath + '/canvas-editor/move', fixture.editorPath + '/canvas-editor/move-to', fixture.editorPath + '/canvas-editor/equipment/add', fixture.editorPath + '/canvas-editor/equipment/remove'].includes(url.pathname)))) return route.continue();
     violations.push({ url: req.url(), method: req.method() });
     return route.abort('blockedbyclient');
   });
@@ -342,10 +342,20 @@ async function captureEditableCanvasScenario(browser, scenario) {
   try {
     await page.goto(origin + fixture.editorPath, { waitUntil: 'networkidle' });
     const evidence = await exerciseEditableCanvasState(page, fixture, scenario.viewport, scenario.outcome, false);
-    assert.deepEqual(evidence.selection, scenario.selection);
+    if (scenario.selectionSource === 'new-equipment-item') {
+      assert.deepEqual(evidence.selection, { blockId: 'home.equipment-status.item.' + fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.at(-1).id });
+    } else assert.deepEqual(evidence.selection, scenario.selection);
     await settle(page);
+    if (scenario.outcome === 'equipment-added') {
+      const preview = await getPreviewFrame(page, 'Real venue renderer preview');
+      const id = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.at(-1).id;
+      await preview.locator(`[data-equipment-id="${id}"]`).evaluate(el => globalThis.scrollTo(0, el.getBoundingClientRect().top + globalThis.scrollY - 12));
+    }
     if (scenario.viewport.width < 700) {
-      const target = scenario.outcome === 'success' ? 'iframe'
+      const target = scenario.outcome === 'equipment-confirm' ? '[data-canvas-equipment-confirm]'
+        : scenario.outcome === 'equipment-removed' ? '[data-canvas-history]'
+          : scenario.outcome === 'equipment-invalid' ? '#equipment-lastUpdated'
+            : scenario.outcome === 'success' ? 'iframe'
         : scenario.outcome === 'history-undo' || scenario.outcome === 'reorder-moved' ? '[data-canvas-history]'
           : scenario.outcome === 'reorder-ready' ? '[data-canvas-move]'
             : '[data-edit-outcome]';
