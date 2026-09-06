@@ -9,7 +9,11 @@ const SHORT_COPY = z.string().trim().min(1).max(240);
 const ITEM_ID = z.string().trim().min(2).max(80).regex(ITEM_ID_PATTERN);
 const HEX_COLOR = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).transform((value) => value.toLowerCase());
 const ISO_TIMESTAMP = z.string().trim().max(40).superRefine((value, context) => {
-  if (!/(?:Z|[+-]\d{2}:\d{2})$/.test(value) || Number.isNaN(Date.parse(value))) {
+  const date = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.exec(value);
+  const [year, month, day] = date ? date.slice(1).map(Number) : [];
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (!date || day < 1 || !(day <= daysInMonth) || Number.isNaN(Date.parse(value))) {
     context.addIssue({ code: 'custom', message: 'Timestamp must be a valid ISO-8601 value with an explicit offset' });
   }
 });

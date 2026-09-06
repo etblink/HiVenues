@@ -352,7 +352,8 @@ async function captureEditableCanvasScenario(browser, scenario) {
       await preview.locator(`[data-equipment-id="${id}"]`).evaluate(el => globalThis.scrollTo(0, el.getBoundingClientRect().top + globalThis.scrollY - 12));
     }
     if (scenario.viewport.width < 700) {
-      const target = scenario.outcome === 'equipment-confirm' ? '[data-canvas-equipment-confirm]'
+      const target = scenario.outcome?.startsWith('field-') ? '[data-canvas-edit-form]'
+        : scenario.outcome === 'equipment-confirm' ? '[data-canvas-equipment-confirm]'
         : scenario.outcome === 'equipment-removed' ? '[data-canvas-history]'
           : scenario.outcome === 'equipment-invalid' ? '#equipment-lastUpdated'
             : scenario.outcome === 'success' ? 'iframe'

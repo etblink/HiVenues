@@ -21,6 +21,26 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+test('Canonical timestamps reject impossible dates across equipment and programs while preserving valid offsets', () => {
+  for (const value of ['2026-02-30T12:00:00Z', '2026-02-29T12:00:00Z', '2100-02-29T12:00:00Z', '2026-04-31T12:00:00Z', 'September 6, 2026Z']) {
+    for (const kind of ['equipment', 'program']) {
+      const input = createJuniperWorksPackageInput();
+      if (kind === 'equipment') input.home.equipmentStatus.items[0].lastUpdated = value;
+      else { input.home.programs.items[0].startAt = value; input.home.programs.items[0].endAt = '2200-12-31T23:00:00Z'; }
+      assert.throws(() => createVenuePackage(input), kind + ': ' + value);
+    }
+  }
+  for (const value of ['2028-02-29T12:00Z', '2000-02-29T12:00:00.123Z', '2026-09-06T05:15:00-07:00']) {
+    const input = createJuniperWorksPackageInput();
+    input.home.equipmentStatus.items[0].lastUpdated = value;
+    input.home.programs.items[0].startAt = value;
+    input.home.programs.items[0].endAt = new Date(Date.parse(value) + 3600000).toISOString();
+    const result = createVenuePackage(input);
+    assert.equal(result.home.equipmentStatus.items[0].lastUpdated, value);
+    assert.equal(result.home.programs.items.find(x => x.id === input.home.programs.items[0].id).startAt, value);
+  }
+});
+
 test('schema-v1 remains backward compatible for the accepted Lantern Room fixture', () => {
   const document = createVenueAuthoringDocument({
     schemaVersion: 1,

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { randomBytes, timingSafeEqual } = require('node:crypto');
-const { EQUIPMENT_COLLECTION, canvasEquipmentCollection, canvasMoveItem, canvasTextField } = require('./canvas-source-preview');
+const { EQUIPMENT_COLLECTION, canvasEquipmentCollection, canvasMoveItem, canvasEditableField } = require('./canvas-source-preview');
 const { createSetFieldCommand } = require('./semantic-venue-canvas-contract');
 const { renderVenueCanvasFrame, parseReadOnlyVenueCanvasQuery, projectStudioSource } = require('./read-only-venue-canvas-surface');
 
@@ -25,7 +25,7 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
   const source = session.proposalDraft;
   const projection = projectStudioSource(source, selectionInput);
   const { blockId, fieldId } = projection.selection;
-  const field = fieldId ? canvasTextField(source, blockId, fieldId) : null;
+  const field = fieldId ? canvasEditableField(source, blockId, fieldId) : null;
   const move = canvasMoveItem(source, blockId);
   const equipment = blockId === EQUIPMENT_COLLECTION && !fieldId ? canvasEquipmentCollection(source, blockId) : null;
   if (!equipment && !field?.editable && !move.editable && outcome === 'ready') outcome = 'unsupported';
@@ -43,11 +43,18 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
       : `No preview available to ${action}`;
     return `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/history" data-canvas-history-form>${hidden('token', token)}${hidden('revision', historyRevision)}${hidden('action', action)}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}<button type="submit" data-canvas-history-action="${action}"${enabled ? '' : ' disabled aria-disabled="true"'}>${label}</button><span>${escapeHtml(state)}</span></form>`;
   };
-  const control = field?.controlKind === 'multiline-text'
+  const timeHelp = field?.editable && field.controlKind === 'datetime-offset'
+    ? '<p id="canvas-field-help">Enter the actual check time with a timezone, for example 2026-09-06T12:00:00Z (UTC) or 2026-09-06T05:00:00-07:00.</p>' : '';
+  const choiceOptions = field?.controlKind === 'select' ? field.options : [];
+  const rejectedChoice = field?.controlKind === 'select' && !choiceOptions.includes(value)
+    ? `<option value="${escapeHtml(value)}" selected disabled>${value ? 'Unavailable status: ' + escapeHtml(value) : 'Choose status'}</option>` : '';
+  const control = field?.controlKind === 'select'
+    ? `<select id="canvas-field-value" name="value" aria-describedby="canvas-edit-status"${invalid}>${rejectedChoice}${choiceOptions.map(option => `<option value="${escapeHtml(option)}"${option === value ? ' selected' : ''}>${escapeHtml(option[0].toUpperCase() + option.slice(1))}</option>`).join('')}</select>`
+    : field?.controlKind === 'multiline-text'
     ? `<textarea id="canvas-field-value" name="value" rows="5" aria-describedby="canvas-edit-status"${invalid}>${escapeHtml(value)}</textarea>`
-    : `<input id="canvas-field-value" name="value" type="text" value="${escapeHtml(value)}" aria-describedby="canvas-edit-status"${invalid}>`;
+    : `<input id="canvas-field-value" name="value" type="text" value="${escapeHtml(value)}" aria-describedby="canvas-edit-status${timeHelp ? ' canvas-field-help' : ''}"${timeHelp ? ' maxlength="40"' : ''}${invalid}>`;
   const textEditor = field?.editable
-    ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor" data-canvas-edit-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId)}<label for="canvas-field-value">${escapeHtml(text)}${field.required ? '' : ' (optional)'}</label>${control}<button type="submit">Preview change</button></form>`
+    ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor" data-canvas-edit-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId)}<label for="canvas-field-value">${escapeHtml(text)}${field.required ? '' : ' (optional)'}</label>${control}${timeHelp}<button type="submit">Preview change</button></form>`
     : fieldId ? '<p data-canvas-unsupported>This field is read-only in Canvas.</p>' : '';
   const moveAction = (direction, enabled) => `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/move" data-canvas-move-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}${hidden('direction', direction)}<button type="submit" data-canvas-move-action="${direction}"${enabled ? '' : ' disabled aria-disabled="true"'}>Move ${direction}</button></form>`;
   const moveDestinationOptions = move.destinations.map((destination) => `<option value="${escapeHtml(destination.value)}"${destination.current ? ' disabled data-current="true"' : ''}>Position ${destination.position}${destination.current ? ' — current' : destination.beforeBlockId === null ? ' — end' : ''}</option>`).join('');
@@ -88,8 +95,12 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
         <button type="submit" data-canvas-equipment-remove>Remove equipment from preview</button>
       </form><a class="equipment-link" data-canvas-equipment-cancel href="${selectionUrl(blockId)}">Cancel removal</a>
     </details></section>` : '';
-  const fallback = !textEditor && !moveEditor && !addEditor ? '<p data-canvas-unsupported>Select an editable text field or a supported movable item.</p>' : '';
-  const inspector = `<section class="canvas-editor" data-edit-outcome="${outcome}"><p id="canvas-edit-status" role="${['invalid', 'conflict'].includes(outcome) ? 'alert' : 'status'}">${MESSAGES[outcome]}</p>${textEditor}${moveEditor}${addEditor}${removeEditor}${fallback}<section class="canvas-history" data-canvas-history data-undo-count="${history.undoCount}" data-redo-count="${history.redoCount}" aria-label="Session preview history"><p><strong>Session preview history</strong><br>Up to ${history.limit} Canvas preview changes. History is cleared by other draft actions and is never saved.</p>${historyAction('undo', history.undo)}${historyAction('redo', history.redo)}</section></section>`;
+  const fallback = !textEditor && !moveEditor && !addEditor ? '<p data-canvas-unsupported>Select an editable field or a supported movable item.</p>' : '';
+  const feedback = outcome === 'invalid' && field?.editable && field.controlKind === 'datetime-offset'
+    ? 'Enter a real calendar date and time with a timezone. Your draft is unchanged.'
+    : outcome === 'invalid' && field?.editable && field.controlKind === 'select'
+      ? 'Choose one of the listed equipment statuses. Your draft is unchanged.' : MESSAGES[outcome];
+  const inspector = `<section class="canvas-editor" data-edit-outcome="${outcome}"><p id="canvas-edit-status" role="${['invalid', 'conflict'].includes(outcome) ? 'alert' : 'status'}">${feedback}</p>${textEditor}${moveEditor}${addEditor}${removeEditor}${fallback}<section class="canvas-history" data-canvas-history data-undo-count="${history.undoCount}" data-redo-count="${history.redoCount}" aria-label="Session preview history"><p><strong>Session preview history</strong><br>Up to ${history.limit} Canvas preview changes. History is cleared by other draft actions and is never saved.</p>${historyAction('undo', history.undo)}${historyAction('redo', history.redo)}</section></section>`;
   return renderVenueCanvasFrame({ sourceInput: source, selectionInput, editorPath, previewPath, dirty: session.status().dirty }, {
     canvasPath: editorPath + '/canvas-editor', inspector,
     style: `.canvas-editor { margin: 10px; padding: 12px; background: #f7f8f3; border: 1px solid #d4d9cc; border-radius: 8px; }

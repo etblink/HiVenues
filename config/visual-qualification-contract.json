@@ -682,6 +682,46 @@
       "selection": {
         "blockId": "home.equipment-status"
       }
+    },
+    {
+      "id": "juniper-canvas-status-ready-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment status choices",
+      "outcome": "field-status-ready",
+      "viewport": { "width": 1440, "height": 1000 },
+      "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "state" }
+    },
+    {
+      "id": "juniper-canvas-status-changed-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment status preview",
+      "outcome": "field-status-changed",
+      "viewport": { "width": 390, "height": 844 },
+      "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "state" }
+    },
+    {
+      "id": "juniper-canvas-time-changed-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment check time with timezone",
+      "outcome": "field-time-changed",
+      "viewport": { "width": 1440, "height": 1000 },
+      "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "lastUpdated" }
+    },
+    {
+      "id": "juniper-canvas-time-invalid-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Equipment check time validation and recovery",
+      "outcome": "field-time-invalid",
+      "viewport": { "width": 390, "height": 844 },
+      "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "lastUpdated" }
     }
   ],
   "currentReviewOracle": {
