@@ -34,8 +34,15 @@ Previously admitted impossible or non-ISO timestamps now fail validation.
 | Every available field follows the declared eligibility boundary | Existing exhaustive descriptor/HTTP test in `test/editable-venue-canvas-studio.test.js` |
 | Keyboard use, focus, accessibility, selected mirrors and real preview on desktop/mobile | Four `field-*` states in `exerciseEditableCanvasState`, executed by the existing source-authoring visual suite |
 | Responsive presentation approval | Four new current viewport captures: desktop status choices, mobile changed status, desktop offset time and mobile invalid time; exact-head manual review required |
+| Evidence packaging accepts the complete declared set and rejects missing or forged reports | `Actual Canvas evidence assembler accepts all declared typed-field states and rejects missing or forged reports` |
 
 All existing gates remain. The 14-suite machine envelope gains four states inside
 the existing authoring suite; the bounded review set grows from 26 to 30 captures.
 These cover distinct new controls and rejection guidance. No browser job, install
 or repeated full build is added. Canonical postmerge qualification is still required.
+
+CI610 completed its browser checks and captures but rejected packaging because
+the assembler retained the old editable-state count and outcome list. The repair
+checks exact declared viewport IDs, all 42 machine states, typed-field mutation
+expectations and invalid-time HTTP errors. Its new deterministic mutation oracle
+exercises the actual assembler, including missing states and forged evidence.

@@ -151,34 +151,32 @@ function readOnlyCanvasEvidence(captures) {
   return { machine, viewport: selected };
 }
 
-function editableCanvasEvidence(captures) {
+function editableCanvasEvidence(captures, source = readJson(rawRoot, 'source-authoring-visual/manifest.json')) {
   const selected = captures.filter(s => s.mode === 'canvas-edit');
   const declared = contract.reviewScenarios.filter(s => s.mode === 'canvas-edit');
-  assert.equal(selected.length, 14);
   assert.deepEqual(selected.map(s => s.id), declared.map(s => s.id));
-  const source = readJson(rawRoot, 'source-authoring-visual/manifest.json');
   const machine = Object.entries(source.scenarios).flatMap(([id, scenario]) => {
     assert.deepEqual(scenario.editableCanvas.map(s => s.outcome), id.startsWith('juniper')
-      ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved', 'equipment-empty', 'equipment-full', 'equipment-invalid', 'equipment-added', 'equipment-confirm', 'equipment-removed']
+      ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved', 'equipment-empty', 'equipment-full', 'equipment-invalid', 'equipment-added', 'equipment-confirm', 'equipment-removed', 'field-status-ready', 'field-status-changed', 'field-time-changed', 'field-time-invalid']
       : ['ready', 'unsupported']);
     assert.equal(scenario.externalNetworkRequests, 0);
     assert.equal(scenario.hiveRpcCalls, 0);
     return scenario.editableCanvas.map(s => ({ id, ...s }));
   });
-  assert.equal(machine.length, 34);
+  assert.equal(machine.length, 42);
   for (const state of [...machine, ...selected]) {
     assert.equal(state.acceptedUnchanged, true);
     assert.equal(state.rendererTextVerified, true);
     assert.equal(state.rendererHeading.textFits, true);
     assert.ok(state.rendererHeading.horizontalOverflow <= 1);
-    assert.equal(state.proposalUnchanged, !['success', 'history-dirty', 'history-undo', 'reorder-moved', 'equipment-added', 'equipment-removed'].includes(state.outcome));
+    assert.equal(state.proposalUnchanged, !['success', 'history-dirty', 'history-undo', 'reorder-moved', 'equipment-added', 'equipment-removed', 'field-status-changed', 'field-time-changed'].includes(state.outcome));
     assert.equal(state.geometry.selectionMirrorCount, 7);
     assert.equal(state.geometry.selectionSummaryFocused, true);
     assert.ok(state.geometry.horizontalOverflow <= 1);
     assert.ok(state.geometry.minimumTargetHeight >= 44 && state.geometry.minimumTargetWidth >= 44);
     assert.equal(state.geometry.formCount, state.outcome === 'unsupported' || state.outcome.startsWith('reorder-') || state.outcome.startsWith('equipment-') ? 0 : 1);
     assert.equal(state.geometry.iframeCount, 1);
-    assert.deepEqual(state.expectedHttpErrors, state.outcome === 'equipment-invalid' ? [{ status: 400, pathname: '/__source_authoring/simple/canvas-editor/equipment/add' }] : state.outcome === 'invalid' ? [400] : state.outcome === 'conflict' ? [409] : []);
+    assert.deepEqual(state.expectedHttpErrors, state.outcome === 'equipment-invalid' ? [{ status: 400, pathname: '/__source_authoring/simple/canvas-editor/equipment/add' }] : ['invalid', 'field-time-invalid'].includes(state.outcome) ? [400] : state.outcome === 'conflict' ? [409] : []);
     if (state.outcome === 'history-dirty') assert.deepEqual(state.geometry.history, { undoCount: 2, redoCount: 0, undoEnabled: true, redoEnabled: false });
     if (state.outcome === 'history-undo') assert.deepEqual(state.geometry.history, { undoCount: 1, redoCount: 1, undoEnabled: true, redoEnabled: true });
     if (state.outcome === 'reorder-ready') {
@@ -257,9 +255,13 @@ function main() {
   process.stdout.write(`Current visual evidence PASS: ${captures.length} real viewport screenshots, ${screenshotBytes} PNG bytes\n`);
 }
 
-try {
-  main();
-} catch (error) {
-  process.stderr.write(`${error.stack || error.message}\n`);
-  process.exitCode = 1;
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    process.stderr.write(`${error.stack || error.message}\n`);
+    process.exitCode = 1;
+  }
 }
+
+module.exports = { editableCanvasEvidence };
