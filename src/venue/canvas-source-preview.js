@@ -32,6 +32,8 @@ function canvasTextField(sourceInput, blockId, fieldId) {
   return Object.freeze({ ...field, value, editable });
 }
 
+const COLLECTION_END_DESTINATION = '__collection_end__';
+
 function canvasMoveItem(sourceInput, blockId) {
   const source = createDeploymentAgnosticVenueSource(sourceInput);
   const contract = createSemanticVenueCanvasContract(commandDocument(source));
@@ -48,19 +50,36 @@ function canvasMoveItem(sourceInput, blockId) {
       count: null,
       canMoveUp: false,
       canMoveDown: false,
+      destinations: Object.freeze([]),
     });
   }
   const parent = findVenueCanvasBlock(contract, block.placement.parentId);
   const index = parent.children.findIndex((entry) => entry.id === block.id);
   if (index < 0) throw new TypeError('Movable Canvas item is outside its parent collection');
+  const siblingsWithoutSelected = parent.children.filter((entry) => entry.id !== block.id);
+  const destinations = Object.freeze(parent.children.map((_entry, targetIndex) => {
+    const before = targetIndex === parent.children.length - 1
+      ? null
+      : siblingsWithoutSelected[targetIndex];
+    return Object.freeze({
+      position: targetIndex + 1,
+      current: targetIndex === index,
+      value: before ? before.id : COLLECTION_END_DESTINATION,
+      beforeBlockId: before?.id || null,
+    });
+  }));
+  const commandTo = (destination) => {
+    const target = destinations.find((entry) => entry.value === destination);
+    if (!target) throw new TypeError('Canvas move destination is unavailable');
+    if (target.current) throw new TypeError('Canvas move destination is already current');
+    return createMoveItemCommand({ blockId: block.id, beforeBlockId: target.beforeBlockId });
+  };
   const moveCommand = (direction) => {
     if (!['up', 'down'].includes(direction)) throw new TypeError('Canvas move direction must be up or down');
-    if (direction === 'up') {
-      if (index === 0) throw new TypeError('Canvas item is already first');
-      return createMoveItemCommand({ blockId: block.id, beforeBlockId: parent.children[index - 1].id });
-    }
-    if (index === parent.children.length - 1) throw new TypeError('Canvas item is already last');
-    return createMoveItemCommand({ blockId: block.id, beforeBlockId: parent.children[index + 2]?.id || null });
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0) throw new TypeError('Canvas item is already first');
+    if (targetIndex >= parent.children.length) throw new TypeError('Canvas item is already last');
+    return commandTo(destinations[targetIndex].value);
   };
   return Object.freeze({
     editable: true,
@@ -70,7 +89,9 @@ function canvasMoveItem(sourceInput, blockId) {
     count: parent.children.length,
     canMoveUp: index > 0,
     canMoveDown: index < parent.children.length - 1,
+    destinations,
     command: moveCommand,
+    commandTo,
   });
 }
 
@@ -88,11 +109,11 @@ function previewCanvasSourceCommandWithInverse(sourceInput, commandInput) {
   } else if (command.type === COMMAND_TYPE.MOVE_ITEM) {
     const move = canvasMoveItem(source, command.blockId);
     if (!move.editable) throw new TypeError('Canvas item move denied');
-    const allowed = [];
-    if (move.canMoveUp) allowed.push(move.command('up'));
-    if (move.canMoveDown) allowed.push(move.command('down'));
+    const allowed = move.destinations
+      .filter((destination) => !destination.current)
+      .map((destination) => move.commandTo(destination.value));
     if (!allowed.some((candidate) => JSON.stringify(candidate) === JSON.stringify(command))) {
-      throw new TypeError('Only one-step Canvas item moves are supported');
+      throw new TypeError('Canvas item move is outside the current stable destination set');
     }
     forwardCommand = command;
   } else {
@@ -117,6 +138,7 @@ function previewCanvasSourceField(sourceInput, commandInput) {
 }
 
 module.exports = {
+  COLLECTION_END_DESTINATION,
   canvasMoveItem,
   canvasTextField,
   previewCanvasSourceCommandWithInverse,

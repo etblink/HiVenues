@@ -233,7 +233,7 @@
         "synthetic/second-venue generic editing",
         "contextual text preview ready/success/invalid/conflict/unsupported states with revision binding, keyboard focus and Axe",
         "session-only Canvas Undo/Redo history with exact inverse replay, stale invalidation and no persistence",
-        "stable-ID equipment reorder with one-step semantic moves, exact inverse history, and no insert/remove Canvas authority"
+        "stable-ID equipment reorder with one-step and stable-destination Move to controls, exact inverse history, and no insert/remove Canvas authority"
       ],
       "evidenceRole": "machine-oracle",
       "supersedes": [
@@ -569,7 +569,7 @@
       "kind": "source-authoring",
       "mode": "canvas-edit",
       "fixture": "juniper",
-      "surface": "Stable-item reorder controls",
+      "surface": "Stable-item reorder and Move to controls",
       "outcome": "reorder-ready",
       "selection": {
         "blockId": "home.equipment-status.item.wood-shop"
@@ -584,7 +584,7 @@
       "kind": "source-authoring",
       "mode": "canvas-edit",
       "fixture": "juniper",
-      "surface": "Post-move stable-item preview with Undo",
+      "surface": "Post-Move-to stable-item preview with Undo",
       "outcome": "reorder-moved",
       "selection": {
         "blockId": "home.equipment-status.item.wood-shop"
@@ -609,7 +609,7 @@
       "generic display-name editing exercised only on synthetic Juniper venue",
       "native read-only Canvas desktop and mobile with exact shared selection and real renderer",
       "session-only Canvas history states show bounded Undo/Redo without widening authoring authority",
-      "bounded stable-item reorder states show truthful move boundaries and session Undo without insert/remove authority"
+      "bounded stable-item reorder states show truthful one-step and Move to destinations plus session Undo without insert/remove authority"
     ],
     "evidenceRole": "human-review-plus-targeted-machine-assertions"
   }

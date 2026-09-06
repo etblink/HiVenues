@@ -29,7 +29,7 @@ test('Canvas fixture navigation refreshes fragment-only transitions without repe
   }
 });
 
-test('Issue150 retains the 14-suite envelope and adds exactly two bounded stable-item reorder review states', () => {
+test('Issue152 retains the 14-suite envelope and reuses the two bounded stable-item reorder review states', () => {
   assert.equal(contract.machineSuites.length, 14);
   assert.equal(contract.reviewScenarios.length, 20);
   const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit');
@@ -51,6 +51,7 @@ test('Issue150 retains the 14-suite envelope and adds exactly two bounded stable
   const source = contract.machineSuites.find(x => x.id === 'source-authoring');
   assert.ok(source.invariants.some(x => /Undo\/Redo history/.test(x)));
   assert.ok(source.invariants.some(x => /stable-ID equipment reorder/.test(x)));
+  assert.ok(source.invariants.some(x => /stable-destination Move to/.test(x)));
 });
 
 test('current visual qualification contract is explicit and machine-readable', () => {

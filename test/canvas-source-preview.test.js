@@ -137,13 +137,18 @@ test('Canvas history is bounded, clears on unrelated authority transitions, and 
   }
 });
 
-test('Canvas stable-item moves are one-step, exact-inverse, bounded to equipment status, and mix with text history', () => {
+test('Canvas stable-item moves expose stable destinations, preserve one-step controls, and mix with text history', () => {
   const input = source();
   const middle = canvasMoveItem(input, 'home.equipment-status.item.wood-shop');
   assert.deepEqual(
     { editable: middle.editable, itemId: middle.itemId, index: middle.index, count: middle.count, canMoveUp: middle.canMoveUp, canMoveDown: middle.canMoveDown },
     { editable: true, itemId: 'wood-shop', index: 1, count: 3, canMoveUp: true, canMoveDown: true },
   );
+  assert.deepEqual(middle.destinations.map(({ position, current, value, beforeBlockId }) => ({ position, current, value, beforeBlockId })), [
+    { position: 1, current: false, value: 'home.equipment-status.item.laser-cutter', beforeBlockId: 'home.equipment-status.item.laser-cutter' },
+    { position: 2, current: true, value: 'home.equipment-status.item.electronics-bench', beforeBlockId: 'home.equipment-status.item.electronics-bench' },
+    { position: 3, current: false, value: '__collection_end__', beforeBlockId: null },
+  ]);
   assert.equal(canvasMoveItem(input, 'home.programs.item.open-build-night')?.editable ?? false, false);
 
   const s = createSourceAuthoringSession(input);
@@ -187,4 +192,95 @@ test('Canvas reorder boundaries, unsupported collections and stale revisions fai
     { code: 'STALE_CANVAS_PROPOSAL' },
   );
   assert.deepEqual(snapshot(s), before);
+});
+
+test('Canvas Move to uses stable semantic destinations for multi-position exact-inverse history', () => {
+  const s = createSourceAuthoringSession(source());
+  const accepted = s.canonicalAccepted();
+
+  let move = canvasMoveItem(s.proposalDraft, 'home.equipment-status.item.laser-cutter');
+  assert.deepEqual(move.destinations.map(x => [x.position, x.current, x.value]), [
+    [1, true, 'home.equipment-status.item.wood-shop'],
+    [2, false, 'home.equipment-status.item.electronics-bench'],
+    [3, false, '__collection_end__'],
+  ]);
+  s.previewCanvasMoveTo('home.equipment-status.item.laser-cutter', '__collection_end__', s.proposalRevision());
+  assert.deepEqual(s.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'electronics-bench', 'laser-cutter']);
+  assert.equal(s.canvasHistoryStatus().undoCount, 1);
+  assert.deepEqual(s.canvasHistoryStatus().undo, {
+    type: 'move-item', blockId: 'home.equipment-status.item.laser-cutter', fieldId: null, generation: 1,
+  });
+
+  move = canvasMoveItem(s.proposalDraft, 'home.equipment-status.item.laser-cutter');
+  assert.deepEqual(move.destinations.map(x => [x.position, x.current, x.value]), [
+    [1, false, 'home.equipment-status.item.wood-shop'],
+    [2, false, 'home.equipment-status.item.electronics-bench'],
+    [3, true, '__collection_end__'],
+  ]);
+
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), accepted);
+  s.redoCanvasPreview(s.proposalRevision());
+  assert.deepEqual(s.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'electronics-bench', 'laser-cutter']);
+  s.undoCanvasPreview(s.proposalRevision());
+
+  s.previewCanvasMoveTo('home.equipment-status.item.electronics-bench', 'home.equipment-status.item.laser-cutter', s.proposalRevision());
+  assert.deepEqual(s.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['electronics-bench', 'laser-cutter', 'wood-shop']);
+
+  const middleToFirst = createSourceAuthoringSession(source());
+  middleToFirst.previewCanvasMoveTo(
+    'home.equipment-status.item.wood-shop',
+    'home.equipment-status.item.laser-cutter',
+    middleToFirst.proposalRevision(),
+  );
+  assert.deepEqual(middleToFirst.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'laser-cutter', 'electronics-bench']);
+});
+
+test('Canvas Move to rejects current, unknown, cross-collection and stale destinations atomically', () => {
+  const s = createSourceAuthoringSession(source());
+  const attempts = [
+    () => s.previewCanvasMoveTo('home.equipment-status.item.wood-shop', 'home.equipment-status.item.electronics-bench', s.proposalRevision()),
+    () => s.previewCanvasMoveTo('home.equipment-status.item.wood-shop', 'home.programs.item.open-build-night', s.proposalRevision()),
+    () => s.previewCanvasMoveTo('home.equipment-status.item.wood-shop', 'missing.destination', s.proposalRevision()),
+    () => s.previewCanvasMoveTo('home.programs.item.open-build-night', '__collection_end__', s.proposalRevision()),
+  ];
+  for (const attempt of attempts) {
+    const before = snapshot(s);
+    assert.throws(attempt);
+    assert.deepEqual(snapshot(s), before);
+  }
+  const stale = s.proposalRevision();
+  s.previewCanvasMove('home.equipment-status.item.wood-shop', 'up', s.proposalRevision());
+  const before = snapshot(s);
+  assert.throws(
+    () => s.previewCanvasMoveTo('home.equipment-status.item.wood-shop', '__collection_end__', stale),
+    { code: 'STALE_CANVAS_PROPOSAL' },
+  );
+  assert.deepEqual(snapshot(s), before);
+});
+
+test('Mixed text, one-step move and Move to history round-trip exact canonical bytes', () => {
+  const s = createSourceAuthoringSession(source());
+  const accepted = s.canonicalAccepted();
+  s.previewCanvasField(command('History text.'), s.proposalRevision());
+  const textOnly = s.canonicalProposal();
+  s.previewCanvasMove('home.equipment-status.item.wood-shop', 'up', s.proposalRevision());
+  const oneStep = s.canonicalProposal();
+  s.previewCanvasMoveTo('home.equipment-status.item.wood-shop', '__collection_end__', s.proposalRevision());
+  const destination = s.canonicalProposal();
+
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), oneStep);
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), textOnly);
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), accepted);
+  s.redoCanvasPreview(s.proposalRevision());
+  s.redoCanvasPreview(s.proposalRevision());
+  s.redoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), destination);
 });

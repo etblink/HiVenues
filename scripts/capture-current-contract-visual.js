@@ -331,7 +331,7 @@ async function captureEditableCanvasScenario(browser, scenario) {
   await context.route('**/*', async route => {
     const req = route.request();
     const url = new URL(req.url());
-    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history', fixture.editorPath + '/canvas-editor/move'].includes(url.pathname)))) return route.continue();
+    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history', fixture.editorPath + '/canvas-editor/move', fixture.editorPath + '/canvas-editor/move-to'].includes(url.pathname)))) return route.continue();
     violations.push({ url: req.url(), method: req.method() });
     return route.abort('blockedbyclient');
   });
