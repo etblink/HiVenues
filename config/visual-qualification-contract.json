@@ -231,7 +231,8 @@
         "source-neutral keyboard navigation, 44px targets, responsive geometry and accessibility",
         "Fourth Street identity preservation",
         "synthetic/second-venue generic editing",
-        "contextual text preview ready/success/invalid/conflict/unsupported states with revision binding, keyboard focus and Axe"
+        "contextual text preview ready/success/invalid/conflict/unsupported states with revision binding, keyboard focus and Axe",
+        "session-only Canvas Undo/Redo history with exact inverse replay, stale invalidation and no persistence"
       ],
       "evidenceRole": "machine-oracle",
       "supersedes": [
@@ -442,8 +443,14 @@
       "mode": "canvas",
       "fixture": "fourth-street",
       "surface": "Fourth Street read-only Venue Canvas",
-      "selection": { "blockId": "home.hero", "fieldId": "lede" },
-      "viewport": { "width": 1440, "height": 1000 }
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      }
     },
     {
       "id": "juniper-canvas-mobile",
@@ -451,28 +458,110 @@
       "mode": "canvas",
       "fixture": "juniper",
       "surface": "Synthetic Juniper read-only Venue Canvas",
-      "selection": { "blockId": "home.equipment-status.item.wood-shop", "fieldId": "name" },
-      "viewport": { "width": 390, "height": 844 }
+      "selection": {
+        "blockId": "home.equipment-status.item.wood-shop",
+        "fieldId": "name"
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
     },
     {
-      "id": "juniper-canvas-edit-desktop", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
-      "surface": "Contextual text editing", "outcome": "ready",
-      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 1440, "height": 1000 }
+      "id": "juniper-canvas-edit-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Contextual text editing",
+      "outcome": "ready",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      }
     },
     {
-      "id": "juniper-canvas-preview-mobile", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
-      "surface": "Contextual text preview result", "outcome": "success",
-      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 390, "height": 844 }
+      "id": "juniper-canvas-preview-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Contextual text preview result",
+      "outcome": "success",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
     },
     {
-      "id": "juniper-canvas-invalid-mobile", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
-      "surface": "Text validation feedback", "outcome": "invalid",
-      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 390, "height": 844 }
+      "id": "juniper-canvas-invalid-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Text validation feedback",
+      "outcome": "invalid",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
     },
     {
-      "id": "juniper-canvas-conflict-desktop", "kind": "source-authoring", "mode": "canvas-edit", "fixture": "juniper",
-      "surface": "Stale text form recovery", "outcome": "conflict",
-      "selection": { "blockId": "home.hero", "fieldId": "lede" }, "viewport": { "width": 1440, "height": 1000 }
+      "id": "juniper-canvas-conflict-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Stale text form recovery",
+      "outcome": "conflict",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      }
+    },
+    {
+      "id": "juniper-canvas-history-desktop",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Session-only Canvas multi-step preview history",
+      "outcome": "history-dirty",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      }
+    },
+    {
+      "id": "juniper-canvas-history-undo-mobile",
+      "kind": "source-authoring",
+      "mode": "canvas-edit",
+      "fixture": "juniper",
+      "surface": "Session-only Canvas Undo with Redo available",
+      "outcome": "history-undo",
+      "selection": {
+        "blockId": "home.hero",
+        "fieldId": "lede"
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
     }
   ],
   "currentReviewOracle": {
@@ -487,7 +576,8 @@
       "current home/community/Threads/Pay/profile presentation",
       "Fourth Street reference identity preservation",
       "generic display-name editing exercised only on synthetic Juniper venue",
-      "native read-only Canvas desktop and mobile with exact shared selection and real renderer"
+      "native read-only Canvas desktop and mobile with exact shared selection and real renderer",
+      "session-only Canvas history states show bounded Undo/Redo without widening authoring authority"
     ],
     "evidenceRole": "human-review-plus-targeted-machine-assertions"
   }

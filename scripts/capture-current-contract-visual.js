@@ -331,7 +331,7 @@ async function captureEditableCanvasScenario(browser, scenario) {
   await context.route('**/*', async route => {
     const req = route.request();
     const url = new URL(req.url());
-    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && url.pathname === fixture.editorPath + '/canvas-editor'))) return route.continue();
+    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history'].includes(url.pathname)))) return route.continue();
     violations.push({ url: req.url(), method: req.method() });
     return route.abort('blockedbyclient');
   });
@@ -345,7 +345,10 @@ async function captureEditableCanvasScenario(browser, scenario) {
     assert.deepEqual(evidence.selection, scenario.selection);
     await settle(page);
     if (scenario.viewport.width < 700) {
-      await page.locator(scenario.outcome === 'success' ? 'iframe' : '[data-edit-outcome]').scrollIntoViewIfNeeded();
+      const target = scenario.outcome === 'success' ? 'iframe'
+        : scenario.outcome === 'history-undo' ? '[data-canvas-history]'
+          : '[data-edit-outcome]';
+      await page.locator(target).scrollIntoViewIfNeeded();
     }
     assertCanvasBrowserErrors(errors, evidence.expectedHttpErrors, fixture.editorPath + '/canvas-editor');
     assert.deepEqual(violations, []);

@@ -22,10 +22,16 @@ async function form(f, selection = 'blockId=home.hero&fieldId=lede') {
   const r = await request(f.app).get(f.canvas + '?' + selection).expect(200);
   return Object.fromEntries([...doc(r.text).querySelectorAll('[data-canvas-edit-form] [name]')].map(x => [x.name, x.value]));
 }
-function post(f, data, origin = 'http://127.0.0.1') {
-  const req = request(f.app).post(f.canvas).set('Host', '127.0.0.1').type('form');
+function post(f, data, origin = 'http://127.0.0.1', path = f.canvas) {
+  const req = request(f.app).post(path).set('Host', '127.0.0.1').type('form');
   if (origin !== null) req.set('Origin', origin);
   return req.send(data);
+}
+function historyForm(html, action) {
+  const root = doc(html);
+  const node = root.querySelector(`[data-canvas-history-action="${action}"]`)?.closest('form');
+  if (!node) return null;
+  return Object.fromEntries([...node.querySelectorAll('[name]')].map(x => [x.name, x.value]));
 }
 
 test('Separate editor reads both venues; original Canvas remains GET-only and source-neutral', async t => {
@@ -169,4 +175,64 @@ test('Strict HTTP boundary rejects foreign tokens/origins, malformed, duplicate,
   assert.deepEqual(snapshot(f.session), before);
   const unsupported = await request(f.app).get(f.canvas + '?blockId=home.hero&fieldId=image.src').expect(200);
   assert.equal(doc(unsupported.text).querySelector('[data-canvas-edit-form]'), null);
+});
+
+test('Canvas exposes bounded session-only Undo/Redo and exact multi-step renderer round trips', async t => {
+  const f = fixture(t);
+  const accepted = f.session.canonicalAccepted();
+  const first = 'First session preview.';
+  const second = 'Second session preview.';
+
+  let page = await post(f, { ...await form(f), value: first }).expect(200);
+  page = await post(f, { ...await form(f), value: second }).expect(200);
+  let html = doc(page.text);
+  assert.equal(html.querySelector('[data-canvas-history]').dataset.undoCount, '2');
+  assert.equal(html.querySelector('[data-canvas-history]').dataset.redoCount, '0');
+  assert.equal(html.querySelector('[data-canvas-history-action="undo"]').disabled, false);
+  assert.equal(html.querySelector('[data-canvas-history-action="redo"]').disabled, true);
+  assert.match(html.querySelector('[data-canvas-history-form] span').textContent, /home\.hero \/ lede/);
+  assert.equal(f.session.canonicalAccepted(), accepted);
+
+  let data = historyForm(page.text, 'undo');
+  page = await post(f, data, 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  html = doc(page.text);
+  assert.equal(html.querySelector('[data-edit-outcome]').dataset.editOutcome, 'undo');
+  assert.equal(f.session.proposalDraft.venuePackage.home.hero.lede, first);
+  assert.equal(html.querySelector('[data-canvas-history]').dataset.undoCount, '1');
+  assert.equal(html.querySelector('[data-canvas-history]').dataset.redoCount, '1');
+  assert.ok((await request(f.app).get(f.previewPath).expect(200)).text.includes(first));
+
+  data = historyForm(page.text, 'redo');
+  page = await post(f, data, 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  assert.equal(doc(page.text).querySelector('[data-edit-outcome]').dataset.editOutcome, 'redo');
+  assert.equal(f.session.proposalDraft.venuePackage.home.hero.lede, second);
+  assert.ok((await request(f.app).get(f.previewPath).expect(200)).text.includes(second));
+  assert.equal(f.session.canonicalAccepted(), accepted);
+});
+
+test('Canvas history rejects stale, forged and invalidated actions without mutation or hidden persistence', async t => {
+  const f = fixture(t);
+  let page = await post(f, { ...await form(f), value: 'History candidate.' }).expect(200);
+  const staleUndo = historyForm(page.text, 'undo');
+  f.session.edit('/venuePackage/home/hero/lede', 'Changed in form editor.');
+  const before = snapshot(f.session);
+  await post(f, staleUndo, 'http://127.0.0.1', f.canvas + '/history').expect(409);
+  assert.deepEqual(snapshot(f.session), before);
+  assert.equal(f.session.canvasHistoryStatus().undoCount, 0);
+
+  page = await request(f.app).get(f.canvas + '?blockId=home.hero&fieldId=lede').expect(200);
+  const disabledRedo = historyForm(page.text, 'redo');
+  assert.equal(doc(page.text).querySelector('[data-canvas-history-action="redo"]').disabled, true);
+  for (const data of [
+    { ...disabledRedo, action: 'replay-all' },
+    { ...disabledRedo, token: 'x' },
+  ]) {
+    const snap = snapshot(f.session);
+    await post(f, data, 'http://127.0.0.1', f.canvas + '/history').expect(400);
+    assert.deepEqual(snapshot(f.session), snap);
+  }
+  const beforeExtraParameter = snapshot(f.session);
+  await post(f, { ...disabledRedo, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/history').expect(413);
+  assert.deepEqual(snapshot(f.session), beforeExtraParameter);
+  assert.equal(JSON.stringify(f.session.canvasHistoryStatus()).includes('localStorage'), false);
 });
