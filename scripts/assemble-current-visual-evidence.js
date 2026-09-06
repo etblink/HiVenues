@@ -154,33 +154,41 @@ function readOnlyCanvasEvidence(captures) {
 function editableCanvasEvidence(captures) {
   const selected = captures.filter(s => s.mode === 'canvas-edit');
   const declared = contract.reviewScenarios.filter(s => s.mode === 'canvas-edit');
-  assert.equal(selected.length, 6);
+  assert.equal(selected.length, 8);
   assert.deepEqual(selected.map(s => s.id), declared.map(s => s.id));
   const source = readJson(rawRoot, 'source-authoring-visual/manifest.json');
   const machine = Object.entries(source.scenarios).flatMap(([id, scenario]) => {
     assert.deepEqual(scenario.editableCanvas.map(s => s.outcome), id.startsWith('juniper')
-      ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo']
+      ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved']
       : ['ready', 'unsupported']);
     assert.equal(scenario.externalNetworkRequests, 0);
     assert.equal(scenario.hiveRpcCalls, 0);
     return scenario.editableCanvas.map(s => ({ id, ...s }));
   });
-  assert.equal(machine.length, 18);
+  assert.equal(machine.length, 22);
   for (const state of [...machine, ...selected]) {
     assert.equal(state.acceptedUnchanged, true);
     assert.equal(state.rendererTextVerified, true);
     assert.equal(state.rendererHeading.textFits, true);
     assert.ok(state.rendererHeading.horizontalOverflow <= 1);
-    assert.equal(state.proposalUnchanged, !['success', 'history-dirty', 'history-undo'].includes(state.outcome));
+    assert.equal(state.proposalUnchanged, !['success', 'history-dirty', 'history-undo', 'reorder-moved'].includes(state.outcome));
     assert.equal(state.geometry.selectionMirrorCount, 7);
     assert.equal(state.geometry.selectionSummaryFocused, true);
     assert.ok(state.geometry.horizontalOverflow <= 1);
     assert.ok(state.geometry.minimumTargetHeight >= 44 && state.geometry.minimumTargetWidth >= 44);
-    assert.equal(state.geometry.formCount, state.outcome === 'unsupported' ? 0 : 1);
+    assert.equal(state.geometry.formCount, state.outcome === 'unsupported' || state.outcome.startsWith('reorder-') ? 0 : 1);
     assert.equal(state.geometry.iframeCount, 1);
     assert.deepEqual(state.expectedHttpErrors, state.outcome === 'invalid' ? [400] : state.outcome === 'conflict' ? [409] : []);
     if (state.outcome === 'history-dirty') assert.deepEqual(state.geometry.history, { undoCount: 2, redoCount: 0, undoEnabled: true, redoEnabled: false });
     if (state.outcome === 'history-undo') assert.deepEqual(state.geometry.history, { undoCount: 1, redoCount: 1, undoEnabled: true, redoEnabled: true });
+    if (state.outcome === 'reorder-ready') {
+      assert.deepEqual(state.geometry.move, { present: true, upEnabled: true, downEnabled: true });
+      assert.deepEqual(state.geometry.history, { undoCount: 0, redoCount: 0, undoEnabled: false, redoEnabled: false });
+    }
+    if (state.outcome === 'reorder-moved') {
+      assert.deepEqual(state.geometry.move, { present: true, upEnabled: false, downEnabled: true });
+      assert.deepEqual(state.geometry.history, { undoCount: 1, redoCount: 0, undoEnabled: true, redoEnabled: false });
+    }
     if (state.id.startsWith('fourth-street')) assert.equal(state.rendererVenueName, '4th Street Bar');
   }
   for (let i = 0; i < selected.length; i += 1) {

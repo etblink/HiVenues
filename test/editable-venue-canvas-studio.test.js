@@ -257,6 +257,7 @@ test('Canvas exposes stable-ID equipment reorder controls with truthful one-step
     assert.equal(root.querySelector('[data-canvas-move-action="up"]').disabled, !up);
     assert.equal(root.querySelector('[data-canvas-move-action="down"]').disabled, !down);
     assert.equal(root.querySelector('[data-canvas-edit-form]'), null);
+    assert.equal(/insert-item|remove-item/.test(page.text), false);
   }
   const program = await request(f.app).get(f.canvas + '?blockId=home.programs').expect(200);
   assert.equal(doc(program.text).querySelector('[data-canvas-move]'), null);
