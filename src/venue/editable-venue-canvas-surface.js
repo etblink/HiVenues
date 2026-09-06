@@ -43,7 +43,7 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
       [data-edit-outcome=invalid], [data-edit-outcome=conflict] { border-left: 4px solid #9d321e; }
       @media (min-width:1101px) { .workspace { grid-template-columns: 190px minmax(0,1fr) 310px; } }
       .canvas-fields { margin: 10px; } .canvas-fields summary { min-height: 44px; min-width: 44px; padding: 12px; cursor: pointer; }
-      @media (max-width:700px) { .inspector { order: 0; } .canvas { order: 1; margin-inline: -8px; border-left: 0; border-right: 0; border-radius: 0; } .tree { order: 2; } .inspector > [data-diagnostics] { display: none; } .inspector-context { margin-bottom: 0; } }`,
+      @media (max-width:700px) { .inspector { order: 0; } .canvas { order: 1; width: calc(100% + 16px); margin-inline: -8px; border-left: 0; border-right: 0; border-radius: 0; } .tree { order: 2; } .inspector > [data-diagnostics] { display: none; } .inspector-context { margin-bottom: 0; } }`,
   });
 }
 
