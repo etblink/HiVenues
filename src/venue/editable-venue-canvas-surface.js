@@ -7,12 +7,12 @@ const { createSetFieldCommand } = require('./semantic-venue-canvas-contract');
 const { renderVenueCanvasFrame, parseReadOnlyVenueCanvasQuery, projectStudioSource } = require('./read-only-venue-canvas-surface');
 
 const MESSAGES = Object.freeze({
-  ready: 'Preview a text change, then review it in your venue.',
+  ready: 'Preview a supported change, then review it in your venue.',
   success: 'Preview updated. Use Undo preview here, or keep the draft in the form editor.',
   move: 'Item order preview updated. Review the real venue renderer, then undo here or keep the draft in the form editor.',
   undo: 'Preview change undone. You can redo it while the shared draft stays unchanged elsewhere.',
   redo: 'Preview change redone. Review it in the real venue renderer before keeping the draft.',
-  invalid: 'That change could not be previewed. Check the text and try again. Your draft is unchanged.',
+  invalid: 'That change could not be previewed. Review the current field or item and try again. Your draft is unchanged.',
   conflict: 'Your draft changed in another action. Current values are shown below. Review them before previewing again.',
   unsupported: 'This field is read-only here. Use the form editor for its supported controls.',
 });
