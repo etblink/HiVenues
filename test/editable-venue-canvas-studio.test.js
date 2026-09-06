@@ -389,4 +389,8 @@ test('Canvas Move to HTTP boundary rejects stale, no-op, cross-collection, forge
   before = snapshot(f.session);
   await post(f, { ...base, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/move-to').expect(413);
   assert.deepEqual(snapshot(f.session), before);
+  await post(f, { ...base, destination: 'x'.repeat(40000) }, 'http://127.0.0.1', f.canvas + '/move-to').expect(413);
+  assert.deepEqual(snapshot(f.session), before);
+  await request(f.app).get(f.canvas + '/move-to').expect(404);
+  assert.deepEqual(snapshot(f.session), before);
 });
