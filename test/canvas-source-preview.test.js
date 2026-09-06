@@ -229,6 +229,15 @@ test('Canvas Move to uses stable semantic destinations for multi-position exact-
   s.previewCanvasMoveTo('home.equipment-status.item.electronics-bench', 'home.equipment-status.item.laser-cutter', s.proposalRevision());
   assert.deepEqual(s.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
     ['electronics-bench', 'laser-cutter', 'wood-shop']);
+
+  const middleToFirst = createSourceAuthoringSession(source());
+  middleToFirst.previewCanvasMoveTo(
+    'home.equipment-status.item.wood-shop',
+    'home.equipment-status.item.laser-cutter',
+    middleToFirst.proposalRevision(),
+  );
+  assert.deepEqual(middleToFirst.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'laser-cutter', 'electronics-bench']);
 });
 
 test('Canvas Move to rejects current, unknown, cross-collection and stale destinations atomically', () => {
