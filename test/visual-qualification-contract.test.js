@@ -29,19 +29,22 @@ test('Canvas fixture navigation refreshes fragment-only transitions without repe
   }
 });
 
-test('Issue146 adds exactly four synthetic edit outcomes while retaining the 14-suite envelope', () => {
+test('Issue148 retains the 14-suite envelope and adds exactly two bounded Canvas history review states', () => {
   assert.equal(contract.machineSuites.length, 14);
-  assert.equal(contract.reviewScenarios.length, 16);
+  assert.equal(contract.reviewScenarios.length, 18);
   const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit');
   assert.deepEqual(states.map(x => [x.id, x.outcome, x.viewport.width]), [
     ['juniper-canvas-edit-desktop', 'ready', 1440], ['juniper-canvas-preview-mobile', 'success', 390],
     ['juniper-canvas-invalid-mobile', 'invalid', 390], ['juniper-canvas-conflict-desktop', 'conflict', 1440],
+    ['juniper-canvas-history-desktop', 'history-dirty', 1440], ['juniper-canvas-history-undo-mobile', 'history-undo', 390],
   ]);
   for (const state of states) {
     assert.equal(state.fixture, 'juniper');
     assert.deepEqual(state.selection, { blockId: 'home.hero', fieldId: 'lede' });
   }
   assert.equal(contract.reviewScenarios.filter(x => x.mode === 'canvas').length, 2);
+  const source = contract.machineSuites.find(x => x.id === 'source-authoring');
+  assert.ok(source.invariants.some(x => /Undo\/Redo history/.test(x)));
 });
 
 test('current visual qualification contract is explicit and machine-readable', () => {
