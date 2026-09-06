@@ -39,6 +39,11 @@ test('Equipment add/edit/move/remove and complete Undo/Redo restore exact source
   frames.push(s.canonicalProposal());
   s.previewCanvasField(createSetFieldCommand({ blockId: id, fieldId: 'name', value: 'Renamed drill' }), s.proposalRevision());
   frames.push(s.canonicalProposal());
+  const { projectStudioSource } = require('../src/venue/read-only-venue-canvas-surface');
+  const { createVenueCanvasSelection } = require('../src/venue/read-only-venue-canvas-projection');
+  const projection = projectStudioSource(s.proposalDraft, createVenueCanvasSelection({ blockId: id }));
+  assert.equal(projection.inspector.block.label, 'Venue equipment status item: Renamed drill');
+  assert.equal(projection.inspector.block.stableIdentity.value, id.split('.item.')[1]);
   s.previewCanvasMoveTo(id, parent + '.item.wood-shop', s.proposalRevision());
   frames.push(s.canonicalProposal());
   s.previewCanvasRemoveEquipment(id, s.proposalRevision());
@@ -109,7 +114,10 @@ test('HTTP lifecycle selects added item and removed parent; Undo/Redo and cancel
   let page = await get(parent);
   page = await post(f, '/equipment/add', { ...form(page.text, '[data-canvas-equipment-add-form]'), ...values }).expect(200);
   const id = dom(page.text).querySelector('#selection-summary').dataset.selectionBlockId;
-  assert.match(id, /\.item\.equipment-/); const afterAdd = f.session.canonicalProposal();
+  assert.match(id, /\.item\.equipment-/);
+  for (const selector of ['#selection-summary h2', '[data-inspector-block-id] h3', '[data-canvas-card][data-selected=true] strong', '[data-tree-row][data-selected=true] > span']) assert.equal(dom(page.text).querySelector(selector).textContent, values.name);
+  assert.equal(f.session.canvasHistoryStatus().undo.itemLabel, values.name);
+  const afterAdd = f.session.canonicalProposal();
   const cancel = dom(page.text).querySelector('[data-canvas-equipment-cancel]').getAttribute('href');
   await request(f.app).get(cancel).expect(200); assert.equal(f.session.canonicalProposal(), afterAdd);
   const remove = form(page.text, '[data-canvas-equipment-remove-form]');

@@ -565,6 +565,13 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   const preview = await getPreviewFrame(page, 'Real venue renderer preview');
   assert.ok((await preview.locator('body').innerText()).includes(expectedText));
   if (equipment) {
+    if (selection.blockId.includes('.item.')) {
+      const item = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.find(i => selection.blockId === 'home.equipment-status.item.' + i.id);
+      assert.equal(await page.locator('#selection-summary h2').innerText(), item.name);
+      assert.equal(await page.locator('[data-inspector-block-id] h3').innerText(), item.name);
+      assert.equal(await page.locator('[data-canvas-card][data-selected=true] strong').innerText(), item.name);
+      assert.equal(await page.locator('[data-tree-row][data-selected=true] > span').first().innerText(), item.name);
+    }
     const expected = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items;
     assert.deepEqual(await preview.locator('[data-equipment-id]').evaluateAll(nodes => nodes.map(n => n.dataset.equipmentId)), expected.map(i => i.id));
     for (const item of expected) assert.equal((await preview.locator(`[data-equipment-id="${item.id}"] h3`).innerText()).trim(), item.name);

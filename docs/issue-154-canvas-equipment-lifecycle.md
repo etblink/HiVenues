@@ -6,7 +6,7 @@ Operators can add and remove equipment inside an existing equipment-status secti
 
 | Criterion | Evidence class | Required oracle |
 | --- | --- | --- |
-| Add exactly the six existing operator fields, append and select the new item, preserve stable identity through rename and replay | CI | `canvas-equipment-lifecycle.test.js`: mixed lifecycle; HTTP lifecycle; source-authoring visual `equipment-added` |
+| Add exactly the six existing operator fields, append and select the new item, preserve stable identity through rename and replay; show current names in tree/card/summary/inspector | CI | `canvas-equipment-lifecycle.test.js`: mixed lifecycle; HTTP lifecycle; source-authoring visual `equipment-added` |
 | Remove only equipment items, confirm their name, support cancellation, select the parent | CI + visual review | HTTP lifecycle; visual `equipment-confirm` and `equipment-removed` |
 | Restore exact contents and sibling placement for first, middle, last and only items, with one history entry per operation | CI | removal-position test; mixed exact-byte Undo/Redo roundtrip |
 | Preserve max-50 session history, invalidate redo branches and unrelated draft actions, reject stale and ABA requests | CI | stale/ABA/history test; existing source-authoring and editable-Canvas tests |

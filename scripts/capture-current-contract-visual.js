@@ -346,6 +346,11 @@ async function captureEditableCanvasScenario(browser, scenario) {
       assert.deepEqual(evidence.selection, { blockId: 'home.equipment-status.item.' + fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.at(-1).id });
     } else assert.deepEqual(evidence.selection, scenario.selection);
     await settle(page);
+    if (scenario.outcome === 'equipment-added') {
+      const preview = await getPreviewFrame(page, 'Real venue renderer preview');
+      const id = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.at(-1).id;
+      await preview.locator(`[data-equipment-id="${id}"]`).evaluate(el => globalThis.scrollTo(0, el.getBoundingClientRect().top + globalThis.scrollY - 12));
+    }
     if (scenario.viewport.width < 700) {
       const target = scenario.outcome === 'equipment-confirm' ? '[data-canvas-equipment-confirm]'
         : scenario.outcome === 'equipment-removed' ? '[data-canvas-history]'

@@ -1,5 +1,6 @@
 'use strict';
 
+const { createVenueAuthoringDocument } = require('./authoring');
 const { serializeCanonicalJson } = require('./safe-document');
 const {
   VENUE_CANVAS_CONTRACT_KIND,
@@ -157,8 +158,12 @@ function words(value) {
   return phrase ? phrase[0].toUpperCase() + phrase.slice(1) : value;
 }
 
-function blockLabel(block) {
+function blockLabel(block, document) {
   const kind = words(block.kind);
+  if (block.kind === 'venue-equipment-status-item') {
+    const item = document.venuePackage.home.equipmentStatus.items.find(item => item.id === block.stableIdentity.value);
+    return kind + ': ' + item.name;
+  }
   if (block.stableIdentity.source === 'operator-collection-id') {
     return kind + ': ' + words(block.stableIdentity.value);
   }
@@ -172,12 +177,12 @@ function identityRecord(block) {
   };
 }
 
-function canvasCard(record, selection) {
+function canvasCard(record, selection, document) {
   const { block, depth, parentBlockId } = record;
   return {
     blockId: block.id,
     kind: block.kind,
-    label: blockLabel(block),
+    label: blockLabel(block, document),
     parentBlockId,
     depth,
     childBlockIds: block.children.map((child) => child.id),
@@ -188,12 +193,12 @@ function canvasCard(record, selection) {
   };
 }
 
-function treeRow(record, selection) {
+function treeRow(record, selection, document) {
   const { block, depth, parentBlockId } = record;
   return {
     blockId: block.id,
     kind: block.kind,
-    label: blockLabel(block),
+    label: blockLabel(block, document),
     parentBlockId,
     depth,
     childCount: block.children.length,
@@ -251,7 +256,8 @@ function navigationModel(targets, selection, selectedRecord) {
 }
 
 function createReadOnlyVenueCanvasProjection(authoringInput, selectionInput) {
-  const contract = createSemanticVenueCanvasContract(authoringInput);
+  const document = createVenueAuthoringDocument(authoringInput);
+  const contract = createSemanticVenueCanvasContract(document);
   const scopeRoot = findVenueCanvasBlock(contract, SCOPE_ROOT_BLOCK_ID);
   const records = scopedBlocks(scopeRoot);
   const requestedSelection = selectionInput === undefined
@@ -277,8 +283,8 @@ function createReadOnlyVenueCanvasProjection(authoringInput, selectionInput) {
   const selectedField = selection.fieldId === null
     ? null
     : selectedBlock.fields.find((field) => field.id === selection.fieldId);
-  const cards = records.map((record) => canvasCard(record, selection));
-  const rows = records.map((record) => treeRow(record, selection));
+  const cards = records.map((record) => canvasCard(record, selection, document));
+  const rows = records.map((record) => treeRow(record, selection, document));
   const fields = selectedBlock.fields.map((field) => inspectorField(field, selection));
   const navigation = navigationModel(targets, selection, selectedRecord);
 
@@ -314,7 +320,7 @@ function createReadOnlyVenueCanvasProjection(authoringInput, selectionInput) {
       block: {
         blockId: selectedBlock.id,
         kind: selectedBlock.kind,
-        label: blockLabel(selectedBlock),
+        label: blockLabel(selectedBlock, document),
         stableIdentity: identityRecord(selectedBlock),
         sourcePointer: selectedBlock.sourcePointer,
       },

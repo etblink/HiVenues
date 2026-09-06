@@ -197,7 +197,8 @@ function createSourceAuthoringSession(baseInput) {
       fieldId: entry.forwardCommand.fieldId || null,
       generation: entry.generation,
       ...(entry.forwardCommand.type === 'insert-item'
-        ? { itemBlockId: entry.forwardCommand.blockId + '.item.' + entry.forwardCommand.item.id } : {}),
+        ? { itemBlockId: entry.forwardCommand.blockId + '.item.' + entry.forwardCommand.item.id, itemLabel: entry.forwardCommand.item.name } : {}),
+      ...(entry.forwardCommand.type === 'remove-item' ? { itemLabel: entry.inverseCommand.item.name } : {}),
     });
   }
 

@@ -39,7 +39,7 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
     const enabled = Boolean(entry);
     const label = action === 'undo' ? 'Undo preview' : 'Redo preview';
     const state = enabled
-      ? entry.fieldId ? `${entry.blockId} / ${entry.fieldId}` : `${entry.blockId} / ${{ 'move-item': 'reorder', 'insert-item': 'add equipment', 'remove-item': 'remove equipment' }[entry.type] || entry.type}`
+      ? entry.fieldId ? `${entry.blockId} / ${entry.fieldId}` : `${entry.itemLabel || entry.blockId} / ${{ 'move-item': 'reorder', 'insert-item': 'add equipment', 'remove-item': 'remove equipment' }[entry.type] || entry.type}`
       : `No preview available to ${action}`;
     return `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/history" data-canvas-history-form>${hidden('token', token)}${hidden('revision', historyRevision)}${hidden('action', action)}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}<button type="submit" data-canvas-history-action="${action}"${enabled ? '' : ' disabled aria-disabled="true"'}>${label}</button><span>${escapeHtml(state)}</span></form>`;
   };
@@ -75,7 +75,7 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
           : `<input id="equipment-${key}" name="${key}" value="${escapeHtml(value)}" maxlength="${key === 'lastUpdated' ? 40 : 240}"${required}${key === 'lastUpdated' ? ' aria-describedby="equipment-time-help" placeholder="2026-09-06T12:00:00Z"' : ''}>`;
         return `<div class="equipment-field"><label for="equipment-${key}">${label}</label>${control}${key === 'lastUpdated' ? '<p id="equipment-time-help">Enter the actual check time with a timezone, for example 2026-09-06T12:00:00Z (UTC).</p>' : ''}</div>`;
       }).join('')}
-      ${outcome === 'invalid' ? '<p role="alert">Check the required fields, status, and timestamp. Your entries are retained below for correction.</p>' : ''}
+      ${outcome === 'invalid' ? '<p role="alert">Check the required fields, status, and timestamp. Your entries are retained for correction.</p>' : ''}
       <button type="submit" data-canvas-equipment-add>Add equipment to preview</button>
     </form>` : '<p data-canvas-equipment-full>The list is full. Remove an item before adding another.</p>'}
   </section>` : '';
