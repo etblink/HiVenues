@@ -76,8 +76,8 @@ function selectionAttributes(selection) {
   return `data-selection-block-id="${escapeHtml(selection.blockId)}" data-selection-field-id="${escapeHtml(selection.fieldId)}"`;
 }
 
-function renderReadOnlyVenueCanvasSurface({ sourceInput, selectionInput, editorPath, previewPath, dirty = false }) {
-  const canvasPath = readOnlyVenueCanvasPath(editorPath);
+function renderVenueCanvasFrame({ sourceInput, selectionInput, editorPath, previewPath, dirty = false }, presentation = null) {
+  const canvasPath = presentation ? surfacePath(presentation.canvasPath) : readOnlyVenueCanvasPath(editorPath);
   surfacePath(previewPath);
   if (typeof dirty !== 'boolean') throw new TypeError('dirty must be a boolean');
   const projection = projectStudioSource(sourceInput, selectionInput);
@@ -93,6 +93,8 @@ function renderReadOnlyVenueCanvasSurface({ sourceInput, selectionInput, editorP
   const cards = projection.canvas.cards.filter((card) => card.selected || card.parentBlockId === selection.blockId)
     .map((card) => `<a data-canvas-card data-block-id="${escapeHtml(card.blockId)}" ${state(card.selected)} href="${link(target(card.blockId))}"><strong>${escapeHtml(label(card.label))}</strong>${card.selected ? marker : '<span aria-hidden="true">→</span>'}</a>`).join('');
   const fields = projection.inspector.fields.map((field) => `<li><a data-inspector-field data-field-id="${escapeHtml(field.fieldId)}" ${state(field.selected)} href="${link(target(selection.blockId, field.fieldId))}"><span><strong>${escapeHtml(field.label)}</strong><small>${field.required ? 'Required' : 'Optional'} field</small></span>${field.selected ? marker : '<span aria-hidden="true">→</span>'}</a></li>`).join('');
+  const fieldList = `<ul>${fields || '<li class="empty">Choose a block to explore its fields.</li>'}</ul>`;
+  const fieldControls = presentation ? `<details class="canvas-fields"><summary>Choose another field</summary>${fieldList}</details>` : fieldList;
   const navigation = [
     ['previous', 'Previous'], ['next', 'Next'], ['containingBlock', 'Containing block'],
     ['parentBlock', 'Parent block'], ['firstChild', 'First child'], ['firstField', 'First field'],
@@ -101,7 +103,7 @@ function renderReadOnlyVenueCanvasSurface({ sourceInput, selectionInput, editorP
     : `<span aria-disabled="true">${text}</span>`).join('');
 
   return `<!doctype html>
-<html lang="en" data-read-only-venue-canvas="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en" data-read-only-venue-canvas="${presentation ? 'false' : 'true'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Venue Canvas — ${escapeHtml(sourceInput.venueContext.displayName)}</title>
 <style>
   :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #242522; background: #eeefeb; color-scheme: light; }
@@ -153,23 +155,27 @@ function renderReadOnlyVenueCanvasSurface({ sourceInput, selectionInput, editorP
     .panel-head { padding: 10px; } .renderer-head { flex-wrap: wrap; } iframe { height: 580px; }
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
-</style></head><body>
+${presentation?.style || ''}\n</style></head><body>
 <a class="skip" href="#canvas-heading">Skip to Canvas</a>
-<main class="shell" data-read-only-canvas-surface ${attrs}>
-  <header class="topbar"><div><p class="eyebrow">HiVenues · Venue Studio</p><h1>${escapeHtml(sourceInput.venueContext.displayName)}</h1></div><div class="top-actions"><span class="badge">Read-only Canvas</span><a class="back" href="${escapeHtml(editorPath)}">Back to form editor</a></div></header>
+<main class="shell" ${presentation ? 'data-editable-canvas-surface' : 'data-read-only-canvas-surface'} ${attrs}>
+  <header class="topbar"><div><p class="eyebrow">HiVenues · Venue Studio</p><h1>${escapeHtml(sourceInput.venueContext.displayName)}</h1></div><div class="top-actions"><span class="badge">${presentation ? 'Text preview' : 'Read-only Canvas'}</span><a class="back" href="${escapeHtml(editorPath)}">Back to form editor</a></div></header>
   <section class="selection-summary" id="selection-summary" tabindex="-1" ${selectionInput === undefined ? '' : 'autofocus'} data-focus-target="${escapeHtml(projection.focusTarget.surface)}" ${attrs}>
-    <div><p class="eyebrow">Selected context</p><h2>${escapeHtml(selectedLabel)}${selectedField ? ' · ' + escapeHtml(selectedField.label) : ''}</h2><p>${dirty ? 'Includes preview changes' : 'Current Studio draft'} · Explore without changing your venue.</p></div><span class="badge">Selection ${projection.navigation.position} of ${projection.navigation.targetCount}</span>
+    <div><p class="eyebrow">Selected context</p><h2>${escapeHtml(selectedLabel)}${selectedField ? ' · ' + escapeHtml(selectedField.label) : ''}</h2><p>${dirty ? 'Includes preview changes' : 'Current Studio draft'} · ${presentation ? 'Preview here; keep and save in the form editor.' : 'Explore without changing your venue.'}</p></div><span class="badge">Selection ${projection.navigation.position} of ${projection.navigation.targetCount}</span>
   </section>
   <nav class="navigation" aria-label="Selection navigation" data-current-navigation-target ${attrs}>${navigation}</nav>
   <nav class="jumps" aria-label="Workspace landmarks"><a href="#canvas-heading">Canvas</a><a href="#tree-heading">Tree</a><a href="#inspector-heading">Inspector</a></nav>
   <div class="workspace">
-    <section class="panel canvas" data-canvas ${attrs} aria-labelledby="canvas-heading"><header class="panel-head"><h2 id="canvas-heading" tabindex="-1">Venue Canvas</h2><span class="badge">Read-only</span></header><nav class="canvas-map" aria-label="Canvas block selection">${cards}</nav><div class="renderer-head"><strong>Real venue preview</strong><span>Current proposal · Local preview</span></div><iframe title="Real venue renderer preview" src="${escapeHtml(previewPath)}"></iframe></section>
+    <section class="panel canvas" data-canvas ${attrs} aria-labelledby="canvas-heading"><header class="panel-head"><h2 id="canvas-heading" tabindex="-1">Venue Canvas</h2><span class="badge">${presentation ? 'Preview' : 'Read-only'}</span></header><nav class="canvas-map" aria-label="Canvas block selection">${cards}</nav><div class="renderer-head"><strong>Real venue preview</strong><span>Current proposal · Local preview</span></div><iframe title="Real venue renderer preview" src="${escapeHtml(previewPath)}"></iframe></section>
     <nav class="panel tree" data-tree ${attrs} aria-labelledby="tree-heading"><header class="panel-head"><h2 id="tree-heading" tabindex="-1">Page structure</h2></header><ul>${tree}</ul></nav>
-    <aside class="panel inspector" data-inspector ${attrs} aria-labelledby="inspector-heading"><header class="panel-head"><h2 id="inspector-heading" tabindex="-1">Inspector</h2><span class="badge">Read-only</span></header><div class="inspector-context" data-inspector-block-id="${escapeHtml(selection.blockId)}"><h3>${escapeHtml(selectedLabel)}</h3><p>Choose a field to inspect its context.</p></div><ul>${fields || '<li class="empty">Choose a block to explore its fields.</li>'}</ul>
+    <aside class="panel inspector" data-inspector ${attrs} aria-labelledby="inspector-heading"><header class="panel-head"><h2 id="inspector-heading" tabindex="-1">Inspector</h2><span class="badge">${presentation ? 'Text preview' : 'Read-only'}</span></header><div class="inspector-context" data-inspector-block-id="${escapeHtml(selection.blockId)}"><h3>${escapeHtml(selectedLabel)}</h3><p>${presentation ? 'Choose a text field to preview a change.' : 'Choose a field to inspect its context.'}</p></div>${presentation?.inspector || ''}${fieldControls}
       <details data-diagnostics ${attrs} data-block-source-pointer="${escapeHtml(projection.diagnostics.blockSourcePointer)}" data-field-source-pointer="${escapeHtml(projection.diagnostics.fieldSourcePointer)}" data-navigation-index="${projection.diagnostics.navigationIndex}"><summary>Selection diagnostics</summary><dl><dt>Stable identity</dt><dd>${escapeHtml(projection.diagnostics.stableIdentity.value)}</dd><dt>Source pointer</dt><dd>${escapeHtml(projection.diagnostics.fieldSourcePointer || projection.diagnostics.blockSourcePointer || 'Home page root')}</dd><dt>Navigation position</dt><dd>${projection.navigation.position} of ${projection.navigation.targetCount}</dd></dl></details>
     </aside>
-  </div><p class="note">Use the form editor to change your draft. Canvas selection does not save, publish, or deploy.</p>
+  </div><p class="note">${presentation ? 'Preview changes stay in this Studio session until you keep them. Use the form editor to keep, undo preview changes, or save the venue file.' : 'Use the form editor to change your draft. Canvas selection does not save, publish, or deploy.'}</p>
 </main></body></html>`;
 }
 
-module.exports = { SAFE_READ_ONLY_VENUE_CANVAS_ERROR, parseReadOnlyVenueCanvasQuery, readOnlyVenueCanvasPath, selectionHref, projectStudioSource, renderReadOnlyVenueCanvasSurface };
+function renderReadOnlyVenueCanvasSurface(options) {
+  return renderVenueCanvasFrame(options);
+}
+
+module.exports = { renderVenueCanvasFrame, SAFE_READ_ONLY_VENUE_CANVAS_ERROR, parseReadOnlyVenueCanvasQuery, readOnlyVenueCanvasPath, selectionHref, projectStudioSource, renderReadOnlyVenueCanvasSurface };

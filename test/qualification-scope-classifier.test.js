@@ -70,6 +70,7 @@ test('Canvas module alone selects visual qualification through the CI executable
 test('all retained trigger families and exact classifier inputs qualify isolated changes', async (t) => {
   const f = fixture(t);
   const examples = [
+    'src/venue/canvas-source-preview.js', 'src/venue/editable-venue-canvas-surface.js',
     'docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md',
     'views/nested/page.ejs', 'public/nested/image.svg', 'src/input.css', 'src/app.js',
     'routes/page.js', 'src/routes/page.js', 'src/content/page.js', 'src/onboarding/page.js',

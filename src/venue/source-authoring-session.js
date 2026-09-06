@@ -1,5 +1,8 @@
 'use strict';
 
+const { createHash } = require('node:crypto');
+const { previewCanvasSourceField } = require('./canvas-source-preview');
+
 const {
   OPERATOR_COLLECTIONS,
   OWNERSHIP,
@@ -142,6 +145,7 @@ function createSourceAuthoringSession(baseInput) {
   let proposal = cloneJson(accepted);
   let state = SOURCE_SESSION_STATE.CLEAN;
   let lastError = null;
+  let revision = 0;
 
   function isDirty() {
     const proposalCanonical = canonicalIfValid(proposal);
@@ -149,7 +153,25 @@ function createSourceAuthoringSession(baseInput) {
   }
 
   function refreshDirtyState(preferredCleanState = SOURCE_SESSION_STATE.CLEAN) {
+    revision += 1;
     state = isDirty() ? SOURCE_SESSION_STATE.DIRTY : preferredCleanState;
+  }
+
+  function proposalRevision() {
+    return createHash('sha256').update(String(revision) + '\0' + acceptedCanonical + '\0' + serializeDeploymentAgnosticVenueSource(proposal)).digest('hex');
+  }
+
+  function previewCanvasField(command, expectedRevision) {
+    if (typeof expectedRevision !== 'string' || expectedRevision !== proposalRevision()) {
+      const error = new SourceAuthoringSessionError('the draft changed; review current values before trying again');
+      error.code = 'STALE_CANVAS_PROPOSAL';
+      throw error;
+    }
+    const next = previewCanvasSourceField(proposal, command);
+    proposal = cloneJson(next);
+    lastError = null;
+    refreshDirtyState();
+    return status();
   }
 
   function status() {
@@ -257,6 +279,7 @@ function createSourceAuthoringSession(baseInput) {
       acceptedCanonical = serializeDeploymentAgnosticVenueSource(accepted);
       proposal = cloneJson(accepted);
       state = SOURCE_SESSION_STATE.ACCEPTED;
+      revision += 1;
       return accepted;
     } catch (error) {
       state = SOURCE_SESSION_STATE.REJECTED_WITH_BASE_UNCHANGED;
@@ -269,6 +292,7 @@ function createSourceAuthoringSession(baseInput) {
     proposal = cloneJson(accepted);
     lastError = null;
     state = SOURCE_SESSION_STATE.DISCARDED;
+    revision += 1;
     return accepted;
   }
 
@@ -286,6 +310,8 @@ function createSourceAuthoringSession(baseInput) {
     listEditableFields,
     moveCollectionItem,
     previewProjection,
+    previewCanvasField,
+    proposalRevision,
     removeCollectionItem,
     status,
   });
