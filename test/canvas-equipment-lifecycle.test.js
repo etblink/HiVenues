@@ -13,7 +13,8 @@ const { JUNIPER_WORKS_AUTHORING_INPUT } = require('./support/hv7-juniper-venue')
 const { FOURTH_STREET_AUTHORING_INPUT, LANTERN_ROOM_AUTHORING_INPUT } = require('./support/hv5-authoring-fixtures');
 const parent = 'home.equipment-status';
 const source = () => extractDeploymentAgnosticVenueSource(JUNIPER_WORKS_AUTHORING_INPUT);
-const values = { name: 'Bench drill', state: 'limited', note: 'Awaiting inspection.', accessNote: 'Ask a steward.', lastUpdated: '2026-09-06T12:00:00Z', group: '' };
+// Literal names must survive display-prefix and fixed-slot suffix handling.
+const values = { name: 'Venue drill fixed topology', state: 'limited', note: 'Awaiting inspection.', accessNote: 'Ask a steward.', lastUpdated: '2026-09-06T12:00:00Z', group: '' };
 const snap = s => [s.canonicalAccepted(), s.canonicalProposal(), s.proposalRevision(), s.status(), s.canvasHistoryStatus()];
 const dom = html => new JSDOM(html).window.document;
 function form(html, selector) {
