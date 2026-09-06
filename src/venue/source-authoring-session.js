@@ -1,7 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { previewCanvasSourceField } = require('./canvas-source-preview');
+const { previewCanvasSourceFieldWithInverse } = require('./canvas-source-preview');
 
 const {
   OPERATOR_COLLECTIONS,
@@ -22,6 +22,8 @@ const {
   applyOrdinaryOperatorSourceEdit,
   buildVenueSourceOwnershipMap,
 } = require('./source-authoring');
+
+const CANVAS_HISTORY_LIMIT = 50;
 
 const SOURCE_SESSION_STATE = Object.freeze({
   CLEAN: 'CLEAN',
@@ -146,6 +148,8 @@ function createSourceAuthoringSession(baseInput) {
   let state = SOURCE_SESSION_STATE.CLEAN;
   let lastError = null;
   let revision = 0;
+  let canvasUndoHistory = [];
+  let canvasRedoHistory = [];
 
   function isDirty() {
     const proposalCanonical = canonicalIfValid(proposal);
@@ -161,16 +165,106 @@ function createSourceAuthoringSession(baseInput) {
     return createHash('sha256').update(String(revision) + '\0' + acceptedCanonical + '\0' + serializeDeploymentAgnosticVenueSource(proposal)).digest('hex');
   }
 
-  function previewCanvasField(command, expectedRevision) {
+  function canvasConflict(message, code = 'CANVAS_HISTORY_CONFLICT') {
+    const error = new SourceAuthoringSessionError(message);
+    error.code = code;
+    return error;
+  }
+
+  function assertCanvasRevision(expectedRevision) {
     if (typeof expectedRevision !== 'string' || expectedRevision !== proposalRevision()) {
-      const error = new SourceAuthoringSessionError('the draft changed; review current values before trying again');
-      error.code = 'STALE_CANVAS_PROPOSAL';
-      throw error;
+      throw canvasConflict('the draft changed; review current values before trying again', 'STALE_CANVAS_PROPOSAL');
     }
-    const next = previewCanvasSourceField(proposal, command);
-    proposal = cloneJson(next);
+  }
+
+  function clearCanvasHistory() {
+    canvasUndoHistory = [];
+    canvasRedoHistory = [];
+  }
+
+  function historyEntrySummary(entry) {
+    if (!entry) return null;
+    return Object.freeze({
+      blockId: entry.forwardCommand.blockId,
+      fieldId: entry.forwardCommand.fieldId,
+      generation: entry.generation,
+    });
+  }
+
+  function canvasHistoryStatus() {
+    return Object.freeze({
+      limit: CANVAS_HISTORY_LIMIT,
+      undoCount: canvasUndoHistory.length,
+      redoCount: canvasRedoHistory.length,
+      canUndo: canvasUndoHistory.length > 0,
+      canRedo: canvasRedoHistory.length > 0,
+      undo: historyEntrySummary(canvasUndoHistory.at(-1)),
+      redo: historyEntrySummary(canvasRedoHistory.at(-1)),
+    });
+  }
+
+  function previewCanvasField(command, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    const applied = previewCanvasSourceFieldWithInverse(proposal, command);
+    proposal = cloneJson(applied.source);
     lastError = null;
     refreshDirtyState();
+    const entry = Object.freeze({
+      forwardCommand: Object.freeze(cloneJson(applied.forwardCommand)),
+      inverseCommand: Object.freeze(cloneJson(applied.inverseCommand)),
+      beforeCanonical,
+      afterCanonical: serializeDeploymentAgnosticVenueSource(proposal),
+      beforeRevision,
+      afterRevision: proposalRevision(),
+      generation: revision,
+    });
+    canvasUndoHistory.push(entry);
+    if (canvasUndoHistory.length > CANVAS_HISTORY_LIMIT) canvasUndoHistory.shift();
+    canvasRedoHistory = [];
+    return status();
+  }
+
+  function undoCanvasPreview(expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const entry = canvasUndoHistory.at(-1);
+    if (!entry) throw canvasConflict('there is no Canvas preview change to undo', 'CANVAS_HISTORY_UNAVAILABLE');
+    if (serializeDeploymentAgnosticVenueSource(proposal) !== entry.afterCanonical) {
+      throw canvasConflict('the Canvas history no longer matches the current draft');
+    }
+    const applied = previewCanvasSourceFieldWithInverse(proposal, entry.inverseCommand);
+    const nextCanonical = serializeDeploymentAgnosticVenueSource(applied.source);
+    if (nextCanonical !== entry.beforeCanonical
+      || JSON.stringify(applied.inverseCommand) !== JSON.stringify(entry.forwardCommand)) {
+      throw canvasConflict('the Canvas inverse command did not restore the recorded draft exactly');
+    }
+    proposal = cloneJson(applied.source);
+    lastError = null;
+    refreshDirtyState();
+    canvasUndoHistory.pop();
+    canvasRedoHistory.push(entry);
+    return status();
+  }
+
+  function redoCanvasPreview(expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const entry = canvasRedoHistory.at(-1);
+    if (!entry) throw canvasConflict('there is no Canvas preview change to redo', 'CANVAS_HISTORY_UNAVAILABLE');
+    if (serializeDeploymentAgnosticVenueSource(proposal) !== entry.beforeCanonical) {
+      throw canvasConflict('the Canvas history no longer matches the current draft');
+    }
+    const applied = previewCanvasSourceFieldWithInverse(proposal, entry.forwardCommand);
+    const nextCanonical = serializeDeploymentAgnosticVenueSource(applied.source);
+    if (nextCanonical !== entry.afterCanonical
+      || JSON.stringify(applied.inverseCommand) !== JSON.stringify(entry.inverseCommand)) {
+      throw canvasConflict('the Canvas forward command did not restore the recorded draft exactly');
+    }
+    proposal = cloneJson(applied.source);
+    lastError = null;
+    refreshDirtyState();
+    canvasRedoHistory.pop();
+    canvasUndoHistory.push(entry);
     return status();
   }
 
@@ -205,6 +299,7 @@ function createSourceAuthoringSession(baseInput) {
     proposal = cloneJson(createDeploymentAgnosticVenueSource(next));
     lastError = null;
     refreshDirtyState();
+    clearCanvasHistory();
     return status();
   }
 
@@ -258,6 +353,7 @@ function createSourceAuthoringSession(baseInput) {
     proposal = cloneJson(createDeploymentAgnosticVenueSource(next));
     lastError = null;
     refreshDirtyState();
+    clearCanvasHistory();
     return status();
   }
 
@@ -280,6 +376,7 @@ function createSourceAuthoringSession(baseInput) {
       proposal = cloneJson(accepted);
       state = SOURCE_SESSION_STATE.ACCEPTED;
       revision += 1;
+      clearCanvasHistory();
       return accepted;
     } catch (error) {
       state = SOURCE_SESSION_STATE.REJECTED_WITH_BASE_UNCHANGED;
@@ -293,6 +390,7 @@ function createSourceAuthoringSession(baseInput) {
     lastError = null;
     state = SOURCE_SESSION_STATE.DISCARDED;
     revision += 1;
+    clearCanvasHistory();
     return accepted;
   }
 
@@ -304,6 +402,7 @@ function createSourceAuthoringSession(baseInput) {
     apply,
     canonicalAccepted: () => acceptedCanonical,
     canonicalProposal: () => serializeDeploymentAgnosticVenueSource(proposal),
+    canvasHistoryStatus,
     discard,
     edit,
     listEditableCollections,
@@ -312,12 +411,15 @@ function createSourceAuthoringSession(baseInput) {
     previewProjection,
     previewCanvasField,
     proposalRevision,
+    redoCanvasPreview,
     removeCollectionItem,
     status,
+    undoCanvasPreview,
   });
 }
 
 module.exports = {
+  CANVAS_HISTORY_LIMIT,
   SOURCE_SESSION_STATE,
   SourceAuthoringSessionError,
   createSourceAuthoringSession,

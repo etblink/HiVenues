@@ -23,7 +23,7 @@ function canvasTextField(sourceInput, blockId, fieldId) {
   return Object.freeze({ ...field, value, editable });
 }
 
-function previewCanvasSourceField(sourceInput, commandInput) {
+function previewCanvasSourceFieldWithInverse(sourceInput, commandInput) {
   const source = createDeploymentAgnosticVenueSource(sourceInput);
   const command = parseVenueCanvasCommand(commandInput);
   if (command.type !== 'set-field') throw new TypeError('Only text field preview is supported');
@@ -32,8 +32,17 @@ function previewCanvasSourceField(sourceInput, commandInput) {
     throw new TypeError('Text field preview denied');
   }
   const value = !field.required && command.value === '' ? null : command.value;
-  const applied = applyVenueCanvasCommand(commandDocument(source), createSetFieldCommand({ ...command, value }));
-  return applyOrdinaryOperatorSourceEdit(source, extractDeploymentAgnosticVenueSource(applied.document));
+  const forwardCommand = createSetFieldCommand({ ...command, value });
+  const applied = applyVenueCanvasCommand(commandDocument(source), forwardCommand);
+  return Object.freeze({
+    source: applyOrdinaryOperatorSourceEdit(source, extractDeploymentAgnosticVenueSource(applied.document)),
+    forwardCommand,
+    inverseCommand: applied.inverseCommand,
+  });
 }
 
-module.exports = { canvasTextField, previewCanvasSourceField };
+function previewCanvasSourceField(sourceInput, commandInput) {
+  return previewCanvasSourceFieldWithInverse(sourceInput, commandInput).source;
+}
+
+module.exports = { canvasTextField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse };

@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { canvasTextField, previewCanvasSourceField } = require('../src/venue/canvas-source-preview');
+const { canvasTextField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse } = require('../src/venue/canvas-source-preview');
 const { createSourceAuthoringSession } = require('../src/venue/source-authoring-session');
 const { extractDeploymentAgnosticVenueSource } = require('../src/venue/source');
 const { createSetFieldCommand } = require('../src/venue/semantic-venue-canvas-contract');
@@ -74,4 +74,65 @@ test('Fresh stable item selection follows reorder and shares keep and undo seman
   s.apply();
   assert.equal(s.acceptedSource.venuePackage.home.hero.lede, 'Kept workshop text.');
   assert.equal(s.status().dirty, false);
+});
+
+test('Canvas adapter exposes exact semantic inverses and session history round-trips multiple previews', () => {
+  const input = source();
+  const first = previewCanvasSourceFieldWithInverse(input, command('First preview.'));
+  assert.equal(first.forwardCommand.value, 'First preview.');
+  assert.equal(first.inverseCommand.value, input.venuePackage.home.hero.lede);
+  assert.deepEqual(
+    previewCanvasSourceFieldWithInverse(first.source, first.inverseCommand).source,
+    input,
+  );
+
+  const s = createSourceAuthoringSession(input);
+  const accepted = s.canonicalAccepted();
+  s.previewCanvasField(command('First preview.'), s.proposalRevision());
+  s.previewCanvasField(command('Second preview.'), s.proposalRevision());
+  assert.deepEqual(s.canvasHistoryStatus(), {
+    limit: 50, undoCount: 2, redoCount: 0, canUndo: true, canRedo: false,
+    undo: { blockId: 'home.hero', fieldId: 'lede', generation: 2 }, redo: null,
+  });
+  const afterSecond = s.canonicalProposal();
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.proposalDraft.venuePackage.home.hero.lede, 'First preview.');
+  assert.equal(s.canvasHistoryStatus().redoCount, 1);
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), accepted);
+  s.redoCanvasPreview(s.proposalRevision());
+  s.redoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), afterSecond);
+  assert.equal(s.canonicalAccepted(), accepted);
+});
+
+test('Canvas history is bounded, clears on unrelated authority transitions, and stale history forms fail atomically', () => {
+  const s = createSourceAuthoringSession(source());
+  for (let i = 0; i < 55; i += 1) {
+    s.previewCanvasField(command(`Preview ${i}.`), s.proposalRevision());
+  }
+  assert.equal(s.canvasHistoryStatus().undoCount, 50);
+  s.undoCanvasPreview(s.proposalRevision());
+  const stale = s.proposalRevision();
+  s.edit('/venuePackage/home/hero/lede', 'Other editor text.');
+  assert.deepEqual(s.canvasHistoryStatus(), {
+    limit: 50, undoCount: 0, redoCount: 0, canUndo: false, canRedo: false, undo: null, redo: null,
+  });
+  const before = snapshot(s);
+  assert.throws(() => s.redoCanvasPreview(stale), { code: 'STALE_CANVAS_PROPOSAL' });
+  assert.deepEqual(snapshot(s), before);
+
+  const transitions = [
+    x => x.moveCollectionItem('/venuePackage/home/equipmentStatus/items', 'wood-shop', 'up'),
+    x => x.removeCollectionItem('/venuePackage/home/equipmentStatus/items', 'wood-shop'),
+    x => x.apply(),
+    x => x.discard(),
+  ];
+  for (const transition of transitions) {
+    const x = createSourceAuthoringSession(source());
+    x.previewCanvasField(command('History entry.'), x.proposalRevision());
+    transition(x);
+    assert.equal(x.canvasHistoryStatus().undoCount, 0);
+    assert.equal(x.canvasHistoryStatus().redoCount, 0);
+  }
 });
