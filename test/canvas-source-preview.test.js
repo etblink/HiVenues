@@ -144,7 +144,7 @@ test('Canvas stable-item moves are one-step, exact-inverse, bounded to equipment
     { editable: middle.editable, itemId: middle.itemId, index: middle.index, count: middle.count, canMoveUp: middle.canMoveUp, canMoveDown: middle.canMoveDown },
     { editable: true, itemId: 'wood-shop', index: 1, count: 3, canMoveUp: true, canMoveDown: true },
   );
-  assert.equal(canvasMoveItem(input, 'home.programs.item.open-lab')?.editable ?? false, false);
+  assert.equal(canvasMoveItem(input, 'home.programs.item.open-build-night')?.editable ?? false, false);
 
   const s = createSourceAuthoringSession(input);
   const accepted = s.canonicalAccepted();
@@ -172,7 +172,7 @@ test('Canvas reorder boundaries, unsupported collections and stale revisions fai
   const cases = [
     ['home.equipment-status.item.laser-cutter', 'up'],
     ['home.equipment-status.item.electronics-bench', 'down'],
-    ['home.programs.item.open-lab', 'up'],
+    ['home.programs.item.open-build-night', 'up'],
   ];
   for (const [blockId, direction] of cases) {
     const before = snapshot(s);
