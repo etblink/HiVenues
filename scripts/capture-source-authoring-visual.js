@@ -412,7 +412,6 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   const origin = new URL(page.url()).origin;
   const pathname = fixture.editorPath + '/canvas-editor';
   const historyPathname = pathname + '/history';
-  const movePathname = pathname + '/move';
   const moveToPathname = pathname + '/move-to';
   const reorder = outcome.startsWith('reorder-');
   const selection = reorder
@@ -448,20 +447,6 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     await button.focus();
     assert.equal(await button.evaluate(el => el === document.activeElement), true);
     const pending = target.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === historyPathname);
-    const navigation = target.waitForEvent('framenavigated', { predicate: frame => frame === target.mainFrame() });
-    await target.keyboard.press('Enter');
-    const result = await pending;
-    assert.equal(result.status(), status);
-    await navigation;
-    await target.waitForLoadState('networkidle');
-  }
-
-  async function submitMove(target, direction, status = 200) {
-    const button = target.locator(`[data-canvas-move-action="${direction}"]`);
-    assert.equal(await button.isEnabled(), true);
-    await button.focus();
-    assert.equal(await button.evaluate(el => el === document.activeElement), true);
-    const pending = target.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === movePathname);
     const navigation = target.waitForEvent('framenavigated', { predicate: frame => frame === target.mainFrame() });
     await target.keyboard.press('Enter');
     const result = await pending;
