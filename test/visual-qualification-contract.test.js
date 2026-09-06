@@ -29,22 +29,28 @@ test('Canvas fixture navigation refreshes fragment-only transitions without repe
   }
 });
 
-test('Issue148 retains the 14-suite envelope and adds exactly two bounded Canvas history review states', () => {
+test('Issue150 retains the 14-suite envelope and adds exactly two bounded stable-item reorder review states', () => {
   assert.equal(contract.machineSuites.length, 14);
-  assert.equal(contract.reviewScenarios.length, 18);
+  assert.equal(contract.reviewScenarios.length, 20);
   const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit');
   assert.deepEqual(states.map(x => [x.id, x.outcome, x.viewport.width]), [
     ['juniper-canvas-edit-desktop', 'ready', 1440], ['juniper-canvas-preview-mobile', 'success', 390],
     ['juniper-canvas-invalid-mobile', 'invalid', 390], ['juniper-canvas-conflict-desktop', 'conflict', 1440],
     ['juniper-canvas-history-desktop', 'history-dirty', 1440], ['juniper-canvas-history-undo-mobile', 'history-undo', 390],
+    ['juniper-canvas-reorder-desktop', 'reorder-ready', 1440], ['juniper-canvas-reorder-moved-mobile', 'reorder-moved', 390],
   ]);
-  for (const state of states) {
+  for (const state of states.slice(0, 6)) {
     assert.equal(state.fixture, 'juniper');
     assert.deepEqual(state.selection, { blockId: 'home.hero', fieldId: 'lede' });
+  }
+  for (const state of states.slice(6)) {
+    assert.equal(state.fixture, 'juniper');
+    assert.deepEqual(state.selection, { blockId: 'home.equipment-status.item.wood-shop' });
   }
   assert.equal(contract.reviewScenarios.filter(x => x.mode === 'canvas').length, 2);
   const source = contract.machineSuites.find(x => x.id === 'source-authoring');
   assert.ok(source.invariants.some(x => /Undo\/Redo history/.test(x)));
+  assert.ok(source.invariants.some(x => /stable-ID equipment reorder/.test(x)));
 });
 
 test('current visual qualification contract is explicit and machine-readable', () => {

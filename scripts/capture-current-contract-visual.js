@@ -331,7 +331,7 @@ async function captureEditableCanvasScenario(browser, scenario) {
   await context.route('**/*', async route => {
     const req = route.request();
     const url = new URL(req.url());
-    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history'].includes(url.pathname)))) return route.continue();
+    if (url.origin === origin && (['GET', 'HEAD'].includes(req.method()) || (req.method() === 'POST' && [fixture.editorPath + '/canvas-editor', fixture.editorPath + '/canvas-editor/history', fixture.editorPath + '/canvas-editor/move'].includes(url.pathname)))) return route.continue();
     violations.push({ url: req.url(), method: req.method() });
     return route.abort('blockedbyclient');
   });
@@ -346,8 +346,9 @@ async function captureEditableCanvasScenario(browser, scenario) {
     await settle(page);
     if (scenario.viewport.width < 700) {
       const target = scenario.outcome === 'success' ? 'iframe'
-        : scenario.outcome === 'history-undo' ? '[data-canvas-history]'
-          : '[data-edit-outcome]';
+        : scenario.outcome === 'history-undo' || scenario.outcome === 'reorder-moved' ? '[data-canvas-history]'
+          : scenario.outcome === 'reorder-ready' ? '[data-canvas-move]'
+            : '[data-edit-outcome]';
       await page.locator(target).scrollIntoViewIfNeeded();
     }
     assertCanvasBrowserErrors(errors, evidence.expectedHttpErrors, fixture.editorPath + '/canvas-editor');

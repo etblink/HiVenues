@@ -33,6 +33,12 @@ function historyForm(html, action) {
   if (!node) return null;
   return Object.fromEntries([...node.querySelectorAll('[name]')].map(x => [x.name, x.value]));
 }
+function moveForm(html, direction) {
+  const root = doc(html);
+  const node = root.querySelector(`[data-canvas-move-action="${direction}"]`)?.closest('form');
+  if (!node) return null;
+  return Object.fromEntries([...node.querySelectorAll('[name]')].map(x => [x.name, x.value]));
+}
 
 test('Separate editor reads both venues; original Canvas remains GET-only and source-neutral', async t => {
   for (const input of [FOURTH_STREET_AUTHORING_INPUT, JUNIPER_WORKS_AUTHORING_INPUT]) {
@@ -235,4 +241,78 @@ test('Canvas history rejects stale, forged and invalidated actions without mutat
   await post(f, { ...disabledRedo, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/history').expect(413);
   assert.deepEqual(snapshot(f.session), beforeExtraParameter);
   assert.equal(JSON.stringify(f.session.canvasHistoryStatus()).includes('localStorage'), false);
+});
+
+test('Canvas exposes stable-ID equipment reorder controls with truthful one-step boundaries only', async t => {
+  const f = fixture(t);
+  const blocks = [
+    ['home.equipment-status.item.laser-cutter', false, true],
+    ['home.equipment-status.item.wood-shop', true, true],
+    ['home.equipment-status.item.electronics-bench', true, false],
+  ];
+  for (const [blockId, up, down] of blocks) {
+    const page = await request(f.app).get(f.canvas + '?blockId=' + encodeURIComponent(blockId)).expect(200);
+    const root = doc(page.text);
+    assert.equal(root.querySelector('[data-canvas-move]') !== null, true);
+    assert.equal(root.querySelector('[data-canvas-move-action="up"]').disabled, !up);
+    assert.equal(root.querySelector('[data-canvas-move-action="down"]').disabled, !down);
+    assert.equal(root.querySelector('[data-canvas-edit-form]'), null);
+    assert.equal(/insert-item|remove-item/.test(page.text), false);
+  }
+  const program = await request(f.app).get(f.canvas + '?blockId=home.programs').expect(200);
+  assert.equal(doc(program.text).querySelector('[data-canvas-move]'), null);
+  const oldCanvas = await request(f.app).get(f.editorPath + '/canvas?blockId=home.equipment-status.item.wood-shop').expect(200);
+  assert.equal(doc(oldCanvas.text).querySelectorAll('form,button,input,textarea').length, 0);
+});
+
+test('Canvas move POST preserves accepted bytes, real proposal, exact history Undo/Redo and stable selection', async t => {
+  const f = fixture(t);
+  const accepted = f.session.canonicalAccepted();
+  const initial = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.wood-shop').expect(200);
+  const up = moveForm(initial.text, 'up');
+  let page = await post(f, up, 'http://127.0.0.1', f.canvas + '/move').expect(200);
+  let root = doc(page.text);
+  assert.equal(root.querySelector('[data-edit-outcome]').dataset.editOutcome, 'move');
+  assert.equal(root.querySelector('#selection-summary').dataset.selectionBlockId, 'home.equipment-status.item.wood-shop');
+  assert.deepEqual(f.session.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'laser-cutter', 'electronics-bench']);
+  assert.equal(f.session.canonicalAccepted(), accepted);
+  assert.equal(root.querySelector('[data-canvas-history]').dataset.undoCount, '1');
+  assert.match(root.querySelector('[data-canvas-history-form] span').textContent, /wood-shop \/ reorder/);
+
+  page = await post(f, historyForm(page.text, 'undo'), 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  assert.equal(f.session.canonicalProposal(), accepted);
+  root = doc(page.text);
+  assert.equal(root.querySelector('[data-canvas-history]').dataset.redoCount, '1');
+
+  page = await post(f, historyForm(page.text, 'redo'), 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  assert.deepEqual(f.session.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'laser-cutter', 'electronics-bench']);
+  assert.ok((await request(f.app).get(f.previewPath).expect(200)).text.includes('Wood shop'));
+});
+
+test('Canvas move HTTP boundary rejects stale, forged, extra, and unsupported requests without mutation', async t => {
+  const f = fixture(t);
+  let page = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.wood-shop').expect(200);
+  const data = moveForm(page.text, 'up');
+  const stale = { ...data };
+  f.session.edit('/venuePackage/home/hero/lede', 'Other editor text.');
+  let before = snapshot(f.session);
+  await post(f, stale, 'http://127.0.0.1', f.canvas + '/move').expect(409);
+  assert.deepEqual(snapshot(f.session), before);
+
+  page = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.wood-shop').expect(200);
+  const fresh = moveForm(page.text, 'up');
+  for (const bad of [
+    { ...fresh, direction: 'top' },
+    { ...fresh, token: 'x' },
+    { ...fresh, blockId: 'home.programs' },
+  ]) {
+    before = snapshot(f.session);
+    await post(f, bad, 'http://127.0.0.1', f.canvas + '/move').expect(400);
+    assert.deepEqual(snapshot(f.session), before);
+  }
+  before = snapshot(f.session);
+  await post(f, { ...fresh, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/move').expect(413);
+  assert.deepEqual(snapshot(f.session), before);
 });

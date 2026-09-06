@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { canvasTextField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse } = require('../src/venue/canvas-source-preview');
+const { canvasMoveItem, canvasTextField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse } = require('../src/venue/canvas-source-preview');
 const { createSourceAuthoringSession } = require('../src/venue/source-authoring-session');
 const { extractDeploymentAgnosticVenueSource } = require('../src/venue/source');
 const { createSetFieldCommand } = require('../src/venue/semantic-venue-canvas-contract');
@@ -92,7 +92,7 @@ test('Canvas adapter exposes exact semantic inverses and session history round-t
   s.previewCanvasField(command('Second preview.'), s.proposalRevision());
   assert.deepEqual(s.canvasHistoryStatus(), {
     limit: 50, undoCount: 2, redoCount: 0, canUndo: true, canRedo: false,
-    undo: { blockId: 'home.hero', fieldId: 'lede', generation: 2 }, redo: null,
+    undo: { type: 'set-field', blockId: 'home.hero', fieldId: 'lede', generation: 2 }, redo: null,
   });
   const afterSecond = s.canonicalProposal();
   s.undoCanvasPreview(s.proposalRevision());
@@ -135,4 +135,56 @@ test('Canvas history is bounded, clears on unrelated authority transitions, and 
     assert.equal(x.canvasHistoryStatus().undoCount, 0);
     assert.equal(x.canvasHistoryStatus().redoCount, 0);
   }
+});
+
+test('Canvas stable-item moves are one-step, exact-inverse, bounded to equipment status, and mix with text history', () => {
+  const input = source();
+  const middle = canvasMoveItem(input, 'home.equipment-status.item.wood-shop');
+  assert.deepEqual(
+    { editable: middle.editable, itemId: middle.itemId, index: middle.index, count: middle.count, canMoveUp: middle.canMoveUp, canMoveDown: middle.canMoveDown },
+    { editable: true, itemId: 'wood-shop', index: 1, count: 3, canMoveUp: true, canMoveDown: true },
+  );
+  assert.equal(canvasMoveItem(input, 'home.programs.item.open-build-night')?.editable ?? false, false);
+
+  const s = createSourceAuthoringSession(input);
+  const accepted = s.canonicalAccepted();
+  s.previewCanvasMove('home.equipment-status.item.wood-shop', 'up', s.proposalRevision());
+  assert.deepEqual(s.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'laser-cutter', 'electronics-bench']);
+  assert.deepEqual(s.canvasHistoryStatus().undo, {
+    type: 'move-item', blockId: 'home.equipment-status.item.wood-shop', fieldId: null, generation: 1,
+  });
+  const moved = s.canonicalProposal();
+  s.previewCanvasField(command('Woodworking studio', 'home.equipment-status.item.wood-shop', 'name'), s.proposalRevision());
+  const mixed = s.canonicalProposal();
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), moved);
+  s.undoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), accepted);
+  s.redoCanvasPreview(s.proposalRevision());
+  s.redoCanvasPreview(s.proposalRevision());
+  assert.equal(s.canonicalProposal(), mixed);
+  assert.equal(s.canonicalAccepted(), accepted);
+});
+
+test('Canvas reorder boundaries, unsupported collections and stale revisions fail atomically', () => {
+  const s = createSourceAuthoringSession(source());
+  const cases = [
+    ['home.equipment-status.item.laser-cutter', 'up'],
+    ['home.equipment-status.item.electronics-bench', 'down'],
+    ['home.programs.item.open-build-night', 'up'],
+  ];
+  for (const [blockId, direction] of cases) {
+    const before = snapshot(s);
+    assert.throws(() => s.previewCanvasMove(blockId, direction, s.proposalRevision()));
+    assert.deepEqual(snapshot(s), before);
+  }
+  const stale = s.proposalRevision();
+  s.edit('/venuePackage/home/hero/lede', 'Intervening edit.');
+  const before = snapshot(s);
+  assert.throws(
+    () => s.previewCanvasMove('home.equipment-status.item.wood-shop', 'up', stale),
+    { code: 'STALE_CANVAS_PROPOSAL' },
+  );
+  assert.deepEqual(snapshot(s), before);
 });

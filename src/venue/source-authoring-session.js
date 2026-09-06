@@ -1,7 +1,11 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { previewCanvasSourceFieldWithInverse } = require('./canvas-source-preview');
+const {
+  canvasMoveItem,
+  previewCanvasSourceCommandWithInverse,
+  previewCanvasSourceFieldWithInverse,
+} = require('./canvas-source-preview');
 
 const {
   OPERATOR_COLLECTIONS,
@@ -185,8 +189,9 @@ function createSourceAuthoringSession(baseInput) {
   function historyEntrySummary(entry) {
     if (!entry) return null;
     return Object.freeze({
+      type: entry.forwardCommand.type,
       blockId: entry.forwardCommand.blockId,
-      fieldId: entry.forwardCommand.fieldId,
+      fieldId: entry.forwardCommand.fieldId || null,
       generation: entry.generation,
     });
   }
@@ -203,11 +208,7 @@ function createSourceAuthoringSession(baseInput) {
     });
   }
 
-  function previewCanvasField(command, expectedRevision) {
-    assertCanvasRevision(expectedRevision);
-    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
-    const beforeRevision = proposalRevision();
-    const applied = previewCanvasSourceFieldWithInverse(proposal, command);
+  function recordCanvasPreview(applied, beforeCanonical, beforeRevision) {
     proposal = cloneJson(applied.source);
     lastError = null;
     refreshDirtyState();
@@ -226,6 +227,31 @@ function createSourceAuthoringSession(baseInput) {
     return status();
   }
 
+  function previewCanvasField(command, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    return recordCanvasPreview(
+      previewCanvasSourceFieldWithInverse(proposal, command),
+      beforeCanonical,
+      beforeRevision,
+    );
+  }
+
+  function previewCanvasMove(blockId, direction, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const move = canvasMoveItem(proposal, blockId);
+    if (!move.editable) throw canvasConflict('this Canvas item cannot be reordered', 'CANVAS_MOVE_DENIED');
+    const command = move.command(direction);
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    return recordCanvasPreview(
+      previewCanvasSourceCommandWithInverse(proposal, command),
+      beforeCanonical,
+      beforeRevision,
+    );
+  }
+
   function undoCanvasPreview(expectedRevision) {
     assertCanvasRevision(expectedRevision);
     const entry = canvasUndoHistory.at(-1);
@@ -233,7 +259,7 @@ function createSourceAuthoringSession(baseInput) {
     if (serializeDeploymentAgnosticVenueSource(proposal) !== entry.afterCanonical) {
       throw canvasConflict('the Canvas history no longer matches the current draft');
     }
-    const applied = previewCanvasSourceFieldWithInverse(proposal, entry.inverseCommand);
+    const applied = previewCanvasSourceCommandWithInverse(proposal, entry.inverseCommand);
     const nextCanonical = serializeDeploymentAgnosticVenueSource(applied.source);
     if (nextCanonical !== entry.beforeCanonical
       || JSON.stringify(applied.inverseCommand) !== JSON.stringify(entry.forwardCommand)) {
@@ -254,7 +280,7 @@ function createSourceAuthoringSession(baseInput) {
     if (serializeDeploymentAgnosticVenueSource(proposal) !== entry.beforeCanonical) {
       throw canvasConflict('the Canvas history no longer matches the current draft');
     }
-    const applied = previewCanvasSourceFieldWithInverse(proposal, entry.forwardCommand);
+    const applied = previewCanvasSourceCommandWithInverse(proposal, entry.forwardCommand);
     const nextCanonical = serializeDeploymentAgnosticVenueSource(applied.source);
     if (nextCanonical !== entry.afterCanonical
       || JSON.stringify(applied.inverseCommand) !== JSON.stringify(entry.inverseCommand)) {
@@ -410,6 +436,7 @@ function createSourceAuthoringSession(baseInput) {
     moveCollectionItem,
     previewProjection,
     previewCanvasField,
+    previewCanvasMove,
     proposalRevision,
     redoCanvasPreview,
     removeCollectionItem,

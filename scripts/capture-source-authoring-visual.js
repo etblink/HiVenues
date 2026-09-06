@@ -408,11 +408,15 @@ async function navigateCanvasDocument(page, href) {
 }
 
 async function exerciseEditableCanvasState(page, fixture, viewport, outcome, checkAxe = true) {
-  if (['history-dirty', 'history-undo'].includes(outcome)) fixture.session.discard();
+  if (['history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved'].includes(outcome)) fixture.session.discard();
   const origin = new URL(page.url()).origin;
   const pathname = fixture.editorPath + '/canvas-editor';
   const historyPathname = pathname + '/history';
-  const selection = { blockId: 'home.hero', fieldId: outcome === 'unsupported' ? 'image.src' : 'lede' };
+  const movePathname = pathname + '/move';
+  const reorder = outcome.startsWith('reorder-');
+  const selection = reorder
+    ? { blockId: 'home.equipment-status.item.wood-shop' }
+    : { blockId: 'home.hero', fieldId: outcome === 'unsupported' ? 'image.src' : 'lede' };
   const href = origin + selectionHref(pathname, createVenueCanvasSelection(selection));
   const accepted = fixture.session.canonicalAccepted();
   const response = await navigateCanvasDocument(page, href);
@@ -451,6 +455,20 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     await target.waitForLoadState('networkidle');
   }
 
+  async function submitMove(target, direction, status = 200) {
+    const button = target.locator(`[data-canvas-move-action="${direction}"]`);
+    assert.equal(await button.isEnabled(), true);
+    await button.focus();
+    assert.equal(await button.evaluate(el => el === document.activeElement), true);
+    const pending = target.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === movePathname);
+    const navigation = target.waitForEvent('framenavigated', { predicate: frame => frame === target.mainFrame() });
+    await target.keyboard.press('Enter');
+    const result = await pending;
+    assert.equal(result.status(), status);
+    await navigation;
+    await target.waitForLoadState('networkidle');
+  }
+
   if (outcome === 'conflict') {
     const other = await page.context().newPage();
     try {
@@ -468,6 +486,11 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
       await submitHistory(page, 'undo');
       renderedOutcome = 'undo';
     } else renderedOutcome = 'success';
+  } else if (outcome === 'reorder-moved') {
+    await submitMove(page, 'up');
+    renderedOutcome = 'move';
+  } else if (outcome === 'reorder-ready') {
+    renderedOutcome = 'ready';
   } else if (['success', 'invalid', 'conflict'].includes(outcome)) {
     const status = outcome === 'invalid' ? 400 : outcome === 'conflict' ? 409 : 200;
     await submitEdit(page, outcome === 'invalid' ? '' : 'Make something together. Explore our open workshops.', status);
@@ -477,10 +500,10 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.equal(await page.locator('[data-edit-outcome]').getAttribute('data-edit-outcome'), renderedOutcome);
   assert.equal(fixture.session.canonicalAccepted(), accepted);
   const proposalUnchanged = fixture.session.canonicalProposal() === currentBeforeSubmit;
-  const shouldChange = ['success', 'history-dirty', 'history-undo'].includes(outcome);
+  const shouldChange = ['success', 'history-dirty', 'history-undo', 'reorder-moved'].includes(outcome);
   assert.equal(proposalUnchanged, !shouldChange);
   const expectedText = fixture.session.proposalDraft.venuePackage.home.hero.lede;
-  if (outcome !== 'unsupported') {
+  if (!reorder && outcome !== 'unsupported') {
     assert.equal(await page.locator('[data-canvas-edit-form] [name=value]').inputValue(), outcome === 'invalid' ? '' : expectedText);
   }
   const preview = await getPreviewFrame(page, 'Real venue renderer preview');
@@ -515,8 +538,11 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     const history = document.querySelector('[data-canvas-history]');
     const undo = document.querySelector('[data-canvas-history-action="undo"]');
     const redo = document.querySelector('[data-canvas-history-action="redo"]');
+    const move = document.querySelector('[data-canvas-move]');
+    const moveUp = document.querySelector('[data-canvas-move-action="up"]');
+    const moveDown = document.querySelector('[data-canvas-move-action="down"]');
     return {
-      selectionMirrorCount: mirrors.filter(s => document.querySelector(s)?.dataset.selectionBlockId === expected.blockId && document.querySelector(s)?.dataset.selectionFieldId === expected.fieldId).length,
+      selectionMirrorCount: mirrors.filter(s => document.querySelector(s)?.dataset.selectionBlockId === expected.blockId && document.querySelector(s)?.dataset.selectionFieldId === (expected.fieldId || '')).length,
       selectionSummaryFocused: document.activeElement === summary,
       focusOutlineWidth: parseFloat(globalThis.getComputedStyle(summary).outlineWidth),
       horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
@@ -534,6 +560,11 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
         undoEnabled: Boolean(undo && !undo.disabled),
         redoEnabled: Boolean(redo && !redo.disabled),
       },
+      move: {
+        present: Boolean(move),
+        upEnabled: Boolean(moveUp && !moveUp.disabled),
+        downEnabled: Boolean(moveDown && !moveDown.disabled),
+      },
     };
   }, selection);
   assert.equal(geometry.selectionMirrorCount, 7);
@@ -541,12 +572,22 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.ok(geometry.focusOutlineWidth >= 3);
   assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
   assert.ok(geometry.minimumTargetHeight >= 44 && geometry.minimumTargetWidth >= 44, JSON.stringify(geometry));
-  assert.equal(geometry.formCount, outcome === 'unsupported' ? 0 : 1);
+  assert.equal(geometry.formCount, outcome === 'unsupported' || reorder ? 0 : 1);
   assert.equal(geometry.iframeCount, 1);
-  for (const key of ['selectedCanvasCardCount', 'selectedTreeRowCount', 'selectedInspectorFieldCount']) assert.equal(geometry[key], 1);
+  assert.equal(geometry.selectedCanvasCardCount, 1);
+  assert.equal(geometry.selectedTreeRowCount, 1);
+  assert.equal(geometry.selectedInspectorFieldCount, selection.fieldId ? 1 : 0);
   assert.equal(geometry.workspaceDisplay, viewport.width > 1100 ? 'grid' : 'flex');
   if (outcome === 'history-dirty') assert.deepEqual(geometry.history, { undoCount: 2, redoCount: 0, undoEnabled: true, redoEnabled: false });
   if (outcome === 'history-undo') assert.deepEqual(geometry.history, { undoCount: 1, redoCount: 1, undoEnabled: true, redoEnabled: true });
+  if (outcome === 'reorder-ready') {
+    assert.deepEqual(geometry.move, { present: true, upEnabled: true, downEnabled: true });
+    assert.deepEqual(geometry.history, { undoCount: 0, redoCount: 0, undoEnabled: false, redoEnabled: false });
+  }
+  if (outcome === 'reorder-moved') {
+    assert.deepEqual(geometry.move, { present: true, upEnabled: false, downEnabled: true });
+    assert.deepEqual(geometry.history, { undoCount: 1, redoCount: 0, undoEnabled: true, redoEnabled: false });
+  }
   return { outcome, renderedOutcome, selection, geometry, acceptedUnchanged: true, proposalUnchanged,
     proposalChangedFromInitial: before !== fixture.session.canonicalProposal(), rendererTextVerified: true,
     rendererVenueName, rendererHeading, expectedHttpErrors, axeCanvas: checkAxe ? await runAxe(page) : [], axePreview: checkAxe ? await runAxe(preview) : [] };
@@ -596,7 +637,7 @@ async function runScenario(browser, scenario) {
     await page.screenshot({ path: path.join(SHOTS, `${scenario.id}.png`), fullPage: true });
     const readOnlyCanvas = await exerciseReadOnlyCanvas(page, fixture, scenario);
     const editableCanvas = [];
-    for (const outcome of scenario.id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo'] : ['ready', 'unsupported']) {
+    for (const outcome of scenario.id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved'] : ['ready', 'unsupported']) {
       editableCanvas.push(await exerciseEditableCanvasState(page, fixture, scenario, outcome));
     }
     assert.deepEqual(externalRequests, [], JSON.stringify(externalRequests, null, 2));
