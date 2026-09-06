@@ -223,15 +223,16 @@ test('Canvas history rejects stale, forged and invalidated actions without mutat
   page = await request(f.app).get(f.canvas + '?blockId=home.hero&fieldId=lede').expect(200);
   const disabledRedo = historyForm(page.text, 'redo');
   assert.equal(doc(page.text).querySelector('[data-canvas-history-action="redo"]').disabled, true);
-  const malformed = [
+  for (const data of [
     { ...disabledRedo, action: 'replay-all' },
-    { ...disabledRedo, extra: 'x' },
     { ...disabledRedo, token: 'x' },
-  ];
-  for (const data of malformed) {
+  ]) {
     const snap = snapshot(f.session);
     await post(f, data, 'http://127.0.0.1', f.canvas + '/history').expect(400);
     assert.deepEqual(snapshot(f.session), snap);
   }
+  const beforeExtraParameter = snapshot(f.session);
+  await post(f, { ...disabledRedo, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/history').expect(413);
+  assert.deepEqual(snapshot(f.session), beforeExtraParameter);
   assert.equal(JSON.stringify(f.session.canvasHistoryStatus()).includes('localStorage'), false);
 });
