@@ -252,6 +252,20 @@ function createSourceAuthoringSession(baseInput) {
     );
   }
 
+  function previewCanvasMoveTo(blockId, destination, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const move = canvasMoveItem(proposal, blockId);
+    if (!move.editable) throw canvasConflict('this Canvas item cannot be reordered', 'CANVAS_MOVE_DENIED');
+    const command = move.commandTo(destination);
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    return recordCanvasPreview(
+      previewCanvasSourceCommandWithInverse(proposal, command),
+      beforeCanonical,
+      beforeRevision,
+    );
+  }
+
   function undoCanvasPreview(expectedRevision) {
     assertCanvasRevision(expectedRevision);
     const entry = canvasUndoHistory.at(-1);
@@ -437,6 +451,7 @@ function createSourceAuthoringSession(baseInput) {
     previewProjection,
     previewCanvasField,
     previewCanvasMove,
+    previewCanvasMoveTo,
     proposalRevision,
     redoCanvasPreview,
     removeCollectionItem,

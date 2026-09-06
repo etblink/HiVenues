@@ -47,8 +47,12 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
     ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor" data-canvas-edit-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId)}<label for="canvas-field-value">${escapeHtml(text)}${field.required ? '' : ' (optional)'}</label>${control}<button type="submit">Preview change</button></form>`
     : fieldId ? '<p data-canvas-unsupported>This field is read-only in Canvas.</p>' : '';
   const moveAction = (direction, enabled) => `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/move" data-canvas-move-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}${hidden('direction', direction)}<button type="submit" data-canvas-move-action="${direction}"${enabled ? '' : ' disabled aria-disabled="true"'}>Move ${direction}</button></form>`;
+  const moveDestinationOptions = move.destinations.map((destination) => `<option value="${escapeHtml(destination.value)}"${destination.current ? ' disabled data-current="true"' : ''}>Position ${destination.position}${destination.current ? ' — current' : destination.beforeBlockId === null ? ' — end' : ''}</option>`).join('');
+  const moveToForm = move.editable
+    ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/move-to" data-canvas-move-to-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}<label for="canvas-move-destination">Move to…</label><select id="canvas-move-destination" name="destination" data-canvas-move-destination required><option value="" selected>Choose a position</option>${moveDestinationOptions}</select><button type="submit" data-canvas-move-to-action>Move to selected position</button></form>`
+    : '';
   const moveEditor = move.editable
-    ? `<section class="canvas-move" data-canvas-move data-can-move-up="${move.canMoveUp}" data-can-move-down="${move.canMoveDown}" aria-label="Item order preview"><p><strong>Item order</strong><br>Move this existing item one position. Stable item identity and source authority stay unchanged.</p><div class="canvas-move-actions">${moveAction('up', move.canMoveUp)}${moveAction('down', move.canMoveDown)}</div></section>`
+    ? `<section class="canvas-move" data-canvas-move data-can-move-up="${move.canMoveUp}" data-can-move-down="${move.canMoveDown}" data-current-position="${move.index + 1}" aria-label="Item order preview"><p><strong>Item order</strong><br>Move this existing item one position, or choose a stable destination directly. Item identity and source authority stay unchanged.</p><div class="canvas-move-actions">${moveAction('up', move.canMoveUp)}${moveAction('down', move.canMoveDown)}</div>${moveToForm}</section>`
     : '';
   const fallback = !textEditor && !moveEditor ? '<p data-canvas-unsupported>Select an editable text field or a supported movable item.</p>' : '';
   const inspector = `<section class="canvas-editor" data-edit-outcome="${outcome}"><p id="canvas-edit-status" role="${['invalid', 'conflict'].includes(outcome) ? 'alert' : 'status'}">${MESSAGES[outcome]}</p>${textEditor}${moveEditor}${fallback}<section class="canvas-history" data-canvas-history data-undo-count="${history.undoCount}" data-redo-count="${history.redoCount}" aria-label="Session preview history"><p><strong>Session preview history</strong><br>Up to ${history.limit} Canvas preview changes. History is cleared by other draft actions and is never saved.</p>${historyAction('undo', history.undo)}${historyAction('redo', history.redo)}</section></section>`;
@@ -57,18 +61,20 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
     style: `.canvas-editor { margin: 10px; padding: 12px; background: #f7f8f3; border: 1px solid #d4d9cc; border-radius: 8px; }
       .canvas-editor p { margin: 0 0 12px; font-size: .83rem; line-height: 1.5; overflow-wrap: anywhere; }
       .canvas-editor label { display: block; margin-bottom: 7px; font-weight: 700; font-size: .87rem; }
-      .canvas-editor input:not([type=hidden]), .canvas-editor textarea { display: block; width: 100%; min-width: 44px; min-height: 44px; padding: 10px; border: 1px solid #727c66; border-radius: 6px; font: inherit; font-size: .9rem; background: #fff; color: #242522; }
+      .canvas-editor input:not([type=hidden]), .canvas-editor textarea, .canvas-editor select { display: block; width: 100%; min-width: 44px; min-height: 44px; padding: 10px; border: 1px solid #727c66; border-radius: 6px; font: inherit; font-size: .9rem; background: #fff; color: #242522; }
       .canvas-editor textarea { resize: vertical; }
       .canvas-editor button { width: 100%; min-height: 44px; margin-top: 12px; border: 0; border-radius: 7px; padding: 10px; background: #263d2d; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
       .canvas-editor button:disabled { cursor: not-allowed; opacity: .55; }
       .canvas-move { margin-top: 12px; padding: 12px; border: 1px solid #d4d9cc; border-radius: 7px; background: #fff; }
       .canvas-move-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .canvas-move-actions form button { margin-top: 0; }
+      .canvas-move [data-canvas-move-to-form] { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e1e5dc; }
+      .canvas-move [data-canvas-move-to-form] button { margin-top: 8px; }
       .canvas-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid #d4d9cc; }
       .canvas-history form { display: grid; grid-template-columns: minmax(112px,.8fr) minmax(0,1fr); gap: 8px; align-items: center; margin-top: 8px; }
       .canvas-history form button { margin-top: 0; }
       .canvas-history form span { font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
-      .canvas-editor :is(input,textarea,button):focus-visible { outline: 3px solid #a3460c; outline-offset: 3px; }
+      .canvas-editor :is(input,textarea,select,button):focus-visible { outline: 3px solid #a3460c; outline-offset: 3px; }
       .canvas-editor [aria-invalid=true] { border: 2px solid #9d321e; }
       [data-edit-outcome=invalid], [data-edit-outcome=conflict] { border-left: 4px solid #9d321e; }
       @media (min-width:1101px) { .workspace { grid-template-columns: 190px minmax(0,1fr) 310px; } }
@@ -140,6 +146,22 @@ function createEditableVenueCanvasRouter(surface) {
         catch { selection = undefined; }
         res.status(conflict ? 409 : 400).type('html').send(render(selection, conflict ? 'conflict' : 'invalid'));
       } else res.status(conflict ? 409 : 400).type('text').send('Canvas move request rejected. Your draft is unchanged.');
+    }
+  });
+  router.post(pathname + '/move-to', express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 5 }), (req, res) => {
+    let selection;
+    try {
+      const body = validateLoopbackPost(req, token, ['token', 'revision', 'blockId', 'fieldId', 'destination']);
+      selection = selectionFromPost(body);
+      surface.session.previewCanvasMoveTo(body.blockId, body.destination, body.revision);
+      res.type('html').send(render(selection, 'move'));
+    } catch (error) {
+      const conflict = ['STALE_CANVAS_PROPOSAL', 'CANVAS_HISTORY_CONFLICT'].includes(error.code);
+      if (selection) {
+        try { projectStudioSource(surface.session.proposalDraft, selection); }
+        catch { selection = undefined; }
+        res.status(conflict ? 409 : 400).type('html').send(render(selection, conflict ? 'conflict' : 'invalid'));
+      } else res.status(conflict ? 409 : 400).type('text').send('Canvas move-to request rejected. Your draft is unchanged.');
     }
   });
   router.post(pathname + '/history', express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 5 }), (req, res) => {

@@ -39,6 +39,14 @@ function moveForm(html, direction) {
   if (!node) return null;
   return Object.fromEntries([...node.querySelectorAll('[name]')].map(x => [x.name, x.value]));
 }
+function moveToForm(html, destination) {
+  const root = doc(html);
+  const node = root.querySelector('[data-canvas-move-to-form]');
+  if (!node) return null;
+  const data = Object.fromEntries([...node.querySelectorAll('[name]')].map(x => [x.name, x.value]));
+  data.destination = destination;
+  return data;
+}
 
 test('Separate editor reads both venues; original Canvas remains GET-only and source-neutral', async t => {
   for (const input of [FOURTH_STREET_AUTHORING_INPUT, JUNIPER_WORKS_AUTHORING_INPUT]) {
@@ -257,6 +265,10 @@ test('Canvas exposes stable-ID equipment reorder controls with truthful one-step
     assert.equal(root.querySelector('[data-canvas-move-action="up"]').disabled, !up);
     assert.equal(root.querySelector('[data-canvas-move-action="down"]').disabled, !down);
     assert.equal(root.querySelector('[data-canvas-edit-form]'), null);
+    const select = root.querySelector('[data-canvas-move-destination]');
+    assert.ok(select);
+    assert.equal(select.options.length, 4);
+    assert.equal([...select.options].filter(x => x.hasAttribute('data-current')).length, 1);
     assert.equal(/insert-item|remove-item/.test(page.text), false);
   }
   const program = await request(f.app).get(f.canvas + '?blockId=home.programs').expect(200);
@@ -314,5 +326,67 @@ test('Canvas move HTTP boundary rejects stale, forged, extra, and unsupported re
   }
   before = snapshot(f.session);
   await post(f, { ...fresh, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/move').expect(413);
+  assert.deepEqual(snapshot(f.session), before);
+});
+
+test('Canvas Move to POST uses stable destinations, updates options, and creates one exact history entry', async t => {
+  const f = fixture(t);
+  const accepted = f.session.canonicalAccepted();
+  let page = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.laser-cutter').expect(200);
+  let root = doc(page.text);
+  const beforeOptions = [...root.querySelector('[data-canvas-move-destination]').options].map(x => ({
+    value: x.value, disabled: x.disabled, text: x.textContent,
+  }));
+  assert.deepEqual(beforeOptions, [
+    { value: '', disabled: false, text: 'Choose a position' },
+    { value: 'home.equipment-status.item.wood-shop', disabled: true, text: 'Position 1 — current' },
+    { value: 'home.equipment-status.item.electronics-bench', disabled: false, text: 'Position 2' },
+    { value: '__collection_end__', disabled: false, text: 'Position 3 — end' },
+  ]);
+
+  page = await post(f, moveToForm(page.text, '__collection_end__'), 'http://127.0.0.1', f.canvas + '/move-to').expect(200);
+  root = doc(page.text);
+  assert.equal(root.querySelector('[data-edit-outcome]').dataset.editOutcome, 'move');
+  assert.equal(root.querySelector('#selection-summary').dataset.selectionBlockId, 'home.equipment-status.item.laser-cutter');
+  assert.deepEqual(f.session.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'electronics-bench', 'laser-cutter']);
+  assert.equal(f.session.canonicalAccepted(), accepted);
+  assert.equal(root.querySelector('[data-canvas-history]').dataset.undoCount, '1');
+  assert.equal(root.querySelector('[data-canvas-move]').dataset.currentPosition, '3');
+  const afterOptions = [...root.querySelector('[data-canvas-move-destination]').options];
+  assert.equal(afterOptions.find(x => x.value === '__collection_end__').disabled, true);
+
+  page = await post(f, historyForm(page.text, 'undo'), 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  assert.equal(f.session.canonicalProposal(), accepted);
+  page = await post(f, historyForm(page.text, 'redo'), 'http://127.0.0.1', f.canvas + '/history').expect(200);
+  assert.deepEqual(f.session.proposalDraft.venuePackage.home.equipmentStatus.items.map(x => x.id),
+    ['wood-shop', 'electronics-bench', 'laser-cutter']);
+});
+
+test('Canvas Move to HTTP boundary rejects stale, no-op, cross-collection, forged and extra requests atomically', async t => {
+  const f = fixture(t);
+  let page = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.wood-shop').expect(200);
+  const fresh = moveToForm(page.text, '__collection_end__');
+  const stale = { ...fresh };
+  f.session.edit('/venuePackage/home/hero/lede', 'Intervening form edit.');
+  let before = snapshot(f.session);
+  await post(f, stale, 'http://127.0.0.1', f.canvas + '/move-to').expect(409);
+  assert.deepEqual(snapshot(f.session), before);
+
+  page = await request(f.app).get(f.canvas + '?blockId=home.equipment-status.item.wood-shop').expect(200);
+  const base = moveToForm(page.text, '__collection_end__');
+  for (const bad of [
+    { ...base, destination: 'home.equipment-status.item.electronics-bench' },
+    { ...base, destination: 'home.programs.item.open-build-night' },
+    { ...base, destination: 'missing.destination' },
+    { ...base, token: 'x' },
+    { ...base, blockId: 'home.programs.item.open-build-night' },
+  ]) {
+    before = snapshot(f.session);
+    await post(f, bad, 'http://127.0.0.1', f.canvas + '/move-to').expect(400);
+    assert.deepEqual(snapshot(f.session), before);
+  }
+  before = snapshot(f.session);
+  await post(f, { ...base, extra: 'x' }, 'http://127.0.0.1', f.canvas + '/move-to').expect(413);
   assert.deepEqual(snapshot(f.session), before);
 });
