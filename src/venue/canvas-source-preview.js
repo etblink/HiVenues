@@ -19,14 +19,18 @@ function commandDocument(source) {
   return { schemaVersion: source.schemaVersion, deploymentRef: { id: 'offline-canvas-text-preview' }, venueContext: source.venueContext, venuePackage: source.venuePackage };
 }
 
-function canvasTextField(sourceInput, blockId, fieldId) {
+function canvasEditableField(sourceInput, blockId, fieldId) {
   const source = createDeploymentAgnosticVenueSource(sourceInput);
   if (typeof blockId !== 'string' || !blockId.startsWith('home.')) throw new TypeError('Home field required');
   const block = findVenueCanvasBlock(createSemanticVenueCanvasContract(commandDocument(source)), blockId);
   const field = block.fields.find((entry) => entry.id === fieldId);
   if (!field) throw new TypeError('Unknown field');
   const value = field.sourcePointer.split('/').slice(1).reduce((obj, key) => obj[key.replace(/~1/g, '/').replace(/~0/g, '~')], source);
-  const editable = ['text', 'multiline-text'].includes(field.controlKind)
+  const equipmentField = block.kind === 'venue-equipment-status-item'
+    && block.placement?.parentId === 'home.equipment-status'
+    && ((field.id === 'state' && field.controlKind === 'select')
+      || (field.id === 'lastUpdated' && field.controlKind === 'datetime-offset'));
+  const editable = (['text', 'multiline-text'].includes(field.controlKind) || equipmentField)
     && buildVenueSourceOwnershipMap(source)[field.sourcePointer] === OWNERSHIP.OPERATOR_AUTHORED
     && (typeof value === 'string' || (value === null && !field.required));
   return Object.freeze({ ...field, value, editable });
@@ -112,9 +116,9 @@ function previewCanvasSourceCommandWithInverse(sourceInput, commandInput) {
   const command = parseVenueCanvasCommand(commandInput);
   let forwardCommand;
   if (command.type === COMMAND_TYPE.SET_FIELD) {
-    const field = canvasTextField(source, command.blockId, command.fieldId);
+    const field = canvasEditableField(source, command.blockId, command.fieldId);
     if (!field.editable || !(typeof command.value === 'string' || (command.value === null && !field.required))) {
-      throw new TypeError('Text field preview denied');
+      throw new TypeError('Canvas field preview denied');
     }
     const value = !field.required && command.value === '' ? null : command.value;
     forwardCommand = createSetFieldCommand({ ...command, value });
@@ -149,7 +153,7 @@ function previewCanvasSourceCommandWithInverse(sourceInput, commandInput) {
 
 function previewCanvasSourceFieldWithInverse(sourceInput, commandInput) {
   const command = parseVenueCanvasCommand(commandInput);
-  if (command.type !== COMMAND_TYPE.SET_FIELD) throw new TypeError('Only text field preview is supported');
+  if (command.type !== COMMAND_TYPE.SET_FIELD) throw new TypeError('Only field preview is supported');
   return previewCanvasSourceCommandWithInverse(sourceInput, command);
 }
 
@@ -162,7 +166,7 @@ module.exports = {
   canvasEquipmentCollection,
   COLLECTION_END_DESTINATION,
   canvasMoveItem,
-  canvasTextField,
+  canvasEditableField,
   previewCanvasSourceCommandWithInverse,
   previewCanvasSourceField,
   previewCanvasSourceFieldWithInverse,

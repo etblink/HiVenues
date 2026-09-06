@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { canvasMoveItem, canvasTextField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse } = require('../src/venue/canvas-source-preview');
+const { canvasMoveItem, canvasEditableField, previewCanvasSourceField, previewCanvasSourceFieldWithInverse } = require('../src/venue/canvas-source-preview');
 const { createSourceAuthoringSession } = require('../src/venue/source-authoring-session');
 const { extractDeploymentAgnosticVenueSource } = require('../src/venue/source');
 const { createSetFieldCommand } = require('../src/venue/semantic-venue-canvas-contract');
@@ -20,7 +20,7 @@ test('Canvas text adapter produces only the selected source change without deplo
   assert.deepEqual(next, expected);
   assert.equal(JSON.stringify(input), before);
   assert.equal(Object.hasOwn(next, 'deploymentRef'), false);
-  assert.equal(canvasTextField(input, 'home.hero', 'lede').editable, true);
+  assert.equal(canvasEditableField(input, 'home.hero', 'lede').editable, true);
   const nullable = previewCanvasSourceField(input, command('', 'home.equipment-status.item.wood-shop', 'group'));
   assert.equal(nullable.venuePackage.home.equipmentStatus.items.find(x => x.id === 'wood-shop').group, null);
 });

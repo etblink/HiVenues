@@ -72,13 +72,14 @@ test('Every existing home field derives its control and eligibility from the aut
       const p = projectStudioSource(f.session.proposalDraft, selection);
       const field = p.inspector.fields.find(x => x.fieldId === selection.fieldId);
       const descriptor = descriptors.find(x => x.pointer === field.sourcePointer);
-      const eligible = Boolean(descriptor && ['text', 'multiline-text'].includes(descriptor.controlKind)
+      const equipmentField = /^home\.equipment-status\.item\./.test(selection.blockId) && ['state', 'lastUpdated'].includes(selection.fieldId);
+      const eligible = Boolean(descriptor && (['text', 'multiline-text'].includes(descriptor.controlKind) || equipmentField)
         && (typeof descriptor.value === 'string' || (descriptor.value === null && !descriptor.required)));
       const result = doc((await request(f.app).get(f.canvas + '?' + new URLSearchParams({ blockId: selection.blockId, fieldId: selection.fieldId })).expect(200)).text);
       assert.equal(Boolean(result.querySelector('[data-canvas-edit-form]')), eligible, JSON.stringify({ selection, field, descriptor }));
       if (eligible) {
         assert.equal(result.querySelector('[name=value]').value, descriptor.value ?? '');
-        assert.equal(result.querySelector('[name=value]').tagName, descriptor.controlKind === 'multiline-text' ? 'TEXTAREA' : 'INPUT');
+        assert.equal(result.querySelector('[name=value]').tagName, descriptor.controlKind === 'select' ? 'SELECT' : descriptor.controlKind === 'multiline-text' ? 'TEXTAREA' : 'INPUT');
       }
     }
     assert.deepEqual(snapshot(f.session), before);

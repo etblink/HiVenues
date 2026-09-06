@@ -238,6 +238,10 @@ test('Canvas equipment survives keep, failed save, retry and reopen with exact i
     const staleAdd = await canvasPage(runtime);
     page = await canvasPage(runtime, blockId, 'name');
     page = await submitNativeForm(runtime, page, '[data-canvas-edit-form]', { value: 'Renamed workshop drill' });
+    page = await canvasPage(runtime, blockId, 'state');
+    page = await submitNativeForm(runtime, page, '[data-canvas-edit-form]', { value: 'maintenance' });
+    page = await canvasPage(runtime, blockId, 'lastUpdated');
+    page = await submitNativeForm(runtime, page, '[data-canvas-edit-form]', { value: '2026-09-06T05:15:00-07:00' });
     page = await submitNativeForm(runtime, page, '[data-canvas-move-to-form]', { destination: EQUIPMENT_BLOCK + '.item.laser-cutter' });
     page = await canvasPage(runtime, EQUIPMENT_BLOCK + '.item.wood-shop');
     page = await submitNativeForm(runtime, page, '[data-canvas-equipment-remove-form]');
@@ -246,7 +250,7 @@ test('Canvas equipment survives keep, failed save, retry and reopen with exact i
     page = await submitNativeForm(runtime, page, '[data-canvas-history-action="redo"]');
     assert.equal(page.querySelector('#selection-summary').dataset.selectionBlockId, EQUIPMENT_BLOCK);
     expected.venuePackage.home.equipmentStatus.items = [
-      { id, ...DRILL_FIELDS, name: 'Renamed workshop drill' },
+      { id, ...DRILL_FIELDS, name: 'Renamed workshop drill', state: 'maintenance', lastUpdated: '2026-09-06T05:15:00-07:00' },
       ...expected.venuePackage.home.equipmentStatus.items.filter(item => item.id !== 'wood-shop'),
     ];
     const expectedBytes = Buffer.from(serializeDeploymentAgnosticVenueSourceFile(expected));

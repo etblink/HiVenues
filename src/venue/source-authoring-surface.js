@@ -362,7 +362,7 @@ function reviewMarkup() {
 function enhanceSourceAuthoringHtml(html, editorPath, { dirty = false, state = '', session = null, notice = null } = {}) {
   const scriptPath = progressiveScriptPath(editorPath);
   const sourceFilePath = venueSourceDownloadPath(editorPath);
-  const canvasControl = `<a class="studio-canvas-link" href="${escapeHtml(readOnlyVenueCanvasPath(editorPath))}">Open read-only Canvas</a><a class="studio-canvas-edit-link" href="${escapeHtml(editorPath)}/canvas-editor">Edit text on Canvas</a>`;
+  const canvasControl = `<a class="studio-canvas-link" href="${escapeHtml(readOnlyVenueCanvasPath(editorPath))}">Open read-only Canvas</a><a class="studio-canvas-edit-link" href="${escapeHtml(editorPath)}/canvas-editor">Edit on Canvas</a>`;
   const saveControl = dirty
     ? '<span class="source-save source-save--disabled" aria-disabled="true">Keep changes to save</span>'
     : `<a class="source-save" href="${sourceFilePath}" download="${DEFAULT_VENUE_SOURCE_FILENAME}">Save venue file</a>`;
