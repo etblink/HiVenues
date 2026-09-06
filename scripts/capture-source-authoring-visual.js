@@ -413,6 +413,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   const pathname = fixture.editorPath + '/canvas-editor';
   const historyPathname = pathname + '/history';
   const movePathname = pathname + '/move';
+  const moveToPathname = pathname + '/move-to';
   const reorder = outcome.startsWith('reorder-');
   const selection = reorder
     ? { blockId: 'home.equipment-status.item.wood-shop' }
@@ -469,6 +470,21 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     await target.waitForLoadState('networkidle');
   }
 
+  async function submitMoveTo(target, destination, status = 200) {
+    const select = target.locator('[data-canvas-move-destination]');
+    const button = target.locator('[data-canvas-move-to-action]');
+    await select.selectOption(destination);
+    await select.press('Tab');
+    assert.equal(await button.evaluate(el => el === document.activeElement), true);
+    const pending = target.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === moveToPathname);
+    const navigation = target.waitForEvent('framenavigated', { predicate: frame => frame === target.mainFrame() });
+    await target.keyboard.press('Enter');
+    const result = await pending;
+    assert.equal(result.status(), status);
+    await navigation;
+    await target.waitForLoadState('networkidle');
+  }
+
   if (outcome === 'conflict') {
     const other = await page.context().newPage();
     try {
@@ -487,7 +503,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
       renderedOutcome = 'undo';
     } else renderedOutcome = 'success';
   } else if (outcome === 'reorder-moved') {
-    await submitMove(page, 'up');
+    await submitMoveTo(page, '__collection_end__');
     renderedOutcome = 'move';
   } else if (outcome === 'reorder-ready') {
     renderedOutcome = 'ready';
@@ -533,7 +549,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   const geometry = await page.evaluate(expected => {
     const root = document.documentElement;
     const mirrors = ['[data-editable-canvas-surface]', '[data-canvas]', '[data-tree]', '[data-inspector]', '#selection-summary', '[data-diagnostics]', '[data-current-navigation-target]'];
-    const controls = [...document.querySelectorAll('a,button,summary,input:not([type=hidden]),textarea')].filter(x => x.checkVisibility() && x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0);
+    const controls = [...document.querySelectorAll('a,button,summary,input:not([type=hidden]),textarea,select')].filter(x => x.checkVisibility() && x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0);
     const summary = document.querySelector('#selection-summary');
     const history = document.querySelector('[data-canvas-history]');
     const undo = document.querySelector('[data-canvas-history-action="undo"]');
@@ -541,6 +557,8 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     const move = document.querySelector('[data-canvas-move]');
     const moveUp = document.querySelector('[data-canvas-move-action="up"]');
     const moveDown = document.querySelector('[data-canvas-move-action="down"]');
+    const moveDestination = document.querySelector('[data-canvas-move-destination]');
+    const moveTo = document.querySelector('[data-canvas-move-to-action]');
     return {
       selectionMirrorCount: mirrors.filter(s => document.querySelector(s)?.dataset.selectionBlockId === expected.blockId && document.querySelector(s)?.dataset.selectionFieldId === (expected.fieldId || '')).length,
       selectionSummaryFocused: document.activeElement === summary,
@@ -564,6 +582,11 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
         present: Boolean(move),
         upEnabled: Boolean(moveUp && !moveUp.disabled),
         downEnabled: Boolean(moveDown && !moveDown.disabled),
+        moveToPresent: Boolean(moveDestination && moveTo),
+        destinationCount: moveDestination ? [...moveDestination.options].filter(x => x.value).length : 0,
+        validDestinationCount: moveDestination ? [...moveDestination.options].filter(x => x.value && !x.disabled).length : 0,
+        currentDestinationCount: moveDestination ? [...moveDestination.options].filter(x => x.hasAttribute('data-current')).length : 0,
+        currentPosition: Number(move?.dataset.currentPosition || 0),
       },
     };
   }, selection);
@@ -581,11 +604,17 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   if (outcome === 'history-dirty') assert.deepEqual(geometry.history, { undoCount: 2, redoCount: 0, undoEnabled: true, redoEnabled: false });
   if (outcome === 'history-undo') assert.deepEqual(geometry.history, { undoCount: 1, redoCount: 1, undoEnabled: true, redoEnabled: true });
   if (outcome === 'reorder-ready') {
-    assert.deepEqual(geometry.move, { present: true, upEnabled: true, downEnabled: true });
+    assert.deepEqual(geometry.move, {
+      present: true, upEnabled: true, downEnabled: true, moveToPresent: true,
+      destinationCount: 3, validDestinationCount: 2, currentDestinationCount: 1, currentPosition: 2,
+    });
     assert.deepEqual(geometry.history, { undoCount: 0, redoCount: 0, undoEnabled: false, redoEnabled: false });
   }
   if (outcome === 'reorder-moved') {
-    assert.deepEqual(geometry.move, { present: true, upEnabled: false, downEnabled: true });
+    assert.deepEqual(geometry.move, {
+      present: true, upEnabled: true, downEnabled: false, moveToPresent: true,
+      destinationCount: 3, validDestinationCount: 2, currentDestinationCount: 1, currentPosition: 3,
+    });
     assert.deepEqual(geometry.history, { undoCount: 1, redoCount: 0, undoEnabled: true, redoEnabled: false });
   }
   return { outcome, renderedOutcome, selection, geometry, acceptedUnchanged: true, proposalUnchanged,

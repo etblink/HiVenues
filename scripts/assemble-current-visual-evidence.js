@@ -182,11 +182,17 @@ function editableCanvasEvidence(captures) {
     if (state.outcome === 'history-dirty') assert.deepEqual(state.geometry.history, { undoCount: 2, redoCount: 0, undoEnabled: true, redoEnabled: false });
     if (state.outcome === 'history-undo') assert.deepEqual(state.geometry.history, { undoCount: 1, redoCount: 1, undoEnabled: true, redoEnabled: true });
     if (state.outcome === 'reorder-ready') {
-      assert.deepEqual(state.geometry.move, { present: true, upEnabled: true, downEnabled: true });
+      assert.deepEqual(state.geometry.move, {
+        present: true, upEnabled: true, downEnabled: true, moveToPresent: true,
+        destinationCount: 3, validDestinationCount: 2, currentDestinationCount: 1, currentPosition: 2,
+      });
       assert.deepEqual(state.geometry.history, { undoCount: 0, redoCount: 0, undoEnabled: false, redoEnabled: false });
     }
     if (state.outcome === 'reorder-moved') {
-      assert.deepEqual(state.geometry.move, { present: true, upEnabled: false, downEnabled: true });
+      assert.deepEqual(state.geometry.move, {
+        present: true, upEnabled: true, downEnabled: false, moveToPresent: true,
+        destinationCount: 3, validDestinationCount: 2, currentDestinationCount: 1, currentPosition: 3,
+      });
       assert.deepEqual(state.geometry.history, { undoCount: 1, redoCount: 0, undoEnabled: true, redoEnabled: false });
     }
     if (state.id.startsWith('fourth-street')) assert.equal(state.rendererVenueName, '4th Street Bar');
