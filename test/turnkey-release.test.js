@@ -6,7 +6,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { loadDeploymentAgnosticVenueSourceFile } = require('../src/venue/source-file');
+const { URLSearchParams } = require('node:url');
+const { JSDOM } = require('jsdom');
+const { loadDeploymentAgnosticVenueSourceFile, serializeDeploymentAgnosticVenueSourceFile } = require('../src/venue/source-file');
+const { JUNIPER_WORKS_AUTHORING_INPUT } = require('./support/hv7-juniper-venue');
 const { createTurnkeyWorkspace } = require('../src/venue/turnkey-workspace');
 const { inspectManagedImage, prepareManagedImage } = require('../src/venue/managed-assets');
 const { startTurnkeyStudio } = require('../src/venue/turnkey-studio');
@@ -137,5 +140,174 @@ test('fresh workspace opens Studio, imports media, saves, reopens, renders, and 
     if (runtime) await runtime.close();
     if (reopened) await reopened.close();
     fs.rmSync(workspace.parent, { recursive: true, force: true });
+  }
+});
+
+function equipmentWorkspace() {
+  const workspace = temporaryWorkspace();
+  const source = JSON.parse(JSON.stringify(loadDeploymentAgnosticVenueSourceFile(workspace.sourceFile)));
+  // Fixture setup only: Canvas must operate on an already-present valid section.
+  source.venuePackage.home.equipmentStatus = JUNIPER_WORKS_AUTHORING_INPUT.venuePackage.home.equipmentStatus;
+  fs.writeFileSync(workspace.sourceFile, serializeDeploymentAgnosticVenueSourceFile(source));
+  return workspace;
+}
+
+const EQUIPMENT_BLOCK = 'home.equipment-status';
+const DRILL_FIELDS = {
+  name: 'Venue drill fixed topology', state: 'limited', note: 'Awaiting inspection.',
+  accessNote: 'Ask a steward.', lastUpdated: '2026-09-06T12:00:00Z', group: 'Woodworking',
+};
+
+async function canvasPage(runtime, blockId = EQUIPMENT_BLOCK, fieldId) {
+  const query = new URLSearchParams({ blockId, ...(fieldId ? { fieldId } : {}) });
+  const response = await fetch(`${runtime.url}/canvas-editor?${query}`);
+  assert.equal(response.status, 200);
+  return new JSDOM(await response.text()).window.document;
+}
+
+async function submitNativeForm(runtime, document, selector, overrides = {}, status = 200) {
+  const element = document.querySelector(selector);
+  assert.ok(element, `Missing native form: ${selector}`);
+  const form = element.tagName === 'FORM' ? element : element.closest('form');
+  const values = Object.fromEntries([...form.querySelectorAll('[name]')].map(node => [node.name, node.value]));
+  const response = await post(runtime, form.getAttribute('action'), {
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ ...values, ...overrides }),
+  });
+  assert.equal(response.status, status);
+  return new JSDOM(await response.text()).window.document;
+}
+
+async function workspaceAction(runtime, action, status = 303) {
+  const response = await post(runtime, `${runtime.editorPath}/${action}`, {
+    headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: '',
+  });
+  assert.equal(response.status, status);
+  return response;
+}
+
+function assertEmptyCanvasHistory(document) {
+  const history = document.querySelector('[data-canvas-history]');
+  assert.equal(history.dataset.undoCount, '0');
+  assert.equal(history.dataset.redoCount, '0');
+  for (const action of ['undo', 'redo']) assert.equal(document.querySelector(`[data-canvas-history-action="${action}"]`).disabled, true);
+}
+
+async function assertRenderedEquipment(runtime, expectedItems) {
+  const response = await fetch(`${runtime.url}/preview`);
+  assert.equal(response.status, 200);
+  const document = new JSDOM(await response.text()).window.document;
+  const cards = [...document.querySelectorAll('[data-equipment-id]')];
+  assert.deepEqual(cards.map(card => card.dataset.equipmentId), expectedItems.map(item => item.id));
+  for (const [index, item] of expectedItems.entries()) {
+    const card = cards[index];
+    assert.equal(card.querySelector('h3').textContent, item.name);
+    assert.equal(card.querySelector('[data-equipment-state]').dataset.equipmentState, item.state);
+    assert.equal(card.querySelector('time').getAttribute('datetime'), item.lastUpdated);
+    assert.ok(card.textContent.includes(item.note));
+    assert.ok(card.textContent.includes(item.accessNote));
+    if (item.group) assert.equal(card.querySelector('.home-structured-card__group').textContent, item.group);
+  }
+  assert.equal(runtime.diagnostics().rpcAttempts, 0);
+}
+
+test('Canvas equipment survives keep, failed save, retry and reopen with exact identity, fields and order', async () => {
+  const workspace = equipmentWorkspace();
+  let runtime;
+  let rejectRename = false;
+  let rejectedRenames = 0;
+  try {
+    const initialBytes = fs.readFileSync(workspace.sourceFile);
+    const expected = JSON.parse(initialBytes.toString('utf8'));
+    runtime = await startTurnkeyStudio({ workspaceDirectory: workspace.root, fsImpl: {
+      ...fs,
+      renameSync(from, to) {
+        if (rejectRename && to === workspace.sourceFile) {
+          rejectedRenames += 1;
+          throw new Error('Injected atomic-save replacement failure');
+        }
+        return fs.renameSync(from, to);
+      },
+    } });
+    let page = await canvasPage(runtime);
+    page = await submitNativeForm(runtime, page, '[data-canvas-equipment-add-form]', DRILL_FIELDS);
+    const blockId = page.querySelector('#selection-summary').dataset.selectionBlockId;
+    const id = blockId.slice((EQUIPMENT_BLOCK + '.item.').length);
+    assert.match(id, /^equipment-[a-f0-9]{24}$/);
+    assert.equal(page.querySelector('#selection-summary h2').textContent, DRILL_FIELDS.name);
+    const staleAdd = await canvasPage(runtime);
+    page = await canvasPage(runtime, blockId, 'name');
+    page = await submitNativeForm(runtime, page, '[data-canvas-edit-form]', { value: 'Renamed workshop drill' });
+    page = await submitNativeForm(runtime, page, '[data-canvas-move-to-form]', { destination: EQUIPMENT_BLOCK + '.item.laser-cutter' });
+    page = await canvasPage(runtime, EQUIPMENT_BLOCK + '.item.wood-shop');
+    page = await submitNativeForm(runtime, page, '[data-canvas-equipment-remove-form]');
+    page = await submitNativeForm(runtime, page, '[data-canvas-history-action="undo"]');
+    assert.equal(page.querySelector('#selection-summary').dataset.selectionBlockId, EQUIPMENT_BLOCK + '.item.wood-shop');
+    page = await submitNativeForm(runtime, page, '[data-canvas-history-action="redo"]');
+    assert.equal(page.querySelector('#selection-summary').dataset.selectionBlockId, EQUIPMENT_BLOCK);
+    expected.venuePackage.home.equipmentStatus.items = [
+      { id, ...DRILL_FIELDS, name: 'Renamed workshop drill' },
+      ...expected.venuePackage.home.equipmentStatus.items.filter(item => item.id !== 'wood-shop'),
+    ];
+    const expectedBytes = Buffer.from(serializeDeploymentAgnosticVenueSourceFile(expected));
+    await assertRenderedEquipment(runtime, expected.venuePackage.home.equipmentStatus.items);
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+    await workspaceAction(runtime, 'save-workspace', 409);
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+    await workspaceAction(runtime, 'apply');
+    assertEmptyCanvasHistory(await canvasPage(runtime));
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+    await submitNativeForm(runtime, staleAdd, '[data-canvas-equipment-add-form]', DRILL_FIELDS, 409);
+    rejectRename = true;
+    await workspaceAction(runtime, 'save-workspace', 500);
+    assert.equal(rejectedRenames, 1);
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+    assert.equal(fs.readdirSync(workspace.root).some(name => name.endsWith('.tmp')), false);
+    await assertRenderedEquipment(runtime, expected.venuePackage.home.equipmentStatus.items);
+    rejectRename = false;
+    await workspaceAction(runtime, 'save-workspace');
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), expectedBytes);
+    assert.equal(runtime.diagnostics().rpcAttempts, 0);
+    const previousSessionForm = await canvasPage(runtime);
+    await runtime.close();
+    runtime = await startTurnkeyStudio({ workspaceDirectory: workspace.root });
+    page = await canvasPage(runtime, blockId);
+    assert.equal(page.querySelector('#selection-summary h2').textContent, 'Renamed workshop drill');
+    assertEmptyCanvasHistory(page);
+    await assertRenderedEquipment(runtime, expected.venuePackage.home.equipmentStatus.items);
+    await submitNativeForm(runtime, previousSessionForm, '[data-canvas-equipment-add-form]', DRILL_FIELDS, 400);
+    assertEmptyCanvasHistory(await canvasPage(runtime));
+    await workspaceAction(runtime, 'save-workspace');
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), expectedBytes);
+    assert.equal(qualifyTurnkeyWorkspace({ workspaceDirectory: workspace.root }).ready, true);
+    assert.deepEqual(fs.readFileSync(workspace.sourceFile), expectedBytes);
+  } finally {
+    if (runtime) await runtime.close();
+    fs.rmSync(workspace.parent, { recursive: true, force: true });
+  }
+});
+
+test('Closing Studio before workspace save loses both unkept and kept equipment proposals, with no persisted history', async () => {
+  for (const keep of [false, true]) {
+    const workspace = equipmentWorkspace();
+    let runtime;
+    try {
+      const initialBytes = fs.readFileSync(workspace.sourceFile);
+      const expectedItems = loadDeploymentAgnosticVenueSourceFile(workspace.sourceFile).venuePackage.home.equipmentStatus.items;
+      runtime = await startTurnkeyStudio({ workspaceDirectory: workspace.root });
+      const page = await canvasPage(runtime);
+      await submitNativeForm(runtime, page, '[data-canvas-equipment-add-form]', DRILL_FIELDS);
+      if (keep) await workspaceAction(runtime, 'apply');
+      assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+      assert.equal(runtime.diagnostics().rpcAttempts, 0);
+      await runtime.close();
+      runtime = await startTurnkeyStudio({ workspaceDirectory: workspace.root });
+      assertEmptyCanvasHistory(await canvasPage(runtime));
+      await assertRenderedEquipment(runtime, expectedItems);
+      assert.deepEqual(fs.readFileSync(workspace.sourceFile), initialBytes);
+    } finally {
+      if (runtime) await runtime.close();
+      fs.rmSync(workspace.parent, { recursive: true, force: true });
+    }
   }
 });
