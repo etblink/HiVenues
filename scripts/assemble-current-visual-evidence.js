@@ -167,6 +167,8 @@ function editableCanvasEvidence(captures) {
   for (const state of [...machine, ...selected]) {
     assert.equal(state.acceptedUnchanged, true);
     assert.equal(state.rendererTextVerified, true);
+    assert.equal(state.rendererHeading.textFits, true);
+    assert.ok(state.rendererHeading.horizontalOverflow <= 1);
     assert.equal(state.proposalUnchanged, state.outcome !== 'success');
     assert.equal(state.geometry.selectionMirrorCount, 7);
     assert.equal(state.geometry.selectionSummaryFocused, true);

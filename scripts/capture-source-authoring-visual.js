@@ -456,6 +456,26 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.ok((await preview.locator('body').innerText()).includes(expectedText));
   const rendererVenueName = (await preview.locator('#home-heading').textContent()).trim();
   assert.equal(rendererVenueName, fixture.session.acceptedSource.venueContext.displayName);
+  const rendererHeading = await preview.locator('#home-heading').evaluate(heading => {
+    const range = document.createRange();
+    range.selectNodeContents(heading);
+    let left = 0;
+    let right = document.documentElement.clientWidth;
+    for (let node = heading; node; node = node.parentElement) {
+      if (['hidden', 'clip', 'auto', 'scroll'].includes(globalThis.getComputedStyle(node).overflowX)) {
+        const bounds = node.getBoundingClientRect();
+        left = Math.max(left, bounds.left);
+        right = Math.min(right, bounds.right);
+      }
+    }
+    const rects = [...range.getClientRects()];
+    return { viewportWidth: document.documentElement.clientWidth,
+      textFits: rects.every(r => r.left >= left - 1 && r.right <= right + 1),
+      horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth) };
+  });
+  assert.equal(rendererHeading.textFits, true, JSON.stringify(rendererHeading));
+  assert.ok(rendererHeading.horizontalOverflow <= 1, JSON.stringify(rendererHeading));
+  if (viewport.width <= 700) assert.equal(rendererHeading.viewportWidth, viewport.width);
   const geometry = await page.evaluate(expected => {
     const root = document.documentElement;
     const mirrors = ['[data-editable-canvas-surface]', '[data-canvas]', '[data-tree]', '[data-inspector]', '#selection-summary', '[data-diagnostics]', '[data-current-navigation-target]'];
@@ -487,7 +507,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.equal(geometry.workspaceDisplay, viewport.width > 1100 ? 'grid' : 'flex');
   return { outcome, selection, geometry, acceptedUnchanged: true, proposalUnchanged,
     proposalChangedFromInitial: before !== fixture.session.canonicalProposal(), rendererTextVerified: true,
-    rendererVenueName, expectedHttpErrors, axeCanvas: checkAxe ? await runAxe(page) : [], axePreview: checkAxe ? await runAxe(preview) : [] };
+    rendererVenueName, rendererHeading, expectedHttpErrors, axeCanvas: checkAxe ? await runAxe(page) : [], axePreview: checkAxe ? await runAxe(preview) : [] };
 }
 
 function assertCanvasBrowserErrors(errors, expectedStatuses, pathname) {
