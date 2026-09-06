@@ -2,10 +2,13 @@
 
 const { createHash } = require('node:crypto');
 const {
+  EQUIPMENT_COLLECTION,
+  canvasEquipmentCollection,
   canvasMoveItem,
   previewCanvasSourceCommandWithInverse,
   previewCanvasSourceFieldWithInverse,
 } = require('./canvas-source-preview');
+const { createInsertItemCommand, createRemoveItemCommand } = require('./semantic-venue-canvas-contract');
 
 const {
   OPERATOR_COLLECTIONS,
@@ -193,6 +196,8 @@ function createSourceAuthoringSession(baseInput) {
       blockId: entry.forwardCommand.blockId,
       fieldId: entry.forwardCommand.fieldId || null,
       generation: entry.generation,
+      ...(entry.forwardCommand.type === 'insert-item'
+        ? { itemBlockId: entry.forwardCommand.blockId + '.item.' + entry.forwardCommand.item.id } : {}),
     });
   }
 
@@ -264,6 +269,36 @@ function createSourceAuthoringSession(baseInput) {
       beforeCanonical,
       beforeRevision,
     );
+  }
+
+  function previewCanvasAddEquipment(blockId, values, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    if (!canvasEquipmentCollection(proposal, blockId).canAdd) throw canvasConflict('equipment list is full', 'CANVAS_EQUIPMENT_FULL');
+    const keys = ['name', 'state', 'note', 'accessNote', 'lastUpdated', 'group'];
+    if (!values || ![Object.prototype, null].includes(Object.getPrototypeOf(values))
+      || Object.keys(values).length !== keys.length || keys.some(key => typeof values[key] !== 'string')) {
+      throw new TypeError('Equipment fields must be exactly the supported string fields');
+    }
+    // Identity is minted once from a revision-bound command, never recomputed on rename or replay.
+    const fields = Object.fromEntries(keys.map(key => [key, values[key].trim()]));
+    fields.group = fields.group || null;
+    const seed = createHash('sha256').update(expectedRevision + '\0' + JSON.stringify(fields)).digest('hex').slice(0, 24);
+    const ids = new Set(proposal.venuePackage.home.equipmentStatus.items.map(item => item.id));
+    let id = 'equipment-' + seed;
+    for (let suffix = 1; ids.has(id); suffix += 1) id = 'equipment-' + seed + '-' + suffix;
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    const result = recordCanvasPreview(previewCanvasSourceCommandWithInverse(proposal,
+      createInsertItemCommand({ blockId, item: { id, ...fields } })), beforeCanonical, beforeRevision);
+    return Object.freeze({ ...result, blockId: EQUIPMENT_COLLECTION + '.item.' + id });
+  }
+
+  function previewCanvasRemoveEquipment(blockId, expectedRevision) {
+    assertCanvasRevision(expectedRevision);
+    const beforeCanonical = serializeDeploymentAgnosticVenueSource(proposal);
+    const beforeRevision = proposalRevision();
+    return recordCanvasPreview(previewCanvasSourceCommandWithInverse(proposal,
+      createRemoveItemCommand({ blockId })), beforeCanonical, beforeRevision);
   }
 
   function undoCanvasPreview(expectedRevision) {
@@ -452,6 +487,8 @@ function createSourceAuthoringSession(baseInput) {
     previewCanvasField,
     previewCanvasMove,
     previewCanvasMoveTo,
+    previewCanvasAddEquipment,
+    previewCanvasRemoveEquipment,
     proposalRevision,
     redoCanvasPreview,
     removeCollectionItem,

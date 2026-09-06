@@ -2,13 +2,15 @@
 
 const express = require('express');
 const { randomBytes, timingSafeEqual } = require('node:crypto');
-const { canvasMoveItem, canvasTextField } = require('./canvas-source-preview');
+const { EQUIPMENT_COLLECTION, canvasEquipmentCollection, canvasMoveItem, canvasTextField } = require('./canvas-source-preview');
 const { createSetFieldCommand } = require('./semantic-venue-canvas-contract');
 const { renderVenueCanvasFrame, parseReadOnlyVenueCanvasQuery, projectStudioSource } = require('./read-only-venue-canvas-surface');
 
 const MESSAGES = Object.freeze({
   ready: 'Preview a supported change, then review it in your venue.',
   success: 'Preview updated. Use Undo preview here, or keep the draft in the form editor.',
+  added: 'Equipment added to your preview. Review it here, then keep the draft in the form editor.',
+  removed: 'Equipment removed from your preview. Undo preview restores it.',
   move: 'Item order preview updated. Review the real venue renderer, then undo here or keep the draft in the form editor.',
   undo: 'Preview change undone. You can redo it while the shared draft stays unchanged elsewhere.',
   redo: 'Preview change redone. Review it in the real venue renderer before keeping the draft.',
@@ -19,13 +21,14 @@ const MESSAGES = Object.freeze({
 function escapeHtml(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
-function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, token, selectionInput, outcome = 'ready', attemptedValue }) {
+function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, token, selectionInput, outcome = 'ready', attemptedValue, attemptedEquipment }) {
   const source = session.proposalDraft;
   const projection = projectStudioSource(source, selectionInput);
   const { blockId, fieldId } = projection.selection;
   const field = fieldId ? canvasTextField(source, blockId, fieldId) : null;
   const move = canvasMoveItem(source, blockId);
-  if (!field?.editable && !move.editable && outcome === 'ready') outcome = 'unsupported';
+  const equipment = blockId === EQUIPMENT_COLLECTION && !fieldId ? canvasEquipmentCollection(source, blockId) : null;
+  if (!equipment && !field?.editable && !move.editable && outcome === 'ready') outcome = 'unsupported';
   const text = fieldId ? projection.inspector.fields.find((x) => x.fieldId === fieldId)?.label : 'Text field';
   const value = outcome === 'invalid' && typeof attemptedValue === 'string' ? attemptedValue : field?.value;
   const invalid = (outcome === 'invalid' ? ' aria-invalid="true"' : '') + (field?.required ? ' aria-required="true"' : '');
@@ -36,7 +39,7 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
     const enabled = Boolean(entry);
     const label = action === 'undo' ? 'Undo preview' : 'Redo preview';
     const state = enabled
-      ? entry.fieldId ? `${entry.blockId} / ${entry.fieldId}` : `${entry.blockId} / reorder`
+      ? entry.fieldId ? `${entry.blockId} / ${entry.fieldId}` : `${entry.blockId} / ${{ 'move-item': 'reorder', 'insert-item': 'add equipment', 'remove-item': 'remove equipment' }[entry.type] || entry.type}`
       : `No preview available to ${action}`;
     return `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/history" data-canvas-history-form>${hidden('token', token)}${hidden('revision', historyRevision)}${hidden('action', action)}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}<button type="submit" data-canvas-history-action="${action}"${enabled ? '' : ' disabled aria-disabled="true"'}>${label}</button><span>${escapeHtml(state)}</span></form>`;
   };
@@ -52,10 +55,41 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
     ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/move-to" data-canvas-move-to-form>${hidden('token', token)}${hidden('revision', session.proposalRevision())}${hidden('blockId', blockId)}${hidden('fieldId', fieldId || '')}<label for="canvas-move-destination">Move to…</label><select id="canvas-move-destination" name="destination" data-canvas-move-destination required><option value="" selected>Choose a position</option>${moveDestinationOptions}</select><button type="submit" data-canvas-move-to-action>Move to selected position</button></form>`
     : '';
   const moveEditor = move.editable
-    ? `<section class="canvas-move" data-canvas-move data-can-move-up="${move.canMoveUp}" data-can-move-down="${move.canMoveDown}" data-current-position="${move.index + 1}" aria-label="Item order preview"><p><strong>Item order</strong><br>Move this existing item one position, or choose a stable destination directly. Item identity and source authority stay unchanged.</p><div class="canvas-move-actions">${moveAction('up', move.canMoveUp)}${moveAction('down', move.canMoveDown)}</div>${moveToForm}</section>`
+    ? `<section class="canvas-move" data-canvas-move data-can-move-up="${move.canMoveUp}" data-can-move-down="${move.canMoveDown}" data-current-position="${move.index + 1}" aria-label="Item order preview"><p><strong>Item order</strong><br>Move this existing item one position, or choose a stable destination directly. Use Undo preview to restore its previous position.</p><div class="canvas-move-actions">${moveAction('up', move.canMoveUp)}${moveAction('down', move.canMoveDown)}</div>${moveToForm}</section>`
     : '';
-  const fallback = !textEditor && !moveEditor ? '<p data-canvas-unsupported>Select an editable text field or a supported movable item.</p>' : '';
-  const inspector = `<section class="canvas-editor" data-edit-outcome="${outcome}"><p id="canvas-edit-status" role="${['invalid', 'conflict'].includes(outcome) ? 'alert' : 'status'}">${MESSAGES[outcome]}</p>${textEditor}${moveEditor}${fallback}<section class="canvas-history" data-canvas-history data-undo-count="${history.undoCount}" data-redo-count="${history.redoCount}" aria-label="Session preview history"><p><strong>Session preview history</strong><br>Up to ${history.limit} Canvas preview changes. History is cleared by other draft actions and is never saved.</p>${historyAction('undo', history.undo)}${historyAction('redo', history.redo)}</section></section>`;
+  const selectionUrl = (id) => `${escapeHtml(editorPath)}/canvas-editor?blockId=${encodeURIComponent(id)}#selection-summary`;
+  const equipmentFields = [
+    ['name', 'Equipment name', 'text'], ['state', 'Status', 'select'],
+    ['note', 'Status note', 'text'], ['accessNote', 'Access instructions', 'text'],
+    ['lastUpdated', 'Status checked at', 'text'], ['group', 'Group (optional)', 'text'],
+  ];
+  const addEditor = equipment ? `<section class="canvas-equipment" data-canvas-equipment data-count="${equipment.count}" data-capacity="${equipment.maximum}" aria-label="Equipment list">
+    <p><strong>Equipment list</strong><br>${equipment.count} of ${equipment.maximum} items.${equipment.count === 0 ? ' Add your first item below.' : ''}</p>
+    ${equipment.canAdd ? `<form method="post" action="${escapeHtml(editorPath)}/canvas-editor/equipment/add" data-canvas-equipment-add-form>
+      ${hidden('token', token)}${hidden('revision', historyRevision)}${hidden('blockId', blockId)}
+      ${equipmentFields.map(([key, label, kind]) => {
+        const value = attemptedEquipment?.[key] || '';
+        const required = key === 'group' ? '' : ' required';
+        const control = kind === 'select'
+          ? `<select id="equipment-${key}" name="${key}"${required}><option value="">Choose status</option>${['available', 'limited', 'maintenance', 'offline'].map(state => `<option value="${state}"${state === value ? ' selected' : ''}>${state[0].toUpperCase() + state.slice(1)}</option>`).join('')}</select>`
+          : `<input id="equipment-${key}" name="${key}" value="${escapeHtml(value)}" maxlength="${key === 'lastUpdated' ? 40 : 240}"${required}${key === 'lastUpdated' ? ' aria-describedby="equipment-time-help" placeholder="2026-09-06T12:00:00Z"' : ''}>`;
+        return `<div class="equipment-field"><label for="equipment-${key}">${label}</label>${control}${key === 'lastUpdated' ? '<p id="equipment-time-help">Enter the actual check time with a timezone, for example 2026-09-06T12:00:00Z (UTC).</p>' : ''}</div>`;
+      }).join('')}
+      ${outcome === 'invalid' ? '<p role="alert">Check the required fields, status, and timestamp. Your entries are retained below for correction.</p>' : ''}
+      <button type="submit" data-canvas-equipment-add>Add equipment to preview</button>
+    </form>` : '<p data-canvas-equipment-full>The list is full. Remove an item before adding another.</p>'}
+  </section>` : '';
+  const removeEditor = move.editable && !fieldId ? `<section class="canvas-equipment" aria-label="Equipment actions">
+    <a class="equipment-link" href="${selectionUrl(EQUIPMENT_COLLECTION)}">Equipment list · Add equipment</a>
+    <details data-canvas-equipment-confirm><summary>Remove equipment…</summary>
+      <p>Remove <strong>${escapeHtml(source.venuePackage.home.equipmentStatus.items.find(item => item.id === move.itemId).name)}</strong> from this preview? You can restore it with Undo preview.</p>
+      <form method="post" action="${escapeHtml(editorPath)}/canvas-editor/equipment/remove" data-canvas-equipment-remove-form>
+        ${hidden('token', token)}${hidden('revision', historyRevision)}${hidden('blockId', blockId)}${hidden('confirmation', blockId)}
+        <button type="submit" data-canvas-equipment-remove>Remove equipment from preview</button>
+      </form><a class="equipment-link" data-canvas-equipment-cancel href="${selectionUrl(blockId)}">Cancel removal</a>
+    </details></section>` : '';
+  const fallback = !textEditor && !moveEditor && !addEditor ? '<p data-canvas-unsupported>Select an editable text field or a supported movable item.</p>' : '';
+  const inspector = `<section class="canvas-editor" data-edit-outcome="${outcome}"><p id="canvas-edit-status" role="${['invalid', 'conflict'].includes(outcome) ? 'alert' : 'status'}">${MESSAGES[outcome]}</p>${textEditor}${moveEditor}${addEditor}${removeEditor}${fallback}<section class="canvas-history" data-canvas-history data-undo-count="${history.undoCount}" data-redo-count="${history.redoCount}" aria-label="Session preview history"><p><strong>Session preview history</strong><br>Up to ${history.limit} Canvas preview changes. History is cleared by other draft actions and is never saved.</p>${historyAction('undo', history.undo)}${historyAction('redo', history.redo)}</section></section>`;
   return renderVenueCanvasFrame({ sourceInput: source, selectionInput, editorPath, previewPath, dirty: session.status().dirty }, {
     canvasPath: editorPath + '/canvas-editor', inspector,
     style: `.canvas-editor { margin: 10px; padding: 12px; background: #f7f8f3; border: 1px solid #d4d9cc; border-radius: 8px; }
@@ -70,6 +104,13 @@ function renderEditableVenueCanvasSurface({ session, editorPath, previewPath, to
       .canvas-move-actions form button { margin-top: 0; }
       .canvas-move [data-canvas-move-to-form] { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e1e5dc; }
       .canvas-move [data-canvas-move-to-form] button { margin-top: 8px; }
+      .canvas-equipment { margin-top: 12px; }
+      .equipment-field { margin-top: 12px; }
+      .equipment-field p { margin-top: 6px; }
+      .canvas-equipment summary, .equipment-link { display: block; min-height: 44px; min-width: 44px; padding: 12px 4px; }
+      .canvas-equipment summary { display: list-item; cursor: pointer; }
+      .canvas-equipment :is(a,summary):focus-visible { outline: 3px solid #a3460c; outline-offset: 3px; }
+      .canvas-equipment [data-canvas-equipment-remove] { background: #8b3220; }
       .canvas-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid #d4d9cc; }
       .canvas-history form { display: grid; grid-template-columns: minmax(112px,.8fr) minmax(0,1fr); gap: 8px; align-items: center; margin-top: 8px; }
       .canvas-history form button { margin-top: 0; }
@@ -108,7 +149,7 @@ function createEditableVenueCanvasRouter(surface) {
   const router = express.Router();
   const pathname = surface.editorPath + '/canvas-editor';
   const token = randomBytes(32).toString('hex');
-  const render = (selectionInput, outcome, attemptedValue) => renderEditableVenueCanvasSurface({ ...surface, token, selectionInput, outcome, attemptedValue });
+  const render = (selectionInput, outcome, attemptedValue, attemptedEquipment) => renderEditableVenueCanvasSurface({ ...surface, token, selectionInput, outcome, attemptedValue, attemptedEquipment });
   router.use(pathname, (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.get(pathname, (req, res) => {
     try { res.type('html').send(render(parseReadOnlyVenueCanvasQuery(req.query), 'ready')); }
@@ -137,6 +178,7 @@ function createEditableVenueCanvasRouter(surface) {
       const body = validateLoopbackPost(req, token, ['token', 'revision', 'blockId', 'fieldId', 'direction']);
       if (!['up', 'down'].includes(body.direction)) throw new TypeError('Unsupported move direction');
       selection = selectionFromPost(body);
+      if (body.revision === surface.session.proposalRevision()) projectStudioSource(surface.session.proposalDraft, selection);
       surface.session.previewCanvasMove(body.blockId, body.direction, body.revision);
       res.type('html').send(render(selection, 'move'));
     } catch (error) {
@@ -153,6 +195,7 @@ function createEditableVenueCanvasRouter(surface) {
     try {
       const body = validateLoopbackPost(req, token, ['token', 'revision', 'blockId', 'fieldId', 'destination']);
       selection = selectionFromPost(body);
+      if (body.revision === surface.session.proposalRevision()) projectStudioSource(surface.session.proposalDraft, selection);
       surface.session.previewCanvasMoveTo(body.blockId, body.destination, body.revision);
       res.type('html').send(render(selection, 'move'));
     } catch (error) {
@@ -164,14 +207,52 @@ function createEditableVenueCanvasRouter(surface) {
       } else res.status(conflict ? 409 : 400).type('text').send('Canvas move-to request rejected. Your draft is unchanged.');
     }
   });
+  router.post(pathname + '/equipment/add', express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 9 }), (req, res) => {
+    let selection;
+    try {
+      const body = validateLoopbackPost(req, token, ['token', 'revision', 'blockId', 'name', 'state', 'note', 'accessNote', 'lastUpdated', 'group']);
+      selection = parseReadOnlyVenueCanvasQuery({ blockId: body.blockId });
+      const { name, state, note, accessNote, lastUpdated, group } = body;
+      const added = surface.session.previewCanvasAddEquipment(body.blockId, { name, state, note, accessNote, lastUpdated, group }, body.revision);
+      res.type('html').send(render(parseReadOnlyVenueCanvasQuery({ blockId: added.blockId }), 'added'));
+    } catch (error) {
+      const conflict = error.code === 'STALE_CANVAS_PROPOSAL';
+      if (selection) {
+        try { projectStudioSource(surface.session.proposalDraft, selection); }
+        catch { selection = undefined; }
+        res.status(conflict ? 409 : 400).type('html').send(render(selection, conflict ? 'conflict' : 'invalid', undefined, conflict ? undefined : req.body));
+      } else res.status(400).type('text').send('Equipment request rejected. Your draft is unchanged.');
+    }
+  });
+  router.post(pathname + '/equipment/remove', express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 4 }), (req, res) => {
+    let selection;
+    try {
+      const body = validateLoopbackPost(req, token, ['token', 'revision', 'blockId', 'confirmation']);
+      selection = parseReadOnlyVenueCanvasQuery({ blockId: body.blockId });
+      if (body.confirmation !== body.blockId) throw new TypeError('Item confirmation required');
+      surface.session.previewCanvasRemoveEquipment(body.blockId, body.revision);
+      res.type('html').send(render(parseReadOnlyVenueCanvasQuery({ blockId: EQUIPMENT_COLLECTION }), 'removed'));
+    } catch (error) {
+      const conflict = error.code === 'STALE_CANVAS_PROPOSAL';
+      if (selection) {
+        try { projectStudioSource(surface.session.proposalDraft, selection); }
+        catch { selection = undefined; }
+        res.status(conflict ? 409 : 400).type('html').send(render(selection, conflict ? 'conflict' : 'invalid'));
+      } else res.status(400).type('text').send('Equipment request rejected. Your draft is unchanged.');
+    }
+  });
   router.post(pathname + '/history', express.urlencoded({ extended: false, limit: '32kb', parameterLimit: 5 }), (req, res) => {
     let selection;
     try {
       const body = validateLoopbackPost(req, token, ['token', 'revision', 'action', 'blockId', 'fieldId']);
       if (!['undo', 'redo'].includes(body.action)) throw new TypeError('Unsupported history action');
       selection = selectionFromPost(body);
+      if (body.revision === surface.session.proposalRevision()) projectStudioSource(surface.session.proposalDraft, selection);
+      const entry = surface.session.canvasHistoryStatus()[body.action];
       if (body.action === 'undo') surface.session.undoCanvasPreview(body.revision);
       else surface.session.redoCanvasPreview(body.revision);
+      if (entry?.type === 'insert-item') selection = parseReadOnlyVenueCanvasQuery({ blockId: body.action === 'undo' ? EQUIPMENT_COLLECTION : entry.itemBlockId });
+      else if (entry?.type === 'remove-item') selection = parseReadOnlyVenueCanvasQuery({ blockId: body.action === 'undo' ? entry.blockId : EQUIPMENT_COLLECTION });
       res.type('html').send(render(selection, body.action));
     } catch (error) {
       const conflict = ['STALE_CANVAS_PROPOSAL', 'CANVAS_HISTORY_CONFLICT'].includes(error.code);

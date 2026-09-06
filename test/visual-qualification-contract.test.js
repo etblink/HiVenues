@@ -31,8 +31,11 @@ test('Canvas fixture navigation refreshes fragment-only transitions without repe
 
 test('Issue152 retains the 14-suite envelope and reuses the two bounded stable-item reorder review states', () => {
   assert.equal(contract.machineSuites.length, 14);
-  assert.equal(contract.reviewScenarios.length, 20);
-  const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit');
+  assert.equal(contract.reviewScenarios.length, 26);
+  const states = contract.reviewScenarios.filter(x => x.mode === 'canvas-edit' && !x.outcome.startsWith('equipment-'));
+  const equipment = contract.reviewScenarios.filter(x => x.outcome?.startsWith('equipment-'));
+  assert.deepEqual(equipment.map(x => x.outcome), ['equipment-empty', 'equipment-full', 'equipment-invalid', 'equipment-added', 'equipment-confirm', 'equipment-removed']);
+  assert.equal(equipment.filter(x => x.selectionSource === 'new-equipment-item').length, 1);
   assert.deepEqual(states.map(x => [x.id, x.outcome, x.viewport.width]), [
     ['juniper-canvas-edit-desktop', 'ready', 1440], ['juniper-canvas-preview-mobile', 'success', 390],
     ['juniper-canvas-invalid-mobile', 'invalid', 390], ['juniper-canvas-conflict-desktop', 'conflict', 1440],
@@ -99,7 +102,7 @@ test('historical HV-6 evidence is explicitly superseded by stronger current auth
 });
 
 test('human review set is real-viewport, bounded, representative, and synthetic for generic identity editing', () => {
-  assert.ok(contract.reviewScenarios.length >= 10 && contract.reviewScenarios.length <= 20);
+  assert.ok(contract.reviewScenarios.length >= 10 && contract.reviewScenarios.length <= 26);
   unique(contract.reviewScenarios.map(({ id }) => id), 'review scenario ids');
   for (const scenario of contract.reviewScenarios) {
     assert.ok(scenario.viewport.width >= 320, scenario.id);

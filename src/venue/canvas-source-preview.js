@@ -33,6 +33,18 @@ function canvasTextField(sourceInput, blockId, fieldId) {
 }
 
 const COLLECTION_END_DESTINATION = '__collection_end__';
+const EQUIPMENT_COLLECTION = 'home.equipment-status';
+
+function canvasEquipmentCollection(sourceInput, blockId) {
+  const source = createDeploymentAgnosticVenueSource(sourceInput);
+  const contract = createSemanticVenueCanvasContract(commandDocument(source));
+  const block = findVenueCanvasBlock(contract, blockId);
+  if (block.id !== EQUIPMENT_COLLECTION || !block.capabilities.includes(CAPABILITY.INSERT_ITEM)) {
+    throw new TypeError('Canvas equipment collection is unavailable');
+  }
+  return Object.freeze({ count: block.children.length, maximum: block.childPolicy.cardinality.maximum,
+    canAdd: block.children.length < block.childPolicy.cardinality.maximum });
+}
 
 function canvasMoveItem(sourceInput, blockId) {
   const source = createDeploymentAgnosticVenueSource(sourceInput);
@@ -116,6 +128,14 @@ function previewCanvasSourceCommandWithInverse(sourceInput, commandInput) {
       throw new TypeError('Canvas item move is outside the current stable destination set');
     }
     forwardCommand = command;
+  } else if (command.type === COMMAND_TYPE.INSERT_ITEM) {
+    const collection = canvasEquipmentCollection(source, command.blockId);
+    if (!collection.canAdd) throw new TypeError('Canvas equipment collection is full');
+    forwardCommand = command;
+  } else if (command.type === COMMAND_TYPE.REMOVE_ITEM) {
+    const item = canvasMoveItem(source, command.blockId);
+    if (!item.editable) throw new TypeError('Canvas equipment removal denied');
+    forwardCommand = command;
   } else {
     throw new TypeError('Canvas preview command type is unsupported');
   }
@@ -138,6 +158,8 @@ function previewCanvasSourceField(sourceInput, commandInput) {
 }
 
 module.exports = {
+  EQUIPMENT_COLLECTION,
+  canvasEquipmentCollection,
   COLLECTION_END_DESTINATION,
   canvasMoveItem,
   canvasTextField,

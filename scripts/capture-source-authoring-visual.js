@@ -408,13 +408,24 @@ async function navigateCanvasDocument(page, href) {
 }
 
 async function exerciseEditableCanvasState(page, fixture, viewport, outcome, checkAxe = true) {
-  if (['history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved'].includes(outcome)) fixture.session.discard();
+  const equipment = outcome.startsWith('equipment-');
+  if (equipment || ['history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved'].includes(outcome)) fixture.session.discard();
+  const itemsPointer = '/venuePackage/home/equipmentStatus/items';
+  if (outcome === 'equipment-empty') {
+    for (const item of fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items) fixture.session.removeCollectionItem(itemsPointer, item.id);
+  }
+  if (outcome === 'equipment-full') {
+    const item = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items[0];
+    for (let i = 3; i < 20; i++) fixture.session.addCollectionItem(itemsPointer, { ...item, id: 'fixture-equipment-' + i, name: 'Workshop station ' + i });
+  }
   const origin = new URL(page.url()).origin;
   const pathname = fixture.editorPath + '/canvas-editor';
   const historyPathname = pathname + '/history';
   const moveToPathname = pathname + '/move-to';
   const reorder = outcome.startsWith('reorder-');
-  const selection = reorder
+  let selection = equipment
+    ? { blockId: ['equipment-confirm', 'equipment-removed'].includes(outcome) ? 'home.equipment-status.item.wood-shop' : 'home.equipment-status' }
+    : reorder
     ? { blockId: 'home.equipment-status.item.wood-shop' }
     : { blockId: 'home.hero', fieldId: outcome === 'unsupported' ? 'image.src' : 'lede' };
   const href = origin + selectionHref(pathname, createVenueCanvasSelection(selection));
@@ -480,7 +491,51 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
 
   const currentBeforeSubmit = fixture.session.canonicalProposal();
   let renderedOutcome = outcome;
-  if (['history-dirty', 'history-undo'].includes(outcome)) {
+  if (equipment) {
+    const submit = async (selector, suffix, status = 200) => {
+      const button = page.locator(selector);
+      await button.focus();
+      const pending = page.waitForResponse(r => r.request().isNavigationRequest() && r.request().method() === 'POST' && new URL(r.url()).pathname === pathname + suffix);
+      const navigation = page.waitForEvent('framenavigated', { predicate: frame => frame === page.mainFrame() });
+      await page.keyboard.press('Enter');
+      assert.equal((await pending).status(), status);
+      await navigation;
+      await page.waitForLoadState('networkidle');
+    };
+    renderedOutcome = 'ready';
+    if (['equipment-added', 'equipment-invalid'].includes(outcome)) {
+      const fields = { name: 'Bench drill', note: 'Awaiting inspection.', accessNote: 'Ask a steward.', lastUpdated: outcome === 'equipment-invalid' ? 'yesterday' : '2026-09-06T12:00:00Z', group: 'Woodworking' };
+      for (const [key, value] of Object.entries(fields)) await page.locator('#equipment-' + key).fill(value);
+      await page.locator('#equipment-state').selectOption('limited');
+      await submit('[data-canvas-equipment-add]', '/equipment/add', outcome === 'equipment-invalid' ? 400 : 200);
+      if (outcome === 'equipment-invalid') {
+        expectedHttpErrors.push({ status: 400, pathname: pathname + '/equipment/add' });
+        renderedOutcome = 'invalid';
+        for (const [key, value] of Object.entries(fields)) assert.equal(await page.locator('#equipment-' + key).inputValue(), value);
+      } else {
+        renderedOutcome = 'added';
+        selection = { blockId: 'home.equipment-status.item.' + fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items.at(-1).id };
+        assert.match(selection.blockId, /^home\.equipment-status\.item\.equipment-[a-f0-9]{24}$/);
+      }
+    }
+    if (['equipment-confirm', 'equipment-removed'].includes(outcome)) {
+      const disclosure = page.locator('[data-canvas-equipment-confirm] summary');
+      await disclosure.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('[data-canvas-equipment-confirm]').getAttribute('open'), '');
+      assert.ok((await page.locator('[data-canvas-equipment-confirm]').innerText()).includes('Wood shop'));
+      if (outcome === 'equipment-removed') {
+        await submit('[data-canvas-equipment-remove]', '/equipment/remove');
+        renderedOutcome = 'removed';
+        selection = { blockId: 'home.equipment-status' };
+      } else await page.locator('#selection-summary').focus();
+    }
+    if (outcome === 'equipment-full') {
+      assert.equal(await page.locator('[data-canvas-equipment-full]').count(), 1);
+      assert.equal(await page.locator('[data-canvas-equipment-add-form]').count(), 0);
+    }
+    if (outcome === 'equipment-empty') assert.equal(await page.locator('[data-canvas-equipment]').getAttribute('data-count'), '0');
+  } else if (['history-dirty', 'history-undo'].includes(outcome)) {
     await submitEdit(page, 'First history preview. Review this draft safely.', 200);
     await submitEdit(page, 'Second history preview. This is still only a draft.', 200);
     if (outcome === 'history-undo') {
@@ -501,14 +556,19 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.equal(await page.locator('[data-edit-outcome]').getAttribute('data-edit-outcome'), renderedOutcome);
   assert.equal(fixture.session.canonicalAccepted(), accepted);
   const proposalUnchanged = fixture.session.canonicalProposal() === currentBeforeSubmit;
-  const shouldChange = ['success', 'history-dirty', 'history-undo', 'reorder-moved'].includes(outcome);
+  const shouldChange = ['success', 'history-dirty', 'history-undo', 'reorder-moved', 'equipment-added', 'equipment-removed'].includes(outcome);
   assert.equal(proposalUnchanged, !shouldChange);
   const expectedText = fixture.session.proposalDraft.venuePackage.home.hero.lede;
-  if (!reorder && outcome !== 'unsupported') {
+  if (!equipment && !reorder && outcome !== 'unsupported') {
     assert.equal(await page.locator('[data-canvas-edit-form] [name=value]').inputValue(), outcome === 'invalid' ? '' : expectedText);
   }
   const preview = await getPreviewFrame(page, 'Real venue renderer preview');
   assert.ok((await preview.locator('body').innerText()).includes(expectedText));
+  if (equipment) {
+    const expected = fixture.session.proposalDraft.venuePackage.home.equipmentStatus.items;
+    assert.deepEqual(await preview.locator('[data-equipment-id]').evaluateAll(nodes => nodes.map(n => n.dataset.equipmentId)), expected.map(i => i.id));
+    for (const item of expected) assert.equal((await preview.locator(`[data-equipment-id="${item.id}"] h3`).innerText()).trim(), item.name);
+  }
   const rendererVenueName = (await preview.locator('#home-heading').textContent()).trim();
   assert.equal(rendererVenueName, fixture.session.acceptedSource.venueContext.displayName);
   const rendererHeading = await preview.locator('#home-heading').evaluate(heading => {
@@ -580,7 +640,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
   assert.ok(geometry.focusOutlineWidth >= 3);
   assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
   assert.ok(geometry.minimumTargetHeight >= 44 && geometry.minimumTargetWidth >= 44, JSON.stringify(geometry));
-  assert.equal(geometry.formCount, outcome === 'unsupported' || reorder ? 0 : 1);
+  assert.equal(geometry.formCount, outcome === 'unsupported' || reorder || equipment ? 0 : 1);
   assert.equal(geometry.iframeCount, 1);
   assert.equal(geometry.selectedCanvasCardCount, 1);
   assert.equal(geometry.selectedTreeRowCount, 1);
@@ -602,6 +662,7 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
     });
     assert.deepEqual(geometry.history, { undoCount: 1, redoCount: 0, undoEnabled: true, redoEnabled: false });
   }
+  if (equipment) assert.deepEqual(geometry.history, { undoCount: shouldChange ? 1 : 0, redoCount: 0, undoEnabled: shouldChange, redoEnabled: false });
   return { outcome, renderedOutcome, selection, geometry, acceptedUnchanged: true, proposalUnchanged,
     proposalChangedFromInitial: before !== fixture.session.canonicalProposal(), rendererTextVerified: true,
     rendererVenueName, rendererHeading, expectedHttpErrors, axeCanvas: checkAxe ? await runAxe(page) : [], axePreview: checkAxe ? await runAxe(preview) : [] };
@@ -609,9 +670,11 @@ async function exerciseEditableCanvasState(page, fixture, viewport, outcome, che
 
 function assertCanvasBrowserErrors(errors, expectedStatuses, pathname) {
   const remaining = [...errors];
-  for (const status of expectedStatuses) {
+  for (const expected of expectedStatuses) {
+    const status = typeof expected === 'number' ? expected : expected.status;
+    const errorPath = typeof expected === 'number' ? pathname : expected.pathname;
     const text = `Failed to load resource: the server responded with a status of ${status} (${status === 400 ? 'Bad Request' : 'Conflict'})`;
-    const index = remaining.findIndex(error => error.text === text && new URL(error.url).pathname === pathname);
+    const index = remaining.findIndex(error => error.text === text && new URL(error.url).pathname === errorPath);
     assert.ok(index >= 0, 'Missing precisely classified expected HTTP error: ' + JSON.stringify({ status, remaining }));
     remaining.splice(index, 1);
   }
@@ -651,7 +714,7 @@ async function runScenario(browser, scenario) {
     await page.screenshot({ path: path.join(SHOTS, `${scenario.id}.png`), fullPage: true });
     const readOnlyCanvas = await exerciseReadOnlyCanvas(page, fixture, scenario);
     const editableCanvas = [];
-    for (const outcome of scenario.id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved'] : ['ready', 'unsupported']) {
+    for (const outcome of scenario.id.startsWith('juniper') ? ['ready', 'success', 'invalid', 'conflict', 'unsupported', 'history-dirty', 'history-undo', 'reorder-ready', 'reorder-moved', 'equipment-empty', 'equipment-full', 'equipment-invalid', 'equipment-added', 'equipment-confirm', 'equipment-removed'] : ['ready', 'unsupported']) {
       editableCanvas.push(await exerciseEditableCanvasState(page, fixture, scenario, outcome));
     }
     assert.deepEqual(externalRequests, [], JSON.stringify(externalRequests, null, 2));
