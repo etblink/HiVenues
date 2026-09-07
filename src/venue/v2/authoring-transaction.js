@@ -551,6 +551,54 @@ function insertComponentSnapshot(sourceInput, pageIndex, componentInput, destina
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
+function listV2ComponentCatalogOptions() {
+  return deepFreeze(
+    Object.values(V2_COMPONENT_CATALOG).map((item) => ({
+      id: item.id,
+      label: item.label,
+    })),
+  );
+}
+
+function listV2ComponentAddDestinations(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const page = resolvePageCollection(source, targetInput);
+  const destinations = page.page.components.map((component) => ({
+    kind: BEFORE_COMPONENT,
+    beforeComponentId: component.id,
+  }));
+  destinations.push({ kind: END_OF_PAGE });
+  return deepFreeze({
+    pageId: page.pageId,
+    pageIndex: page.pageIndex,
+    collectionPointer: page.collectionPointer,
+    ownership: page.ownership,
+    catalog: listV2ComponentCatalogOptions(),
+    destinations,
+  });
+}
+
+function getV2ComponentRemovalContext(sourceInput, targetInput) {
+  try {
+    const resolved = resolveComponentRemove(sourceInput, targetInput);
+    return deepFreeze({
+      eligible: true,
+      pageId: resolved.pageId,
+      componentId: resolved.componentId,
+      catalogItemId: resolved.catalogItemId,
+      ownership: resolved.ownership,
+    });
+  } catch (error) {
+    if (
+      error instanceof V2AuthoringTransactionError
+      && /not removable in this bounded catalog slice/.test(error.message)
+    ) {
+      return deepFreeze({ eligible: false });
+    }
+    throw error;
+  }
+}
+
 function resolveComponentAdd(sourceInput, targetInput, catalogItemIdInput, destinationInput) {
   const source = createV2DeploymentAgnosticVenueSource(sourceInput);
   const page = resolvePageCollection(source, targetInput);
@@ -1276,6 +1324,9 @@ module.exports = {
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  getV2ComponentRemovalContext,
+  listV2ComponentAddDestinations,
+  listV2ComponentCatalogOptions,
   listV2ComponentMoveDestinations,
   proposeV2AddComponent,
   proposeV2AuthoringCommand,
