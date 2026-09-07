@@ -104,6 +104,14 @@ test('Studio selection contract is strict, canonical, and fail-closed', () => {
     }),
     V2ReadOnlyStudioError,
   );
+  assert.throws(
+    () => v2ReadOnlyStudioSelectionHref('/studio?unsafe=1', {
+      nodeId: 'page:home',
+      fieldId: null,
+      viewport: 'desktop',
+    }),
+    V2ReadOnlyStudioError,
+  );
 });
 
 test('component and shared-resource selection identities survive array reordering', () => {
@@ -269,6 +277,9 @@ test('isolated Studio fixture is GET-only, uses the real renderer, and records z
     const preview = await request(fixture.app).get(previewPath).expect(200);
     assert.match(preview.text, /data-component-id=|v2-page-intro/, referenceId);
 
+    await request(fixture.app)
+      .get('/studio?unexpected=value')
+      .expect(400);
     await request(fixture.app)
       .post('/studio')
       .send('forbidden')
