@@ -1,5 +1,11 @@
 'use strict';
 
+const crypto = require('node:crypto');
+const {
+  MAX_MANAGED_IMAGE_BYTES,
+  inspectManagedImage,
+} = require('../managed-assets');
+
 const {
   DENSITY_RECIPE_IDS,
   OWNERSHIP,
@@ -21,6 +27,8 @@ const V2_AUTHORING_HISTORY_SCHEMA_VERSION = 1;
 const SET_FIELD = 'SET_FIELD';
 const SET_THEME_RECIPE = 'SET_THEME_RECIPE';
 const SET_MEDIA_USAGE_ASSET = 'SET_MEDIA_USAGE_ASSET';
+const IMPORT_LOCAL_HERO_MEDIA = 'IMPORT_LOCAL_HERO_MEDIA';
+const RESTORE_IMPORTED_HERO_MEDIA = 'RESTORE_IMPORTED_HERO_MEDIA';
 const MOVE_COMPONENT = 'MOVE_COMPONENT';
 const ADD_COMPONENT = 'ADD_COMPONENT';
 const REMOVE_COMPONENT = 'REMOVE_COMPONENT';
@@ -32,6 +40,8 @@ const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 const V2_GLOBAL_THEME_TARGET = 'theme:global';
 const V2_HERO_MEDIA_SLOT = 'hero-media';
+const V2_SESSION_MEDIA_PATH_PREFIX = '/__hivenues-v2/session-media/';
+const MAX_IMAGE_BASE64_CHARS = Math.ceil(MAX_MANAGED_IMAGE_BYTES / 3) * 4;
 const V2_THEME_RECIPE_DIMENSIONS = deepFreeze({
   typographyRecipeId: {
     id: 'typographyRecipeId',
@@ -308,6 +318,126 @@ function parseMediaUsageCommand(value) {
   };
 }
 
+function canonicalImageBase64(value) {
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || value.length > MAX_IMAGE_BASE64_CHARS
+    || value.length % 4 !== 0
+  ) {
+    throw new V2AuthoringTransactionError('image bytes must use bounded canonical base64');
+  }
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.length === 0 || bytes.toString('base64') !== value) {
+    throw new V2AuthoringTransactionError('image bytes must use canonical base64');
+  }
+  return value;
+}
+
+function parseImportLocalHeroMediaCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set([
+      'schemaVersion',
+      'type',
+      'target',
+      'slot',
+      'bytesBase64',
+      'alt',
+      'decorative',
+      'expectedDraftDigest',
+    ]),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== IMPORT_LOCAL_HERO_MEDIA) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  const target = parseComponentTarget(command.target);
+  const slot = scalarString(command.slot, 'slot', { max: 40 });
+  if (slot !== V2_HERO_MEDIA_SLOT) {
+    throw new V2AuthoringTransactionError('unsupported media usage slot');
+  }
+  if (typeof command.decorative !== 'boolean') {
+    throw new V2AuthoringTransactionError('decorative must be a boolean');
+  }
+  let alt = null;
+  if (command.decorative) {
+    if (command.alt !== null) {
+      throw new V2AuthoringTransactionError('decorative media must use null alt text');
+    }
+  } else {
+    alt = scalarString(command.alt, 'alt', { max: 240 }).trim();
+    if (!alt) throw new V2AuthoringTransactionError('meaningful media requires alt text');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: IMPORT_LOCAL_HERO_MEDIA,
+    target,
+    slot,
+    bytesBase64: canonicalImageBase64(command.bytesBase64),
+    alt,
+    decorative: command.decorative,
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function parseRestoreImportedHeroMediaCommand(value) {
+  const command = plainRecord(
+    value,
+    'internal command',
+    new Set([
+      'schemaVersion',
+      'type',
+      'target',
+      'slot',
+      'importedAssetId',
+      'restoreAssetId',
+      'alt',
+      'decorative',
+      'removeImportedAsset',
+      'expectedDraftDigest',
+    ]),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== RESTORE_IMPORTED_HERO_MEDIA) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  const target = parseComponentTarget(command.target);
+  const slot = scalarString(command.slot, 'slot', { max: 40 });
+  if (slot !== V2_HERO_MEDIA_SLOT) {
+    throw new V2AuthoringTransactionError('unsupported media usage slot');
+  }
+  if (typeof command.decorative !== 'boolean' || typeof command.removeImportedAsset !== 'boolean') {
+    throw new V2AuthoringTransactionError('internal media restore flags are invalid');
+  }
+  let alt = null;
+  if (command.decorative) {
+    if (command.alt !== null) {
+      throw new V2AuthoringTransactionError('decorative media must use null alt text');
+    }
+  } else {
+    alt = scalarString(command.alt, 'alt', { max: 240 }).trim();
+    if (!alt) throw new V2AuthoringTransactionError('meaningful media requires alt text');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: RESTORE_IMPORTED_HERO_MEDIA,
+    target,
+    slot,
+    importedAssetId: scalarString(command.importedAssetId, 'importedAssetId', { max: 80 }),
+    restoreAssetId: scalarString(command.restoreAssetId, 'restoreAssetId', { max: 80 }),
+    alt,
+    decorative: command.decorative,
+    removeImportedAsset: command.removeImportedAsset,
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
 function parseComponentTarget(value) {
   const target = plainRecord(value, 'target', new Set(['nodeId']));
   return {
@@ -464,6 +594,10 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
       'recipeId',
       'slot',
       'assetId',
+      'bytesBase64',
+      'importedAssetId',
+      'restoreAssetId',
+      'removeImportedAsset',
       'alt',
       'decorative',
       'expectedDraftDigest',
@@ -472,6 +606,10 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
   if (command.type === SET_FIELD) return parseSetFieldCommand(value);
   if (command.type === SET_THEME_RECIPE) return parseSetThemeRecipeCommand(value);
   if (command.type === SET_MEDIA_USAGE_ASSET) return parseMediaUsageCommand(value);
+  if (command.type === IMPORT_LOCAL_HERO_MEDIA) return parseImportLocalHeroMediaCommand(value);
+  if (command.type === RESTORE_IMPORTED_HERO_MEDIA && allowInternal) {
+    return parseRestoreImportedHeroMediaCommand(value);
+  }
   if (command.type === MOVE_COMPONENT) return parseMoveComponentCommand(value);
   if (command.type === ADD_COMPONENT) return parseAddComponentCommand(value);
   if (command.type === REMOVE_COMPONENT) return parseRemoveComponentCommand(value);
@@ -608,6 +746,148 @@ function withMediaUsage(sourceInput, resolved) {
   usage.alt = resolved.alt;
   usage.decorative = resolved.decorative;
   return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function resolveHeroMediaTarget(sourceInput, targetInput, slotInput = V2_HERO_MEDIA_SLOT) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseComponentTarget(targetInput);
+  const slot = scalarString(slotInput, 'slot', { max: 40 });
+  if (slot !== V2_HERO_MEDIA_SLOT) {
+    throw new V2AuthoringTransactionError('unsupported media usage slot');
+  }
+  const componentId = target.nodeId.startsWith('component:')
+    ? target.nodeId.slice('component:'.length)
+    : '';
+  if (!componentId) {
+    throw new V2AuthoringTransactionError('media target must be a stable component identity');
+  }
+  const matches = componentMatches(source, componentId);
+  if (matches.length !== 1) {
+    throw new V2AuthoringTransactionError('media target is ambiguous or missing');
+  }
+  const match = matches[0];
+  if (match.component.kind !== 'venue-hero' || !match.component.content.media) {
+    throw new V2AuthoringTransactionError('first media slice supports an existing venue-hero usage only');
+  }
+  const pointer = `/site/pages/${match.pageIndex}/components/${match.componentIndex}/content/media`;
+  const ownership = pathOwnership(pointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
+    throw new V2AuthoringTransactionError('media usage is not operator-authored');
+  }
+  return {
+    source,
+    target,
+    slot,
+    match,
+    pointer,
+    ownership,
+    current: clone(match.component.content.media),
+  };
+}
+
+function deriveImportedMediaAsset(bytesBase64) {
+  const bytes = Buffer.from(canonicalImageBase64(bytesBase64), 'base64');
+  let inspected;
+  try {
+    inspected = inspectManagedImage(bytes);
+  } catch (error) {
+    throw new V2AuthoringTransactionError(`local image inspection failed: ${error.message}`);
+  }
+  const digestSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  const assetId = `local-image-${digestSha256}`;
+  const src = `${V2_SESSION_MEDIA_PATH_PREFIX}${digestSha256}.${inspected.extension}`;
+  return deepFreeze({
+    bytesBase64: bytes.toString('base64'),
+    digestSha256,
+    mediaType: inspected.mediaType,
+    extension: inspected.extension,
+    asset: {
+      id: assetId,
+      src,
+      width: inspected.width,
+      height: inspected.height,
+    },
+  });
+}
+
+function resolveLocalHeroMediaImport(
+  sourceInput,
+  targetInput,
+  slotInput,
+  bytesBase64Input,
+  altInput,
+  decorativeInput,
+) {
+  const context = resolveHeroMediaTarget(sourceInput, targetInput, slotInput);
+  const derived = deriveImportedMediaAsset(bytesBase64Input);
+  const existing = context.source.media.assets.find(
+    (candidate) => candidate.id === derived.asset.id,
+  );
+  if (existing && JSON.stringify(existing) !== JSON.stringify(derived.asset)) {
+    throw new V2AuthoringTransactionError('derived media identity collides with different asset metadata');
+  }
+  if (
+    existing
+    && context.current.assetId === derived.asset.id
+    && context.current.alt === altInput
+    && context.current.decorative === decorativeInput
+  ) {
+    throw new V2AuthoringTransactionError('local media import is a no-op');
+  }
+
+  const candidate = clone(context.source);
+  if (!existing) candidate.media.assets.push(clone(derived.asset));
+  const usage = candidate.site.pages[context.match.pageIndex]
+    .components[context.match.componentIndex].content.media;
+  usage.assetId = derived.asset.id;
+  usage.alt = altInput;
+  usage.decorative = decorativeInput;
+  const afterSource = createV2DeploymentAgnosticVenueSource(candidate);
+  return deepFreeze({
+    ...context,
+    asset: clone(derived.asset),
+    assetWasAdded: !existing,
+    bytesBase64: derived.bytesBase64,
+    digestSha256: derived.digestSha256,
+    mediaType: derived.mediaType,
+    extension: derived.extension,
+    alt: altInput,
+    decorative: decorativeInput,
+    afterSource,
+  });
+}
+
+function resolveImportedHeroMediaRestore(sourceInput, command) {
+  const context = resolveHeroMediaTarget(sourceInput, command.target, command.slot);
+  if (context.current.assetId !== command.importedAssetId) {
+    throw new V2AuthoringTransactionError('imported media restore no longer matches the hero usage');
+  }
+  if (!context.source.media.assets.some((asset) => asset.id === command.restoreAssetId)) {
+    throw new V2AuthoringTransactionError('restore media asset no longer exists');
+  }
+  const candidate = clone(context.source);
+  const usage = candidate.site.pages[context.match.pageIndex]
+    .components[context.match.componentIndex].content.media;
+  usage.assetId = command.restoreAssetId;
+  usage.alt = command.alt;
+  usage.decorative = command.decorative;
+  if (command.removeImportedAsset) {
+    const index = candidate.media.assets.findIndex((asset) => asset.id === command.importedAssetId);
+    if (index < 0) {
+      throw new V2AuthoringTransactionError('imported media asset no longer exists');
+    }
+    candidate.media.assets.splice(index, 1);
+  }
+  const afterSource = createV2DeploymentAgnosticVenueSource(candidate);
+  return deepFreeze({
+    ...context,
+    importedAssetId: command.importedAssetId,
+    restoreAssetId: command.restoreAssetId,
+    removeImportedAsset: command.removeImportedAsset,
+    alt: command.alt,
+    decorative: command.decorative,
+    afterSource,
+  });
 }
 
 function listV2MediaUsageOptions(sourceInput, targetInput, slotInput = V2_HERO_MEDIA_SLOT) {
@@ -1211,6 +1491,87 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
     });
   }
 
+  if (command.type === IMPORT_LOCAL_HERO_MEDIA) {
+    const resolved = resolveLocalHeroMediaImport(
+      source,
+      command.target,
+      command.slot,
+      command.bytesBase64,
+      command.alt,
+      command.decorative,
+    );
+    const afterSource = resolved.afterSource;
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+      bytesBase64: resolved.bytesBase64,
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: RESTORE_IMPORTED_HERO_MEDIA,
+      target: { ...validatedCommand.target },
+      slot: resolved.slot,
+      importedAssetId: resolved.asset.id,
+      restoreAssetId: resolved.current.assetId,
+      alt: resolved.current.alt,
+      decorative: resolved.current.decorative,
+      removeImportedAsset: resolved.assetWasAdded,
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: resolved.slot,
+        pageId: resolved.match.page.id,
+        componentId: resolved.match.component.id,
+        sourcePointer: resolved.pointer,
+        ownership: resolved.ownership,
+        mediaSlot: resolved.slot,
+        assetId: resolved.asset.id,
+        assetSrc: resolved.asset.src,
+        width: resolved.asset.width,
+        height: resolved.asset.height,
+        mediaType: resolved.mediaType,
+        digestSha256: resolved.digestSha256,
+        assetWasAdded: resolved.assetWasAdded,
+      },
+    });
+  }
+
+  if (command.type === RESTORE_IMPORTED_HERO_MEDIA && allowInternal) {
+    const resolved = resolveImportedHeroMediaRestore(source, command);
+    const afterSource = resolved.afterSource;
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand: null,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: resolved.slot,
+        pageId: resolved.match.page.id,
+        componentId: resolved.match.component.id,
+        sourcePointer: resolved.pointer,
+        ownership: resolved.ownership,
+        mediaSlot: resolved.slot,
+        assetId: resolved.restoreAssetId,
+        removedAssetId: resolved.removeImportedAsset ? resolved.importedAssetId : null,
+      },
+    });
+  }
+
   if (command.type === SET_MEDIA_USAGE_ASSET) {
     const resolved = resolveMediaUsage(
       source,
@@ -1610,6 +1971,14 @@ function proposeV2SetMediaUsageAsset(sessionInput, commandInput) {
   return proposal;
 }
 
+function proposeV2ImportLocalHeroMedia(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== IMPORT_LOCAL_HERO_MEDIA) {
+    throw new V2AuthoringTransactionError('IMPORT_LOCAL_HERO_MEDIA proposal requires IMPORT_LOCAL_HERO_MEDIA command');
+  }
+  return proposal;
+}
+
 function proposeV2MoveComponent(sessionInput, commandInput) {
   const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
   if (proposal.command.type !== MOVE_COMPONENT) {
@@ -1721,6 +2090,7 @@ module.exports = {
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
+  IMPORT_LOCAL_HERO_MEDIA,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_FIELD,
@@ -1729,6 +2099,7 @@ module.exports = {
   V2_COMPONENT_CATALOG,
   V2_GLOBAL_THEME_TARGET,
   V2_HERO_MEDIA_SLOT,
+  V2_SESSION_MEDIA_PATH_PREFIX,
   V2_THEME_RECIPE_DIMENSIONS,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
@@ -1746,6 +2117,7 @@ module.exports = {
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2AuthoringCommand,
+  proposeV2ImportLocalHeroMedia,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
