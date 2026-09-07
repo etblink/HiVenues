@@ -651,6 +651,45 @@ function renderHistoryControls(session, actionPaths, model) {
   </section>`;
 }
 
+function normalizePersistence(value, session) {
+  if (!value || value.enabled !== true) return Object.freeze({ enabled: false });
+  const persistedDigest = value.persistedDigest;
+  if (
+    persistedDigest !== 'ABSENT'
+    && (typeof persistedDigest !== 'string' || !/^[0-9a-f]{64}$/.test(persistedDigest))
+  ) {
+    throw new V2AuthoringStudioError('persisted v2 source digest is invalid');
+  }
+  if (value.sourceFilename !== 'venue-source-v2.json') {
+    throw new V2AuthoringStudioError('v2 persistence filename is invalid');
+  }
+  return Object.freeze({
+    enabled: true,
+    persistedDigest,
+    isPersisted: persistedDigest === session.draftDigest,
+    sourceFilename: value.sourceFilename,
+  });
+}
+
+function renderPersistenceControls(session, proposal, persistence, actionPaths, model) {
+  if (!persistence.enabled) return '';
+  const saved = persistence.isPersisted;
+  const blocked = Boolean(proposal);
+  const state = blocked
+    ? 'Preview is active. Apply or discard it before saving.'
+    : saved
+      ? 'The accepted draft matches the durable workspace checkpoint.'
+      : persistence.persistedDigest === 'ABSENT'
+        ? 'No durable v2 checkpoint exists yet.'
+        : 'The accepted draft has changed since the last workspace checkpoint.';
+  const buttonLabel = saved ? 'Workspace saved' : 'Save workspace checkpoint';
+  const hidden = `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}"><input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}"><input type="hidden" name="expectedPersistedDigest" value="${escapeHtml(persistence.persistedDigest)}">`;
+  return `<section class="history-card persistence-card" aria-labelledby="persistence-heading">
+    <div><p class="eyebrow">Workspace checkpoint</p><h3 id="persistence-heading">${saved ? 'Saved' : 'Save accepted draft'}</h3><p>${escapeHtml(state)}</p><p><code>${escapeHtml(persistence.sourceFilename)}</code></p></div>
+    <form method="post" action="${escapeHtml(actionPaths.save)}">${hidden}<button class="button primary" type="submit"${blocked || saved ? ' disabled' : ''}>${escapeHtml(buttonLabel)}</button></form>
+  </section>`;
+}
+
 function renderV2AuthoringStudioSurface({
   session,
   proposal = null,
@@ -658,6 +697,7 @@ function renderV2AuthoringStudioSurface({
   studioPath = '/studio-authoring',
   previewPathForPage,
   actionPaths = {},
+  persistence: persistenceInput = null,
 } = {}) {
   if (!session || session.kind !== 'hivenues-v2-authoring-session') {
     throw new V2AuthoringStudioError('valid memory-only authoring session is required');
@@ -667,6 +707,7 @@ function renderV2AuthoringStudioSurface({
   }
 
   const normalizedStudioPath = strictLocalPath(studioPath, 'Studio path');
+  const persistence = normalizePersistence(persistenceInput, session);
   const normalizedActions = {
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
     reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
@@ -675,6 +716,7 @@ function renderV2AuthoringStudioSurface({
     theme: strictLocalPath(actionPaths.theme || `${normalizedStudioPath}/theme`, 'theme path'),
     media: strictLocalPath(actionPaths.media || `${normalizedStudioPath}/media`, 'media path'),
     mediaImport: strictLocalPath(actionPaths.mediaImport || `${normalizedStudioPath}/media-import`, 'media import path'),
+    save: strictLocalPath(actionPaths.save || `${normalizedStudioPath}/save-workspace`, 'save path'),
     studio: normalizedStudioPath,
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
@@ -701,6 +743,24 @@ function renderV2AuthoringStudioSurface({
   );
   const proposalActive = Boolean(proposal);
   const previewDigest = proposalActive ? proposal.afterDigest : session.draftDigest;
+  const persistenceBadge = persistence.enabled
+    ? `Workspace checkpoint · ${persistence.isPersisted ? 'Saved' : 'Unsaved'}`
+    : 'Session draft · memory only';
+  const stateTitle = proposalActive
+    ? 'Preview — not applied'
+    : persistence.enabled && persistence.isPersisted
+      ? 'Saved workspace checkpoint'
+      : 'Accepted session draft';
+  const stateDetail = persistence.enabled
+    ? proposalActive
+      ? 'Preview remains memory-only · apply or discard before Save · no publishing or deployment'
+      : persistence.isPersisted
+        ? 'Accepted v2 draft is durable · no publishing · no deployment · no Hive writes'
+        : 'Accepted draft differs from durable checkpoint · no publishing · no deployment · no Hive writes'
+    : 'No workspace save · no publishing · no deployment · no external effects';
+  const memoryNote = persistence.enabled
+    ? 'Preview proposals remain memory-only. Save writes only the accepted v2 draft and required managed media to the configured workspace; publishing and deployment remain separate.'
+    : 'Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.';
 
   return `<!doctype html>
 <html lang="en" data-v2-authoring-studio="true">
@@ -723,13 +783,13 @@ function renderV2AuthoringStudioSurface({
 </head>
 <body>
 <a class="skip" href="#authoring-canvas-heading">Skip to Canvas</a>
-<main class="studio" data-v2-authoring-studio="true" data-accepted-digest="${escapeHtml(session.draftDigest)}" data-preview-digest="${escapeHtml(previewDigest)}" data-studio-persistent="false" data-studio-runtime-wired="false" data-studio-mutations="true" data-preview-active="${proposalActive ? 'true' : 'false'}">
+<main class="studio" data-v2-authoring-studio="true" data-accepted-digest="${escapeHtml(session.draftDigest)}" data-preview-digest="${escapeHtml(previewDigest)}" data-studio-persistent="${persistence.enabled ? 'true' : 'false'}" data-studio-persisted="${persistence.enabled && persistence.isPersisted ? 'true' : 'false'}" data-persisted-digest="${escapeHtml(persistence.enabled ? persistence.persistedDigest : '')}" data-studio-runtime-wired="false" data-studio-mutations="true" data-preview-active="${proposalActive ? 'true' : 'false'}">
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><div><p class="eyebrow">HiVenues · Authoring Studio</p><h1>${escapeHtml(model.venue.displayName)}</h1></div></div>
-    <span class="authority-badge">Session draft · memory only</span>
+    <span class="authority-badge">${escapeHtml(persistenceBadge)}</span>
   </header>
   <section class="statebar" aria-label="Authoring state">
-    <div class="state-copy"><strong>${proposalActive ? 'Preview — not applied' : 'Accepted session draft'}</strong><span>No workspace save · no publishing · no deployment · no external effects</span></div>
+    <div class="state-copy"><strong>${escapeHtml(stateTitle)}</strong><span>${escapeHtml(stateDetail)}</span></div>
     <div class="digest-pair"><div class="digest-chip"><strong>Accepted</strong><code>${escapeHtml(session.draftDigest.slice(0, 12))}…</code></div><div class="digest-chip"><strong>Canvas</strong><code>${escapeHtml(previewDigest.slice(0, 12))}…</code></div></div>
   </section>
   <div class="workspace">
@@ -743,7 +803,7 @@ function renderV2AuthoringStudioSurface({
       <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}"><iframe title="Real v2 authoring preview" data-v2-authoring-preview="true" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
       <div class="preview-meta"><strong>${escapeHtml(previewModel.previewPage.title)}</strong><span>${escapeHtml(model.viewport.label)} · ${model.viewport.width} × ${model.viewport.height}</span></div>
       <nav class="viewport-options" aria-label="Preview viewport">${renderViewportOptions(model, normalizedStudioPath)}</nav>
-      <p class="memory-note">Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.</p>
+      <p class="memory-note">${escapeHtml(memoryNote)}</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
       <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · media · theme</span></header>
@@ -753,6 +813,7 @@ function renderV2AuthoringStudioSurface({
       ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
       ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
       ${renderHistoryControls(session, normalizedActions, model)}
+      ${renderPersistenceControls(session, proposal, persistence, normalizedActions, model)}
     </aside>
   </div>
 </main>
