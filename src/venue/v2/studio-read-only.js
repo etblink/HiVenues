@@ -42,7 +42,7 @@ function escapeHtml(value) {
 }
 
 function strictLocalPath(value, label = 'local path') {
-  if (typeof value !== 'string' || !/^\/(?!\/)[^\s\\]*$/.test(value)) {
+  if (typeof value !== 'string' || !/^\/(?!\/)[^?#\s\\]*$/.test(value)) {
     throw new V2ReadOnlyStudioError(`${label} must be a same-origin local path`);
   }
   return value;
