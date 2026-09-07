@@ -9,6 +9,7 @@ const {
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
+  IMPORT_LOCAL_HERO_MEDIA,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_MEDIA_USAGE_ASSET,
@@ -213,7 +214,7 @@ function mediaUsageContext(source, nodeId) {
 function matchingMediaProposal(proposal, model) {
   return Boolean(
     proposal
-    && proposal.command.type === SET_MEDIA_USAGE_ASSET
+    && [SET_MEDIA_USAGE_ASSET, IMPORT_LOCAL_HERO_MEDIA].includes(proposal.command.type)
     && proposal.command.target.nodeId === model.selection.nodeId
   );
 }
@@ -228,7 +229,7 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
   const isProposal = matchingMediaProposal(proposal, model);
   const usage = isProposal
     ? {
-      assetId: proposal.command.assetId,
+      assetId: proposal.resolvedTarget.assetId,
       alt: proposal.command.alt,
       decorative: proposal.command.decorative,
     }
@@ -282,7 +283,73 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
       <p class="form-help">Use this path only when the image adds no information. HiVenues will render empty alternative text and hide it from assistive technology.</p>
       <button class="button secondary" type="submit">Preview as decorative</button>
     </form>
-    <p class="form-help">New file import, source paths, dimensions, crop/focal controls, gallery editing, persistence, and publishing are not available in this slice.</p>
+    <div class="theme-control"><div><strong>Bring your own hero image</strong><span>Session only</span></div><small>PNG, JPEG, or GIF · up to 8 MiB · inspected by HiVenues before preview</small></div>
+    <form class="edit-form" data-local-media-import="meaningful" action="${escapeHtml(actionPaths.mediaImport)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="false">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-local-media-file">Local meaningful hero image</label>
+      <input id="authoring-local-media-file" name="file" type="file" accept="image/png,image/jpeg,image/gif" required>
+      <label for="authoring-local-media-alt">Alternative text</label>
+      <input id="authoring-local-media-alt" name="alt" type="text" maxlength="240" required>
+      <p class="form-help">The selected file stays in this in-memory Studio session. HiVenues derives its identity, path, format, and dimensions.</p>
+      <button class="button primary" type="submit">Preview local image</button>
+      <span class="form-help" data-local-media-status role="status"></span>
+    </form>
+    <form class="edit-form" data-local-media-import="decorative" action="${escapeHtml(actionPaths.mediaImport)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="true">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-local-media-decorative-file">Local decorative hero image</label>
+      <input id="authoring-local-media-decorative-file" name="file" type="file" accept="image/png,image/jpeg,image/gif" required>
+      <p class="form-help">Use only when the image adds no information. Empty alternative text is derived automatically.</p>
+      <button class="button secondary" type="submit">Preview local decorative image</button>
+      <span class="form-help" data-local-media-status role="status"></span>
+    </form>
+    <p class="form-help">No source path, asset ID, dimensions, file type, digest, crop/focal controls, gallery editing, persistence, or publishing authority is exposed.</p>
+    <script>
+    (() => {
+      for (const form of document.querySelectorAll('form[data-local-media-import]')) {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = form.querySelector('[data-local-media-status]');
+          const file = form.querySelector('input[type="file"]').files[0];
+          if (!file) {
+            status.textContent = 'Choose a local image first.';
+            return;
+          }
+          const params = new URLSearchParams();
+          for (const name of ['nodeId', 'mediaSlot', 'decorative', 'viewport', 'expectedDraftDigest']) {
+            params.set(name, form.elements[name].value);
+          }
+          const alt = form.elements.alt;
+          if (alt) params.set('alt', alt.value);
+          status.textContent = 'Inspecting image…';
+          try {
+            const response = await fetch(form.action + '?' + params.toString(), {
+              method: 'POST',
+              headers: { 'Content-Type': file.type || 'application/octet-stream' },
+              body: file,
+            });
+            if (!response.ok) {
+              status.textContent = await response.text() || 'Local image preview was rejected.';
+              return;
+            }
+            const redirect = new URL('${escapeHtml(actionPaths.studio)}', location.origin);
+            redirect.searchParams.set('nodeId', form.elements.nodeId.value);
+            redirect.searchParams.set('viewport', form.elements.viewport.value);
+            location.assign(redirect.pathname + redirect.search);
+          } catch {
+            status.textContent = 'Local image preview failed before the in-memory request completed.';
+          }
+        });
+      }
+    })();
+    </script>
   </section>`;
 }
 
@@ -519,7 +586,7 @@ function renderEditor({
   source,
   actionPaths,
 }) {
-  if (proposal?.command.type === SET_MEDIA_USAGE_ASSET) {
+  if ([SET_MEDIA_USAGE_ASSET, IMPORT_LOCAL_HERO_MEDIA].includes(proposal?.command.type)) {
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Media preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Media proposal below before starting another content or structure change.</p></section>';
   }
   if (matchingThemeProposal(proposal)) {
@@ -607,6 +674,8 @@ function renderV2AuthoringStudioSurface({
     remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
     theme: strictLocalPath(actionPaths.theme || `${normalizedStudioPath}/theme`, 'theme path'),
     media: strictLocalPath(actionPaths.media || `${normalizedStudioPath}/media`, 'media path'),
+    mediaImport: strictLocalPath(actionPaths.mediaImport || `${normalizedStudioPath}/media-import`, 'media import path'),
+    studio: normalizedStudioPath,
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
