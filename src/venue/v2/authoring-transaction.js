@@ -16,10 +16,55 @@ const V2_AUTHORING_PROPOSAL_SCHEMA_VERSION = 1;
 const V2_AUTHORING_HISTORY_SCHEMA_VERSION = 1;
 const SET_FIELD = 'SET_FIELD';
 const MOVE_COMPONENT = 'MOVE_COMPONENT';
+const ADD_COMPONENT = 'ADD_COMPONENT';
+const REMOVE_COMPONENT = 'REMOVE_COMPONENT';
+const RESTORE_COMPONENT = 'RESTORE_COMPONENT';
 const BEFORE_COMPONENT = 'BEFORE_COMPONENT';
 const END_OF_PAGE = 'END_OF_PAGE';
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+const V2_COMPONENT_CATALOG = deepFreeze({
+  'story-intro': {
+    id: 'story-intro',
+    label: 'Story / Intro',
+    kind: 'editorial-intro',
+    recipeId: 'intro-legacy-v1',
+    content: {
+      kicker: null,
+      heading: 'Tell your story',
+      body: 'Add the details that help guests understand this place.',
+      note: null,
+    },
+    responsive: { tablet: {}, mobile: {} },
+  },
+  'hours-location': {
+    id: 'hours-location',
+    label: 'Hours & Location',
+    kind: 'hours-location',
+    recipeId: 'hours-location-standard',
+    content: {
+      kicker: null,
+      heading: 'Hours & location',
+      body: 'Add hours, address, and arrival details for your guests.',
+      note: null,
+    },
+    responsive: { tablet: {}, mobile: {} },
+  },
+  'contact-visit': {
+    id: 'contact-visit',
+    label: 'Contact / Visit',
+    kind: 'contact-visit',
+    recipeId: 'visit-legacy-v1',
+    content: {
+      kicker: null,
+      heading: 'Plan your visit',
+      body: 'Add contact details and anything guests should know before arriving.',
+      note: null,
+    },
+    responsive: { tablet: {}, mobile: {} },
+  },
+});
 
 class V2AuthoringTransactionError extends Error {
   constructor(message) {
@@ -57,6 +102,34 @@ function plainRecord(value, label, allowedKeys) {
       throw new V2AuthoringTransactionError(`${label} fields must be enumerable scalar data`);
     }
     result[key] = descriptor.value;
+  }
+  return result;
+}
+
+function plainJsonData(value, label) {
+  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item, index) => plainJsonData(item, `${label}[${index}]`));
+  }
+  if (!value || typeof value !== 'object') {
+    throw new V2AuthoringTransactionError(`${label} must contain only plain JSON data`);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new V2AuthoringTransactionError(`${label} must contain only plain JSON objects`);
+  }
+  const result = {};
+  for (const key of Reflect.ownKeys(value)) {
+    if (typeof key !== 'string' || DANGEROUS_KEYS.has(key)) {
+      throw new V2AuthoringTransactionError(`${label} contains unsafe keys`);
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) {
+      throw new V2AuthoringTransactionError(`${label} fields must be enumerable data`);
+    }
+    result[key] = plainJsonData(descriptor.value, `${label}.${key}`);
   }
   return result;
 }
@@ -165,7 +238,92 @@ function parseMoveComponentCommand(value) {
   };
 }
 
-function parseAuthoringCommand(value) {
+function parsePageTarget(value) {
+  const target = plainRecord(value, 'target', new Set(['nodeId']));
+  return {
+    nodeId: scalarString(target.nodeId, 'target.nodeId', { max: 200 }),
+  };
+}
+
+function parseAddComponentCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set([
+      'schemaVersion',
+      'type',
+      'target',
+      'catalogItemId',
+      'destination',
+      'expectedDraftDigest',
+    ]),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== ADD_COMPONENT) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: ADD_COMPONENT,
+    target: parsePageTarget(command.target),
+    catalogItemId: scalarString(command.catalogItemId, 'catalogItemId', { max: 80 }),
+    destination: parseMoveDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function parseRemoveComponentCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set(['schemaVersion', 'type', 'target', 'expectedDraftDigest']),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== REMOVE_COMPONENT) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: REMOVE_COMPONENT,
+    target: parseComponentTarget(command.target),
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function parseRestoreComponentCommand(value) {
+  const command = plainRecord(
+    value,
+    'internal command',
+    new Set([
+      'schemaVersion',
+      'type',
+      'target',
+      'componentSnapshot',
+      'destination',
+      'expectedDraftDigest',
+    ]),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== RESTORE_COMPONENT) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: RESTORE_COMPONENT,
+    target: parsePageTarget(command.target),
+    componentSnapshot: plainJsonData(command.componentSnapshot, 'componentSnapshot'),
+    destination: parseMoveDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function parseAuthoringCommand(value, { allowInternal = false } = {}) {
   const command = plainRecord(
     value,
     'command',
@@ -174,12 +332,17 @@ function parseAuthoringCommand(value) {
       'type',
       'target',
       'payload',
+      'catalogItemId',
+      'componentSnapshot',
       'destination',
       'expectedDraftDigest',
     ]),
   );
   if (command.type === SET_FIELD) return parseSetFieldCommand(value);
   if (command.type === MOVE_COMPONENT) return parseMoveComponentCommand(value);
+  if (command.type === ADD_COMPONENT) return parseAddComponentCommand(value);
+  if (command.type === REMOVE_COMPONENT) return parseRemoveComponentCommand(value);
+  if (command.type === RESTORE_COMPONENT && allowInternal) return parseRestoreComponentCommand(value);
   throw new V2AuthoringTransactionError('unsupported command type');
 }
 
@@ -285,6 +448,201 @@ function withTargetValue(source, resolved, value) {
       .content[resolved.fieldId] = value;
   }
   return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function catalogItem(catalogItemId) {
+  const item = V2_COMPONENT_CATALOG[catalogItemId];
+  if (!item) throw new V2AuthoringTransactionError('unknown component catalog item');
+  return item;
+}
+
+function catalogItemForComponent(component) {
+  return Object.values(V2_COMPONENT_CATALOG).find(
+    (item) => item.kind === component.kind && item.recipeId === component.recipeId,
+  ) || null;
+}
+
+function resolvePageCollection(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parsePageTarget(targetInput);
+  const projection = createV2SemanticCanvasProjection(source);
+  const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === target.nodeId);
+  if (!node || node.stableIdentity?.type !== 'page-id') {
+    throw new V2AuthoringTransactionError('stable page target does not exist');
+  }
+  const pageIndex = source.site.pages.findIndex((page) => page.id === node.stableIdentity.value);
+  if (pageIndex < 0) throw new V2AuthoringTransactionError('stable page target does not exist');
+  const page = source.site.pages[pageIndex];
+  const collectionPointer = `/site/pages/${pageIndex}/components`;
+  const ownership = pathOwnership(collectionPointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+    throw new V2AuthoringTransactionError('component collection is not operator-authored');
+  }
+  return deepFreeze({
+    page,
+    pageId: page.id,
+    pageIndex,
+    collectionPointer,
+    ownership,
+  });
+}
+
+function resolvePageDestination(source, pageId, destinationInput) {
+  const destination = parseMoveDestination(destinationInput);
+  if (destination.kind === BEFORE_COMPONENT) {
+    const matches = componentMatches(source, destination.beforeComponentId);
+    if (matches.length === 0) {
+      throw new V2AuthoringTransactionError('stable destination component does not exist');
+    }
+    if (matches.length !== 1) {
+      throw new V2AuthoringTransactionError('destination component identity is ambiguous');
+    }
+    if (matches[0].page.id !== pageId) {
+      throw new V2AuthoringTransactionError('cross-page component destination is not authorized');
+    }
+  }
+  return destination;
+}
+
+function deriveCatalogComponentId(source, catalogItemId) {
+  const used = new Set();
+  for (const page of source.site.pages) {
+    for (const component of page.components) used.add(component.id);
+  }
+  if (!used.has(catalogItemId)) return catalogItemId;
+  for (let suffix = 2; suffix <= 9999; suffix += 1) {
+    const candidate = `${catalogItemId}-${suffix}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  throw new V2AuthoringTransactionError('component catalog identity space is exhausted');
+}
+
+function catalogComponentSnapshot(source, catalogItemId) {
+  const item = catalogItem(catalogItemId);
+  return {
+    id: deriveCatalogComponentId(source, item.id),
+    kind: item.kind,
+    recipeId: item.recipeId,
+    content: clone(item.content),
+    responsive: clone(item.responsive),
+  };
+}
+
+function insertComponentSnapshot(sourceInput, pageIndex, componentInput, destinationInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const component = plainJsonData(componentInput, 'componentSnapshot');
+  if (componentMatches(source, component.id).length > 0) {
+    throw new V2AuthoringTransactionError('component identity already exists');
+  }
+  const candidate = clone(source);
+  const components = candidate.site.pages[pageIndex].components;
+  const destination = parseMoveDestination(destinationInput);
+  if (destination.kind === END_OF_PAGE) {
+    components.push(component);
+  } else {
+    const destinationIndex = components.findIndex(
+      (entry) => entry.id === destination.beforeComponentId,
+    );
+    if (destinationIndex < 0) {
+      throw new V2AuthoringTransactionError('stable destination component no longer exists');
+    }
+    components.splice(destinationIndex, 0, component);
+  }
+  return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function resolveComponentAdd(sourceInput, targetInput, catalogItemIdInput, destinationInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const page = resolvePageCollection(source, targetInput);
+  const item = catalogItem(catalogItemIdInput);
+  const destination = resolvePageDestination(source, page.pageId, destinationInput);
+  const component = catalogComponentSnapshot(source, item.id);
+  return deepFreeze({
+    pageId: page.pageId,
+    pageIndex: page.pageIndex,
+    collectionPointer: page.collectionPointer,
+    ownership: page.ownership,
+    catalogItemId: item.id,
+    component,
+    destination,
+  });
+}
+
+function resolveComponentRemove(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseComponentTarget(targetInput);
+  const projection = createV2SemanticCanvasProjection(source);
+  const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === target.nodeId);
+  if (!node || node.stableIdentity?.type !== 'component-id') {
+    throw new V2AuthoringTransactionError('stable component target does not exist');
+  }
+  const matches = componentMatches(source, node.stableIdentity.value);
+  if (matches.length !== 1) {
+    throw new V2AuthoringTransactionError('component stable identity is ambiguous or missing');
+  }
+  const match = matches[0];
+  const item = catalogItemForComponent(match.component);
+  if (!item) {
+    throw new V2AuthoringTransactionError('component is not removable in this bounded catalog slice');
+  }
+  const collectionPointer = `/site/pages/${match.pageIndex}/components`;
+  const ownership = pathOwnership(collectionPointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+    throw new V2AuthoringTransactionError('component collection is not operator-authored');
+  }
+  const inverseDestination = match.componentIndex === match.page.components.length - 1
+    ? { kind: END_OF_PAGE }
+    : {
+        kind: BEFORE_COMPONENT,
+        beforeComponentId: match.page.components[match.componentIndex + 1].id,
+      };
+  return deepFreeze({
+    pageId: match.page.id,
+    pageIndex: match.pageIndex,
+    componentId: match.component.id,
+    componentIndex: match.componentIndex,
+    componentSnapshot: clone(match.component),
+    collectionPointer,
+    ownership,
+    catalogItemId: item.id,
+    inverseDestination,
+  });
+}
+
+function removeResolvedComponent(sourceInput, resolved) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const candidate = clone(source);
+  const components = candidate.site.pages[resolved.pageIndex].components;
+  const targetIndex = components.findIndex((component) => component.id === resolved.componentId);
+  if (targetIndex < 0) throw new V2AuthoringTransactionError('stable component target no longer exists');
+  components.splice(targetIndex, 1);
+  return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function resolveComponentRestore(sourceInput, command) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const page = resolvePageCollection(source, command.target);
+  const destination = resolvePageDestination(source, page.pageId, command.destination);
+  const snapshot = plainJsonData(command.componentSnapshot, 'componentSnapshot');
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    throw new V2AuthoringTransactionError('componentSnapshot is invalid');
+  }
+  if (!catalogItemForComponent(snapshot)) {
+    throw new V2AuthoringTransactionError('componentSnapshot is outside the bounded catalog restore policy');
+  }
+  if (componentMatches(source, snapshot.id).length > 0) {
+    throw new V2AuthoringTransactionError('component identity already exists');
+  }
+  const afterSource = insertComponentSnapshot(source, page.pageIndex, snapshot, destination);
+  return deepFreeze({
+    pageId: page.pageId,
+    pageIndex: page.pageIndex,
+    collectionPointer: page.collectionPointer,
+    ownership: page.ownership,
+    componentSnapshot: snapshot,
+    destination,
+    afterSource,
+  });
 }
 
 function resolveComponentMove(sourceInput, targetInput, destinationInput) {
@@ -420,9 +778,9 @@ function withComponentMove(sourceInput, resolved) {
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
-function commandTransition(sourceInput, commandInput) {
+function commandTransition(sourceInput, commandInput, { allowInternal = false } = {}) {
   const source = createV2DeploymentAgnosticVenueSource(sourceInput);
-  const command = parseAuthoringCommand(commandInput);
+  const command = parseAuthoringCommand(commandInput, { allowInternal });
   const beforeDigest = deriveV2DeploymentAgnosticVenueSourceDigest(source);
   if (command.expectedDraftDigest !== beforeDigest) {
     throw new V2AuthoringTransactionError('stale expected draft digest');
@@ -462,6 +820,9 @@ function commandTransition(sourceInput, commandInput) {
     });
   }
 
+  if (command.type !== MOVE_COMPONENT) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
   const resolved = resolveComponentMove(source, command.target, command.destination);
   const afterSource = withComponentMove(source, resolved);
   const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
@@ -539,7 +900,11 @@ function validateHistoryEntry(entryInput, expectedBeforeDigest) {
     throw new V2AuthoringTransactionError('history command/source binding is invalid');
   }
 
-  const inverse = commandTransition(afterSource, entry.inverseCommand);
+  if (JSON.stringify(forward.inverseCommand) !== JSON.stringify(entry.inverseCommand)) {
+    throw new V2AuthoringTransactionError('history inverse command binding is invalid');
+  }
+
+  const inverse = commandTransition(afterSource, entry.inverseCommand, { allowInternal: true });
   if (
     inverse.afterDigest !== beforeDigest
     || serializeV2DeploymentAgnosticVenueSource(inverse.afterSource)
@@ -682,6 +1047,22 @@ function proposeV2MoveComponent(sessionInput, commandInput) {
   return proposal;
 }
 
+function proposeV2AddComponent(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== ADD_COMPONENT) {
+    throw new V2AuthoringTransactionError('ADD_COMPONENT proposal requires ADD_COMPONENT command');
+  }
+  return proposal;
+}
+
+function proposeV2RemoveComponent(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== REMOVE_COMPONENT) {
+    throw new V2AuthoringTransactionError('REMOVE_COMPONENT proposal requires REMOVE_COMPONENT command');
+  }
+  return proposal;
+}
+
 function verifyProposal(session, value) {
   if (!value || typeof value !== 'object'
     || value.kind !== 'hivenues-v2-authoring-proposal'
@@ -766,10 +1147,13 @@ function redoV2AuthoringSession(sessionInput) {
 }
 
 module.exports = {
+  ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
   MOVE_COMPONENT,
+  REMOVE_COMPONENT,
   SET_FIELD,
+  V2_COMPONENT_CATALOG,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
   V2_AUTHORING_PROPOSAL_SCHEMA_VERSION,
@@ -779,8 +1163,10 @@ module.exports = {
   createV2AuthoringSession,
   discardV2AuthoringProposal,
   listV2ComponentMoveDestinations,
+  proposeV2AddComponent,
   proposeV2AuthoringCommand,
   proposeV2MoveComponent,
+  proposeV2RemoveComponent,
   proposeV2SetField,
   redoV2AuthoringSession,
   resolveV2AuthoringTarget: resolveTarget,
