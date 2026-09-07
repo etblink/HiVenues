@@ -202,7 +202,7 @@ test('flagship v2 Studio runtime is loopback-only and rejects cross-origin mutat
   const response = await fetch(runtime.url);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /HiVenues Studio/);
+  assert.match(html, /HiVenues · Authoring Studio/);
   assert.match(html, /Workspace checkpoint · Saved/);
 
   const crossOrigin = await fetch(runtime.origin + '/studio-authoring/save-workspace', {
