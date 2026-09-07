@@ -218,6 +218,7 @@ jobs:
             artifacts/v2-studio-review
             artifacts/v2-authoring-review
             artifacts/v2-component-reorder-review
+            artifacts/v2-component-cardinality-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90
