@@ -107,6 +107,45 @@ function screenshotRecord(filePath) {
   };
 }
 
+async function assertPosterRows(page, label) {
+  const rows = await page.locator('.v2-event-card--poster').evaluateAll((cards) => cards.map((card) => {
+    const rect = (element) => {
+      if (!element) return null;
+      const { x, y, width, height, right, bottom } = element.getBoundingClientRect();
+      return { x, y, width, height, right, bottom };
+    };
+    const artwork = card.querySelector('.v2-event-card__artwork');
+    const copy = card.querySelector('.v2-event-card__copy');
+    const image = artwork?.querySelector('img');
+    return {
+      id: card.dataset.resourceId,
+      card: rect(card), artwork: rect(artwork), copy: rect(copy),
+      actions: rect(card.querySelector('.v2-actions')),
+      decoded: !image || (image.complete && image.naturalWidth > 0),
+      fit: image ? globalThis.getComputedStyle(image).objectFit : null,
+      title: card.querySelector('h3').textContent,
+      overflow: card.scrollWidth - card.clientWidth,
+      textOnly: card.classList.contains('v2-event-card--text-only'),
+    };
+  }));
+  for (const row of rows) {
+    assert.ok(row.decoded, `${label}: poster did not decode`);
+    assert.ok(row.overflow <= 1, `${label}: row overflow`);
+    assert.ok(row.copy.width >= 140, `${label}: unreadably narrow event copy`);
+    assert.ok(row.actions.right <= row.card.right + 1, `${label}: actions escape row`);
+    if (row.artwork) {
+      assert.equal(row.fit, 'contain', `${label}: artwork is cropped`);
+      assert.ok(row.artwork.right <= row.copy.x + 1, `${label}: artwork overlaps copy`);
+    } else {
+      assert.ok(row.textOnly, `${label}: missing-art row must not reserve a poster column`);
+    }
+    if (page.viewportSize().width <= 760) {
+      assert.ok(row.actions.y >= Math.max(row.artwork?.bottom || 0, row.copy.bottom) - 1, `${label}: mobile actions overlap content`);
+    }
+  }
+  return rows;
+}
+
 async function captureState(page, {
   origin,
   referenceId,
@@ -121,6 +160,7 @@ async function captureState(page, {
   const label = `${referenceId}/${stateId}/${viewport.id}`;
   const imageMetrics = await assertImagesLoaded(page, label);
   const geometryMetrics = await geometry(page, label);
+  const posterRows = await assertPosterRows(page, label);
   const accessibilityViolations = await runAxe(page);
   const output = path.join(SCREENSHOTS, `${referenceId}-${stateId}-${viewport.id}.png`);
   await page.screenshot({ path: output, fullPage: false });
@@ -131,6 +171,7 @@ async function captureState(page, {
     viewport,
     screenshot: screenshotRecord(output),
     geometry: geometryMetrics,
+    posterRows,
     imageCount: imageMetrics.length,
     accessibilityViolations,
   };
@@ -223,6 +264,14 @@ async function main() {
           const eventJson = JSON.parse(structured);
           assert.equal(eventJson['@type'], 'Event');
           assert.equal(eventJson.name, 'The Static Lights');
+
+          // Existing home captures activate poster rows at all three breakpoints.
+          for (const viewport of VIEWPORTS) {
+            const home = manifest.captures.find((capture) => capture.referenceId === referenceId
+              && capture.stateId === 'home' && capture.viewport.id === viewport.id);
+            assert.deepEqual(home.posterRows.map((row) => row.id), ['fixture-show-one', 'fixture-show-two']);
+            assert.ok(home.posterRows.every((row) => row.artwork && row.decoded));
+          }
         }
 
         if (['restaurant', 'live-music'].includes(referenceId)) {
@@ -240,6 +289,30 @@ async function main() {
       }
     }
 
+    // No-artwork and long-copy states use the same source/renderer, not a DOM mock.
+    const stressSource = JSON.parse(JSON.stringify(REFERENCE_FACTORIES['live-music']()));
+    stressSource.resources.events[0].mediaAssetId = null;
+    stressSource.resources.events[0].externalAction = null;
+    stressSource.resources.events[0].title = 'An evening of music, stories, and unexpected collaborations';
+    stressSource.resources.events[1].title = 'UnbrokenArtistName'.repeat(7);
+    const stressFixture = createV2RendererPreviewFixture(stressSource);
+    const stressServer = await listenLoopback(stressFixture.app);
+    const stressContext = await browser.newContext({ deviceScaleFactor: 1, bypassCSP: true, reducedMotion: 'reduce' });
+    try {
+      const page = await stressContext.newPage();
+      const origin = `http://127.0.0.1:${stressServer.address().port}`;
+      for (const viewport of [VIEWPORTS[0], VIEWPORTS[2]]) {
+        const capture = await captureState(page, { origin, referenceId: 'live-music', stateId: 'poster-stress', pathname: '/shows', viewport });
+        assert.equal(capture.posterRows.length, 2);
+        assert.equal(capture.posterRows[0].artwork, null);
+        assert.ok(capture.posterRows[1].artwork);
+        manifest.captures.push(capture);
+      }
+    } finally {
+      await stressContext.close();
+      await closeServer(stressServer);
+    }
+
     const heroRecipes = new Set(
       Object.values(manifest.references).map((reference) => reference.heroRecipeId),
     );
@@ -248,7 +321,7 @@ async function main() {
     );
     assert.ok(heroRecipes.size >= 3, `Expected at least three materially different hero recipes; got ${[...heroRecipes]}`);
     assert.ok(typographyRecipes.size >= 3, `Expected at least three typography recipes; got ${[...typographyRecipes]}`);
-    assert.equal(manifest.captures.length, 18);
+    assert.equal(manifest.captures.length, 20);
 
     manifest.summary = {
       referenceCount: Object.keys(manifest.references).length,
