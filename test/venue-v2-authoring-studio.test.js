@@ -453,3 +453,298 @@ test('structural browser transport rejects stale, cross-page, no-op, malformed, 
   assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
   assert.equal(fixture.diagnostics().hiveWrites, 0);
 });
+
+
+test('page selections expose the bounded component catalog across four references without browser structure authority', async () => {
+  for (const referenceId of ['fourth-street', 'juniper', 'restaurant', 'live-music']) {
+    const fixture = createReferenceV2AuthoringStudioFixture(referenceId);
+    const response = await request(fixture.app)
+      .get('/studio-authoring?nodeId=page%3Ahome&viewport=desktop');
+
+    assert.equal(response.status, 200, referenceId);
+    assert.match(response.text, /Add component/, referenceId);
+    assert.match(response.text, /Story \/ Intro/, referenceId);
+    assert.match(response.text, /Hours &amp; Location/, referenceId);
+    assert.match(response.text, /Contact \/ Visit/, referenceId);
+    assert.match(response.text, /action="\/studio-authoring\/add"/, referenceId);
+    assert.match(response.text, /name="catalogItemId"/, referenceId);
+    assert.match(response.text, /name="destination"/, referenceId);
+    assert.doesNotMatch(response.text, /name="componentId"/, referenceId);
+    assert.doesNotMatch(response.text, /name="kind"/, referenceId);
+    assert.doesNotMatch(response.text, /name="recipeId"/, referenceId);
+    assert.doesNotMatch(response.text, /name="content"/, referenceId);
+    assert.doesNotMatch(response.text, /name="responsive"/, referenceId);
+    assert.doesNotMatch(response.text, /name="pageIndex"/, referenceId);
+    assert.doesNotMatch(response.text, /name="sourcePointer"/, referenceId);
+  }
+});
+
+test('eligible catalog-backed components expose removal while ineligible components do not', async () => {
+  for (const referenceId of ['fourth-street', 'juniper', 'restaurant', 'live-music']) {
+    const fixture = createReferenceV2AuthoringStudioFixture(referenceId);
+    const page = fixture.session().draftSource.site.pages.find((candidate) => candidate.id === 'home');
+    const removable = page.components.find(
+      (component) => component.kind === 'contact-visit' && component.recipeId === 'visit-legacy-v1',
+    );
+    assert.ok(removable, referenceId);
+
+    const allowed = await request(fixture.app)
+      .get(`/studio-authoring?nodeId=${encodeURIComponent(`component:${removable.id}`)}&viewport=desktop`);
+    assert.equal(allowed.status, 200, referenceId);
+    assert.match(allowed.text, /Remove component/, referenceId);
+    assert.match(allowed.text, /action="\/studio-authoring\/remove"/, referenceId);
+
+    const hero = page.components.find((component) => component.kind === 'hero');
+    assert.ok(hero, referenceId);
+    const denied = await request(fixture.app)
+      .get(`/studio-authoring?nodeId=${encodeURIComponent(`component:${hero.id}`)}&viewport=desktop`);
+    assert.equal(denied.status, 200, referenceId);
+    assert.doesNotMatch(denied.text, /Remove component/, referenceId);
+    assert.doesNotMatch(denied.text, /action="\/studio-authoring\/remove"/, referenceId);
+  }
+});
+
+test('ADD_COMPONENT previews through the real renderer and apply discard undo redo preserve exact authority', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const openingDigest = fixture.session().draftDigest;
+  const openingSerialization = JSON.stringify(fixture.session().draftSource);
+
+  let response = await request(fixture.app)
+    .post('/studio-authoring/add')
+    .type('form')
+    .send({
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'BEFORE_COMPONENT:home-gallery',
+    });
+
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+  assert.equal(fixture.proposal().command.type, 'ADD_COMPONENT');
+  assert.equal(fixture.proposal().resolvedTarget.componentId, 'story-intro');
+
+  response = await request(fixture.app).get(response.headers.location);
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Preview — not applied/);
+  assert.match(response.text, /value="story-intro" selected/);
+
+  let preview = await request(fixture.app).get('/studio-authoring-preview/page/home');
+  assert.equal(preview.status, 200);
+  assert.ok(
+    preview.text.indexOf('data-component-id="story-intro"')
+      < preview.text.indexOf('data-component-id="home-gallery"'),
+  );
+
+  await request(fixture.app)
+    .post('/studio-authoring/discard')
+    .type('form')
+    .send({ nodeId: 'page:home', viewport: 'desktop' })
+    .expect(303);
+
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+
+  await request(fixture.app)
+    .post('/studio-authoring/add')
+    .type('form')
+    .send({
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'BEFORE_COMPONENT:home-gallery',
+    })
+    .expect(303);
+
+  const appliedDigest = fixture.proposal().afterDigest;
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId: 'page:home', viewport: 'desktop' })
+    .expect(303);
+
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(
+    fixture.session().draftSource.site.pages
+      .find((page) => page.id === 'home')
+      .components.some((component) => component.id === 'story-intro'),
+    true,
+  );
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({ nodeId: 'page:home', viewport: 'desktop', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+
+  await request(fixture.app)
+    .post('/studio-authoring/redo')
+    .type('form')
+    .send({ nodeId: 'page:home', viewport: 'desktop', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+
+  const diagnostics = fixture.diagnostics();
+  assert.equal(diagnostics.persistentWrites, 0);
+  assert.equal(diagnostics.hiveRpcAttempts, 0);
+  assert.equal(diagnostics.hiveWrites, 0);
+});
+
+test('REMOVE_COMPONENT previews disappearance and Undo restores exact component snapshot and order', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('live-music');
+  const opening = fixture.session();
+  const page = opening.draftSource.site.pages.find((candidate) => candidate.id === 'home');
+  const removable = page.components.find(
+    (component) => component.kind === 'contact-visit' && component.recipeId === 'visit-legacy-v1',
+  );
+  assert.ok(removable);
+  const nodeId = `component:${removable.id}`;
+  const openingDigest = opening.draftDigest;
+  const openingSerialization = JSON.stringify(opening.draftSource);
+
+  let response = await request(fixture.app)
+    .post('/studio-authoring/remove')
+    .type('form')
+    .send({
+      nodeId,
+      viewport: 'mobile',
+      expectedDraftDigest: openingDigest,
+    });
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().command.type, 'REMOVE_COMPONENT');
+
+  response = await request(fixture.app).get(response.headers.location);
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Preview — not applied/);
+  assert.match(response.text, /Canvas is rendering this component removed/);
+
+  const preview = await request(fixture.app).get('/studio-authoring-preview/page/home');
+  assert.equal(preview.status, 200);
+  assert.equal(preview.text.includes(`data-component-id="${removable.id}"`), false);
+
+  response = await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId, viewport: 'mobile' });
+  assert.equal(response.status, 303);
+  assert.match(response.headers.location, /nodeId=page%3Ahome/);
+  assert.equal(
+    fixture.session().draftSource.site.pages
+      .find((candidate) => candidate.id === 'home')
+      .components.some((component) => component.id === removable.id),
+    false,
+  );
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({ nodeId: 'page:home', viewport: 'mobile', fieldId: '' })
+    .expect(303);
+
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+
+  const diagnostics = fixture.diagnostics();
+  assert.equal(diagnostics.persistentWrites, 0);
+  assert.equal(diagnostics.hiveRpcAttempts, 0);
+  assert.equal(diagnostics.hiveWrites, 0);
+});
+
+test('cardinality browser transport rejects unknown stale cross-page and browser-owned component structure', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const openingDigest = fixture.session().draftDigest;
+
+  const rejectedAdds = [
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'unknown',
+      destination: 'END_OF_PAGE',
+    },
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: '0'.repeat(64),
+      catalogItemId: 'story-intro',
+      destination: 'END_OF_PAGE',
+    },
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'BEFORE_COMPONENT:menu-main',
+    },
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'END_OF_PAGE',
+      componentId: 'browser-id',
+    },
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'END_OF_PAGE',
+      kind: 'hero',
+    },
+    {
+      nodeId: 'page:home',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      catalogItemId: 'story-intro',
+      destination: 'END_OF_PAGE',
+      sourcePointer: '/site/pages/0/components',
+    },
+  ];
+  for (const body of rejectedAdds) {
+    await request(fixture.app)
+      .post('/studio-authoring/add')
+      .type('form')
+      .send(body)
+      .expect(400);
+    assert.equal(fixture.proposal(), null);
+    assert.equal(fixture.session().draftDigest, openingDigest);
+  }
+
+  for (const body of [
+    {
+      nodeId: 'component:home-hero',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+    },
+    {
+      nodeId: 'component:home-gallery',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+    },
+    {
+      nodeId: 'component:home-contact',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      componentSnapshot: '{"forged":true}',
+    },
+  ]) {
+    await request(fixture.app)
+      .post('/studio-authoring/remove')
+      .type('form')
+      .send(body)
+      .expect(400);
+    assert.equal(fixture.proposal(), null);
+    assert.equal(fixture.session().draftDigest, openingDigest);
+  }
+
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});
