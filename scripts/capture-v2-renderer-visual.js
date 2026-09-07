@@ -71,6 +71,20 @@ async function geometry(page, label) {
 }
 
 async function assertImagesLoaded(page, label) {
+  await page.evaluate(async () => {
+    const delay = (milliseconds) => new Promise((resolve) => globalThis.setTimeout(resolve, milliseconds));
+    const step = Math.max(320, Math.floor(globalThis.innerHeight * 0.75));
+    for (let y = 0; y < globalThis.document.documentElement.scrollHeight; y += step) {
+      globalThis.scrollTo(0, y);
+      await delay(18);
+    }
+    globalThis.scrollTo(0, 0);
+    await delay(30);
+  });
+  await page.waitForFunction(
+    () => [...globalThis.document.images].every((image) => image.complete),
+    { timeout: 5000 },
+  );
   const images = await page.evaluate(() => [...globalThis.document.images].map((image) => ({
     src: image.getAttribute('src'),
     complete: image.complete,
