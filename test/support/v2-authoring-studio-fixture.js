@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { URLSearchParams } = require('node:url');
 
 const path = require('node:path');
@@ -7,10 +8,12 @@ const express = require('express');
 const {
   BEFORE_COMPONENT,
   END_OF_PAGE,
+  IMPORT_LOCAL_HERO_MEDIA,
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
   proposeV2AddComponent,
+  proposeV2ImportLocalHeroMedia,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
@@ -20,6 +23,10 @@ const {
   undoV2AuthoringSession,
   V2AuthoringTransactionError,
 } = require('../../src/venue/v2/authoring-transaction');
+const {
+  MAX_MANAGED_IMAGE_BYTES,
+  inspectManagedImage,
+} = require('../../src/venue/managed-assets');
 const {
   renderV2AuthoringStudioSurface,
   V2AuthoringStudioError,
@@ -145,6 +152,9 @@ function createV2AuthoringStudioFixture(sourceInput) {
     persistentWrites: 0,
     hiveRpcAttempts: 0,
     hiveWrites: 0,
+    localMediaImportRequests: 0,
+    ephemeralMediaEntries: 0,
+    ephemeralMediaBytes: 0,
   };
 
   app.disable('x-powered-by');
@@ -166,6 +176,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
     remove: '/studio-authoring/remove',
     theme: '/studio-authoring/theme',
     media: '/studio-authoring/media',
+    mediaImport: '/studio-authoring/media-import',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -179,6 +190,37 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   function currentPreviewSource() {
     return proposal ? proposal.previewSource : session.draftSource;
+  }
+
+  const ephemeralMedia = new Map();
+
+  function commandMediaPayload(command, source) {
+    if (!command || command.type !== IMPORT_LOCAL_HERO_MEDIA) return null;
+    const bytes = Buffer.from(command.bytesBase64, 'base64');
+    const inspected = inspectManagedImage(bytes);
+    const digestSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    const assetId = 'local-image-' + digestSha256;
+    const asset = source.media.assets.find((candidate) => candidate.id === assetId);
+    if (!asset) return null;
+    return {
+      src: asset.src,
+      bytes,
+      mediaType: inspected.mediaType,
+    };
+  }
+
+  function syncEphemeralMedia() {
+    ephemeralMedia.clear();
+    const source = currentPreviewSource();
+    for (const entry of session.history.slice(0, session.historyIndex)) {
+      const payload = commandMediaPayload(entry.command, source);
+      if (payload) ephemeralMedia.set(payload.src, payload);
+    }
+    const proposalPayload = commandMediaPayload(proposal?.command, source);
+    if (proposalPayload) ephemeralMedia.set(proposalPayload.src, proposalPayload);
+    diagnostics.ephemeralMediaEntries = ephemeralMedia.size;
+    diagnostics.ephemeralMediaBytes = [...ephemeralMedia.values()]
+      .reduce((sum, payload) => sum + payload.bytes.length, 0);
   }
 
   function previewOptions() {
@@ -327,6 +369,53 @@ function createV2AuthoringStudioFixture(sourceInput) {
       throw error;
     }
   });
+  app.post(
+    actionPaths.mediaImport,
+    express.raw({ type: () => true, limit: MAX_MANAGED_IMAGE_BYTES + 1 }),
+    (request, response) => {
+      try {
+        requireNoActiveProposal();
+        const body = plainStrings(
+          request.query,
+          'local media import query',
+          new Set([
+            'nodeId',
+            'mediaSlot',
+            'alt',
+            'decorative',
+            'viewport',
+            'expectedDraftDigest',
+          ]),
+          new Set(['alt']),
+        );
+        if (!['true', 'false'].includes(body.decorative)) {
+          throw new V2AuthoringStudioError('local media decorative value is invalid');
+        }
+        if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
+          throw new V2AuthoringStudioError('local media bytes are missing');
+        }
+        const decorative = body.decorative === 'true';
+        proposal = proposeV2ImportLocalHeroMedia(session, {
+          schemaVersion: 1,
+          type: IMPORT_LOCAL_HERO_MEDIA,
+          target: { nodeId: body.nodeId },
+          slot: body.mediaSlot,
+          bytesBase64: request.body.toString('base64'),
+          alt: decorative && body.alt === undefined ? null : body.alt,
+          decorative,
+          expectedDraftDigest: body.expectedDraftDigest,
+        });
+        diagnostics.proposals += 1;
+        diagnostics.localMediaImportRequests += 1;
+        syncEphemeralMedia();
+        response.status(204).end();
+      } catch (error) {
+        if (handleAuthoringError(error, response)) return;
+        throw error;
+      }
+    },
+  );
+
   app.post(actionPaths.media, (request, response) => {
     try {
       requireNoActiveProposal();
@@ -416,6 +505,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
       session = applyV2AuthoringProposal(session, acceptedProposal);
       proposal = null;
       diagnostics.applies += 1;
+      syncEphemeralMedia();
       if (acceptedProposal.command.type === 'REMOVE_COMPONENT') {
         selectionRedirect(response, {
           nodeId: `page:${acceptedProposal.resolvedTarget.pageId}`,
@@ -443,6 +533,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
       session = discardV2AuthoringProposal(session, proposal);
       proposal = null;
       diagnostics.discards += 1;
+      syncEphemeralMedia();
       selectionRedirect(response, body);
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
@@ -461,6 +552,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before undo');
       session = undoV2AuthoringSession(session);
       diagnostics.undos += 1;
+      syncEphemeralMedia();
       selectionRedirect(response, { ...body, fieldId: body.fieldId || '' });
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
@@ -479,6 +571,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before redo');
       session = redoV2AuthoringSession(session);
       diagnostics.redos += 1;
+      syncEphemeralMedia();
       selectionRedirect(response, { ...body, fieldId: body.fieldId || '' });
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
@@ -533,6 +626,16 @@ function createV2AuthoringStudioFixture(sourceInput) {
     response.type('text/css').send(renderV2ThemeStylesheet(currentPreviewSource()));
   });
 
+  app.get('/__hivenues-v2/session-media/:filename', (request, response) => {
+    const payload = ephemeralMedia.get(request.path);
+    if (!payload) {
+      response.status(404).type('text/plain').send('Session media not found.');
+      return;
+    }
+    response.set('Cache-Control', 'no-store');
+    response.type(payload.mediaType).send(payload.bytes);
+  });
+
   app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
   app.get('/fixtures/v2-renderer/:asset', (request, response) => {
     const spec = SYNTHETIC_ASSETS[request.params.asset];
@@ -541,6 +644,14 @@ function createV2AuthoringStudioFixture(sourceInput) {
       return;
     }
     response.type('image/svg+xml').send(syntheticSvg(...spec));
+  });
+
+  app.use((error, _request, response, next) => {
+    if (error?.type === 'entity.too.large') {
+      response.status(413).type('text/plain').send(SAFE_V2_AUTHORING_STUDIO_ERROR);
+      return;
+    }
+    next(error);
   });
 
   app.use('/studio-authoring-preview', (request, response, next) => {
