@@ -9,14 +9,19 @@ const {
   END_OF_PAGE,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
+  SET_THEME_RECIPE,
   V2_COMPONENT_CATALOG,
+  V2_GLOBAL_THEME_TARGET,
+  V2_THEME_RECIPE_DIMENSIONS,
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
+  proposeV2SetThemeRecipe,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
   V2AuthoringTransactionError,
@@ -70,6 +75,18 @@ function removeCommand(session, componentNodeId, overrides = {}) {
     schemaVersion: 1,
     type: REMOVE_COMPONENT,
     target: { nodeId: componentNodeId },
+    expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
+    ...overrides.extra,
+  };
+}
+
+function themeCommand(session, dimension, recipeId, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    type: SET_THEME_RECIPE,
+    target: { nodeId: V2_GLOBAL_THEME_TARGET },
+    dimension,
+    recipeId,
     expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
     ...overrides.extra,
   };
@@ -873,4 +890,156 @@ test('cardinality history composes with reorder and divergent Apply still trunca
   const divergentApplied = applyV2AuthoringProposal(redoMove, divergent);
   assert.equal(divergentApplied.canRedo, false);
   assert.equal(divergentApplied.history.length, 3);
+});
+
+
+test('global theme recipe options expose only the four server-owned semantic dimensions', () => {
+  for (const [referenceId, factory] of Object.entries(REFERENCE_FACTORIES)) {
+    const source = factory();
+    const context = listV2ThemeRecipeOptions(source);
+    assert.deepEqual(context.target, { nodeId: V2_GLOBAL_THEME_TARGET }, referenceId);
+    assert.equal(context.ownership, 'OPERATOR_AUTHORED', referenceId);
+    assert.deepEqual(
+      context.dimensions.map((dimension) => dimension.id),
+      ['typographyRecipeId', 'densityRecipeId', 'shapeRecipeId', 'surfaceRecipeId'],
+      referenceId,
+    );
+    for (const dimension of context.dimensions) {
+      assert.equal(
+        dimension.value,
+        source.site.brand.design[dimension.id],
+        `${referenceId}/${dimension.id}`,
+      );
+      assert.deepEqual(
+        dimension.values,
+        V2_THEME_RECIPE_DIMENSIONS[dimension.id].values,
+        `${referenceId}/${dimension.id}`,
+      );
+    }
+  }
+});
+
+test('one SET_THEME_RECIPE engine previews applies and restores exact source across four references', () => {
+  const dimensions = [
+    'typographyRecipeId',
+    'densityRecipeId',
+    'shapeRecipeId',
+    'surfaceRecipeId',
+  ];
+  const referenceIds = ['fourth-street', 'juniper', 'restaurant', 'live-music'];
+
+  referenceIds.forEach((referenceId, index) => {
+    const source = REFERENCE_FACTORIES[referenceId]();
+    const session = createV2AuthoringSession(source);
+    const baselineSerialization = serializeV2DeploymentAgnosticVenueSource(session.draftSource);
+    const baselineHtml = renderV2Page(session.draftSource, { pageId: 'home', viewport: 'desktop' });
+    const dimension = dimensions[index];
+    const allowed = V2_THEME_RECIPE_DIMENSIONS[dimension].values;
+    const current = session.draftSource.site.brand.design[dimension];
+    const recipeId = allowed.find((value) => value !== current);
+    assert.ok(recipeId, `${referenceId}/${dimension}`);
+
+    const proposal = proposeV2SetThemeRecipe(
+      session,
+      themeCommand(session, dimension, recipeId),
+    );
+
+    assert.equal(proposal.command.type, SET_THEME_RECIPE, referenceId);
+    assert.equal(proposal.command.target.nodeId, V2_GLOBAL_THEME_TARGET, referenceId);
+    assert.equal(proposal.command.dimension, dimension, referenceId);
+    assert.equal(proposal.command.recipeId, recipeId, referenceId);
+    assert.equal(proposal.beforeDigest, session.draftDigest, referenceId);
+    assert.notEqual(proposal.afterDigest, session.draftDigest, referenceId);
+    assert.equal(session.draftDigest, session.baselineDigest, referenceId);
+    assert.equal(proposal.authority.acceptedDraftChanged, false, referenceId);
+    assert.equal(proposal.resolvedTarget.sourcePointer, `/site/brand/design/${dimension}`, referenceId);
+    assert.equal(proposal.resolvedTarget.ownership, 'OPERATOR_AUTHORED', referenceId);
+    assert.equal(
+      proposal.previewSource.site.brand.design[dimension],
+      recipeId,
+      referenceId,
+    );
+    assert.notEqual(
+      renderV2Page(proposal.previewSource, { pageId: 'home', viewport: 'desktop' }),
+      baselineHtml,
+      referenceId,
+    );
+
+    const applied = applyV2AuthoringProposal(session, proposal);
+    assert.equal(applied.draftDigest, proposal.afterDigest, referenceId);
+    assert.equal(applied.draftSource.site.brand.design[dimension], recipeId, referenceId);
+    assert.equal(applied.history.length, 1, referenceId);
+    assert.equal(applied.history[0].inverseCommand.type, SET_THEME_RECIPE, referenceId);
+    assert.equal(applied.history[0].inverseCommand.dimension, dimension, referenceId);
+    assert.equal(applied.history[0].inverseCommand.recipeId, current, referenceId);
+
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(undone.draftDigest, session.draftDigest, referenceId);
+    assert.equal(
+      serializeV2DeploymentAgnosticVenueSource(undone.draftSource),
+      baselineSerialization,
+      referenceId,
+    );
+
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(redone.draftDigest, applied.draftDigest, referenceId);
+    assert.equal(redone.draftSource.site.brand.design[dimension], recipeId, referenceId);
+  });
+});
+
+test('SET_THEME_RECIPE fails closed on stale no-op unknown target dimension value and browser path authority', () => {
+  const session = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
+  const current = session.draftSource.site.brand.design.typographyRecipeId;
+  const alternative = V2_THEME_RECIPE_DIMENSIONS.typographyRecipeId.values
+    .find((value) => value !== current);
+  assert.ok(alternative);
+
+  const rejected = [
+    themeCommand(session, 'typographyRecipeId', alternative, {
+      expectedDraftDigest: '0'.repeat(64),
+    }),
+    themeCommand(session, 'typographyRecipeId', current),
+    {
+      ...themeCommand(session, 'typographyRecipeId', alternative),
+      target: { nodeId: 'theme:other' },
+    },
+    themeCommand(session, 'unknownRecipeId', alternative),
+    themeCommand(session, 'typographyRecipeId', 'type-browser-owned'),
+    themeCommand(session, 'typographyRecipeId', alternative, {
+      extra: { sourcePointer: '/site/brand/design/typographyRecipeId' },
+    }),
+    themeCommand(session, 'typographyRecipeId', alternative, {
+      extra: { css: ':root{--anything:red}' },
+    }),
+    themeCommand(session, 'typographyRecipeId', alternative, {
+      extra: { payload: { typographyRecipeId: alternative } },
+    }),
+  ];
+
+  for (const candidate of rejected) {
+    assert.throws(
+      () => proposeV2SetThemeRecipe(session, candidate),
+      V2AuthoringTransactionError,
+    );
+    assert.equal(session.draftDigest, session.baselineDigest);
+  }
+});
+
+test('theme history rejects forged inverse recipe semantics', () => {
+  const session = createV2AuthoringSession(REFERENCE_FACTORIES['fourth-street']());
+  const current = session.draftSource.site.brand.design.surfaceRecipeId;
+  const recipeId = V2_THEME_RECIPE_DIMENSIONS.surfaceRecipeId.values
+    .find((value) => value !== current);
+  const proposal = proposeV2SetThemeRecipe(
+    session,
+    themeCommand(session, 'surfaceRecipeId', recipeId),
+  );
+  const applied = applyV2AuthoringProposal(session, proposal);
+  const forged = JSON.parse(JSON.stringify(applied));
+  forged.history[0].inverseCommand.recipeId = recipeId;
+
+  assert.throws(
+    () => undoV2AuthoringSession(forged),
+    /history inverse command binding is invalid|history inverse command\/source binding is invalid/,
+  );
 });
