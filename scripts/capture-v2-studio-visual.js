@@ -60,7 +60,7 @@ async function geometry(page, label) {
   const metrics = await page.evaluate(() => {
     const root = globalThis.document.documentElement;
     const targetHeights = [...globalThis.document.querySelectorAll(
-      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.inspection-mode,.skip,summary',
+      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.inspection-mode,.inspect-page-action,.skip,summary',
     )]
       .map((element) => element.getBoundingClientRect().height)
       .filter((height) => height > 0);
@@ -139,6 +139,7 @@ async function snapshotCurrent(page, {
     persistent: element.dataset.studioPersistent,
     mutations: element.dataset.studioMutations,
     inspectionMode: element.dataset.inspectionMode,
+    selectedPageId: element.dataset.selectedPageId,
     selectedComponentId: element.dataset.selectedComponentId,
   }));
   assert.match(authority.sourceDigest, /^[0-9a-f]{64}$/);
@@ -225,14 +226,24 @@ async function inspectRenderedComponent(page, {
 async function browsePreview(page, {
   linkText,
   expectedPathname,
+  expectedPageId,
+  expectedPageTitle,
 }) {
   const outerBefore = new URL(page.url());
   const digestBefore = await page.locator('main.studio').getAttribute('data-source-digest');
-  const selectedBefore = await page.locator('main.studio').getAttribute('data-selected-component-id');
+  const selectedPageBefore = await page.locator('main.studio').getAttribute('data-selected-page-id');
+  const selectedComponentBefore = await page.locator('main.studio').getAttribute('data-selected-component-id');
 
   await page.getByRole('button', { name: 'Browse Preview' }).click();
   assert.equal(await page.getByRole('button', { name: 'Browse Preview' }).getAttribute('aria-pressed'), 'true');
   assert.equal(await page.locator('main.studio').getAttribute('data-inspection-mode'), 'browse');
+
+  const samePageStatus = await page.locator('[data-inspection-status]').innerText();
+  assert.match(samePageStatus, /already the current Studio page/);
+  assert.equal(
+    await page.locator('[data-browsed-page-context]').evaluate((element) => element.hidden),
+    true,
+  );
 
   const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
   assert.ok(frame, 'browse preview: frame missing');
@@ -249,13 +260,112 @@ async function browsePreview(page, {
   const outerAfter = new URL(page.url());
   assert.equal(outerAfter.pathname + outerAfter.search, outerBefore.pathname + outerBefore.search);
   assert.equal(await page.locator('main.studio').getAttribute('data-source-digest'), digestBefore);
-  assert.equal(await page.locator('main.studio').getAttribute('data-selected-component-id'), selectedBefore);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-page-id'), selectedPageBefore);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-component-id'), selectedComponentBefore);
   assert.equal(new URL(frame.url()).pathname, expectedPathname);
+
+  const panel = page.locator('[data-browsed-page-context]');
+  await panel.waitFor({ state: 'visible' });
+  assert.equal(await page.locator('[data-browsed-page-copy]').innerText(), `Previewing ${expectedPageTitle}`);
+
+  const action = page.getByRole('link', { name: 'Inspect this page' });
+  const href = await action.getAttribute('href');
+  const target = new URL(href, page.url());
+  assert.equal(target.origin, outerAfter.origin);
+  assert.equal(target.pathname, outerAfter.pathname);
+  assert.equal(target.searchParams.get('nodeId'), `page:${expectedPageId}`);
+  assert.equal(target.searchParams.get('viewport'), outerAfter.searchParams.get('viewport') || 'desktop');
 
   return {
     kind: 'browse-preview',
     linkText,
     iframePathname: new URL(frame.url()).pathname,
+    recognizedPageId: expectedPageId,
+    recognizedPageTitle: expectedPageTitle,
+    samePageContextConfirmed: true,
+    adoptionHref: target.pathname + target.search,
+    outerSelectionUnchanged: true,
+    sourceDigestBefore: digestBefore,
+    sourceDigestAfter: digestBefore,
+  };
+}
+
+async function adoptBrowsedPage(page, {
+  expectedPageId,
+  expectedPageTitle,
+  expectedViewport = 'desktop',
+}) {
+  const digestBefore = await page.locator('main.studio').getAttribute('data-source-digest');
+  const action = page.getByRole('link', { name: 'Inspect this page' });
+  await action.waitFor({ state: 'visible' });
+
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'networkidle' }),
+    action.click(),
+  ]);
+
+  const outer = new URL(page.url());
+  assert.equal(outer.searchParams.get('nodeId'), `page:${expectedPageId}`);
+  assert.equal(outer.searchParams.get('viewport'), expectedViewport);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-page-id'), expectedPageId);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-component-id'), '');
+  assert.equal(await page.locator('main.studio').getAttribute('data-inspection-mode'), 'inspect');
+  assert.equal(await page.locator('main.studio').getAttribute('data-source-digest'), digestBefore);
+  assert.equal(
+    await page.locator('.studio-tree__link[aria-current="location"]').getAttribute('data-selection-id'),
+    `page:${expectedPageId}`,
+  );
+  assert.equal(
+    (await page.locator('.inspector-summary h2').innerText()).trim(),
+    expectedPageTitle,
+  );
+
+  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(frame, 'page adoption: preview frame missing');
+  await frame.waitForLoadState('networkidle');
+  assert.equal(new URL(frame.url()).pathname, `/studio-preview/page/${expectedPageId}`);
+
+  return {
+    kind: 'page-adoption',
+    pageId: expectedPageId,
+    pageTitle: expectedPageTitle,
+    viewport: expectedViewport,
+    sourceDigestBefore: digestBefore,
+    sourceDigestAfter: digestBefore,
+    selectionUrl: outer.pathname + outer.search,
+  };
+}
+
+async function previewUnsupportedRoute(page, {
+  origin,
+  pathname,
+}) {
+  const outerBefore = new URL(page.url());
+  const digestBefore = await page.locator('main.studio').getAttribute('data-source-digest');
+  const selectedPageBefore = await page.locator('main.studio').getAttribute('data-selected-page-id');
+
+  await page.getByRole('button', { name: 'Browse Preview' }).click();
+  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(frame, 'unsupported route: preview frame missing');
+  await frame.goto(new URL(pathname, origin).toString(), { waitUntil: 'networkidle' });
+
+  assert.equal(new URL(frame.url()).pathname, pathname);
+  assert.equal(
+    await page.locator('[data-browsed-page-context]').evaluate((element) => element.hidden),
+    true,
+  );
+  assert.match(await page.locator('[data-inspection-status]').innerText(), /preview-only/);
+  assert.equal(await page.locator('main.studio').getAttribute('data-source-digest'), digestBefore);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-page-id'), selectedPageBefore);
+  assert.equal(
+    new URL(page.url()).pathname + new URL(page.url()).search,
+    outerBefore.pathname + outerBefore.search,
+  );
+
+  return {
+    kind: 'unsupported-preview-route',
+    iframePathname: pathname,
+    adoptionOffered: false,
     outerSelectionUnchanged: true,
     sourceDigestBefore: digestBefore,
     sourceDigestAfter: digestBefore,
@@ -290,8 +400,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const manifest = {
     schemaVersion: 1,
-    issue: 175,
-    role: 'HiVenues v2 read-only Studio direct-inspection evidence',
+    issue: 177,
+    role: 'HiVenues v2 read-only Studio page-context adoption evidence',
     reviewMode: 'viewport-only',
     references: {},
     captures: [],
@@ -341,19 +451,67 @@ async function main() {
           interaction: directInteraction,
         }));
 
-        if (referenceId === 'restaurant') {
+        if (['restaurant', 'live-music'].includes(referenceId)) {
           await page.goto(new URL('/studio?viewport=desktop', origin).toString(), { waitUntil: 'networkidle' });
+          const targetSlug = referenceId === 'restaurant' ? 'menu' : 'shows';
+          const targetPage = source.site.pages.find((candidate) => candidate.slug === targetSlug);
+          assert.ok(targetPage, `${referenceId}: missing page-adoption target ${targetSlug}`);
+          const targetLabel = referenceId === 'restaurant' ? 'Menu' : 'Shows';
+
           const browseInteraction = await browsePreview(page, {
-            linkText: 'Menu',
-            expectedPathname: '/studio-preview/site/menu',
+            linkText: targetLabel,
+            expectedPathname: `/studio-preview/site/${targetSlug}`,
+            expectedPageId: targetPage.id,
+            expectedPageTitle: targetPage.title,
           });
           manifest.captures.push(await snapshotCurrent(page, {
             referenceId,
-            stateId: 'desktop-browse-menu',
+            stateId: `desktop-browse-${targetSlug}`,
             pathname: new URL(page.url()).pathname + new URL(page.url()).search,
             shellViewport: SHELL_VIEWPORTS.desktop,
             interaction: browseInteraction,
           }));
+
+          const adoptionInteraction = await adoptBrowsedPage(page, {
+            expectedPageId: targetPage.id,
+            expectedPageTitle: targetPage.title,
+          });
+          manifest.captures.push(await snapshotCurrent(page, {
+            referenceId,
+            stateId: `desktop-adopt-${targetSlug}`,
+            pathname: new URL(page.url()).pathname + new URL(page.url()).search,
+            shellViewport: SHELL_VIEWPORTS.desktop,
+            interaction: adoptionInteraction,
+          }));
+
+          const adoptedComponentId = targetPage.components[0].id;
+          const postAdoptionInspection = await inspectRenderedComponent(page, {
+            componentId: adoptedComponentId,
+            activation: 'pointer',
+          });
+          postAdoptionInspection.afterPageAdoption = true;
+          manifest.captures.push(await snapshotCurrent(page, {
+            referenceId,
+            stateId: `desktop-${targetSlug}-direct-inspect`,
+            pathname: new URL(page.url()).pathname + new URL(page.url()).search,
+            shellViewport: SHELL_VIEWPORTS.desktop,
+            interaction: postAdoptionInspection,
+          }));
+
+          if (referenceId === 'live-music') {
+            await page.goto(new URL('/studio?viewport=desktop', origin).toString(), { waitUntil: 'networkidle' });
+            const unsupportedInteraction = await previewUnsupportedRoute(page, {
+              origin,
+              pathname: '/studio-preview/site/events/fixture-show-one',
+            });
+            manifest.captures.push(await snapshotCurrent(page, {
+              referenceId,
+              stateId: 'desktop-derived-event-preview-only',
+              pathname: new URL(page.url()).pathname + new URL(page.url()).search,
+              shellViewport: SHELL_VIEWPORTS.desktop,
+              interaction: unsupportedInteraction,
+            }));
+          }
         }
 
         manifest.captures.push(await capture(page, {
@@ -407,7 +565,7 @@ async function main() {
       }
     }
 
-    assert.equal(manifest.captures.length, 15);
+    assert.equal(manifest.captures.length, 21);
     const digestsByReference = {};
     for (const capture of manifest.captures) {
       (digestsByReference[capture.referenceId] ||= new Set()).add(capture.authority.sourceDigest);
@@ -434,6 +592,14 @@ async function main() {
         .filter((item) => item.interaction?.activation === 'keyboard').length,
       browsePreviewCaptures: manifest.captures
         .filter((item) => item.interaction?.kind === 'browse-preview').length,
+      pageAdoptionCaptures: manifest.captures
+        .filter((item) => item.interaction?.kind === 'page-adoption').length,
+      postAdoptionInspectionCaptures: manifest.captures
+        .filter((item) => item.interaction?.kind === 'direct-inspection' && item.interaction.afterPageAdoption).length,
+      samePageBrowseChecks: manifest.captures
+        .filter((item) => item.interaction?.kind === 'browse-preview' && item.interaction.samePageContextConfirmed).length,
+      unsupportedRouteCaptures: manifest.captures
+        .filter((item) => item.interaction?.kind === 'unsupported-preview-route').length,
       sourceNeutralReferences: Object.values(digestsByReference)
         .filter((digests) => digests.size === 1).length,
     };
