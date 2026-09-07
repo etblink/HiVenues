@@ -820,6 +820,120 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
     });
   }
 
+  if (command.type === ADD_COMPONENT) {
+    const resolved = resolveComponentAdd(
+      source,
+      command.target,
+      command.catalogItemId,
+      command.destination,
+    );
+    const afterSource = insertComponentSnapshot(
+      source,
+      resolved.pageIndex,
+      resolved.component,
+      resolved.destination,
+    );
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+      destination: { ...resolved.destination },
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: REMOVE_COMPONENT,
+      target: { nodeId: `component:${resolved.component.id}` },
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: null,
+        pageId: resolved.pageId,
+        componentId: resolved.component.id,
+        catalogItemId: resolved.catalogItemId,
+        sourcePointer: resolved.collectionPointer,
+        ownership: resolved.ownership,
+        destination: { ...resolved.destination },
+      },
+    });
+  }
+
+  if (command.type === REMOVE_COMPONENT) {
+    const resolved = resolveComponentRemove(source, command.target);
+    const afterSource = removeResolvedComponent(source, resolved);
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: RESTORE_COMPONENT,
+      target: { nodeId: `page:${resolved.pageId}` },
+      componentSnapshot: clone(resolved.componentSnapshot),
+      destination: { ...resolved.inverseDestination },
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: null,
+        pageId: resolved.pageId,
+        componentId: resolved.componentId,
+        catalogItemId: resolved.catalogItemId,
+        sourcePointer: resolved.collectionPointer,
+        ownership: resolved.ownership,
+        destination: { ...resolved.inverseDestination },
+      },
+    });
+  }
+
+  if (command.type === RESTORE_COMPONENT && allowInternal) {
+    const resolved = resolveComponentRestore(source, command);
+    const afterSource = resolved.afterSource;
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+      componentSnapshot: clone(resolved.componentSnapshot),
+      destination: { ...resolved.destination },
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: REMOVE_COMPONENT,
+      target: { nodeId: `component:${resolved.componentSnapshot.id}` },
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: null,
+        pageId: resolved.pageId,
+        componentId: resolved.componentSnapshot.id,
+        catalogItemId: catalogItemForComponent(resolved.componentSnapshot)?.id || null,
+        sourcePointer: resolved.collectionPointer,
+        ownership: resolved.ownership,
+        destination: { ...resolved.destination },
+      },
+    });
+  }
+
   if (command.type !== MOVE_COMPONENT) {
     throw new V2AuthoringTransactionError('unsupported command type');
   }
