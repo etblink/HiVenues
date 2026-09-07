@@ -428,9 +428,14 @@ function renderV2AuthoringStudioSurface({
   const source = session.draftSource;
   const model = createV2ReadOnlyStudioModel(source, query);
   const previewSource = proposal ? proposal.previewSource : source;
+  const previewSelectionNodeId = proposal?.command.type === REMOVE_COMPONENT
+    ? `page:${proposal.resolvedTarget.pageId}`
+    : model.selection.nodeId;
   const previewModel = createV2ReadOnlyStudioModel(previewSource, {
-    nodeId: model.selection.nodeId,
-    ...(model.selection.fieldId ? { fieldId: model.selection.fieldId } : {}),
+    nodeId: previewSelectionNodeId,
+    ...(previewSelectionNodeId === model.selection.nodeId && model.selection.fieldId
+      ? { fieldId: model.selection.fieldId }
+      : {}),
     viewport: model.selection.viewport,
   });
   const previewHref = strictLocalPath(
