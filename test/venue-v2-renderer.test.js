@@ -59,6 +59,43 @@ test('one generic v2 renderer renders all four reference sources without venue-i
   assert.equal(digests.size, 4);
 });
 
+test('PM4 reference evidence uses four shared hero compositions and visitor-facing synthetic concept copy', () => {
+  const heroRecipes = new Map();
+  for (const [referenceId, factory] of Object.entries(REFERENCE_FACTORIES)) {
+    const source = factory();
+    const home = source.site.pages.find((page) => page.id === source.site.homePageId);
+    const hero = home.components.find((component) => component.kind === 'venue-hero');
+    heroRecipes.set(referenceId, hero.recipeId);
+  }
+  assert.deepEqual(Object.fromEntries(heroRecipes), {
+    'fourth-street': 'hero-immersive-media',
+    juniper: 'hero-legacy-v1',
+    restaurant: 'hero-editorial-split',
+    'live-music': 'hero-poster',
+  });
+  assert.equal(new Set(heroRecipes.values()).size, 4);
+
+  for (const factory of [restaurantSource, musicSource]) {
+    const document = documentFrom(renderV2Page(factory()));
+    const publicText = document.body.textContent;
+    assert.doesNotMatch(publicText, /\b(renderer|fixture|resource routing|semantic resource)\b/i);
+    assert.match(publicText, /concept venue|fictional/i);
+  }
+});
+
+test('synthetic reference media bytes match every declared intrinsic dimension', async () => {
+  for (const factory of [restaurantSource, musicSource]) {
+    const source = factory();
+    const fixture = createV2RendererPreviewFixture(source);
+    for (const asset of source.media.assets) {
+      const response = await request(fixture.app).get(asset.src).expect(200);
+      assert.match(response.text, new RegExp(`width=["']${asset.width}["']`));
+      assert.match(response.text, new RegExp(`height=["']${asset.height}["']`));
+      assert.match(response.text, new RegExp(`viewBox=["']0 0 ${asset.width} ${asset.height}["']`));
+    }
+  }
+});
+
 test('public-only references do not leak Hive application navigation while configured Fourth Street exposes only the Community entry', () => {
   for (const factory of [restaurantSource, musicSource]) {
     const document = documentFrom(renderV2Page(factory()));

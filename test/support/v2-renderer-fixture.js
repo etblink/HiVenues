@@ -167,7 +167,7 @@ function restaurantSource() {
           title: 'Home',
           seo: {
             title: 'Harbor & Hearth Example',
-            description: 'Synthetic restaurant reference for the HiVenues v2 renderer.',
+            description: 'A fictional waterfront restaurant concept with seasonal dining and private gatherings.',
           },
           components: [
             {
@@ -175,10 +175,10 @@ function restaurantSource() {
               kind: 'venue-hero',
               recipeId: 'hero-editorial-split',
               content: {
-                eyebrow: 'Waterfront dining · synthetic reference',
+                eyebrow: 'Waterfront dining · concept venue',
                 heading: 'A warmer kind of gathering',
                 body: 'Seasonal cooking, a calm room, and an evening designed around the table.',
-                note: 'Fixture-only identity and imagery.',
+                note: 'Concept venue · all details and imagery are fictional.',
                 media: mediaUsage('dining-room', 'Synthetic waterfront dining room'),
                 primaryAction: { label: 'Reserve a table', href: 'https://harbor-hearth.example/reservations' },
               },
@@ -194,7 +194,7 @@ function restaurantSource() {
               content: {
                 kicker: 'Dinner',
                 heading: 'A short seasonal menu',
-                intro: 'Accessible fixture menu content rendered from a shared Menu resource.',
+                intro: 'A concise dinner menu centered on the hearth, the harbor, and the season.',
                 emptyLead: null,
                 emptyBody: null,
                 resourceIds: ['dinner'],
@@ -208,14 +208,14 @@ function restaurantSource() {
               content: {
                 kicker: 'The room',
                 heading: 'Made for unhurried evenings',
-                intro: 'A restrained editorial gallery that is deliberately different from the bar and music references.',
+                intro: 'Two intimate rooms and a kitchen-led table, framed for slow evenings by the water.',
                 items: [
                   {
                     id: 'gallery-private',
                     assetId: 'private-room',
                     alt: 'Synthetic private dining room',
                     decorative: false,
-                    caption: 'Private dining · synthetic fixture',
+                    caption: 'Private dining · concept imagery',
                     treatment: mediaTreatment('aspect-landscape', 0.45, 0.5),
                   },
                   {
@@ -223,7 +223,7 @@ function restaurantSource() {
                     assetId: 'plate',
                     alt: 'Synthetic plated seasonal dish',
                     decorative: false,
-                    caption: 'Seasonal plate · synthetic fixture',
+                    caption: 'Seasonal plate · concept imagery',
                     treatment: mediaTreatment('aspect-square', 0.5, 0.45),
                   },
                 ],
@@ -237,8 +237,8 @@ function restaurantSource() {
               content: {
                 kicker: 'Visit',
                 heading: 'Plan an evening by the water',
-                body: 'Hours, location, and contact details come from stable venue facts rather than page-specific duplication.',
-                note: 'All details in this reference are fictional.',
+                body: 'Dinner begins at four, with a waterfront address, evening hours, and directions gathered in one place.',
+                note: 'Concept venue · address, hours, and contact details are fictional.',
               },
               responsive: { tablet: {}, mobile: {} },
             },
@@ -248,7 +248,7 @@ function restaurantSource() {
           id: 'menu',
           slug: 'menu',
           title: 'Menu',
-          seo: { title: 'Dinner menu', description: 'Synthetic accessible dinner menu.' },
+          seo: { title: 'Dinner menu', description: 'Seasonal starters and hearth-led mains at the fictional Harbor & Hearth concept.' },
           components: [
             {
               id: 'menu-main',
@@ -257,7 +257,7 @@ function restaurantSource() {
               content: {
                 kicker: 'Dinner',
                 heading: 'The menu',
-                intro: 'Fixture-only semantic menu content.',
+                intro: 'Seasonal starters and hearth-led mains, with prices shown directly on the page.',
                 emptyLead: null,
                 emptyBody: null,
                 resourceIds: ['dinner'],
@@ -270,7 +270,7 @@ function restaurantSource() {
           id: 'private-events',
           slug: 'private-events',
           title: 'Private Events',
-          seo: { title: null, description: 'Synthetic private-events information.' },
+          seo: { title: null, description: 'Private dining and gathering information for the fictional Harbor & Hearth concept.' },
           components: [
             {
               id: 'private-events-intro',
@@ -279,8 +279,8 @@ function restaurantSource() {
               content: {
                 kicker: 'Private events',
                 heading: 'A room for your gathering',
-                body: 'Use the same venue source to present private-event information without a restaurant-specific renderer.',
-                note: 'Fixture-only inquiry flow.',
+                body: 'Gather around a private table for dinners, celebrations, and small receptions overlooking the water.',
+                note: 'Concept venue · inquiry details are fictional.',
               },
               responsive: { tablet: {}, mobile: {} },
             },
@@ -339,9 +339,9 @@ function musicSource() {
           startAt: '2026-09-18T20:00:00-07:00',
           endAt: '2026-09-18T23:00:00-07:00',
           state: 'scheduled',
-          description: 'Synthetic headline show used only to qualify the HiVenues event renderer.',
+          description: 'Guitar glow, analog synths, and a late-night headline set from The Static Lights.',
           mediaAssetId: 'poster-one',
-          accessNote: '21+ fixture event · doors 7:00 PM',
+          accessNote: '21+ · doors 7:00 PM',
           externalAction: { label: 'Tickets', href: 'https://northline-hall.example/tickets/fixture-show-one' },
         },
         {
@@ -351,9 +351,9 @@ function musicSource() {
           startAt: '2026-09-26T19:30:00-07:00',
           endAt: '2026-09-26T22:30:00-07:00',
           state: 'scheduled',
-          description: 'A second synthetic event to prove event-list density and stable resource routing.',
+          description: 'A genre-blurring all-ages bill built around live electronics, drums, and luminous guitar.',
           mediaAssetId: 'poster-two',
-          accessNote: 'All ages fixture event · doors 6:30 PM',
+          accessNote: 'All ages · doors 6:30 PM',
           externalAction: { label: 'Tickets', href: 'https://northline-hall.example/tickets/fixture-show-two' },
         },
       ],
@@ -370,17 +370,17 @@ function musicSource() {
           id: 'home',
           slug: '',
           title: 'Home',
-          seo: { title: 'Northline Hall Example', description: 'Synthetic live-music reference for HiVenues.' },
+          seo: { title: 'Northline Hall Example', description: 'A fictional live-music concept with upcoming shows, ticket links, and venue details.' },
           components: [
             {
               id: 'home-hero',
               kind: 'venue-hero',
               recipeId: 'hero-poster',
               content: {
-                eyebrow: 'Live music · synthetic reference',
+                eyebrow: 'Live music · concept venue',
                 heading: 'Live music lives here',
-                body: 'A high-energy event-first composition driven by the same semantic renderer as every other HiVenues reference.',
-                note: 'Fixture-only identity and events.',
+                body: 'Big sound, close sightlines, and a calendar built for finding your next night out.',
+                note: 'Concept venue · artists, events, and venue details are fictional.',
                 media: mediaUsage('stage', 'Synthetic live-music stage under dramatic lights'),
                 primaryAction: { label: 'See upcoming shows', href: 'https://northline-hall.example/shows' },
               },
@@ -393,9 +393,9 @@ function musicSource() {
               content: {
                 kicker: 'Upcoming',
                 heading: 'Shows',
-                intro: 'Stable Event resources drive both this listing and each event detail page.',
+                intro: 'Pick a date, scan the door policy, and open any show for the full event details.',
                 emptyLead: 'No shows listed.',
-                emptyBody: 'Check back for fixture events.',
+                emptyBody: 'Check back for newly announced dates.',
                 resourceIds: ['fixture-show-one', 'fixture-show-two'],
               },
               responsive: { tablet: {}, mobile: { density: 'compact' } },
@@ -407,8 +407,8 @@ function musicSource() {
               content: {
                 kicker: 'The venue',
                 heading: 'Doors, location, and venue details',
-                body: 'Public venue facts remain available without any account or blockchain knowledge.',
-                note: 'All details in this reference are fictional.',
+                body: 'Find the room, check the doors policy on each show, and plan the night before you arrive.',
+                note: 'Concept venue · address, hours, and event details are fictional.',
               },
               responsive: { tablet: {}, mobile: {} },
             },
@@ -418,7 +418,7 @@ function musicSource() {
           id: 'shows',
           slug: 'shows',
           title: 'Shows',
-          seo: { title: 'Upcoming shows', description: 'Synthetic upcoming live-music events.' },
+          seo: { title: 'Upcoming shows', description: 'Upcoming fictional concerts, doors information, and ticket links for Northline Hall Example.' },
           components: [
             {
               id: 'shows-list',
@@ -427,9 +427,9 @@ function musicSource() {
               content: {
                 kicker: 'Calendar',
                 heading: 'Upcoming shows',
-                intro: 'Each listing resolves to a renderer-derived event detail page.',
+                intro: 'Upcoming nights at Northline Hall, with tickets and full details one tap away.',
                 emptyLead: 'No shows listed.',
-                emptyBody: 'Check back for fixture events.',
+                emptyBody: 'Check back for newly announced dates.',
                 resourceIds: ['fixture-show-one', 'fixture-show-two'],
               },
               responsive: { tablet: {}, mobile: { density: 'compact' } },
@@ -450,9 +450,14 @@ function musicSource() {
 }
 
 function fourthStreetSource() {
-  return migrateV1DeploymentAgnosticVenueSource(
+  const source = migrateV1DeploymentAgnosticVenueSource(
     extractDeploymentAgnosticVenueSource(FOURTH_STREET_AUTHORING_INPUT),
   );
+  const home = source.site.pages.find((page) => page.id === source.site.homePageId);
+  const hero = home && home.components.find((component) => component.kind === 'venue-hero');
+  if (!hero) throw new Error('Fourth Street PM4 reference requires a venue hero');
+  hero.recipeId = 'hero-immersive-media';
+  return createV2DeploymentAgnosticVenueSource(source);
 }
 
 function juniperSource() {
@@ -468,27 +473,40 @@ const REFERENCE_FACTORIES = Object.freeze({
   'live-music': musicSource,
 });
 
-function syntheticSvg(label, background = '#2b211b', foreground = '#f7f1e8') {
-  const safeLabel = String(label).replace(/[<>&'"]/g, '');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="${safeLabel}">
-  <rect width="1600" height="1000" fill="${background}"/>
-  <circle cx="1240" cy="210" r="320" fill="${foreground}" opacity=".08"/>
-  <circle cx="300" cy="860" r="420" fill="${foreground}" opacity=".06"/>
-  <path d="M0 720 C360 570 590 890 960 670 C1210 520 1380 610 1600 490 V1000 H0Z" fill="${foreground}" opacity=".09"/>
-  <text x="110" y="170" fill="${foreground}" font-family="system-ui,sans-serif" font-size="58" font-weight="700">${safeLabel}</text>
-  <text x="112" y="235" fill="${foreground}" opacity=".72" font-family="system-ui,sans-serif" font-size="28">Synthetic HiVenues reference artwork</text>
+function syntheticSvg(label, background, foreground, width, height, subtitle) {
+  const safe = (value) => String(value).replace(/[<>&'"]/g, '');
+  const safeLabel = safe(label);
+  const safeSubtitle = safe(subtitle);
+  const short = Math.min(width, height);
+  const pad = Math.round(short * 0.08);
+  const titleSize = Math.max(34, Math.round(short * 0.075));
+  const subtitleSize = Math.max(18, Math.round(short * 0.032));
+  const lowerY = Math.round(height * 0.68);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${safeLabel}">
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${background}"/>
+      <stop offset="1" stop-color="${foreground}" stop-opacity=".20"/>
+    </linearGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#wash)"/>
+  <circle cx="${Math.round(width * 0.78)}" cy="${Math.round(height * 0.20)}" r="${Math.round(short * 0.29)}" fill="${foreground}" opacity=".10"/>
+  <circle cx="${Math.round(width * 0.18)}" cy="${Math.round(height * 0.82)}" r="${Math.round(short * 0.34)}" fill="${foreground}" opacity=".07"/>
+  <rect x="${pad}" y="${lowerY}" width="${width - (pad * 2)}" height="${Math.max(pad * 2, Math.round(height * 0.20))}" rx="${Math.round(short * 0.035)}" fill="${background}" opacity=".42"/>
+  <text x="${pad}" y="${Math.round(height * 0.20)}" fill="${foreground}" font-family="system-ui,sans-serif" font-size="${titleSize}" font-weight="800">${safeLabel}</text>
+  <text x="${pad}" y="${Math.round(height * 0.20) + Math.round(subtitleSize * 1.8)}" fill="${foreground}" opacity=".78" font-family="system-ui,sans-serif" font-size="${subtitleSize}" font-weight="600">${safeSubtitle}</text>
 </svg>`;
 }
 
 const SYNTHETIC_ASSETS = Object.freeze({
-  'restaurant-logo.svg': syntheticSvg('Harbor & Hearth · logo', '#f3eadf', '#211a16'),
-  'restaurant-dining.svg': syntheticSvg('Harbor & Hearth · dining room', '#a76e43', '#fffaf3'),
-  'restaurant-private.svg': syntheticSvg('Harbor & Hearth · private dining', '#d7c2a9', '#2b211b'),
-  'restaurant-plate.svg': syntheticSvg('Harbor & Hearth · seasonal plate', '#6d7462', '#fffaf3'),
-  'music-logo.svg': syntheticSvg('Northline Hall · logo', '#111525', '#ff6a78'),
-  'music-stage.svg': syntheticSvg('Northline Hall · stage', '#171d31', '#8fd4ff'),
-  'music-poster-one.svg': syntheticSvg('The Static Lights · poster', '#351728', '#ff929d'),
-  'music-poster-two.svg': syntheticSvg('Signal / Noise · poster', '#102b3c', '#8fd4ff'),
+  'restaurant-logo.svg': syntheticSvg('Harbor & Hearth', '#f3eadf', '#211a16', 640, 640, 'Waterfront dining · concept mark'),
+  'restaurant-dining.svg': syntheticSvg('Harbor & Hearth', '#a76e43', '#fffaf3', 1600, 1000, 'Waterfront dining · concept image'),
+  'restaurant-private.svg': syntheticSvg('Private dining', '#d7c2a9', '#2b211b', 1200, 900, 'Gather by the water · concept image'),
+  'restaurant-plate.svg': syntheticSvg('From the hearth', '#6d7462', '#fffaf3', 1200, 900, 'Seasonal menu · concept image'),
+  'music-logo.svg': syntheticSvg('Northline Hall', '#111525', '#ff6a78', 640, 640, 'Live music · concept mark'),
+  'music-stage.svg': syntheticSvg('Northline Hall', '#171d31', '#8fd4ff', 1600, 1000, 'Live room · concept image'),
+  'music-poster-one.svg': syntheticSvg('The Static Lights', '#351728', '#ff929d', 1000, 1400, 'September 18 · 8 PM'),
+  'music-poster-two.svg': syntheticSvg('Signal / Noise', '#102b3c', '#8fd4ff', 1000, 1400, 'September 26 · 7:30 PM'),
 });
 
 function createV2RendererPreviewFixture(sourceInput) {
