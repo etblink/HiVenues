@@ -15,6 +15,9 @@ const V2_AUTHORING_SESSION_SCHEMA_VERSION = 1;
 const V2_AUTHORING_PROPOSAL_SCHEMA_VERSION = 1;
 const V2_AUTHORING_HISTORY_SCHEMA_VERSION = 1;
 const SET_FIELD = 'SET_FIELD';
+const MOVE_COMPONENT = 'MOVE_COMPONENT';
+const BEFORE_COMPONENT = 'BEFORE_COMPONENT';
+const END_OF_PAGE = 'END_OF_PAGE';
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
@@ -105,6 +108,79 @@ function parseSetFieldCommand(value) {
     },
     expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
   };
+}
+
+function parseComponentTarget(value) {
+  const target = plainRecord(value, 'target', new Set(['nodeId']));
+  return {
+    nodeId: scalarString(target.nodeId, 'target.nodeId', { max: 200 }),
+  };
+}
+
+function parseMoveDestination(value) {
+  const destination = plainRecord(
+    value,
+    'destination',
+    new Set(['kind', 'beforeComponentId']),
+  );
+  if (destination.kind === BEFORE_COMPONENT) {
+    return {
+      kind: BEFORE_COMPONENT,
+      beforeComponentId: scalarString(
+        destination.beforeComponentId,
+        'destination.beforeComponentId',
+        { max: 80 },
+      ),
+    };
+  }
+  if (destination.kind === END_OF_PAGE) {
+    if (Object.hasOwn(destination, 'beforeComponentId')) {
+      throw new V2AuthoringTransactionError(
+        'END_OF_PAGE destination cannot include beforeComponentId',
+      );
+    }
+    return { kind: END_OF_PAGE };
+  }
+  throw new V2AuthoringTransactionError('unsupported component destination');
+}
+
+function parseMoveComponentCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set(['schemaVersion', 'type', 'target', 'destination', 'expectedDraftDigest']),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== MOVE_COMPONENT) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: MOVE_COMPONENT,
+    target: parseComponentTarget(command.target),
+    destination: parseMoveDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function parseAuthoringCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set([
+      'schemaVersion',
+      'type',
+      'target',
+      'payload',
+      'destination',
+      'expectedDraftDigest',
+    ]),
+  );
+  if (command.type === SET_FIELD) return parseSetFieldCommand(value);
+  if (command.type === MOVE_COMPONENT) return parseMoveComponentCommand(value);
+  throw new V2AuthoringTransactionError('unsupported command type');
 }
 
 function componentMatches(source, componentId) {
@@ -211,6 +287,169 @@ function withTargetValue(source, resolved, value) {
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
+function resolveComponentMove(sourceInput, targetInput, destinationInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseComponentTarget(targetInput);
+  const destination = parseMoveDestination(destinationInput);
+  const projection = createV2SemanticCanvasProjection(source);
+  const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === target.nodeId);
+  if (!node || node.stableIdentity?.type !== 'component-id') {
+    throw new V2AuthoringTransactionError('stable component target does not exist');
+  }
+
+  const matches = componentMatches(source, node.stableIdentity.value);
+  if (matches.length !== 1) {
+    throw new V2AuthoringTransactionError('component stable identity is ambiguous or missing');
+  }
+  const match = matches[0];
+  const collectionPointer = `/site/pages/${match.pageIndex}/components`;
+  const ownership = pathOwnership(collectionPointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+    throw new V2AuthoringTransactionError('component collection is not operator-authored');
+  }
+
+  const pageComponentIds = match.page.components.map((component) => component.id);
+  if (destination.kind === BEFORE_COMPONENT) {
+    if (destination.beforeComponentId === match.component.id) {
+      throw new V2AuthoringTransactionError('component cannot move before itself');
+    }
+    const destinationMatches = componentMatches(source, destination.beforeComponentId);
+    if (destinationMatches.length === 0) {
+      throw new V2AuthoringTransactionError('stable destination component does not exist');
+    }
+    if (destinationMatches.length !== 1) {
+      throw new V2AuthoringTransactionError('destination component identity is ambiguous');
+    }
+    if (destinationMatches[0].page.id !== match.page.id) {
+      throw new V2AuthoringTransactionError('cross-page component movement is not authorized');
+    }
+  }
+
+  const inverseDestination = match.componentIndex === pageComponentIds.length - 1
+    ? { kind: END_OF_PAGE }
+    : {
+        kind: BEFORE_COMPONENT,
+        beforeComponentId: pageComponentIds[match.componentIndex + 1],
+      };
+
+  return deepFreeze({
+    targetNodeId: target.nodeId,
+    pageId: match.page.id,
+    pageIndex: match.pageIndex,
+    componentId: match.component.id,
+    componentIndex: match.componentIndex,
+    collectionPointer,
+    ownership,
+    destination,
+    inverseDestination,
+    beforeOrder: pageComponentIds,
+  });
+}
+
+function withComponentMove(sourceInput, resolved) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const candidate = clone(source);
+  const components = candidate.site.pages[resolved.pageIndex].components;
+  const targetIndex = components.findIndex((component) => component.id === resolved.componentId);
+  if (targetIndex < 0) {
+    throw new V2AuthoringTransactionError('stable component target no longer exists');
+  }
+
+  const [component] = components.splice(targetIndex, 1);
+  if (resolved.destination.kind === END_OF_PAGE) {
+    components.push(component);
+  } else {
+    const destinationIndex = components.findIndex(
+      (candidateComponent) => candidateComponent.id === resolved.destination.beforeComponentId,
+    );
+    if (destinationIndex < 0) {
+      throw new V2AuthoringTransactionError('stable destination component no longer exists');
+    }
+    components.splice(destinationIndex, 0, component);
+  }
+
+  const afterOrder = components.map((candidateComponent) => candidateComponent.id);
+  if (afterOrder.every((id, index) => id === resolved.beforeOrder[index])) {
+    throw new V2AuthoringTransactionError('component move is a no-op');
+  }
+  return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function commandTransition(sourceInput, commandInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const command = parseAuthoringCommand(commandInput);
+  const beforeDigest = deriveV2DeploymentAgnosticVenueSourceDigest(source);
+  if (command.expectedDraftDigest !== beforeDigest) {
+    throw new V2AuthoringTransactionError('stale expected draft digest');
+  }
+
+  if (command.type === SET_FIELD) {
+    const resolved = resolveTarget(source, command.target);
+    const afterSource = withTargetValue(source, resolved, command.payload.value);
+    const normalizedValue = targetValue(afterSource, resolved);
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+      payload: { value: normalizedValue },
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: SET_FIELD,
+      target: { ...validatedCommand.target },
+      payload: { value: resolved.currentValue },
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: validatedCommand.target.fieldId,
+        pageId: resolved.pageId,
+        componentId: resolved.componentId,
+        sourcePointer: resolved.pointer,
+        ownership: resolved.ownership,
+      },
+    });
+  }
+
+  const resolved = resolveComponentMove(source, command.target, command.destination);
+  const afterSource = withComponentMove(source, resolved);
+  const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+  const validatedCommand = deepFreeze({
+    ...command,
+    target: { ...command.target },
+    destination: { ...command.destination },
+  });
+  const inverseCommand = deepFreeze({
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: MOVE_COMPONENT,
+    target: { ...validatedCommand.target },
+    destination: { ...resolved.inverseDestination },
+    expectedDraftDigest: afterDigest,
+  });
+  return deepFreeze({
+    command: validatedCommand,
+    inverseCommand,
+    beforeDigest,
+    afterDigest,
+    afterSource,
+    resolvedTarget: {
+      nodeId: validatedCommand.target.nodeId,
+      fieldId: null,
+      pageId: resolved.pageId,
+      componentId: resolved.componentId,
+      sourcePointer: resolved.collectionPointer,
+      ownership: resolved.ownership,
+      destination: { ...resolved.destination },
+    },
+  });
+}
+
 function validateHistoryEntry(entryInput, expectedBeforeDigest) {
   const entry = plainRecord(
     entryInput,
@@ -219,6 +458,7 @@ function validateHistoryEntry(entryInput, expectedBeforeDigest) {
       'kind',
       'schemaVersion',
       'command',
+      'inverseCommand',
       'beforeDigest',
       'afterDigest',
       'beforeSource',
@@ -243,23 +483,31 @@ function validateHistoryEntry(entryInput, expectedBeforeDigest) {
     throw new V2AuthoringTransactionError('history chain continuity is invalid');
   }
 
-  const command = parseSetFieldCommand(entry.command);
-  if (command.expectedDraftDigest !== beforeDigest) {
+  const forward = commandTransition(beforeSource, entry.command);
+  if (forward.beforeDigest !== beforeDigest || forward.afterDigest !== afterDigest) {
     throw new V2AuthoringTransactionError('history command digest binding is invalid');
   }
-  const resolved = resolveTarget(beforeSource, command.target);
-  const expectedAfterSource = withTargetValue(beforeSource, resolved, command.payload.value);
   if (
-    serializeV2DeploymentAgnosticVenueSource(expectedAfterSource)
+    serializeV2DeploymentAgnosticVenueSource(forward.afterSource)
     !== serializeV2DeploymentAgnosticVenueSource(afterSource)
   ) {
     throw new V2AuthoringTransactionError('history command/source binding is invalid');
   }
 
+  const inverse = commandTransition(afterSource, entry.inverseCommand);
+  if (
+    inverse.afterDigest !== beforeDigest
+    || serializeV2DeploymentAgnosticVenueSource(inverse.afterSource)
+      !== serializeV2DeploymentAgnosticVenueSource(beforeSource)
+  ) {
+    throw new V2AuthoringTransactionError('history inverse command/source binding is invalid');
+  }
+
   return deepFreeze({
     kind: 'hivenues-v2-authoring-history-entry',
     schemaVersion: V2_AUTHORING_HISTORY_SCHEMA_VERSION,
-    command,
+    command: forward.command,
+    inverseCommand: inverse.command,
     beforeDigest,
     afterDigest,
     beforeSource,
@@ -351,45 +599,42 @@ function createV2AuthoringSession(sourceInput) {
   });
 }
 
-function proposeV2SetField(sessionInput, commandInput) {
+function proposeV2AuthoringCommand(sessionInput, commandInput) {
   const session = assertSession(sessionInput);
-  const command = parseSetFieldCommand(commandInput);
-  if (command.expectedDraftDigest !== session.draftDigest) {
-    throw new V2AuthoringTransactionError('stale expected draft digest');
-  }
-
-  const resolved = resolveTarget(session.draftSource, command.target);
-  const previewSource = withTargetValue(session.draftSource, resolved, command.payload.value);
-  const normalizedValue = targetValue(previewSource, resolved);
-  const previewDigest = deriveV2DeploymentAgnosticVenueSourceDigest(previewSource);
-  const validatedCommand = deepFreeze({
-    ...command,
-    target: { ...command.target },
-    payload: { value: normalizedValue },
-  });
+  const transition = commandTransition(session.draftSource, commandInput);
 
   return deepFreeze({
     kind: 'hivenues-v2-authoring-proposal',
     schemaVersion: V2_AUTHORING_PROPOSAL_SCHEMA_VERSION,
     status: 'PREVIEW_NOT_APPLIED',
-    beforeDigest: session.draftDigest,
-    afterDigest: previewDigest,
-    command: validatedCommand,
-    resolvedTarget: {
-      nodeId: validatedCommand.target.nodeId,
-      fieldId: validatedCommand.target.fieldId,
-      pageId: resolved.pageId,
-      componentId: resolved.componentId,
-      sourcePointer: resolved.pointer,
-      ownership: resolved.ownership,
-    },
-    previewSource,
+    beforeDigest: transition.beforeDigest,
+    afterDigest: transition.afterDigest,
+    command: transition.command,
+    inverseCommand: transition.inverseCommand,
+    resolvedTarget: transition.resolvedTarget,
+    previewSource: transition.afterSource,
     authority: {
       acceptedDraftChanged: false,
       persistent: false,
       externalEffects: false,
     },
   });
+}
+
+function proposeV2SetField(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== SET_FIELD) {
+    throw new V2AuthoringTransactionError('SET_FIELD proposal requires SET_FIELD command');
+  }
+  return proposal;
+}
+
+function proposeV2MoveComponent(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== MOVE_COMPONENT) {
+    throw new V2AuthoringTransactionError('MOVE_COMPONENT proposal requires MOVE_COMPONENT command');
+  }
+  return proposal;
 }
 
 function verifyProposal(session, value) {
@@ -400,15 +645,17 @@ function verifyProposal(session, value) {
     throw new V2AuthoringTransactionError('proposal is invalid');
   }
 
-  const rebuilt = proposeV2SetField(session, value.command);
-  if (rebuilt.beforeDigest !== value.beforeDigest || rebuilt.afterDigest !== value.afterDigest) {
-    throw new V2AuthoringTransactionError('proposal digest binding is invalid');
-  }
+  const rebuilt = proposeV2AuthoringCommand(session, value.command);
   if (
-    serializeV2DeploymentAgnosticVenueSource(rebuilt.previewSource)
-    !== serializeV2DeploymentAgnosticVenueSource(value.previewSource)
+    rebuilt.beforeDigest !== value.beforeDigest
+    || rebuilt.afterDigest !== value.afterDigest
+    || serializeV2DeploymentAgnosticVenueSource(rebuilt.previewSource)
+      !== serializeV2DeploymentAgnosticVenueSource(value.previewSource)
   ) {
-    throw new V2AuthoringTransactionError('proposal source binding is invalid');
+    throw new V2AuthoringTransactionError('proposal source/digest binding is invalid');
+  }
+  if (JSON.stringify(rebuilt.inverseCommand) !== JSON.stringify(value.inverseCommand)) {
+    throw new V2AuthoringTransactionError('proposal inverse binding is invalid');
   }
   return rebuilt;
 }
@@ -421,6 +668,7 @@ function applyV2AuthoringProposal(sessionInput, proposalInput) {
     kind: 'hivenues-v2-authoring-history-entry',
     schemaVersion: V2_AUTHORING_HISTORY_SCHEMA_VERSION,
     command: proposal.command,
+    inverseCommand: proposal.inverseCommand,
     beforeDigest: session.draftDigest,
     afterDigest: proposal.afterDigest,
     beforeSource: session.draftSource,
@@ -473,6 +721,9 @@ function redoV2AuthoringSession(sessionInput) {
 }
 
 module.exports = {
+  BEFORE_COMPONENT,
+  END_OF_PAGE,
+  MOVE_COMPONENT,
   SET_FIELD,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
@@ -482,8 +733,11 @@ module.exports = {
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  proposeV2AuthoringCommand,
+  proposeV2MoveComponent,
   proposeV2SetField,
   redoV2AuthoringSession,
   resolveV2AuthoringTarget: resolveTarget,
+  resolveV2ComponentMove: resolveComponentMove,
   undoV2AuthoringSession,
 };
