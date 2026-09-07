@@ -313,6 +313,14 @@ async function runReference(browser, spec) {
     assert.equal(saved.persistedDigest, saved.acceptedDigest);
     assert.equal(saved.saveText, 'Workspace saved');
     assert.equal(saved.saveDisabled, true);
+    assert.equal(
+      await page.getByText('Workspace checkpoint saved · not published · not deployed').count() > 0,
+      true,
+    );
+    assert.equal(
+      await page.getByText('Memory only · not saved · not published').count(),
+      0,
+    );
     assert.equal(fixture.diagnostics().persistentWrites, 2);
     assert.equal(fixture.diagnostics().saveSuccesses, 1);
     assert.equal(fixture.diagnostics().ephemeralMediaEntries, 0);
@@ -343,6 +351,14 @@ async function runReference(browser, spec) {
     assert.equal(reopened.acceptedDigest, saved.acceptedDigest);
     assert.equal(reopened.saveText, 'Workspace saved');
     assert.equal(reopened.saveDisabled, true);
+    assert.equal(
+      await page.getByText('Workspace checkpoint saved · not published · not deployed').count() > 0,
+      true,
+    );
+    assert.equal(
+      await page.getByText('Memory only · not saved · not published').count(),
+      0,
+    );
     const reopenedRenderer = await rendererState(page, hero.id);
     assert.deepEqual(reopenedRenderer, savedRenderer);
     assert.equal(reopenedRenderer.naturalWidth, 4);
