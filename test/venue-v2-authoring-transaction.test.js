@@ -284,3 +284,31 @@ test('new apply after undo truncates stale redo history exactly', () => {
     V2AuthoringTransactionError,
   );
 });
+
+
+test('forged session history and history-position drift fail closed before undo/redo', () => {
+  const opening = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
+  const proposal = proposeV2SetField(
+    opening,
+    command(opening, 'component:home-gallery', 'heading', 'Accepted heading'),
+  );
+  const applied = applyV2AuthoringProposal(opening, proposal);
+
+  const forgedHistory = JSON.parse(JSON.stringify(applied));
+  forgedHistory.history[0].afterSource.site.pages[0].components
+    .find((component) => component.id === 'home-gallery')
+    .content.heading = 'Tampered after source';
+  assert.throws(
+    () => undoV2AuthoringSession(forgedHistory),
+    /history entry source\/digest binding is invalid/,
+  );
+
+  const forgedPosition = JSON.parse(JSON.stringify(applied));
+  forgedPosition.historyIndex = 0;
+  forgedPosition.canUndo = false;
+  forgedPosition.canRedo = true;
+  assert.throws(
+    () => redoV2AuthoringSession(forgedPosition),
+    /accepted draft is not bound to history position/,
+  );
+});
