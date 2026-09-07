@@ -176,8 +176,8 @@ function assertRendererRestored(expected, actual, label) {
 }
 
 async function chooseMediaByKeyboard(page, assetId, altText, label) {
-  const form = page.locator('form[action="/studio-authoring/media"]');
-  assert.equal(await form.count(), 1, label + ': expected one Media form');
+  const form = page.locator('form[data-media-meaning="meaningful"]');
+  assert.equal(await form.count(), 1, label + ': expected one meaningful Media form');
   const asset = form.locator('select[name="assetId"]');
   const options = await asset.locator('option').evaluateAll((nodes) => nodes.map((option) => option.value));
   assert.equal(options.includes(assetId), true, label + ': target managed asset missing');
@@ -191,12 +191,6 @@ async function chooseMediaByKeyboard(page, assetId, altText, label) {
   assert.equal(selected, assetId, label + ': keyboard asset selection failed');
 
   await page.keyboard.press('Tab');
-  const decorative = form.locator('select[name="decorative"]');
-  assert.equal(await decorative.evaluate((element) => element === globalThis.document.activeElement), true);
-  await page.keyboard.press('Home');
-  assert.equal(await decorative.inputValue(), 'false', label + ': meaningful option must be selected');
-
-  await page.keyboard.press('Tab');
   const alt = form.locator('input[name="alt"]');
   assert.equal(await alt.evaluate((element) => element === globalThis.document.activeElement), true);
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
@@ -205,7 +199,7 @@ async function chooseMediaByKeyboard(page, assetId, altText, label) {
 
   await page.keyboard.press('Tab');
   const activeText = await page.evaluate(() => globalThis.document.activeElement?.textContent?.trim() || '');
-  assert.equal(activeText, 'Preview hero image');
+  assert.equal(activeText, 'Preview meaningful image');
   const navigation = page.waitForNavigation({ waitUntil: 'networkidle' });
   await page.keyboard.press('Enter');
   await navigation;
