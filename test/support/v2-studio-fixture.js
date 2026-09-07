@@ -43,9 +43,18 @@ function syntheticSvg(label, background, foreground) {
 }
 
 function queryObject(request) {
+  const allowed = new Set(['nodeId', 'fieldId', 'viewport']);
+  const keys = Object.keys(request.query);
+  if (keys.some((key) => !allowed.has(key))) {
+    throw new V2ReadOnlyStudioError('query contains unsupported keys');
+  }
   const result = {};
-  for (const key of ['nodeId', 'fieldId', 'viewport']) {
-    if (typeof request.query[key] === 'string') result[key] = request.query[key];
+  for (const key of keys) {
+    const value = request.query[key];
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new V2ReadOnlyStudioError('query values must be non-empty scalar strings');
+    }
+    result[key] = value;
   }
   return result;
 }
