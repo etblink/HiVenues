@@ -2,12 +2,36 @@
 
 HiVenues is a multi-venue community and social platform powered by Hive. Its turnkey v1 workflow lets a venue create a local workspace, customize the real application in Venue Studio, import venue-owned media, save the canonical venue source, and run an offline readiness rehearsal before any deployment is selected.
 
-## Start a venue
+## Start a flagship v2 venue locally
 
 Requirements: Node.js 24.19.x and npm 11.17.x.
 
 ```bash
 npm ci --ignore-scripts --no-fund
+npm run venue:create:v2 -- ./my-v2-venue
+npm run venue:studio:v2 -- ./my-v2-venue
+```
+
+`venue:create:v2` asks for ordinary venue facts plus one closed starter choice (`general`, `hospitality`, or `live-music`). It does **not** require Hive community, account, Threads, merchant, wallet, or key information. Community and transaction capabilities begin disabled.
+
+The command creates a local v2-first workspace:
+
+```text
+my-v2-venue/
+├── venue-source-v2.json
+└── venue-assets/
+    ├── starter-logo.svg
+    ├── starter-hero.svg
+    └── starter-gallery.svg
+```
+
+`venue:studio:v2` opens the flagship semantic v2 Studio on `127.0.0.1`. Use the real renderer, Page Structure, contextual Inspector, responsive preview, typed content/structure/theme/media controls, Preview → Apply/Discard → Undo/Redo, and **Save workspace checkpoint**. The accepted v2 source and required managed media persist locally and reopen exactly after the Studio process restarts.
+
+This PM3 workflow is local authoring only. It does not route v2 into the production public runtime, publish or deploy a venue, modify deployment manifests, write/sign on Hive, activate payments, or change infrastructure. Those are separate later boundaries.
+
+## Start a preserved v1 venue
+
+```bash
 npm run venue:create -- ./my-venue
 npm run venue:studio -- ./my-venue
 ```
@@ -46,7 +70,10 @@ The HiVenues v1 oracle is distinct from the preserved Fourth Street reference-pr
 
 ## Development and reference paths
 
-- `src/venue/turnkey-workspace.js` — official starter workspace and source composition.
+- `src/venue/v2/turnkey-workspace.js` — venue-first native-v2 starter workspace composition.
+- `src/venue/v2/studio-app.js` — flagship v2 authoring Studio application.
+- `src/venue/v2/turnkey-studio.js` — loopback-only flagship v2 Studio runtime.
+- `src/venue/turnkey-workspace.js` — preserved v1 starter workspace and source composition.
 - `src/venue/turnkey-studio.js` — loopback-only turnkey Studio wrapper.
 - `src/venue/turnkey-readiness.js` — offline saved-source readiness rehearsal.
 - `src/venue/source.js` — deployment-agnostic source contract.

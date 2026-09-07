@@ -178,6 +178,10 @@ jobs:
         env:
           V2_CHECKPOINT_REVIEW_ROOT: artifacts/v2-workspace-checkpoint-review
         run: node scripts/capture-v2-workspace-checkpoint-visual.js
+      - name: Capture PM3 fresh v2 bootstrap closure evidence
+        env:
+          V2_BOOTSTRAP_REVIEW_ROOT: artifacts/v2-fresh-bootstrap-review
+        run: node scripts/capture-v2-fresh-bootstrap-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -201,6 +205,7 @@ jobs:
           const v2Media = JSON.parse(fs.readFileSync('artifacts/v2-media-authoring-review/manifest.json', 'utf8'));
           const v2LocalMedia = JSON.parse(fs.readFileSync('artifacts/v2-local-media-authoring-review/manifest.json', 'utf8'));
           const v2Checkpoint = JSON.parse(fs.readFileSync('artifacts/v2-workspace-checkpoint-review/manifest.json', 'utf8'));
+          const v2Bootstrap = JSON.parse(fs.readFileSync('artifacts/v2-fresh-bootstrap-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -235,6 +240,9 @@ jobs:
           console.log(`- Issue #192 checkpoint references: ${v2Checkpoint.summary.referenceCount}; screenshots: ${v2Checkpoint.summary.screenshotCount}; Save controls: ${v2Checkpoint.summary.explicitSaveControlCount}; preview-no-write proofs: ${v2Checkpoint.summary.previewNonPersistentProofCount}`);
           console.log(`- Issue #192 saved/reopen/v1-preservation proofs: ${v2Checkpoint.summary.savedStateProofCount}/${v2Checkpoint.summary.reopenProofCount}/${v2Checkpoint.summary.v1SourcePreservationProofCount}; exact-source/media/decode proofs: ${v2Checkpoint.summary.exactSourceDigestProofCount}/${v2Checkpoint.summary.managedMediaPersistenceProofCount}/${v2Checkpoint.summary.byteDecodeProofCount}`);
           console.log(`- Issue #192 blocking accessibility findings: ${v2Checkpoint.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Checkpoint.summary.horizontalOverflowFindings}; bounded persistent writes: ${v2Checkpoint.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Checkpoint.summary.hiveRpcAttempts}/${v2Checkpoint.summary.hiveWrites}`);
+          console.log(`- Issue #194 PM3-closure journeys/starters/screenshots: ${v2Bootstrap.summary.journeyCount}/${v2Bootstrap.summary.starterCount}/${v2Bootstrap.summary.screenshotCount}; normal-create proofs: ${v2Bootstrap.summary.normalCreateCommandProofCount}`);
+          console.log(`- Issue #194 preview-no-write/apply-unsaved/Save/restart-reopen proofs: ${v2Bootstrap.summary.previewNonPersistentProofCount}/${v2Bootstrap.summary.applyUnsavedProofCount}/${v2Bootstrap.summary.saveProofCount}/${v2Bootstrap.summary.restartReopenProofCount}`);
+          console.log(`- Issue #194 v1-absent/disabled-capability/production-runtime-wired: ${v2Bootstrap.summary.v1SourceAbsentProofCount}/${v2Bootstrap.summary.disabledCapabilityProofCount}/${v2Bootstrap.summary.productionRuntimeWiredCount}; blocking accessibility: ${v2Bootstrap.summary.blockingAccessibilityFindings}; overflow: ${v2Bootstrap.summary.horizontalOverflowFindings}; Hive RPC/writes: ${v2Bootstrap.summary.hiveRpcAttempts}/${v2Bootstrap.summary.hiveWrites}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -256,6 +264,7 @@ jobs:
             artifacts/v2-media-authoring-review
             artifacts/v2-local-media-authoring-review
             artifacts/v2-workspace-checkpoint-review
+            artifacts/v2-fresh-bootstrap-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90
