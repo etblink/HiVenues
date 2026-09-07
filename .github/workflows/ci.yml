@@ -158,6 +158,10 @@ jobs:
         env:
           V2_REORDER_REVIEW_ROOT: artifacts/v2-component-reorder-review
         run: node scripts/capture-v2-component-reorder-visual.js
+      - name: Capture PM3 v2 component cardinality evidence
+        env:
+          V2_CARDINALITY_REVIEW_ROOT: artifacts/v2-component-cardinality-review
+        run: node scripts/capture-v2-component-cardinality-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -176,6 +180,7 @@ jobs:
           const v2Studio = JSON.parse(fs.readFileSync('artifacts/v2-studio-review/manifest.json', 'utf8'));
           const v2Authoring = JSON.parse(fs.readFileSync('artifacts/v2-authoring-review/manifest.json', 'utf8'));
           const v2Reorder = JSON.parse(fs.readFileSync('artifacts/v2-component-reorder-review/manifest.json', 'utf8'));
+          const v2Cardinality = JSON.parse(fs.readFileSync('artifacts/v2-component-cardinality-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -195,6 +200,8 @@ jobs:
           console.log(`- Issue #180 blocking accessibility findings: ${v2Authoring.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Authoring.summary.horizontalOverflowFindings}; persistent writes: ${v2Authoring.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Authoring.summary.hiveRpcAttempts}/${v2Authoring.summary.hiveWrites}`);
           console.log(`- Issue #182 reorder references: ${v2Reorder.summary.referenceCount}; screenshots: ${v2Reorder.summary.screenshotCount}; keyboard completions: ${v2Reorder.summary.keyboardCompletionCount}; digest proofs: ${v2Reorder.summary.digestProofCount}; order proofs: ${v2Reorder.summary.structuralOrderProofCount}`);
           console.log(`- Issue #182 blocking accessibility findings: ${v2Reorder.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Reorder.summary.horizontalOverflowFindings}; persistent writes: ${v2Reorder.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Reorder.summary.hiveRpcAttempts}/${v2Reorder.summary.hiveWrites}`);
+          console.log(`- Issue #184 cardinality references: ${v2Cardinality.summary.referenceCount}; screenshots: ${v2Cardinality.summary.screenshotCount}; keyboard completions: ${v2Cardinality.summary.keyboardCompletionCount}; digest proofs: ${v2Cardinality.summary.digestProofCount}; add/remove/round-trip proofs: ${v2Cardinality.summary.addProofCount}/${v2Cardinality.summary.removeProofCount}/${v2Cardinality.summary.exactRoundTripProofCount}`);
+          console.log(`- Issue #184 blocking accessibility findings: ${v2Cardinality.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Cardinality.summary.horizontalOverflowFindings}; persistent writes: ${v2Cardinality.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Cardinality.summary.hiveRpcAttempts}/${v2Cardinality.summary.hiveWrites}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -211,6 +218,7 @@ jobs:
             artifacts/v2-studio-review
             artifacts/v2-authoring-review
             artifacts/v2-component-reorder-review
+            artifacts/v2-component-cardinality-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90

@@ -10,7 +10,9 @@ const {
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  proposeV2AddComponent,
   proposeV2MoveComponent,
+  proposeV2RemoveComponent,
   proposeV2SetField,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
@@ -158,6 +160,8 @@ function createV2AuthoringStudioFixture(sourceInput) {
   const actionPaths = Object.freeze({
     propose: '/studio-authoring/propose',
     reorder: '/studio-authoring/reorder',
+    add: '/studio-authoring/add',
+    remove: '/studio-authoring/remove',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -264,6 +268,49 @@ function createV2AuthoringStudioFixture(sourceInput) {
       throw error;
     }
   });
+  app.post(actionPaths.add, (request, response) => {
+    try {
+      const body = plainStrings(
+        request.body,
+        'add component form',
+        new Set(['nodeId', 'viewport', 'expectedDraftDigest', 'catalogItemId', 'destination']),
+      );
+      proposal = proposeV2AddComponent(session, {
+        schemaVersion: 1,
+        type: 'ADD_COMPONENT',
+        target: { nodeId: body.nodeId },
+        catalogItemId: body.catalogItemId,
+        destination: parseMoveDestinationForm(body.destination),
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { ...body, fieldId: '' });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
+  app.post(actionPaths.remove, (request, response) => {
+    try {
+      const body = plainStrings(
+        request.body,
+        'remove component form',
+        new Set(['nodeId', 'viewport', 'expectedDraftDigest']),
+      );
+      proposal = proposeV2RemoveComponent(session, {
+        schemaVersion: 1,
+        type: 'REMOVE_COMPONENT',
+        target: { nodeId: body.nodeId },
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { ...body, fieldId: '' });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
   app.post(actionPaths.apply, (request, response) => {
     try {
       const body = plainStrings(
@@ -273,10 +320,19 @@ function createV2AuthoringStudioFixture(sourceInput) {
         new Set(['fieldId']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to apply');
-      session = applyV2AuthoringProposal(session, proposal);
+      const acceptedProposal = proposal;
+      session = applyV2AuthoringProposal(session, acceptedProposal);
       proposal = null;
       diagnostics.applies += 1;
-      selectionRedirect(response, body);
+      if (acceptedProposal.command.type === 'REMOVE_COMPONENT') {
+        selectionRedirect(response, {
+          nodeId: `page:${acceptedProposal.resolvedTarget.pageId}`,
+          viewport: body.viewport,
+          fieldId: '',
+        });
+      } else {
+        selectionRedirect(response, body);
+      }
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
       throw error;

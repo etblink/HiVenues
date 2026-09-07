@@ -4,13 +4,18 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+  ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
   MOVE_COMPONENT,
+  REMOVE_COMPONENT,
+  V2_COMPONENT_CATALOG,
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  proposeV2AddComponent,
   proposeV2MoveComponent,
+  proposeV2RemoveComponent,
   proposeV2SetField,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
@@ -43,6 +48,28 @@ function moveCommand(session, nodeId, destination, overrides = {}) {
     type: MOVE_COMPONENT,
     target: { nodeId },
     destination,
+    expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
+    ...overrides.extra,
+  };
+}
+
+function addCommand(session, pageNodeId, catalogItemId, destination, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    type: ADD_COMPONENT,
+    target: { nodeId: pageNodeId },
+    catalogItemId,
+    destination,
+    expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
+    ...overrides.extra,
+  };
+}
+
+function removeCommand(session, componentNodeId, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    type: REMOVE_COMPONENT,
+    target: { nodeId: componentNodeId },
     expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
     ...overrides.extra,
   };
@@ -534,4 +561,316 @@ test('MOVE_COMPONENT discard is exact and divergent structural apply truncates r
   assert.equal(replacementApplied.canRedo, false);
   assert.equal(replacementApplied.history.length, 1);
   assert.equal(replacementApplied.history[0].command.type, MOVE_COMPONENT);
+});
+
+
+const ADD_REFERENCE_CASES = Object.freeze([
+  {
+    referenceId: 'fourth-street',
+    catalogItemId: 'story-intro',
+    destination: { kind: BEFORE_COMPONENT, beforeComponentId: 'home-hero' },
+  },
+  {
+    referenceId: 'juniper',
+    catalogItemId: 'hours-location',
+    destination: { kind: END_OF_PAGE },
+  },
+  {
+    referenceId: 'restaurant',
+    catalogItemId: 'contact-visit',
+    destination: { kind: BEFORE_COMPONENT, beforeComponentId: 'home-gallery' },
+  },
+  {
+    referenceId: 'live-music',
+    catalogItemId: 'story-intro',
+    destination: { kind: END_OF_PAGE },
+  },
+]);
+
+test('ADD_COMPONENT catalog authority is server-owned and exact across four references', () => {
+  assert.deepEqual(Object.keys(V2_COMPONENT_CATALOG).sort(), [
+    'contact-visit',
+    'hours-location',
+    'story-intro',
+  ]);
+
+  for (const spec of ADD_REFERENCE_CASES) {
+    const opening = createV2AuthoringSession(REFERENCE_FACTORIES[spec.referenceId]());
+    const beforeSerialization = serializeV2DeploymentAgnosticVenueSource(opening.draftSource);
+    const beforeCount = componentOrder(opening.draftSource).length;
+
+    const proposal = proposeV2AddComponent(
+      opening,
+      addCommand(opening, 'page:home', spec.catalogItemId, spec.destination),
+    );
+
+    assert.equal(opening.draftDigest, opening.baselineDigest, spec.referenceId);
+    assert.equal(proposal.command.type, ADD_COMPONENT, spec.referenceId);
+    assert.equal(proposal.command.catalogItemId, spec.catalogItemId, spec.referenceId);
+    assert.equal(proposal.resolvedTarget.ownership, 'OPERATOR_AUTHORED_COLLECTION', spec.referenceId);
+    assert.equal(proposal.resolvedTarget.catalogItemId, spec.catalogItemId, spec.referenceId);
+    assert.equal(proposal.previewSource.site.pages.find((page) => page.id === 'home').components.length, beforeCount + 1);
+    assert.equal(proposal.inverseCommand.type, REMOVE_COMPONENT, spec.referenceId);
+
+    const createdId = proposal.resolvedTarget.componentId;
+    assert.equal(proposal.inverseCommand.target.nodeId, `component:${createdId}`, spec.referenceId);
+    const created = proposal.previewSource.site.pages
+      .find((page) => page.id === 'home')
+      .components.find((component) => component.id === createdId);
+    const catalog = V2_COMPONENT_CATALOG[spec.catalogItemId];
+    assert.equal(created.kind, catalog.kind, spec.referenceId);
+    assert.equal(created.recipeId, catalog.recipeId, spec.referenceId);
+    assert.deepEqual(created.content, catalog.content, spec.referenceId);
+    assert.deepEqual(created.responsive, catalog.responsive, spec.referenceId);
+
+    const discarded = discardV2AuthoringProposal(opening, proposal);
+    assert.equal(
+      serializeV2DeploymentAgnosticVenueSource(discarded.draftSource),
+      beforeSerialization,
+      spec.referenceId,
+    );
+
+    const applied = applyV2AuthoringProposal(opening, proposal);
+    assert.equal(applied.draftDigest, proposal.afterDigest, spec.referenceId);
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(
+      serializeV2DeploymentAgnosticVenueSource(undone.draftSource),
+      beforeSerialization,
+      spec.referenceId,
+    );
+    assert.equal(undone.draftDigest, opening.draftDigest, spec.referenceId);
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(
+      serializeV2DeploymentAgnosticVenueSource(redone.draftSource),
+      serializeV2DeploymentAgnosticVenueSource(applied.draftSource),
+      spec.referenceId,
+    );
+    assert.equal(redone.draftDigest, applied.draftDigest, spec.referenceId);
+
+    if (spec.referenceId === 'restaurant' || spec.referenceId === 'live-music') {
+      assert.equal(redone.draftSource.capabilities.community.state, 'disabled');
+      assert.equal(redone.draftSource.capabilities.transaction.state, 'disabled');
+    }
+  }
+});
+
+test('ADD_COMPONENT derives deterministic collision-safe identities without browser ID authority', () => {
+  const opening = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
+  const first = proposeV2AddComponent(
+    opening,
+    addCommand(opening, 'page:home', 'story-intro', { kind: END_OF_PAGE }),
+  );
+  assert.equal(first.resolvedTarget.componentId, 'story-intro');
+  const firstApplied = applyV2AuthoringProposal(opening, first);
+
+  const second = proposeV2AddComponent(
+    firstApplied,
+    addCommand(firstApplied, 'page:home', 'story-intro', { kind: END_OF_PAGE }),
+  );
+  assert.equal(second.resolvedTarget.componentId, 'story-intro-2');
+  const secondApplied = applyV2AuthoringProposal(firstApplied, second);
+
+  const ids = componentOrder(secondApplied.draftSource);
+  assert.equal(ids.filter((id) => id === 'story-intro').length, 1);
+  assert.equal(ids.filter((id) => id === 'story-intro-2').length, 1);
+
+  const undone = undoV2AuthoringSession(secondApplied);
+  assert.equal(componentOrder(undone.draftSource).includes('story-intro-2'), false);
+  const redone = redoV2AuthoringSession(undone);
+  assert.equal(componentOrder(redone.draftSource).at(-1), 'story-intro-2');
+});
+
+test('REMOVE_COMPONENT restores exact eligible existing component snapshot and order', () => {
+  for (const referenceId of ['fourth-street', 'juniper', 'restaurant', 'live-music']) {
+    const opening = createV2AuthoringSession(REFERENCE_FACTORIES[referenceId]());
+    const page = opening.draftSource.site.pages.find((candidate) => candidate.id === 'home');
+    const visit = page.components.find(
+      (component) => component.kind === 'contact-visit' && component.recipeId === 'visit-legacy-v1',
+    );
+    assert.ok(visit, `${referenceId}: expected eligible contact/visit component`);
+
+    const beforeSerialization = serializeV2DeploymentAgnosticVenueSource(opening.draftSource);
+    const beforeOrder = componentOrder(opening.draftSource);
+    const exactSnapshot = JSON.parse(JSON.stringify(visit));
+
+    const proposal = proposeV2RemoveComponent(
+      opening,
+      removeCommand(opening, `component:${visit.id}`),
+    );
+
+    assert.equal(proposal.command.type, REMOVE_COMPONENT, referenceId);
+    assert.equal(proposal.inverseCommand.type, 'RESTORE_COMPONENT', referenceId);
+    assert.deepEqual(proposal.inverseCommand.componentSnapshot, exactSnapshot, referenceId);
+    assert.equal(componentOrder(opening.draftSource).length, beforeOrder.length, referenceId);
+    assert.equal(componentOrder(proposal.previewSource).includes(visit.id), false, referenceId);
+
+    const applied = applyV2AuthoringProposal(opening, proposal);
+    assert.equal(componentOrder(applied.draftSource).includes(visit.id), false, referenceId);
+
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(
+      serializeV2DeploymentAgnosticVenueSource(undone.draftSource),
+      beforeSerialization,
+      referenceId,
+    );
+    assert.deepEqual(componentOrder(undone.draftSource), beforeOrder, referenceId);
+    const restored = undone.draftSource.site.pages
+      .find((candidate) => candidate.id === 'home')
+      .components.find((component) => component.id === visit.id);
+    assert.deepEqual(restored, exactSnapshot, referenceId);
+
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(redone.draftDigest, applied.draftDigest, referenceId);
+    assert.equal(componentOrder(redone.draftSource).includes(visit.id), false, referenceId);
+  }
+});
+
+test('ADD/REMOVE public commands reject unknown, stale, cross-page, raw object, ID, path and internal restore authority', () => {
+  const opening = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
+
+  assert.throws(
+    () => proposeV2AddComponent(
+      opening,
+      addCommand(opening, 'page:home', 'not-a-catalog-item', { kind: END_OF_PAGE }),
+    ),
+    /unknown component catalog item/,
+  );
+  assert.throws(
+    () => proposeV2AddComponent(
+      opening,
+      addCommand(
+        opening,
+        'page:home',
+        'story-intro',
+        { kind: BEFORE_COMPONENT, beforeComponentId: 'menu-main' },
+      ),
+    ),
+    /cross-page component destination is not authorized/,
+  );
+  assert.throws(
+    () => proposeV2AddComponent(
+      opening,
+      addCommand(
+        opening,
+        'page:home',
+        'story-intro',
+        { kind: END_OF_PAGE },
+        { expectedDraftDigest: '0'.repeat(64) },
+      ),
+    ),
+    /stale expected draft digest/,
+  );
+
+  for (const extra of [
+    { componentId: 'browser-id' },
+    { kind: 'editorial-intro' },
+    { recipeId: 'intro-legacy-v1' },
+    { content: { heading: 'Browser object' } },
+    { responsive: { mobile: {} } },
+    { pageIndex: 0 },
+    { sourcePointer: '/site/pages/0/components' },
+  ]) {
+    assert.throws(
+      () => proposeV2AddComponent(opening, {
+        ...addCommand(opening, 'page:home', 'story-intro', { kind: END_OF_PAGE }),
+        ...extra,
+      }),
+      /unsupported keys/,
+    );
+  }
+
+  assert.throws(
+    () => proposeV2RemoveComponent(
+      opening,
+      removeCommand(opening, 'component:home-hero'),
+    ),
+    /not removable in this bounded catalog slice/,
+  );
+  assert.throws(
+    () => proposeV2RemoveComponent(
+      opening,
+      removeCommand(opening, 'component:home-gallery'),
+    ),
+    /not removable in this bounded catalog slice/,
+  );
+
+  assert.throws(
+    () => proposeV2AddComponent(opening, {
+      schemaVersion: 1,
+      type: 'RESTORE_COMPONENT',
+      target: { nodeId: 'page:home' },
+      componentSnapshot: {
+        id: 'forged',
+        kind: 'editorial-intro',
+        recipeId: 'intro-legacy-v1',
+        content: { kicker: null, heading: 'Forged', body: 'Forged', note: null },
+        responsive: { tablet: {}, mobile: {} },
+      },
+      destination: { kind: END_OF_PAGE },
+      expectedDraftDigest: opening.draftDigest,
+    }),
+    /unsupported command type/,
+  );
+});
+
+test('forged REMOVE internal restore history fails closed before Undo/Redo', () => {
+  const opening = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
+  const page = opening.draftSource.site.pages.find((candidate) => candidate.id === 'home');
+  const visit = page.components.find((component) => component.kind === 'contact-visit');
+  assert.ok(visit);
+
+  const proposal = proposeV2RemoveComponent(
+    opening,
+    removeCommand(opening, `component:${visit.id}`),
+  );
+  const applied = applyV2AuthoringProposal(opening, proposal);
+  const forged = JSON.parse(JSON.stringify(applied));
+  forged.history[0].inverseCommand.componentSnapshot.content.heading = 'Forged restore';
+
+  assert.throws(
+    () => undoV2AuthoringSession(forged),
+    /history inverse command binding is invalid/,
+  );
+});
+
+test('cardinality history composes with reorder and divergent Apply still truncates redo', () => {
+  const opening = createV2AuthoringSession(REFERENCE_FACTORIES['live-music']());
+  const add = proposeV2AddComponent(
+    opening,
+    addCommand(opening, 'page:home', 'story-intro', { kind: END_OF_PAGE }),
+  );
+  const added = applyV2AuthoringProposal(opening, add);
+
+  const move = proposeV2MoveComponent(
+    added,
+    moveCommand(
+      added,
+      'component:story-intro',
+      { kind: BEFORE_COMPONENT, beforeComponentId: 'home-hero' },
+    ),
+  );
+  const moved = applyV2AuthoringProposal(added, move);
+  assert.equal(componentOrder(moved.draftSource)[0], 'story-intro');
+
+  const remove = proposeV2RemoveComponent(
+    moved,
+    removeCommand(moved, 'component:story-intro'),
+  );
+  const removed = applyV2AuthoringProposal(moved, remove);
+  assert.equal(componentOrder(removed.draftSource).includes('story-intro'), false);
+
+  const undoRemove = undoV2AuthoringSession(removed);
+  assert.equal(componentOrder(undoRemove.draftSource)[0], 'story-intro');
+  const undoMove = undoV2AuthoringSession(undoRemove);
+  assert.equal(componentOrder(undoMove.draftSource).at(-1), 'story-intro');
+  const redoMove = redoV2AuthoringSession(undoMove);
+  assert.equal(componentOrder(redoMove.draftSource)[0], 'story-intro');
+
+  const divergent = proposeV2RemoveComponent(
+    redoMove,
+    removeCommand(redoMove, 'component:story-intro'),
+  );
+  const divergentApplied = applyV2AuthoringProposal(redoMove, divergent);
+  assert.equal(divergentApplied.canRedo, false);
+  assert.equal(divergentApplied.history.length, 3);
 });
