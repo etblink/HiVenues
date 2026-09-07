@@ -6,6 +6,10 @@ const {
   createV2ReadOnlyStudioModel,
 } = require('./studio-read-only');
 const {
+  BEFORE_COMPONENT,
+  END_OF_PAGE,
+  MOVE_COMPONENT,
+  listV2ComponentMoveDestinations,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
 
@@ -104,10 +108,100 @@ function renderFields(model, source, studioPath) {
   }).join('')}</ul>`;
 }
 
-function matchingProposal(proposal, model) {
-  if (!proposal || !model.selection.fieldId) return false;
+function matchingFieldProposal(proposal, model) {
+  if (!proposal || proposal.command.type !== 'SET_FIELD' || !model.selection.fieldId) return false;
   return proposal.command.target.nodeId === model.selection.nodeId
     && proposal.command.target.fieldId === model.selection.fieldId;
+}
+
+function matchingMoveProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === MOVE_COMPONENT
+    && proposal.command.target.nodeId === model.selection.nodeId
+  );
+}
+
+function componentMoveContext(source, nodeId) {
+  try {
+    return listV2ComponentMoveDestinations(source, { nodeId });
+  } catch {
+    return null;
+  }
+}
+
+function componentLabel(model, componentId) {
+  const selectionId = `component:${componentId}`;
+  const card = model.canvasCards.find((candidate) => candidate.selectionId === selectionId);
+  if (card) return card.label;
+  const row = model.treeRows.find((candidate) => candidate.selectionId === selectionId);
+  return row?.label || componentId;
+}
+
+function destinationLabel(model, destination) {
+  if (destination.kind === END_OF_PAGE) return 'End of page';
+  if (destination.kind === BEFORE_COMPONENT) {
+    return `Before ${componentLabel(model, destination.beforeComponentId)}`;
+  }
+  return 'Unknown destination';
+}
+
+function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
+  const context = componentMoveContext(source, model.selection.nodeId);
+  if (!context) {
+    return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Select a field</h3><p class="muted">Choose an editable text field, or select an existing page component to change its position. Media, themes, capabilities, persistence, and publishing remain outside this slice.</p></section>';
+  }
+
+  const isProposalTarget = matchingMoveProposal(proposal, model);
+  const activeDestination = isProposalTarget ? proposal.command.destination : null;
+  const status = isProposalTarget
+    ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the proposed component position. The accepted session draft is unchanged.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+
+  if (context.destinations.length === 0) {
+    return `<section class="editor-card"><p class="eyebrow">Position</p><h3>Only component on page</h3><p class="target-path">${escapeHtml(context.componentId)} · position ${context.position} of ${context.count}</p><p class="muted">There is no different same-page position available for this component.</p></section>`;
+  }
+
+  const options = context.destinations.map((destination) => {
+    const value = destination.kind === END_OF_PAGE
+      ? END_OF_PAGE
+      : `${BEFORE_COMPONENT}:${destination.beforeComponentId}`;
+    const selected = activeDestination
+      && activeDestination.kind === destination.kind
+      && (
+        destination.kind === END_OF_PAGE
+        || activeDestination.beforeComponentId === destination.beforeComponentId
+      );
+    return `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(destinationLabel(model, destination))}</option>`;
+  }).join('');
+
+  return `<section class="editor-card" aria-labelledby="component-position-heading">
+    <p class="eyebrow">Structure</p>
+    <h3 id="component-position-heading">Reorder component</h3>
+    <p class="target-path">${escapeHtml(context.componentId)} · position ${context.position} of ${context.count} · ${escapeHtml(humanize(context.ownership))}</p>
+    ${status}
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.reorder)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-destination">Position</label>
+      <select id="authoring-destination" name="destination" required>${options}</select>
+      <p class="form-help">Destinations are derived from stable siblings on this page. Cross-page movement is not available.</p>
+      <button class="button primary" type="submit">Preview position</button>
+    </form>
+    ${isProposalTarget ? `<div class="proposal-actions">
+      <form method="post" action="${escapeHtml(actionPaths.apply)}">
+        <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+        <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+        <button class="button primary" type="submit">Apply to draft</button>
+      </form>
+      <form method="post" action="${escapeHtml(actionPaths.discard)}">
+        <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+        <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+        <button class="button secondary" type="submit">Discard preview</button>
+      </form>
+    </div>` : ''}
+  </section>`;
 }
 
 function renderEditor({
@@ -118,7 +212,7 @@ function renderEditor({
   actionPaths,
 }) {
   if (!model.selection.fieldId) {
-    return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Select a field</h3><p class="muted">Choose an editable text field above. The first slice intentionally excludes structure, media, themes, capabilities, and persistence.</p></section>';
+    return renderMoveEditor({ model, session, proposal, source, actionPaths });
   }
 
   const resolved = editableField(source, model.selection.nodeId, model.selection.fieldId);
@@ -126,7 +220,7 @@ function renderEditor({
     return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Read-only field</h3><p class="muted">This field is outside the first ordinary operator-authored scalar-text mutation slice.</p></section>';
   }
 
-  const isProposalTarget = matchingProposal(proposal, model);
+  const isProposalTarget = matchingFieldProposal(proposal, model);
   const inputValue = isProposalTarget
     ? proposal.command.payload.value
     : resolved.currentValue;
@@ -194,6 +288,7 @@ function renderV2AuthoringStudioSurface({
   const normalizedStudioPath = strictLocalPath(studioPath, 'Studio path');
   const normalizedActions = {
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
+    reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
@@ -223,12 +318,12 @@ function renderV2AuthoringStudioSurface({
 <title>Authoring Studio · ${escapeHtml(model.venue.displayName)}</title>
 <style>
 :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1d2528;background:#e9edef;color-scheme:light}
-*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}button,textarea,a{font:inherit}a,button{min-height:44px}a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:#fff}.skip:focus{top:12px}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}button,textarea,select,a{font:inherit}a,button{min-height:44px}a:focus-visible,button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:#fff}.skip:focus{top:12px}
 .studio{min-height:100vh;display:grid;grid-template-rows:auto auto 1fr}.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 22px;border-bottom:1px solid #ccd3d6;background:#fff}.brand{display:flex;align-items:center;gap:14px;min-width:0}.brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#143c42;color:#fff;font-weight:900}.eyebrow{margin:0;color:#4b5a5f;font-size:.7rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase}.brand h1{margin:2px 0 0;font-size:1.05rem}.authority-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #a8b7b7;border-radius:999px;background:#f4f8f7;color:#29494b;font-size:.74rem;font-weight:800}.authority-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#d69e2e}
 .statebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.state-copy strong,.state-copy span{display:block}.state-copy strong{font-size:.82rem}.state-copy span{margin-top:2px;color:#4b5a5f;font-size:.72rem}.digest-pair{display:flex;gap:8px;flex-wrap:wrap}.digest-chip{padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #ccd3d6;font-size:.64rem}.digest-chip strong{display:block}.digest-chip code{font-size:.6rem}
 .workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 330px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.tree-list,.field-list{list-style:none;margin:0;padding:8px}.tree-list li{padding-left:calc(var(--depth) * 8px)}.tree-link,.field-link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.tree-link strong,.tree-link small,.field-link strong,.field-link small{display:block}.tree-link strong,.field-link strong{font-size:.76rem}.tree-link small,.field-link small{margin-top:2px;color:#536166;font-size:.63rem}.tree-link.is-selected,.field-link.is-selected{border-color:#73a9a1;background:#e8f4f1}.field-link.is-locked{opacity:.66}.selected-chip,.ownership-chip{flex:none;padding:4px 6px;border-radius:999px;background:#edf2f2;color:#395255;font-size:.6rem;font-weight:800}.selected-chip{background:#176b61;color:#fff}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:170px;max-width:245px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}.preview-area{display:grid;place-items:start center;min-height:620px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}.preview-holder.viewport-desktop{width:720px;height:500px}.preview-holder.viewport-desktop iframe{width:1440px;height:1000px;transform:scale(.5)}.preview-holder.viewport-tablet{width:459px;height:612px}.preview-holder.viewport-tablet iframe{width:834px;height:1112px;transform:scale(.55)}.preview-holder.viewport-mobile{width:273px;height:591px}.preview-holder.viewport-mobile iframe{width:390px;height:844px;transform:scale(.70)}.preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-top:1px solid #cbd3d6;background:#fff;font-size:.68rem}.viewport-options{display:flex;gap:5px;padding:8px;border-top:1px solid #dce2e4;background:#fff}.viewport-option{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option span{font-size:.62rem}.viewport-option.is-selected{background:#143c42;color:#fff}
-.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form textarea{width:100%;resize:vertical;min-height:110px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
+.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form textarea{resize:vertical;min-height:110px}.edit-form select{min-height:44px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
 @media(max-width:1180px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector-panel{grid-column:2;position:static;max-height:none}.preview-holder.viewport-desktop{width:620px;height:431px}.preview-holder.viewport-desktop iframe{transform:scale(.431)}}
 @media(max-width:720px){.topbar,.statebar{align-items:flex-start;flex-direction:column;padding:12px}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;position:static;max-height:none}.tree-panel{order:2;position:static;max-height:none}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.history-card{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
@@ -259,7 +354,7 @@ function renderV2AuthoringStudioSurface({
       <p class="memory-note">Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
-      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Typed text slice</span></header>
+      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Typed content + position</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions })}

@@ -5,9 +5,12 @@ const { URLSearchParams } = require('node:url');
 const path = require('node:path');
 const express = require('express');
 const {
+  BEFORE_COMPONENT,
+  END_OF_PAGE,
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  proposeV2MoveComponent,
   proposeV2SetField,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
@@ -106,6 +109,19 @@ function selectionRedirect(response, body) {
   response.redirect(303, `/studio-authoring?${query.toString()}`);
 }
 
+function parseMoveDestinationForm(value) {
+  if (value === END_OF_PAGE) return { kind: END_OF_PAGE };
+  const prefix = `${BEFORE_COMPONENT}:`;
+  if (!value.startsWith(prefix)) {
+    throw new V2AuthoringStudioError('component destination is invalid');
+  }
+  const beforeComponentId = value.slice(prefix.length);
+  if (!beforeComponentId || beforeComponentId.includes(':') || beforeComponentId.length > 80) {
+    throw new V2AuthoringStudioError('component destination is invalid');
+  }
+  return { kind: BEFORE_COMPONENT, beforeComponentId };
+}
+
 function createV2AuthoringStudioFixture(sourceInput) {
   const sourceFactory = typeof sourceInput === 'function' ? sourceInput : () => sourceInput;
   const openingSource = sourceFactory();
@@ -141,6 +157,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   const actionPaths = Object.freeze({
     propose: '/studio-authoring/propose',
+    reorder: '/studio-authoring/reorder',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -226,12 +243,34 @@ function createV2AuthoringStudioFixture(sourceInput) {
     }
   });
 
+  app.post(actionPaths.reorder, (request, response) => {
+    try {
+      const body = plainStrings(
+        request.body,
+        'reorder form',
+        new Set(['nodeId', 'viewport', 'expectedDraftDigest', 'destination']),
+      );
+      proposal = proposeV2MoveComponent(session, {
+        schemaVersion: 1,
+        type: 'MOVE_COMPONENT',
+        target: { nodeId: body.nodeId },
+        destination: parseMoveDestinationForm(body.destination),
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { ...body, fieldId: '' });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
   app.post(actionPaths.apply, (request, response) => {
     try {
       const body = plainStrings(
         request.body,
         'apply form',
         new Set(['nodeId', 'fieldId', 'viewport']),
+        new Set(['fieldId']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to apply');
       session = applyV2AuthoringProposal(session, proposal);
@@ -250,6 +289,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
         request.body,
         'discard form',
         new Set(['nodeId', 'fieldId', 'viewport']),
+        new Set(['fieldId']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to discard');
       session = discardV2AuthoringProposal(session, proposal);
