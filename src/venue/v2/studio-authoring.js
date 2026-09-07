@@ -11,11 +11,14 @@ const {
   END_OF_PAGE,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
+  SET_MEDIA_USAGE_ASSET,
   SET_THEME_RECIPE,
   V2_GLOBAL_THEME_TARGET,
+  V2_HERO_MEDIA_SLOT,
   getV2ComponentRemovalContext,
   listV2ComponentAddDestinations,
   listV2ComponentMoveDestinations,
+  listV2MediaUsageOptions,
   listV2ThemeRecipeOptions,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
@@ -196,6 +199,90 @@ function renderThemeEditor({ model, session, proposal, source, actionPaths }) {
     <div class="theme-grid">${controls}</div>
     <p class="form-help">Theme controls use HiVenues design recipes. Raw CSS, arbitrary token keys, font URLs, media, responsive overrides, persistence, and publishing are not available here.</p>
     ${isProposal ? renderProposalActions(model, actionPaths) : ''}
+  </section>`;
+}
+
+function mediaUsageContext(source, nodeId) {
+  try {
+    return listV2MediaUsageOptions(source, { nodeId }, V2_HERO_MEDIA_SLOT);
+  } catch {
+    return null;
+  }
+}
+
+function matchingMediaProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === SET_MEDIA_USAGE_ASSET
+    && proposal.command.target.nodeId === model.selection.nodeId
+  );
+}
+
+function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
+  const context = mediaUsageContext(source, model.selection.nodeId);
+  if (!context) return '';
+  if (proposal && !matchingMediaProposal(proposal, model)) {
+    return '<section class="editor-card"><p class="eyebrow">Media</p><h3>Finish the active preview first</h3><p class="muted">Apply or discard the current proposal before starting a media change.</p></section>';
+  }
+
+  const isProposal = matchingMediaProposal(proposal, model);
+  const usage = isProposal
+    ? {
+      assetId: proposal.command.assetId,
+      alt: proposal.command.alt,
+      decorative: proposal.command.decorative,
+    }
+    : context.current;
+  const assets = context.assets.map((asset) =>
+    `<option value="${escapeHtml(asset.id)}"${asset.id === usage.assetId ? ' selected' : ''}>${escapeHtml(humanize(asset.id))} · ${asset.width} × ${asset.height}</option>`
+  ).join('');
+  const status = isProposal
+    ? '<div class="preview-state" role="status"><strong>Media preview — not applied</strong><span>The real Canvas is rendering the proposed managed asset. The accepted session draft is unchanged.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted hero media</strong><span>Existing managed assets only · memory only · not saved · not published</span></div>';
+
+  if (isProposal) {
+    const meaning = usage.decorative ? 'Decorative image' : `Meaningful · ${usage.alt}`;
+    return `<section class="editor-card media-card" aria-labelledby="media-editor-heading">
+      <p class="eyebrow">Venue media</p>
+      <h3 id="media-editor-heading">Hero image</h3>
+      <p class="target-path">${escapeHtml(context.componentId)} · ${escapeHtml(humanize(context.ownership))}</p>
+      ${status}
+      <div class="theme-control is-preview"><div><strong>${escapeHtml(humanize(usage.assetId))}</strong><span>Preview</span></div><small>${escapeHtml(meaning)}</small></div>
+      <p class="form-help">This preview changes only the hero media reference and accessibility meaning. Asset bytes, paths, dimensions, crop/treatment, persistence, and publishing remain server-owned or unavailable.</p>
+      ${renderProposalActions(model, actionPaths)}
+    </section>`;
+  }
+
+  return `<section class="editor-card media-card" aria-labelledby="media-editor-heading">
+    <p class="eyebrow">Venue media</p>
+    <h3 id="media-editor-heading">Hero image</h3>
+    <p class="target-path">${escapeHtml(context.componentId)} · ${escapeHtml(humanize(context.ownership))}</p>
+    ${status}
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.media)}" data-media-meaning="meaningful">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="false">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-media-asset">Meaningful hero image</label>
+      <select id="authoring-media-asset" name="assetId" required>${assets}</select>
+      <label for="authoring-media-alt">Alternative text</label>
+      <input id="authoring-media-alt" name="alt" type="text" maxlength="240" value="${escapeHtml(context.current.decorative ? '' : (context.current.alt || ''))}" required>
+      <p class="form-help">Use this path when the image communicates information. Give it concise alternative text.</p>
+      <button class="button primary" type="submit">Preview meaningful image</button>
+    </form>
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.media)}" data-media-meaning="decorative">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="true">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-media-decorative-asset">Decorative hero image</label>
+      <select id="authoring-media-decorative-asset" name="assetId" required>${assets}</select>
+      <p class="form-help">Use this path only when the image adds no information. HiVenues will render empty alternative text and hide it from assistive technology.</p>
+      <button class="button secondary" type="submit">Preview as decorative</button>
+    </form>
+    <p class="form-help">New file import, source paths, dimensions, crop/focal controls, gallery editing, persistence, and publishing are not available in this slice.</p>
   </section>`;
 }
 
@@ -432,6 +519,9 @@ function renderEditor({
   source,
   actionPaths,
 }) {
+  if (proposal?.command.type === SET_MEDIA_USAGE_ASSET) {
+    return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Media preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Media proposal below before starting another content or structure change.</p></section>';
+  }
   if (matchingThemeProposal(proposal)) {
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
   }
@@ -516,6 +606,7 @@ function renderV2AuthoringStudioSurface({
     add: strictLocalPath(actionPaths.add || `${normalizedStudioPath}/add`, 'add path'),
     remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
     theme: strictLocalPath(actionPaths.theme || `${normalizedStudioPath}/theme`, 'theme path'),
+    media: strictLocalPath(actionPaths.media || `${normalizedStudioPath}/media`, 'media path'),
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
@@ -586,10 +677,11 @@ function renderV2AuthoringStudioSurface({
       <p class="memory-note">Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
-      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · theme</span></header>
+      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · media · theme</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
+      ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
       ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
       ${renderHistoryControls(session, normalizedActions, model)}
     </aside>

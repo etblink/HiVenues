@@ -14,6 +14,7 @@ const {
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
+  proposeV2SetMediaUsageAsset,
   proposeV2SetThemeRecipe,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
@@ -164,6 +165,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
     add: '/studio-authoring/add',
     remove: '/studio-authoring/remove',
     theme: '/studio-authoring/theme',
+    media: '/studio-authoring/media',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -325,6 +327,45 @@ function createV2AuthoringStudioFixture(sourceInput) {
       throw error;
     }
   });
+  app.post(actionPaths.media, (request, response) => {
+    try {
+      requireNoActiveProposal();
+      const body = plainStrings(
+        request.body,
+        'media form',
+        new Set([
+          'nodeId',
+          'mediaSlot',
+          'assetId',
+          'alt',
+          'decorative',
+          'viewport',
+          'expectedDraftDigest',
+        ]),
+        new Set(['alt']),
+      );
+      if (!['true', 'false'].includes(body.decorative)) {
+        throw new V2AuthoringStudioError('media decorative value is invalid');
+      }
+      const decorative = body.decorative === 'true';
+      proposal = proposeV2SetMediaUsageAsset(session, {
+        schemaVersion: 1,
+        type: 'SET_MEDIA_USAGE_ASSET',
+        target: { nodeId: body.nodeId },
+        slot: body.mediaSlot,
+        assetId: body.assetId,
+        alt: decorative && (body.alt === undefined || body.alt === '') ? null : body.alt,
+        decorative,
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { ...body, fieldId: '' });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
   app.post(actionPaths.theme, (request, response) => {
     try {
       requireNoActiveProposal();

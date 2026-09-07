@@ -982,3 +982,153 @@ test('server rejects a second proposal while any proposal remains active', async
   assert.equal(fixture.proposal().afterDigest, firstProposalDigest);
   assert.equal(fixture.session().draftDigest, openingDigest);
 });
+
+
+test('Media editor exposes only existing managed hero assets and previews through the real renderer', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('live-music');
+  const source = fixture.session().draftSource;
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+  const nodeId = 'component:' + hero.id;
+  const openingDigest = fixture.session().draftDigest;
+
+  let response = await request(fixture.app)
+    .get('/studio-authoring?nodeId=' + encodeURIComponent(nodeId) + '&viewport=desktop');
+  assert.equal(response.status, 200);
+  assert.match(response.text, /id="media-editor-heading">Hero image/);
+  assert.match(response.text, /action="\/studio-authoring\/media"/);
+  assert.match(response.text, /data-media-meaning="meaningful"/);
+  assert.match(response.text, /data-media-meaning="decorative"/);
+  assert.match(response.text, /name="mediaSlot" value="hero-media"/);
+  assert.match(response.text, /Preview meaningful image/);
+  assert.match(response.text, /Preview as decorative/);
+  assert.equal(response.text.includes('name="sourcePointer"'), false);
+  assert.equal(response.text.includes('name="src"'), false);
+  assert.equal(response.text.includes('name="treatment"'), false);
+
+  response = await request(fixture.app)
+    .post('/studio-authoring/media')
+    .type('form')
+    .send({
+      nodeId,
+      mediaSlot: 'hero-media',
+      assetId: asset.id,
+      alt: 'Northline Hall replacement stage view',
+      decorative: 'false',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+    });
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().command.type, 'SET_MEDIA_USAGE_ASSET');
+
+  response = await request(fixture.app).get(response.headers.location);
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Media preview/);
+  assert.match(response.text, /Media preview active/);
+  const preview = await request(fixture.app).get('/studio-authoring-preview/page/' + page.id);
+  assert.equal(preview.status, 200);
+  assert.equal(preview.text.includes(asset.src), true);
+  assert.equal(preview.text.includes('Northline Hall replacement stage view'), true);
+
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId, viewport: 'desktop' })
+    .expect(303);
+  const appliedDigest = fixture.session().draftDigest;
+  assert.notEqual(appliedDigest, openingDigest);
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({ nodeId, viewport: 'desktop', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+
+  await request(fixture.app)
+    .post('/studio-authoring/redo')
+    .type('form')
+    .send({ nodeId, viewport: 'desktop', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});
+
+test('Media decorative path requires no manual alt clearing and renders empty alt plus aria-hidden', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const source = fixture.session().draftSource;
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+  const nodeId = 'component:' + hero.id;
+  const openingDigest = fixture.session().draftDigest;
+
+  const response = await request(fixture.app)
+    .post('/studio-authoring/media')
+    .type('form')
+    .send({
+      nodeId,
+      mediaSlot: 'hero-media',
+      assetId: asset.id,
+      decorative: 'true',
+      viewport: 'tablet',
+      expectedDraftDigest: openingDigest,
+    });
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().command.decorative, true);
+  assert.equal(fixture.proposal().command.alt, null);
+
+  const preview = await request(fixture.app)
+    .get('/studio-authoring-preview/page/' + page.id)
+    .expect(200);
+  assert.equal(preview.text.includes(asset.src), true);
+  assert.match(preview.text, /alt=""[^>]*aria-hidden="true"/);
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});
+
+test('Media transport rejects implementation-shaped and invalid accessibility payloads', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const source = fixture.session().draftSource;
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+  const base = {
+    nodeId: 'component:' + hero.id,
+    mediaSlot: 'hero-media',
+    assetId: asset.id,
+    alt: 'Restaurant hero replacement',
+    decorative: 'false',
+    viewport: 'mobile',
+    expectedDraftDigest: fixture.session().draftDigest,
+  };
+  for (const body of [
+    { ...base, sourcePointer: '/site/pages/0/components/0/content/media' },
+    { ...base, src: '/browser/path.svg' },
+    { ...base, width: '1' },
+    { ...base, treatment: '{}' },
+    { ...base, decorative: 'true', alt: 'not-null' },
+    { ...base, decorative: 'false', alt: '' },
+    { ...base, mediaSlot: 'gallery-item' },
+    { ...base, assetId: 'unknown-asset' },
+  ]) {
+    await request(fixture.app).post('/studio-authoring/media').type('form').send(body).expect(400);
+    assert.equal(fixture.proposal(), null);
+  }
+  assert.equal(fixture.session().draftDigest, fixture.session().baselineDigest);
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});

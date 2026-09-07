@@ -166,6 +166,10 @@ jobs:
         env:
           V2_THEME_REVIEW_ROOT: artifacts/v2-theme-authoring-review
         run: node scripts/capture-v2-theme-authoring-visual.js
+      - name: Capture PM3 v2 existing-media hero authoring evidence
+        env:
+          V2_MEDIA_REVIEW_ROOT: artifacts/v2-media-authoring-review
+        run: node scripts/capture-v2-media-authoring-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -186,6 +190,7 @@ jobs:
           const v2Reorder = JSON.parse(fs.readFileSync('artifacts/v2-component-reorder-review/manifest.json', 'utf8'));
           const v2Cardinality = JSON.parse(fs.readFileSync('artifacts/v2-component-cardinality-review/manifest.json', 'utf8'));
           const v2Theme = JSON.parse(fs.readFileSync('artifacts/v2-theme-authoring-review/manifest.json', 'utf8'));
+          const v2Media = JSON.parse(fs.readFileSync('artifacts/v2-media-authoring-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -210,6 +215,9 @@ jobs:
           console.log(`- Issue #186 Theme references/dimensions: ${v2Theme.summary.referenceCount}/${v2Theme.summary.dimensionCount}; screenshots: ${v2Theme.summary.screenshotCount}; keyboard proposals: ${v2Theme.summary.keyboardProposalCompletionCount}; digest proofs: ${v2Theme.summary.digestProofCount}`);
           console.log(`- Issue #186 discard/apply/undo/redo proofs: ${v2Theme.summary.discardProofCount}/${v2Theme.summary.applyProofCount}/${v2Theme.summary.undoProofCount}/${v2Theme.summary.redoProofCount}; semantic-class/computed-style proofs: ${v2Theme.summary.semanticClassProofCount}/${v2Theme.summary.computedStyleProofCount}`);
           console.log(`- Issue #186 blocking accessibility findings: ${v2Theme.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Theme.summary.horizontalOverflowFindings}; persistent writes: ${v2Theme.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Theme.summary.hiveRpcAttempts}/${v2Theme.summary.hiveWrites}`);
+          console.log(`- Issue #188 media references: ${v2Media.summary.referenceCount}; screenshots: ${v2Media.summary.screenshotCount}; keyboard proposals: ${v2Media.summary.keyboardProposalCompletionCount}; digest proofs: ${v2Media.summary.digestProofCount}`);
+          console.log(`- Issue #188 discard/apply/undo/redo proofs: ${v2Media.summary.discardProofCount}/${v2Media.summary.applyProofCount}/${v2Media.summary.undoProofCount}/${v2Media.summary.redoProofCount}; renderer/alt/treatment proofs: ${v2Media.summary.rendererAssetProofCount}/${v2Media.summary.altTextProofCount}/${v2Media.summary.treatmentPreservationProofCount}`);
+          console.log(`- Issue #188 blocking accessibility findings: ${v2Media.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Media.summary.horizontalOverflowFindings}; persistent writes: ${v2Media.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Media.summary.hiveRpcAttempts}/${v2Media.summary.hiveWrites}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -228,6 +236,7 @@ jobs:
             artifacts/v2-component-reorder-review
             artifacts/v2-component-cardinality-review
             artifacts/v2-theme-authoring-review
+            artifacts/v2-media-authoring-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90

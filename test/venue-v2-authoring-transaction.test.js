@@ -9,18 +9,22 @@ const {
   END_OF_PAGE,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
+  SET_MEDIA_USAGE_ASSET,
   SET_THEME_RECIPE,
   V2_COMPONENT_CATALOG,
   V2_GLOBAL_THEME_TARGET,
+  V2_HERO_MEDIA_SLOT,
   V2_THEME_RECIPE_DIMENSIONS,
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  listV2MediaUsageOptions,
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
+  proposeV2SetMediaUsageAsset,
   proposeV2SetThemeRecipe,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
@@ -1042,4 +1046,95 @@ test('theme history rejects forged inverse recipe semantics', () => {
     () => undoV2AuthoringSession(forged),
     /history inverse command binding is invalid|history inverse command\/source binding is invalid/,
   );
+});
+
+
+test('SET_MEDIA_USAGE_ASSET replaces an existing hero asset with exact Undo Redo restoration', () => {
+  for (const referenceId of ['restaurant', 'live-music']) {
+    const source = REFERENCE_FACTORIES[referenceId]();
+    const session = createV2AuthoringSession(source);
+    const page = source.site.pages.find((candidate) =>
+      candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+    );
+    const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+    const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+    assert.ok(asset, referenceId);
+    const nodeId = 'component:' + hero.id;
+    const baseline = serializeV2DeploymentAgnosticVenueSource(source);
+    const treatment = JSON.stringify(hero.content.media.treatment);
+    const options = listV2MediaUsageOptions(source, { nodeId });
+
+    assert.equal(options.slot, V2_HERO_MEDIA_SLOT, referenceId);
+    assert.equal(Object.hasOwn(options.assets[0], 'src'), false, referenceId);
+    assert.ok(options.assets.some((candidate) => candidate.id === asset.id), referenceId);
+
+    const proposal = proposeV2SetMediaUsageAsset(session, {
+      schemaVersion: 1,
+      type: SET_MEDIA_USAGE_ASSET,
+      target: { nodeId },
+      slot: V2_HERO_MEDIA_SLOT,
+      assetId: asset.id,
+      alt: referenceId + ' replacement hero image',
+      decorative: false,
+      expectedDraftDigest: session.draftDigest,
+    });
+
+    assert.equal(session.draftDigest, session.baselineDigest, referenceId);
+    assert.equal(proposal.resolvedTarget.ownership, 'OPERATOR_AUTHORED', referenceId);
+    assert.match(proposal.resolvedTarget.sourcePointer, /\/content\/media$/, referenceId);
+    const previewPage = proposal.previewSource.site.pages.find((candidate) => candidate.id === page.id);
+    const previewHero = previewPage.components.find((component) => component.id === hero.id);
+    assert.equal(previewHero.content.media.assetId, asset.id, referenceId);
+    assert.equal(previewHero.content.media.alt, referenceId + ' replacement hero image', referenceId);
+    assert.equal(JSON.stringify(previewHero.content.media.treatment), treatment, referenceId);
+    const html = renderV2Page(proposal.previewSource, { pageId: page.id, viewport: 'desktop' });
+    assert.equal(html.includes(asset.src), true, referenceId);
+    assert.equal(html.includes(referenceId + ' replacement hero image'), true, referenceId);
+
+    const applied = applyV2AuthoringProposal(session, proposal);
+    assert.equal(applied.history[0].inverseCommand.type, SET_MEDIA_USAGE_ASSET, referenceId);
+    assert.equal(applied.history[0].inverseCommand.assetId, hero.content.media.assetId, referenceId);
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(serializeV2DeploymentAgnosticVenueSource(undone.draftSource), baseline, referenceId);
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(redone.draftDigest, applied.draftDigest, referenceId);
+  }
+});
+
+test('SET_MEDIA_USAGE_ASSET rejects stale unknown no-op accessibility and browser-owned media structure', () => {
+  const source = REFERENCE_FACTORIES.restaurant();
+  const session = createV2AuthoringSession(source);
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+  const nodeId = 'component:' + hero.id;
+  const valid = {
+    schemaVersion: 1,
+    type: SET_MEDIA_USAGE_ASSET,
+    target: { nodeId },
+    slot: V2_HERO_MEDIA_SLOT,
+    assetId: asset.id,
+    alt: 'Dining room at sunset',
+    decorative: false,
+    expectedDraftDigest: session.draftDigest,
+  };
+  const rejected = [
+    { ...valid, expectedDraftDigest: '0'.repeat(64) },
+    { ...valid, assetId: 'unknown-asset' },
+    { ...valid, assetId: hero.content.media.assetId, alt: hero.content.media.alt, decorative: hero.content.media.decorative },
+    { ...valid, target: { nodeId: 'component:home-gallery' } },
+    { ...valid, slot: 'gallery-item' },
+    { ...valid, decorative: true, alt: 'must be null' },
+    { ...valid, decorative: false, alt: '' },
+    { ...valid, sourcePointer: '/site/pages/0/components/0/content/media' },
+    { ...valid, src: '/browser-owned.svg' },
+    { ...valid, width: 1 },
+    { ...valid, treatment: { fit: 'contain' } },
+  ];
+  for (const command of rejected) {
+    assert.throws(() => proposeV2SetMediaUsageAsset(session, command));
+    assert.equal(session.draftDigest, session.baselineDigest);
+  }
 });
