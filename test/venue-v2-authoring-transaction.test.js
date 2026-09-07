@@ -275,7 +275,7 @@ test('proposal source/digest tampering is rejected before apply', () => {
 
   assert.throws(
     () => applyV2AuthoringProposal(session, forged),
-    /proposal digest binding is invalid/,
+    /proposal source\/digest binding is invalid/,
   );
 });
 
