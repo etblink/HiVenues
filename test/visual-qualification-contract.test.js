@@ -144,6 +144,9 @@ test('workflow preserves universal qualification and deliberate full-path semant
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
   assert.match(workflow, /node scripts\/capture-current-contract-visual\.js/);
+  assert.match(workflow, /node scripts\/capture-v2-component-cardinality-visual\.js/);
+  assert.match(workflow, /V2_CARDINALITY_REVIEW_ROOT: artifacts\/v2-component-cardinality-review/);
+  assert.match(workflow, /artifacts\/v2-component-cardinality-review/);
   assert.match(workflow, /node scripts\/assemble-current-visual-evidence\.js/);
   assert.match(workflow, /artifacts\/current-visual-review/);
   assert.doesNotMatch(workflow, /path:\s*artifacts\s*$/m);
