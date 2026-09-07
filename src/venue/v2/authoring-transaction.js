@@ -376,8 +376,6 @@ function parseRestoreComponentCommand(value) {
       'target',
       'componentSnapshot',
       'destination',
-      'dimension',
-      'recipeId',
       'expectedDraftDigest',
     ]),
   );
@@ -409,6 +407,8 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
       'catalogItemId',
       'componentSnapshot',
       'destination',
+      'dimension',
+      'recipeId',
       'expectedDraftDigest',
     ]),
   );
