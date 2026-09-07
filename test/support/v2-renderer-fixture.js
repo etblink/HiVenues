@@ -512,7 +512,7 @@ function createV2RendererPreviewFixture(sourceInput) {
     if (!svg) return next();
     return response.type('image/svg+xml').send(svg);
   });
-  app.use(express.static(PUBLIC_ROOT, { fallthrough: true }));
+  app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
 
   app.get('/community', (_request, response) => {
     if (source.capabilities.community.state !== 'configured') {
