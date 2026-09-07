@@ -496,7 +496,7 @@ function renderV2EventDetail(input, eventSlug, options = {}) {
         decorative: false,
         treatment: {
           focalPoint: { x: 0.5, y: 0.5 },
-          fit: 'cover',
+          fit: 'contain',
           aspectRecipeId: 'aspect-portrait',
         },
       }, { eager: true })
