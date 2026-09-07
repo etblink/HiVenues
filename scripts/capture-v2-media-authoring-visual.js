@@ -250,6 +250,11 @@ async function runReference(browser, spec) {
     assert.equal(baseline.runtimeWired, 'false');
     assert.equal(baseline.mutations, 'true');
 
+    const mediaHeading = page.locator('#media-editor-heading');
+    assert.equal(await mediaHeading.count(), 1, spec.referenceId + ': Media editor heading missing');
+    await mediaHeading.scrollIntoViewIfNeeded();
+    const editorScreenshot = await capture(page, spec.referenceId, 'editor');
+
     await chooseMediaByKeyboard(page, targetAsset.id, targetAlt, spec.referenceId + '/first');
     const firstPreview = await authority(page);
     const firstPreviewRenderer = await rendererState(page, hero.id);
@@ -354,7 +359,7 @@ async function runReference(browser, spec) {
       previewAccessibility,
       appliedGeometry,
       appliedAccessibility,
-      screenshots: [previewScreenshot, appliedScreenshot, undoScreenshot, redoScreenshot],
+      screenshots: [editorScreenshot, previewScreenshot, appliedScreenshot, undoScreenshot, redoScreenshot],
       diagnostics,
     };
   } finally {
@@ -400,7 +405,7 @@ async function main() {
   };
 
   assert.equal(summary.referenceCount, 4);
-  assert.equal(summary.screenshotCount, 16);
+  assert.equal(summary.screenshotCount, 20);
   assert.equal(summary.keyboardProposalCompletionCount, 8);
   assert.equal(summary.digestProofCount, 4);
   assert.equal(summary.discardProofCount, 4);
