@@ -105,6 +105,7 @@ test('live-music event details derive from the canonical Event resource and emit
   assert.equal(document.querySelector('time').getAttribute('datetime'), event.startAt);
   assert.match(document.body.textContent, new RegExp(event.description));
   assert.equal(document.querySelector('.v2-action--primary').getAttribute('href'), event.externalAction.href);
+  assert.equal(document.querySelector('.v2-event-detail__media .v2-media').classList.contains('v2-fit--contain'), true);
 
   const structured = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
   assert.equal(structured['@type'], 'Event');
