@@ -73,6 +73,9 @@ async function geometry(page, label) {
       formCount: globalThis.document.querySelectorAll('form').length,
       inputCount: globalThis.document.querySelectorAll('input,textarea,select').length,
       buttonCount: globalThis.document.querySelectorAll('button').length,
+      presentationButtonCount: globalThis.document.querySelectorAll('button[data-studio-presentation-control="true"]').length,
+      unexpectedButtonCount: [...globalThis.document.querySelectorAll('button')]
+        .filter((button) => button.getAttribute('data-studio-presentation-control') !== 'true').length,
       minimumStudioTargetHeight: targetHeights.length ? Math.min(...targetHeights) : null,
     };
   });
@@ -86,7 +89,8 @@ async function geometry(page, label) {
   assert.equal(metrics.iframeCount, 1, `${label}: expected one real-renderer iframe`);
   assert.equal(metrics.formCount, 0, `${label}: read-only Studio unexpectedly contains a form`);
   assert.equal(metrics.inputCount, 0, `${label}: read-only Studio unexpectedly contains editable controls`);
-  assert.equal(metrics.buttonCount, 0, `${label}: read-only Studio unexpectedly contains buttons`);
+  assert.equal(metrics.presentationButtonCount, 2, `${label}: expected two presentation-only mode buttons`);
+  assert.equal(metrics.unexpectedButtonCount, 0, `${label}: unexpected non-presentation button found`);
   assert.ok(
     metrics.minimumStudioTargetHeight === null || metrics.minimumStudioTargetHeight >= 43.5,
     `${label}: Studio target below 44px convention ${JSON.stringify(metrics)}`,
@@ -121,25 +125,21 @@ function screenshotRecord(filename) {
   };
 }
 
-async function capture(page, {
-  origin,
+async function snapshotCurrent(page, {
   referenceId,
   stateId,
   shellViewport,
-  query,
+  pathname,
+  interaction = null,
 }) {
-  await page.setViewportSize(shellViewport);
-  const params = new URLSearchParams(query);
-  const pathname = `/studio?${params.toString()}`;
-  const response = await page.goto(new URL(pathname, origin).toString(), { waitUntil: 'networkidle' });
-  assert.ok(response && response.ok(), `${referenceId}/${stateId}: HTTP ${response && response.status()}`);
-
   const label = `${referenceId}/${stateId}`;
   const authority = await page.locator('main.studio').evaluate((element) => ({
     sourceDigest: element.dataset.sourceDigest,
     derived: element.dataset.studioDerived,
     persistent: element.dataset.studioPersistent,
     mutations: element.dataset.studioMutations,
+    inspectionMode: element.dataset.inspectionMode,
+    selectedComponentId: element.dataset.selectedComponentId,
   }));
   assert.match(authority.sourceDigest, /^[0-9a-f]{64}$/);
   assert.equal(authority.derived, 'true');
@@ -161,8 +161,253 @@ async function capture(page, {
     geometry: geometryMetrics,
     preview,
     accessibility: accessibilityFindings,
+    interaction,
     screenshot: screenshotRecord(filename),
   };
+}
+
+async function inspectRenderedComponent(page, {
+  componentId,
+  activation = 'pointer',
+}) {
+  const beforeDigest = await page.locator('main.studio').getAttribute('data-source-digest');
+  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(frame, 'direct inspection: preview frame missing');
+  await frame.waitForLoadState('networkidle');
+
+  const component = frame.locator(`.v2-component[data-component-id="${componentId}"]`);
+  await component.waitFor({ state: 'visible' });
+  await frame.locator(`.v2-component[data-component-id="${componentId}"][data-hivenues-studio-inspectable="true"]`)
+    .waitFor({ state: 'attached' });
+
+  const navigation = page.waitForNavigation({ waitUntil: 'networkidle' });
+  if (activation === 'keyboard') {
+    await component.focus();
+    await component.press('Enter');
+  } else {
+    await component.click({ position: { x: 12, y: 12 } });
+  }
+  await navigation;
+
+  const selected = await page.locator('main.studio').getAttribute('data-selected-component-id');
+  assert.equal(selected, componentId);
+  const afterDigest = await page.locator('main.studio').getAttribute('data-source-digest');
+  assert.equal(afterDigest, beforeDigest, 'direct inspection changed source digest');
+
+  const selectedFrame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(selectedFrame, 'direct inspection: selected preview frame missing');
+  await selectedFrame.waitForLoadState('networkidle');
+  await selectedFrame.locator(
+    `.v2-component[data-component-id="${componentId}"][data-hivenues-studio-selected="true"]`,
+  ).waitFor({ state: 'attached' });
+
+  const selectedTree = await page.locator('.studio-tree__link[aria-current="location"]').getAttribute('data-selection-id');
+  const selectedCard = await page.locator(`.canvas-card[data-component-id="${componentId}"][aria-current="location"]`).count();
+  assert.equal(selectedCard, 1);
+  assert.match(selectedTree || '', new RegExp(`component:${componentId.replace(/[.*+?^\${}()|[\\]\\]/g, '\\\\async function capture(page, {
+  origin,
+  referenceId,
+  stateId,
+  shellViewport,
+  query,
+}) {')}#!/usr/bin/env node
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { URLSearchParams } = require('node:url');
+const axe = require('axe-core');
+const { chromium } = require('playwright');
+const {
+  REFERENCE_FACTORIES,
+} = require('../test/support/v2-renderer-fixture');
+const {
+  createReferenceV2ReadOnlyStudioFixture,
+} = require('../test/support/v2-studio-fixture');
+const {
+  closeServer,
+  listenLoopback,
+  sha256,
+} = require('./support/visual-harness');
+
+const ROOT = path.join(__dirname, '..');
+const OUTPUT = path.resolve(
+  ROOT,
+  process.env.V2_STUDIO_REVIEW_ROOT || 'artifacts/v2-studio-review',
+);
+const SCREENSHOTS = path.join(OUTPUT, 'screenshots');
+const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
+const SHELL_VIEWPORTS = Object.freeze({
+  desktop: { width: 1440, height: 1000 },
+  tablet: { width: 834, height: 1112 },
+  mobile: { width: 390, height: 844 },
+});
+
+async function runAxeInFrame(frame) {
+  await frame.addScriptTag({ content: axe.source });
+  const result = await frame.evaluate(async () => globalThis.axe.run(globalThis.document, {
+    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
+    resultTypes: ['violations'],
+  }));
+  return result.violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact,
+    nodes: violation.nodes.length,
+    targets: violation.nodes.map((node) => node.target),
+    failureSummaries: violation.nodes.map((node) => node.failureSummary).filter(Boolean),
+  }));
+}
+
+async function accessibility(page, label) {
+  const outer = await runAxeInFrame(page.mainFrame());
+  const iframe = page.frames().find((frame) => frame !== page.mainFrame());
+  const preview = iframe ? await runAxeInFrame(iframe) : [];
+  const blocking = [...outer, ...preview].filter((finding) => BLOCKING_IMPACTS.has(finding.impact));
+  assert.deepEqual(blocking, [], `${label}: blocking accessibility findings\n${JSON.stringify(blocking, null, 2)}`);
+  return { outer, preview };
+}
+
+async function geometry(page, label) {
+  const metrics = await page.evaluate(() => {
+    const root = globalThis.document.documentElement;
+    const targetHeights = [...globalThis.document.querySelectorAll(
+      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.skip,summary',
+    )]
+      .map((element) => element.getBoundingClientRect().height)
+      .filter((height) => height > 0);
+    return {
+      clientWidth: root.clientWidth,
+      scrollWidth: root.scrollWidth,
+      h1Count: globalThis.document.querySelectorAll('h1').length,
+      mainCount: globalThis.document.querySelectorAll('main').length,
+      iframeCount: globalThis.document.querySelectorAll('iframe').length,
+      formCount: globalThis.document.querySelectorAll('form').length,
+      inputCount: globalThis.document.querySelectorAll('input,textarea,select').length,
+      buttonCount: globalThis.document.querySelectorAll('button').length,
+      presentationButtonCount: globalThis.document.querySelectorAll('button[data-studio-presentation-control="true"]').length,
+      unexpectedButtonCount: [...globalThis.document.querySelectorAll('button')]
+        .filter((button) => button.getAttribute('data-studio-presentation-control') !== 'true').length,
+      minimumStudioTargetHeight: targetHeights.length ? Math.min(...targetHeights) : null,
+    };
+  });
+
+  assert.ok(
+    metrics.scrollWidth - metrics.clientWidth <= 1,
+    `${label}: horizontal overflow ${JSON.stringify(metrics)}`,
+  );
+  assert.equal(metrics.h1Count, 1, `${label}: expected one Studio h1`);
+  assert.equal(metrics.mainCount, 1, `${label}: expected one main landmark`);
+  assert.equal(metrics.iframeCount, 1, `${label}: expected one real-renderer iframe`);
+  assert.equal(metrics.formCount, 0, `${label}: read-only Studio unexpectedly contains a form`);
+  assert.equal(metrics.inputCount, 0, `${label}: read-only Studio unexpectedly contains editable controls`);
+  assert.equal(metrics.presentationButtonCount, 2, `${label}: expected two presentation-only mode buttons`);
+  assert.equal(metrics.unexpectedButtonCount, 0, `${label}: unexpected non-presentation button found`);
+  assert.ok(
+    metrics.minimumStudioTargetHeight === null || metrics.minimumStudioTargetHeight >= 43.5,
+    `${label}: Studio target below 44px convention ${JSON.stringify(metrics)}`,
+  );
+  return metrics;
+}
+
+async function previewHealth(page, label) {
+  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(frame, `${label}: real renderer iframe missing`);
+  await frame.waitForLoadState('networkidle');
+  const data = await frame.evaluate(() => ({
+    h1Count: globalThis.document.querySelectorAll('h1').length,
+    mainCount: globalThis.document.querySelectorAll('main').length,
+    venueWordmark: globalThis.document.querySelector('.v2-wordmark')?.textContent?.trim() || null,
+    failedImages: [...globalThis.document.images]
+      .filter((image) => image.complete && image.naturalWidth === 0)
+      .map((image) => image.getAttribute('src')),
+  }));
+  assert.equal(data.mainCount, 1, `${label}: renderer preview main landmark mismatch`);
+  assert.equal(data.h1Count, 1, `${label}: renderer preview heading mismatch`);
+  assert.deepEqual(data.failedImages, [], `${label}: renderer preview image failure`);
+  return data;
+}
+
+function screenshotRecord(filename) {
+  const bytes = fs.readFileSync(filename);
+  return {
+    file: path.relative(OUTPUT, filename).replaceAll(path.sep, '/'),
+    sha256: sha256(bytes),
+    bytes: bytes.length,
+  };
+}
+
+));
+
+  return {
+    kind: 'direct-inspection',
+    activation,
+    componentId,
+    sourceDigestBefore: beforeDigest,
+    sourceDigestAfter: afterDigest,
+    selectionUrl: new URL(page.url()).pathname + new URL(page.url()).search,
+  };
+}
+
+async function browsePreview(page, {
+  linkText,
+  expectedPathname,
+}) {
+  const outerBefore = new URL(page.url());
+  const digestBefore = await page.locator('main.studio').getAttribute('data-source-digest');
+  const selectedBefore = await page.locator('main.studio').getAttribute('data-selected-component-id');
+
+  await page.getByRole('button', { name: 'Browse Preview' }).click();
+  assert.equal(await page.getByRole('button', { name: 'Browse Preview' }).getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('main.studio').getAttribute('data-inspection-mode'), 'browse');
+
+  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  assert.ok(frame, 'browse preview: frame missing');
+  await frame.waitForLoadState('networkidle');
+  assert.equal(await frame.locator('[data-hivenues-studio-inspectable]').count(), 0);
+
+  const publicLink = frame.locator('.v2-nav__link').filter({ hasText: linkText }).first();
+  await publicLink.waitFor({ state: 'visible' });
+  await Promise.all([
+    frame.waitForNavigation({ waitUntil: 'networkidle' }),
+    publicLink.click(),
+  ]);
+
+  const outerAfter = new URL(page.url());
+  assert.equal(outerAfter.pathname + outerAfter.search, outerBefore.pathname + outerBefore.search);
+  assert.equal(await page.locator('main.studio').getAttribute('data-source-digest'), digestBefore);
+  assert.equal(await page.locator('main.studio').getAttribute('data-selected-component-id'), selectedBefore);
+  assert.equal(new URL(frame.url()).pathname, expectedPathname);
+
+  return {
+    kind: 'browse-preview',
+    linkText,
+    iframePathname: new URL(frame.url()).pathname,
+    outerSelectionUnchanged: true,
+    sourceDigestBefore: digestBefore,
+    sourceDigestAfter: digestBefore,
+  };
+}
+
+async function capture(page, {
+  origin,
+  referenceId,
+  stateId,
+  shellViewport,
+  query,
+}) {
+  await page.setViewportSize(shellViewport);
+  const params = new URLSearchParams(query);
+  const pathname = `/studio?${params.toString()}`;
+  const response = await page.goto(new URL(pathname, origin).toString(), { waitUntil: 'networkidle' });
+  assert.ok(response && response.ok(), `${referenceId}/${stateId}: HTTP ${response && response.status()}`);
+
+  return snapshotCurrent(page, {
+    referenceId,
+    stateId,
+    pathname,
+    shellViewport,
+  });
 }
 
 async function main() {
@@ -172,8 +417,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const manifest = {
     schemaVersion: 1,
-    issue: 173,
-    role: 'HiVenues v2 read-only Studio consumption evidence',
+    issue: 175,
+    role: 'HiVenues v2 read-only Studio direct-inspection evidence',
     reviewMode: 'viewport-only',
     references: {},
     captures: [],
@@ -208,6 +453,36 @@ async function main() {
           shellViewport: SHELL_VIEWPORTS.desktop,
           query: { viewport: 'desktop' },
         }));
+
+        const homePage = source.site.pages.find((candidate) => candidate.id === source.site.homePageId);
+        const directComponentId = homePage.components[referenceId === 'live-music' ? 1 : 0].id;
+        const directInteraction = await inspectRenderedComponent(page, {
+          componentId: directComponentId,
+          activation: referenceId === 'live-music' ? 'keyboard' : 'pointer',
+        });
+        manifest.captures.push(await snapshotCurrent(page, {
+          referenceId,
+          stateId: referenceId === 'live-music' ? 'desktop-keyboard-inspect' : 'desktop-direct-inspect',
+          pathname: new URL(page.url()).pathname + new URL(page.url()).search,
+          shellViewport: SHELL_VIEWPORTS.desktop,
+          interaction: directInteraction,
+        }));
+
+        if (referenceId === 'restaurant') {
+          await page.goto(new URL('/studio?viewport=desktop', origin).toString(), { waitUntil: 'networkidle' });
+          const browseInteraction = await browsePreview(page, {
+            linkText: 'Menu',
+            expectedPathname: '/studio-preview/site/menu',
+          });
+          manifest.captures.push(await snapshotCurrent(page, {
+            referenceId,
+            stateId: 'desktop-browse-menu',
+            pathname: new URL(page.url()).pathname + new URL(page.url()).search,
+            shellViewport: SHELL_VIEWPORTS.desktop,
+            interaction: browseInteraction,
+          }));
+        }
+
         manifest.captures.push(await capture(page, {
           origin,
           referenceId,
@@ -259,7 +534,7 @@ async function main() {
       }
     }
 
-    assert.equal(manifest.captures.length, 10);
+    assert.equal(manifest.captures.length, 15);
     const digestsByReference = {};
     for (const capture of manifest.captures) {
       (digestsByReference[capture.referenceId] ||= new Set()).add(capture.authority.sourceDigest);
@@ -279,7 +554,13 @@ async function main() {
       horizontalOverflowFindings: manifest.captures
         .filter((item) => item.geometry.scrollWidth - item.geometry.clientWidth > 1).length,
       mutationSurfaceFindings: manifest.captures
-        .filter((item) => item.geometry.formCount || item.geometry.inputCount || item.geometry.buttonCount).length,
+        .filter((item) => item.geometry.formCount || item.geometry.inputCount || item.geometry.unexpectedButtonCount).length,
+      directInspectionCaptures: manifest.captures
+        .filter((item) => item.interaction?.kind === 'direct-inspection').length,
+      keyboardInspectionCaptures: manifest.captures
+        .filter((item) => item.interaction?.activation === 'keyboard').length,
+      browsePreviewCaptures: manifest.captures
+        .filter((item) => item.interaction?.kind === 'browse-preview').length,
       sourceNeutralReferences: Object.values(digestsByReference)
         .filter((digests) => digests.size === 1).length,
     };
