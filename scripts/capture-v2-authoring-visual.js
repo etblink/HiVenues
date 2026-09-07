@@ -156,7 +156,7 @@ async function previewBody(page) {
   const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
   assert.ok(frame, 'real-renderer preview frame missing');
   await frame.waitForLoadState('networkidle');
-  return frame.locator('body').innerText();
+  return frame.locator('body').textContent();
 }
 
 async function capture(page, referenceId, stateId) {
