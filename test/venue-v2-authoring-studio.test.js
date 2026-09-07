@@ -790,9 +790,10 @@ test('Theme proposal previews real renderer theme CSS without changing accepted 
   const current = fixture.session().draftSource.site.brand.design.typographyRecipeId;
   const recipeId = current === 'type-poster' ? 'type-editorial' : 'type-poster';
 
-  const baselineTheme = await request(fixture.app)
-    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+  const baselinePage = await request(fixture.app)
+    .get('/studio-authoring-preview/page/home')
     .expect(200);
+  assert.match(baselinePage.text, /<html lang="en" class="[^"]*v2-type--poster[^"]*">/);
 
   let response = await request(fixture.app)
     .post('/studio-authoring/theme')
@@ -820,10 +821,11 @@ test('Theme proposal previews real renderer theme CSS without changing accepted 
   assert.match(response.text, /Theme preview active/);
   assert.match(response.text, /data-preview-active="true"/);
 
-  const previewTheme = await request(fixture.app)
-    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+  const previewPage = await request(fixture.app)
+    .get('/studio-authoring-preview/page/home')
     .expect(200);
-  assert.notEqual(previewTheme.text, baselineTheme.text);
+  assert.match(previewPage.text, /<html lang="en" class="[^"]*v2-type--editorial[^"]*">/);
+  assert.doesNotMatch(previewPage.text, /<html lang="en" class="[^"]*v2-type--poster[^"]*">/);
 
   response = await request(fixture.app)
     .post('/studio-authoring/discard')
@@ -838,10 +840,10 @@ test('Theme proposal previews real renderer theme CSS without changing accepted 
   assert.equal(fixture.session().draftDigest, openingDigest);
   assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
 
-  const discardedTheme = await request(fixture.app)
-    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+  const discardedPage = await request(fixture.app)
+    .get('/studio-authoring-preview/page/home')
     .expect(200);
-  assert.equal(discardedTheme.text, baselineTheme.text);
+  assert.match(discardedPage.text, /<html lang="en" class="[^"]*v2-type--poster[^"]*">/);
 
   await request(fixture.app)
     .post('/studio-authoring/theme')
