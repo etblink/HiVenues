@@ -494,10 +494,17 @@ test('eligible catalog-backed components expose removal while ineligible compone
     assert.match(allowed.text, /Remove component/, referenceId);
     assert.match(allowed.text, /action="\/studio-authoring\/remove"/, referenceId);
 
-    const hero = page.components.find((component) => component.kind === 'hero');
-    assert.ok(hero, referenceId);
+    const eligibleSignatures = new Set([
+      'editorial-intro::intro-legacy-v1',
+      'hours-location::hours-location-standard',
+      'contact-visit::visit-legacy-v1',
+    ]);
+    const ineligible = page.components.find(
+      (component) => !eligibleSignatures.has(`${component.kind}::${component.recipeId}`),
+    );
+    assert.ok(ineligible, referenceId);
     const denied = await request(fixture.app)
-      .get(`/studio-authoring?nodeId=${encodeURIComponent(`component:${hero.id}`)}&viewport=desktop`);
+      .get(`/studio-authoring?nodeId=${encodeURIComponent(`component:${ineligible.id}`)}&viewport=desktop`);
     assert.equal(denied.status, 200, referenceId);
     assert.doesNotMatch(denied.text, /Remove component/, referenceId);
     assert.doesNotMatch(denied.text, /action="\/studio-authoring\/remove"/, referenceId);
