@@ -258,23 +258,31 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
     <h3 id="media-editor-heading">Hero image</h3>
     <p class="target-path">${escapeHtml(context.componentId)} · ${escapeHtml(humanize(context.ownership))}</p>
     ${status}
-    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.media)}">
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.media)}" data-media-meaning="meaningful">
       <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
       <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="false">
       <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
       <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
-      <label for="authoring-media-asset">Managed image</label>
+      <label for="authoring-media-asset">Meaningful hero image</label>
       <select id="authoring-media-asset" name="assetId" required>${assets}</select>
-      <label for="authoring-media-meaning">Image meaning</label>
-      <select id="authoring-media-meaning" name="decorative" required>
-        <option value="false"${context.current.decorative ? '' : ' selected'}>Meaningful image</option>
-        <option value="true"${context.current.decorative ? ' selected' : ''}>Decorative image</option>
-      </select>
       <label for="authoring-media-alt">Alternative text</label>
-      <input id="authoring-media-alt" name="alt" type="text" maxlength="240" value="${escapeHtml(context.current.alt || '')}">
-      <p class="form-help">Meaningful images require concise alternative text. Decorative images must use an empty alternative-text field. New file import, source paths, dimensions, crop/focal controls, gallery editing, persistence, and publishing are not available in this slice.</p>
-      <button class="button primary" type="submit">Preview hero image</button>
+      <input id="authoring-media-alt" name="alt" type="text" maxlength="240" value="${escapeHtml(context.current.decorative ? '' : (context.current.alt || ''))}" required>
+      <p class="form-help">Use this path when the image communicates information. Give it concise alternative text.</p>
+      <button class="button primary" type="submit">Preview meaningful image</button>
     </form>
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.media)}" data-media-meaning="decorative">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="true">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-media-decorative-asset">Decorative hero image</label>
+      <select id="authoring-media-decorative-asset" name="assetId" required>${assets}</select>
+      <p class="form-help">Use this path only when the image adds no information. HiVenues will render empty alternative text and hide it from assistive technology.</p>
+      <button class="button secondary" type="submit">Preview as decorative</button>
+    </form>
+    <p class="form-help">New file import, source paths, dimensions, crop/focal controls, gallery editing, persistence, and publishing are not available in this slice.</p>
   </section>`;
 }
 
