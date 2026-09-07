@@ -122,6 +122,88 @@ function matchingMoveProposal(proposal, model) {
   );
 }
 
+function componentMoveContext(source, nodeId) {
+  try {
+    return listV2ComponentMoveDestinations(source, { nodeId });
+  } catch {
+    return null;
+  }
+}
+
+function componentLabel(model, componentId) {
+  const selectionId = `component:${componentId}`;
+  const card = model.canvasCards.find((candidate) => candidate.selectionId === selectionId);
+  if (card) return card.label;
+  const row = model.treeRows.find((candidate) => candidate.selectionId === selectionId);
+  return row?.label || componentId;
+}
+
+function destinationLabel(model, destination) {
+  if (destination.kind === END_OF_PAGE) return 'End of page';
+  if (destination.kind === BEFORE_COMPONENT) {
+    return `Before ${componentLabel(model, destination.beforeComponentId)}`;
+  }
+  return 'Unknown destination';
+}
+
+function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
+  const context = componentMoveContext(source, model.selection.nodeId);
+  if (!context) {
+    return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Select a field</h3><p class="muted">Choose an editable text field, or select an existing page component to change its position. Media, themes, capabilities, persistence, and publishing remain outside this slice.</p></section>';
+  }
+
+  const isProposalTarget = matchingMoveProposal(proposal, model);
+  const activeDestination = isProposalTarget ? proposal.command.destination : null;
+  const status = isProposalTarget
+    ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the proposed component position. The accepted session draft is unchanged.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+
+  if (context.destinations.length === 0) {
+    return `<section class="editor-card"><p class="eyebrow">Position</p><h3>Only component on page</h3><p class="target-path">${escapeHtml(context.componentId)} · position ${context.position} of ${context.count}</p><p class="muted">There is no different same-page position available for this component.</p></section>`;
+  }
+
+  const options = context.destinations.map((destination) => {
+    const value = destination.kind === END_OF_PAGE
+      ? END_OF_PAGE
+      : `${BEFORE_COMPONENT}:${destination.beforeComponentId}`;
+    const selected = activeDestination
+      && activeDestination.kind === destination.kind
+      && (
+        destination.kind === END_OF_PAGE
+        || activeDestination.beforeComponentId === destination.beforeComponentId
+      );
+    return `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(destinationLabel(model, destination))}</option>`;
+  }).join('');
+
+  return `<section class="editor-card" aria-labelledby="component-position-heading">
+    <p class="eyebrow">Structure</p>
+    <h3 id="component-position-heading">Reorder component</h3>
+    <p class="target-path">${escapeHtml(context.componentId)} · position ${context.position} of ${context.count} · ${escapeHtml(humanize(context.ownership))}</p>
+    ${status}
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.reorder)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-destination">Position</label>
+      <select id="authoring-destination" name="destination" required>${options}</select>
+      <p class="form-help">Destinations are derived from stable siblings on this page. Cross-page movement is not available.</p>
+      <button class="button primary" type="submit">Preview position</button>
+    </form>
+    ${isProposalTarget ? `<div class="proposal-actions">
+      <form method="post" action="${escapeHtml(actionPaths.apply)}">
+        <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+        <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+        <button class="button primary" type="submit">Apply to draft</button>
+      </form>
+      <form method="post" action="${escapeHtml(actionPaths.discard)}">
+        <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+        <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+        <button class="button secondary" type="submit">Discard preview</button>
+      </form>
+    </div>` : ''}
+  </section>`;
+}
+
 function renderEditor({
   model,
   session,
@@ -130,7 +212,7 @@ function renderEditor({
   actionPaths,
 }) {
   if (!model.selection.fieldId) {
-    return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Select a field</h3><p class="muted">Choose an editable text field above. The first slice intentionally excludes structure, media, themes, capabilities, and persistence.</p></section>';
+    return renderMoveEditor({ model, session, proposal, source, actionPaths });
   }
 
   const resolved = editableField(source, model.selection.nodeId, model.selection.fieldId);
