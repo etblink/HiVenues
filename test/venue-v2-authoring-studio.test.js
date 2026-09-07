@@ -52,6 +52,7 @@ test('memory-only authoring Studio exposes one typed editable surface across all
     const response = await request(fixture.app).get(selectionPath(spec));
 
     assert.equal(response.status, 200, spec.referenceId);
+    assert.match(response.headers['cache-control'] || '', /no-store/, spec.referenceId);
     assert.match(response.text, /data-v2-authoring-studio="true"/, spec.referenceId);
     assert.match(response.text, /data-studio-persistent="false"/, spec.referenceId);
     assert.match(response.text, /data-studio-runtime-wired="false"/, spec.referenceId);
@@ -233,6 +234,7 @@ test('preview transport is GET-only and does not expose mutation authority to th
     .get('/studio-authoring-preview/page/home');
 
   assert.equal(preview.status, 200);
+  assert.match(preview.headers['cache-control'] || '', /no-store/);
   assert.match(preview.text, /data-component-id="home-hero"/);
 
   const rejected = await request(fixture.app)
