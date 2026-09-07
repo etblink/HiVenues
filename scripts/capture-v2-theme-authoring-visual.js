@@ -262,15 +262,25 @@ async function chooseThemeByKeyboard(page, spec) {
   );
   assert.equal(await form.count(), 1, spec.referenceId + ': expected one theme form');
   const select = form.locator('select[name="recipeId"]');
-  const values = await select.locator('option').evaluateAll(
-    (options) => options.map((option) => option.value),
+  const options = await select.locator('option').evaluateAll(
+    (nodes) => nodes.map((option) => ({
+      value: option.value,
+      disabled: option.disabled,
+    })),
   );
-  const index = values.indexOf(spec.recipeId);
-  assert.ok(index >= 0, spec.referenceId + ': expected recipe option missing: ' + spec.recipeId);
+  assert.equal(
+    options.some((option) => option.value === spec.recipeId && !option.disabled),
+    true,
+    spec.referenceId + ': expected enabled recipe option missing: ' + spec.recipeId,
+  );
   await select.focus();
   await page.keyboard.press('Home');
-  for (let step = 0; step < index; step += 1) await page.keyboard.press('ArrowDown');
-  assert.equal(await select.inputValue(), spec.recipeId);
+  let selected = await select.inputValue();
+  for (let step = 0; selected !== spec.recipeId && step <= options.length; step += 1) {
+    await page.keyboard.press('ArrowDown');
+    selected = await select.inputValue();
+  }
+  assert.equal(selected, spec.recipeId);
   await page.keyboard.press('Tab');
   const activeText = await page.evaluate(() => globalThis.document.activeElement?.textContent?.trim() || '');
   assert.match(activeText, /^Preview /);
