@@ -154,6 +154,10 @@ jobs:
         env:
           V2_AUTHORING_REVIEW_ROOT: artifacts/v2-authoring-review
         run: node scripts/capture-v2-authoring-visual.js
+      - name: Capture PM3 v2 component reorder evidence
+        env:
+          V2_REORDER_REVIEW_ROOT: artifacts/v2-component-reorder-review
+        run: node scripts/capture-v2-component-reorder-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -171,6 +175,7 @@ jobs:
           const v2Renderer = JSON.parse(fs.readFileSync('artifacts/v2-renderer-review/manifest.json', 'utf8'));
           const v2Studio = JSON.parse(fs.readFileSync('artifacts/v2-studio-review/manifest.json', 'utf8'));
           const v2Authoring = JSON.parse(fs.readFileSync('artifacts/v2-authoring-review/manifest.json', 'utf8'));
+          const v2Reorder = JSON.parse(fs.readFileSync('artifacts/v2-component-reorder-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -188,6 +193,8 @@ jobs:
           console.log(`- Issue #177 blocking accessibility findings: ${v2Studio.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Studio.summary.horizontalOverflowFindings}; mutation-surface findings: ${v2Studio.summary.mutationSurfaceFindings}`);
           console.log(`- Issue #180 authoring references: ${v2Authoring.summary.referenceCount}; screenshots: ${v2Authoring.summary.screenshotCount}; keyboard completions: ${v2Authoring.summary.keyboardCompletionCount}; digest proofs: ${v2Authoring.summary.digestProofCount}`);
           console.log(`- Issue #180 blocking accessibility findings: ${v2Authoring.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Authoring.summary.horizontalOverflowFindings}; persistent writes: ${v2Authoring.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Authoring.summary.hiveRpcAttempts}/${v2Authoring.summary.hiveWrites}`);
+          console.log(`- Issue #182 reorder references: ${v2Reorder.summary.referenceCount}; screenshots: ${v2Reorder.summary.screenshotCount}; keyboard completions: ${v2Reorder.summary.keyboardCompletionCount}; digest proofs: ${v2Reorder.summary.digestProofCount}; order proofs: ${v2Reorder.summary.structuralOrderProofCount}`);
+          console.log(`- Issue #182 blocking accessibility findings: ${v2Reorder.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Reorder.summary.horizontalOverflowFindings}; persistent writes: ${v2Reorder.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Reorder.summary.hiveRpcAttempts}/${v2Reorder.summary.hiveWrites}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -203,6 +210,7 @@ jobs:
             artifacts/v2-renderer-review
             artifacts/v2-studio-review
             artifacts/v2-authoring-review
+            artifacts/v2-component-reorder-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90
