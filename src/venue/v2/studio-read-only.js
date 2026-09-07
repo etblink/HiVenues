@@ -594,7 +594,7 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
       <nav class="canvas-tools" aria-label="Page component selection">${cards}</nav>
       <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}" data-preview-viewport="${escapeHtml(model.viewport.id)}" data-preview-width="${model.viewport.width}" data-preview-height="${model.viewport.height}"><iframe title="Real v2 venue renderer preview" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
       <div class="preview-meta"><strong>${escapeHtml(model.previewPage.title)}</strong><span>${escapeHtml(model.viewport.label)} · ${model.viewport.width} × ${model.viewport.height}</span></div>
-      <p class="read-only-note">Selection and viewport changes are local presentation state. This surface cannot edit, keep, save, publish, deploy, sign, or pay.</p>
+      <p class="read-only-note">Selection and viewport changes are local presentation state. This surface cannot edit, keep, save, publish, deploy, or perform external actions.</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="studio-inspector-heading">
       <header class="panel-head"><h2 id="studio-inspector-heading">Inspector</h2><span>Context only</span></header>
