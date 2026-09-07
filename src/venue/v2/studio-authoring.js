@@ -9,6 +9,7 @@ const {
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
+  IMPORT_LOCAL_HERO_MEDIA,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_MEDIA_USAGE_ASSET,
@@ -213,7 +214,7 @@ function mediaUsageContext(source, nodeId) {
 function matchingMediaProposal(proposal, model) {
   return Boolean(
     proposal
-    && proposal.command.type === SET_MEDIA_USAGE_ASSET
+    && [SET_MEDIA_USAGE_ASSET, IMPORT_LOCAL_HERO_MEDIA].includes(proposal.command.type)
     && proposal.command.target.nodeId === model.selection.nodeId
   );
 }
@@ -228,7 +229,7 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
   const isProposal = matchingMediaProposal(proposal, model);
   const usage = isProposal
     ? {
-      assetId: proposal.command.assetId,
+      assetId: proposal.resolvedTarget.assetId,
       alt: proposal.command.alt,
       decorative: proposal.command.decorative,
     }
@@ -282,7 +283,73 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
       <p class="form-help">Use this path only when the image adds no information. HiVenues will render empty alternative text and hide it from assistive technology.</p>
       <button class="button secondary" type="submit">Preview as decorative</button>
     </form>
-    <p class="form-help">New file import, source paths, dimensions, crop/focal controls, gallery editing, persistence, and publishing are not available in this slice.</p>
+    <div class="theme-control"><div><strong>Bring your own hero image</strong><span>Session only</span></div><small>PNG, JPEG, or GIF · up to 8 MiB · inspected by HiVenues before preview</small></div>
+    <form class="edit-form" data-local-media-import="meaningful" action="${escapeHtml(actionPaths.mediaImport)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="false">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-local-media-file">Local meaningful hero image</label>
+      <input id="authoring-local-media-file" name="file" type="file" accept="image/png,image/jpeg,image/gif" required>
+      <label for="authoring-local-media-alt">Alternative text</label>
+      <input id="authoring-local-media-alt" name="alt" type="text" maxlength="240" required>
+      <p class="form-help">The selected file stays in this in-memory Studio session. HiVenues derives its identity, path, format, and dimensions.</p>
+      <button class="button primary" type="submit">Preview local image</button>
+      <span class="form-help" data-local-media-status role="status"></span>
+    </form>
+    <form class="edit-form" data-local-media-import="decorative" action="${escapeHtml(actionPaths.mediaImport)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="mediaSlot" value="${escapeHtml(V2_HERO_MEDIA_SLOT)}">
+      <input type="hidden" name="decorative" value="true">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-local-media-decorative-file">Local decorative hero image</label>
+      <input id="authoring-local-media-decorative-file" name="file" type="file" accept="image/png,image/jpeg,image/gif" required>
+      <p class="form-help">Use only when the image adds no information. Empty alternative text is derived automatically.</p>
+      <button class="button secondary" type="submit">Preview local decorative image</button>
+      <span class="form-help" data-local-media-status role="status"></span>
+    </form>
+    <p class="form-help">No source path, asset ID, dimensions, file type, digest, crop/focal controls, gallery editing, persistence, or publishing authority is exposed.</p>
+    <script>
+    (() => {
+      for (const form of document.querySelectorAll('form[data-local-media-import]')) {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = form.querySelector('[data-local-media-status]');
+          const file = form.querySelector('input[type="file"]').files[0];
+          if (!file) {
+            status.textContent = 'Choose a local image first.';
+            return;
+          }
+          const params = new URLSearchParams();
+          for (const name of ['nodeId', 'mediaSlot', 'decorative', 'viewport', 'expectedDraftDigest']) {
+            params.set(name, form.elements[name].value);
+          }
+          const alt = form.elements.alt;
+          if (alt) params.set('alt', alt.value);
+          status.textContent = 'Inspecting image…';
+          try {
+            const response = await fetch(form.action + '?' + params.toString(), {
+              method: 'POST',
+              headers: { 'Content-Type': file.type || 'application/octet-stream' },
+              body: file,
+            });
+            if (!response.ok) {
+              status.textContent = await response.text() || 'Local image preview was rejected.';
+              return;
+            }
+            const redirect = new URL('${escapeHtml(actionPaths.studio)}', location.origin);
+            redirect.searchParams.set('nodeId', form.elements.nodeId.value);
+            redirect.searchParams.set('viewport', form.elements.viewport.value);
+            location.assign(redirect.pathname + redirect.search);
+          } catch {
+            status.textContent = 'Local image preview failed before the in-memory request completed.';
+          }
+        });
+      }
+    })();
+    </script>
   </section>`;
 }
 
@@ -519,7 +586,7 @@ function renderEditor({
   source,
   actionPaths,
 }) {
-  if (proposal?.command.type === SET_MEDIA_USAGE_ASSET) {
+  if ([SET_MEDIA_USAGE_ASSET, IMPORT_LOCAL_HERO_MEDIA].includes(proposal?.command.type)) {
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Media preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Media proposal below before starting another content or structure change.</p></section>';
   }
   if (matchingThemeProposal(proposal)) {
@@ -607,6 +674,8 @@ function renderV2AuthoringStudioSurface({
     remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
     theme: strictLocalPath(actionPaths.theme || `${normalizedStudioPath}/theme`, 'theme path'),
     media: strictLocalPath(actionPaths.media || `${normalizedStudioPath}/media`, 'media path'),
+    mediaImport: strictLocalPath(actionPaths.mediaImport || `${normalizedStudioPath}/media-import`, 'media import path'),
+    studio: normalizedStudioPath,
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
@@ -641,12 +710,12 @@ function renderV2AuthoringStudioSurface({
 <title>Authoring Studio · ${escapeHtml(model.venue.displayName)}</title>
 <style>
 :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1d2528;background:#e9edef;color-scheme:light}
-*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}button,textarea,select,a{font:inherit}a,button{min-height:44px}a:focus-visible,button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:#fff}.skip:focus{top:12px}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}button,input,textarea,select,a{font:inherit}a,button,input,textarea,select{min-height:44px}a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:#fff}.skip:focus{top:12px}
 .studio{min-height:100vh;display:grid;grid-template-rows:auto auto 1fr}.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 22px;border-bottom:1px solid #ccd3d6;background:#fff}.brand{display:flex;align-items:center;gap:14px;min-width:0}.brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#143c42;color:#fff;font-weight:900}.eyebrow{margin:0;color:#4b5a5f;font-size:.7rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase}.brand h1{margin:2px 0 0;font-size:1.05rem}.authority-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #a8b7b7;border-radius:999px;background:#f4f8f7;color:#29494b;font-size:.74rem;font-weight:800}.authority-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#d69e2e}
 .statebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.state-copy strong,.state-copy span{display:block}.state-copy strong{font-size:.82rem}.state-copy span{margin-top:2px;color:#4b5a5f;font-size:.72rem}.digest-pair{display:flex;gap:8px;flex-wrap:wrap}.digest-chip{padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #ccd3d6;font-size:.64rem}.digest-chip strong{display:block}.digest-chip code{font-size:.6rem}
 .workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 330px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.tree-list,.field-list{list-style:none;margin:0;padding:8px}.tree-list li{padding-left:calc(var(--depth) * 8px)}.tree-link,.field-link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.tree-link strong,.tree-link small,.field-link strong,.field-link small{display:block}.tree-link strong,.field-link strong{font-size:.76rem}.tree-link small,.field-link small{margin-top:2px;color:#536166;font-size:.63rem}.tree-link.is-selected,.field-link.is-selected{border-color:#73a9a1;background:#e8f4f1}.field-link.is-locked{opacity:.66}.selected-chip,.ownership-chip{flex:none;padding:4px 6px;border-radius:999px;background:#edf2f2;color:#395255;font-size:.6rem;font-weight:800}.selected-chip{background:#176b61;color:#fff}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:170px;max-width:245px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}.preview-area{display:grid;place-items:start center;min-height:620px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}.preview-holder.viewport-desktop{width:720px;height:500px}.preview-holder.viewport-desktop iframe{width:1440px;height:1000px;transform:scale(.5)}.preview-holder.viewport-tablet{width:459px;height:612px}.preview-holder.viewport-tablet iframe{width:834px;height:1112px;transform:scale(.55)}.preview-holder.viewport-mobile{width:273px;height:591px}.preview-holder.viewport-mobile iframe{width:390px;height:844px;transform:scale(.70)}.preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-top:1px solid #cbd3d6;background:#fff;font-size:.68rem}.viewport-options{display:flex;gap:5px;padding:8px;border-top:1px solid #dce2e4;background:#fff}.viewport-option{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option span{font-size:.62rem}.viewport-option.is-selected{background:#143c42;color:#fff}
-.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.theme-grid{display:grid;gap:9px;margin:10px 0}.theme-control{display:grid;gap:7px;padding:10px;border:1px solid #d5dcde;border-radius:10px;background:#fbfcfc}.theme-control.is-preview{border-color:#d69e2e;background:#fffaf0}.theme-control>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.theme-control strong,.theme-control label{font-size:.7rem;font-weight:800}.theme-control span{font-size:.6rem;color:#536166}.theme-control p{margin:0;font-size:.76rem;font-weight:800}.theme-control small{color:#536166;font-size:.64rem;line-height:1.4}.theme-control select{width:100%;min-height:44px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form textarea{resize:vertical;min-height:110px}.edit-form select{min-height:44px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
+.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.theme-grid{display:grid;gap:9px;margin:10px 0}.theme-control{display:grid;gap:7px;padding:10px;border:1px solid #d5dcde;border-radius:10px;background:#fbfcfc}.theme-control.is-preview{border-color:#d69e2e;background:#fffaf0}.theme-control>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.theme-control strong,.theme-control label{font-size:.7rem;font-weight:800}.theme-control span{font-size:.6rem;color:#536166}.theme-control p{margin:0;font-size:.76rem;font-weight:800}.theme-control small{color:#536166;font-size:.64rem;line-height:1.4}.theme-control select{width:100%;min-height:44px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form input[type="file"]{padding:8px}.edit-form textarea{resize:vertical;min-height:110px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
 @media(max-width:1180px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector-panel{grid-column:2;position:static;max-height:none}.preview-holder.viewport-desktop{width:620px;height:431px}.preview-holder.viewport-desktop iframe{transform:scale(.431)}}
 @media(max-width:720px){.topbar,.statebar{align-items:flex-start;flex-direction:column;padding:12px}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;position:static;max-height:none}.tree-panel{order:2;position:static;max-height:none}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.history-card{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

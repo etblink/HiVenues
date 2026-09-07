@@ -1132,3 +1132,209 @@ test('Media transport rejects implementation-shaped and invalid accessibility pa
   assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
   assert.equal(fixture.diagnostics().hiveWrites, 0);
 });
+
+
+const LOCAL_IMPORT_PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlOAAAAAASUVORK5CYII=',
+  'base64',
+);
+
+function localImportContext(fixture) {
+  const source = fixture.session().draftSource;
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  return {
+    source,
+    page,
+    hero,
+    nodeId: 'component:' + hero.id,
+  };
+}
+
+test('local hero import UI exposes raw file choice but no derived media authority', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const { nodeId } = localImportContext(fixture);
+  const response = await request(fixture.app)
+    .get('/studio-authoring?nodeId=' + encodeURIComponent(nodeId) + '&viewport=desktop')
+    .expect(200);
+
+  assert.match(response.text, /Bring your own hero image/);
+  assert.match(response.text, /data-local-media-import="meaningful"/);
+  assert.match(response.text, /data-local-media-import="decorative"/);
+  assert.match(response.text, /accept="image\/png,image\/jpeg,image\/gif"/);
+  assert.match(response.text, /Preview local image/);
+  assert.match(response.text, /Preview local decorative image/);
+
+  const localForms = response.text.match(
+    /<form class="edit-form" data-local-media-import="(?:meaningful|decorative)"[\s\S]*?<\/form>/g,
+  );
+  assert.equal(localForms.length, 2);
+  for (const form of localForms) {
+    assert.equal(form.includes('name="assetId"'), false);
+    assert.equal(form.includes('name="src"'), false);
+    assert.equal(form.includes('name="width"'), false);
+    assert.equal(form.includes('name="height"'), false);
+    assert.equal(form.includes('name="mediaType"'), false);
+    assert.equal(form.includes('name="digestSha256"'), false);
+    assert.equal(form.includes('name="treatment"'), false);
+  }
+});
+
+test('local hero import serves only ephemeral bytes through real renderer and releases them on discard undo then reconstructs on redo', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('live-music');
+  const { page, hero, nodeId } = localImportContext(fixture);
+  const openingDigest = fixture.session().draftDigest;
+  const openingCount = fixture.session().draftSource.media.assets.length;
+  const query = {
+    nodeId,
+    mediaSlot: 'hero-media',
+    decorative: 'false',
+    alt: 'Local stage image imported for preview',
+    viewport: 'mobile',
+    expectedDraftDigest: openingDigest,
+  };
+
+  await request(fixture.app)
+    .post('/studio-authoring/media-import')
+    .query(query)
+    .set('Content-Type', 'image/png')
+    .send(LOCAL_IMPORT_PNG_BYTES)
+    .expect(204);
+
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().command.type, 'IMPORT_LOCAL_HERO_MEDIA');
+  assert.equal(fixture.proposal().previewSource.media.assets.length, openingCount + 1);
+  assert.equal(fixture.diagnostics().ephemeralMediaEntries, 1);
+  assert.equal(fixture.diagnostics().ephemeralMediaBytes, LOCAL_IMPORT_PNG_BYTES.length);
+
+  const asset = fixture.proposal().previewSource.media.assets.find(
+    (candidate) => candidate.id === fixture.proposal().resolvedTarget.assetId,
+  );
+  assert.ok(asset);
+  const preview = await request(fixture.app)
+    .get('/studio-authoring-preview/page/' + page.id)
+    .expect(200);
+  assert.equal(preview.text.includes(asset.src), true);
+  assert.equal(preview.text.includes('Local stage image imported for preview'), true);
+
+  const bytes = await request(fixture.app).get(asset.src).expect(200);
+  assert.deepEqual(bytes.body, LOCAL_IMPORT_PNG_BYTES);
+
+  await request(fixture.app)
+    .post('/studio-authoring/discard')
+    .type('form')
+    .send({ nodeId, viewport: 'mobile' })
+    .expect(303);
+  assert.equal(fixture.proposal(), null);
+  assert.equal(fixture.diagnostics().ephemeralMediaEntries, 0);
+  await request(fixture.app).get(asset.src).expect(404);
+
+  await request(fixture.app)
+    .post('/studio-authoring/media-import')
+    .query(query)
+    .set('Content-Type', 'image/png')
+    .send(LOCAL_IMPORT_PNG_BYTES)
+    .expect(204);
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId, viewport: 'mobile' })
+    .expect(303);
+  const appliedDigest = fixture.session().draftDigest;
+  assert.notEqual(appliedDigest, openingDigest);
+  assert.equal(fixture.diagnostics().ephemeralMediaEntries, 1);
+  assert.equal(
+    fixture.session().draftSource.site.pages.find((candidate) => candidate.id === page.id)
+      .components.find((component) => component.id === hero.id).content.media.assetId,
+    asset.id,
+  );
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({ nodeId, viewport: 'mobile', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.diagnostics().ephemeralMediaEntries, 0);
+  await request(fixture.app).get(asset.src).expect(404);
+
+  await request(fixture.app)
+    .post('/studio-authoring/redo')
+    .type('form')
+    .send({ nodeId, viewport: 'mobile', fieldId: '' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(fixture.diagnostics().ephemeralMediaEntries, 1);
+  const redoneBytes = await request(fixture.app).get(asset.src).expect(200);
+  assert.deepEqual(redoneBytes.body, LOCAL_IMPORT_PNG_BYTES);
+
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});
+
+test('local decorative import derives null alt while forged transport authority and malformed bytes fail closed', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const { page, nodeId } = localImportContext(fixture);
+  const base = {
+    nodeId,
+    mediaSlot: 'hero-media',
+    decorative: 'true',
+    viewport: 'tablet',
+    expectedDraftDigest: fixture.session().draftDigest,
+  };
+
+  for (const extra of [
+    { assetId: 'browser-owned' },
+    { src: '/browser-owned.png' },
+    { width: '1' },
+    { height: '1' },
+    { mediaType: 'image/png' },
+    { digestSha256: '0'.repeat(64) },
+    { treatment: '{}' },
+  ]) {
+    await request(fixture.app)
+      .post('/studio-authoring/media-import')
+      .query({ ...base, ...extra })
+      .set('Content-Type', 'image/png')
+      .send(LOCAL_IMPORT_PNG_BYTES)
+      .expect(400);
+    assert.equal(fixture.proposal(), null);
+  }
+
+  await request(fixture.app)
+    .post('/studio-authoring/media-import')
+    .query(base)
+    .set('Content-Type', 'application/octet-stream')
+    .send(Buffer.from('not an image'))
+    .expect(400);
+  assert.equal(fixture.proposal(), null);
+
+  await request(fixture.app)
+    .post('/studio-authoring/media-import')
+    .query({ ...base, expectedDraftDigest: '0'.repeat(64) })
+    .set('Content-Type', 'image/png')
+    .send(LOCAL_IMPORT_PNG_BYTES)
+    .expect(400);
+  assert.equal(fixture.proposal(), null);
+
+  await request(fixture.app)
+    .post('/studio-authoring/media-import')
+    .query(base)
+    .set('Content-Type', 'image/png')
+    .send(LOCAL_IMPORT_PNG_BYTES)
+    .expect(204);
+
+  assert.equal(fixture.proposal().command.alt, null);
+  assert.equal(fixture.proposal().command.decorative, true);
+  const preview = await request(fixture.app)
+    .get('/studio-authoring-preview/page/' + page.id)
+    .expect(200);
+  assert.match(preview.text, /alt=""[^>]*aria-hidden="true"/);
+
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});

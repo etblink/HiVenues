@@ -151,6 +151,10 @@ test('workflow preserves universal qualification and deliberate full-path semant
   assert.match(workflow, /V2_MEDIA_REVIEW_ROOT: artifacts\/v2-media-authoring-review/);
   assert.match(workflow, /const v2Media = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-media-authoring-review\/manifest\.json'/);
   assert.match(workflow, /artifacts\/v2-media-authoring-review/);
+  assert.match(workflow, /node scripts\/capture-v2-local-media-authoring-visual\.js/);
+  assert.match(workflow, /V2_LOCAL_MEDIA_REVIEW_ROOT: artifacts\/v2-local-media-authoring-review/);
+  assert.match(workflow, /const v2LocalMedia = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-local-media-authoring-review\/manifest\.json'/);
+  assert.match(workflow, /artifacts\/v2-local-media-authoring-review/);
   assert.match(workflow, /node scripts\/assemble-current-visual-evidence\.js/);
   assert.match(workflow, /artifacts\/current-visual-review/);
   assert.doesNotMatch(workflow, /path:\s*artifacts\s*$/m);

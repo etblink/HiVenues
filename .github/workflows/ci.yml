@@ -170,6 +170,10 @@ jobs:
         env:
           V2_MEDIA_REVIEW_ROOT: artifacts/v2-media-authoring-review
         run: node scripts/capture-v2-media-authoring-visual.js
+      - name: Capture PM3 v2 local hero media admission evidence
+        env:
+          V2_LOCAL_MEDIA_REVIEW_ROOT: artifacts/v2-local-media-authoring-review
+        run: node scripts/capture-v2-local-media-authoring-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -191,6 +195,7 @@ jobs:
           const v2Cardinality = JSON.parse(fs.readFileSync('artifacts/v2-component-cardinality-review/manifest.json', 'utf8'));
           const v2Theme = JSON.parse(fs.readFileSync('artifacts/v2-theme-authoring-review/manifest.json', 'utf8'));
           const v2Media = JSON.parse(fs.readFileSync('artifacts/v2-media-authoring-review/manifest.json', 'utf8'));
+          const v2LocalMedia = JSON.parse(fs.readFileSync('artifacts/v2-local-media-authoring-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -218,6 +223,10 @@ jobs:
           console.log(`- Issue #188 media references: ${v2Media.summary.referenceCount}; screenshots: ${v2Media.summary.screenshotCount}; keyboard proposals: ${v2Media.summary.keyboardProposalCompletionCount}; digest proofs: ${v2Media.summary.digestProofCount}`);
           console.log(`- Issue #188 discard/apply/undo/redo proofs: ${v2Media.summary.discardProofCount}/${v2Media.summary.applyProofCount}/${v2Media.summary.undoProofCount}/${v2Media.summary.redoProofCount}; renderer/alt/treatment proofs: ${v2Media.summary.rendererAssetProofCount}/${v2Media.summary.altTextProofCount}/${v2Media.summary.treatmentPreservationProofCount}`);
           console.log(`- Issue #188 blocking accessibility findings: ${v2Media.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Media.summary.horizontalOverflowFindings}; persistent writes: ${v2Media.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Media.summary.hiveRpcAttempts}/${v2Media.summary.hiveWrites}`);
+          console.log(`- Issue #190 local-media references: ${v2LocalMedia.summary.referenceCount}; screenshots: ${v2LocalMedia.summary.screenshotCount}; keyboard proposals: ${v2LocalMedia.summary.keyboardProposalCompletionCount}; digest proofs: ${v2LocalMedia.summary.digestProofCount}`);
+          console.log(`- Issue #190 derived identities: ${v2LocalMedia.summary.deterministicDerivedIdentityCount}; admission/decode/discard-release proofs: ${v2LocalMedia.summary.assetAdmissionProofCount}/${v2LocalMedia.summary.byteDecodeProofCount}/${v2LocalMedia.summary.discardReleaseProofCount}`);
+          console.log(`- Issue #190 apply/undo-release/redo-reconstruction proofs: ${v2LocalMedia.summary.applyProofCount}/${v2LocalMedia.summary.undoReleaseProofCount}/${v2LocalMedia.summary.redoReconstructionProofCount}; treatment proofs: ${v2LocalMedia.summary.treatmentPreservationProofCount}`);
+          console.log(`- Issue #190 blocking accessibility findings: ${v2LocalMedia.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2LocalMedia.summary.horizontalOverflowFindings}; persistent writes: ${v2LocalMedia.summary.persistentWrites}; Hive RPC attempts/writes: ${v2LocalMedia.summary.hiveRpcAttempts}/${v2LocalMedia.summary.hiveWrites}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -237,6 +246,7 @@ jobs:
             artifacts/v2-component-cardinality-review
             artifacts/v2-theme-authoring-review
             artifacts/v2-media-authoring-review
+            artifacts/v2-local-media-authoring-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90

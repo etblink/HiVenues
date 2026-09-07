@@ -7,6 +7,7 @@ const {
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
+  IMPORT_LOCAL_HERO_MEDIA,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_MEDIA_USAGE_ASSET,
@@ -21,6 +22,7 @@ const {
   listV2MediaUsageOptions,
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
+  proposeV2ImportLocalHeroMedia,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
@@ -1137,4 +1139,198 @@ test('SET_MEDIA_USAGE_ASSET rejects stale unknown no-op accessibility and browse
     assert.throws(() => proposeV2SetMediaUsageAsset(session, command));
     assert.equal(session.draftDigest, session.baselineDigest);
   }
+});
+
+
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlOAAAAAASUVORK5CYII=';
+
+function importMediaCommand(session, nodeId, alt, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    type: IMPORT_LOCAL_HERO_MEDIA,
+    target: { nodeId },
+    slot: V2_HERO_MEDIA_SLOT,
+    bytesBase64: ONE_PIXEL_PNG_BASE64,
+    alt,
+    decorative: false,
+    expectedDraftDigest: overrides.expectedDraftDigest || session.draftDigest,
+    ...overrides.extra,
+  };
+}
+
+test('local hero media import derives one in-memory asset and exact compound history', () => {
+  for (const referenceId of ['restaurant', 'live-music']) {
+    const source = REFERENCE_FACTORIES[referenceId]();
+    const session = createV2AuthoringSession(source);
+    const page = source.site.pages.find((candidate) =>
+      candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+    );
+    const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+    const nodeId = 'component:' + hero.id;
+    const baseline = serializeV2DeploymentAgnosticVenueSource(source);
+    const treatment = JSON.stringify(hero.content.media.treatment);
+
+    const proposal = proposeV2ImportLocalHeroMedia(
+      session,
+      importMediaCommand(session, nodeId, referenceId + ' imported local hero'),
+    );
+
+    assert.equal(session.draftDigest, session.baselineDigest, referenceId);
+    assert.equal(proposal.command.type, IMPORT_LOCAL_HERO_MEDIA, referenceId);
+    assert.equal(proposal.resolvedTarget.assetWasAdded, true, referenceId);
+    assert.equal(proposal.resolvedTarget.mediaType, 'image/png', referenceId);
+    assert.equal(proposal.resolvedTarget.width, 1, referenceId);
+    assert.equal(proposal.resolvedTarget.height, 1, referenceId);
+    assert.match(proposal.resolvedTarget.digestSha256, /^[0-9a-f]{64}$/, referenceId);
+    assert.equal(
+      proposal.resolvedTarget.assetId,
+      'local-image-' + proposal.resolvedTarget.digestSha256,
+      referenceId,
+    );
+    assert.equal(
+      proposal.resolvedTarget.assetSrc,
+      '/__hivenues-v2/session-media/' + proposal.resolvedTarget.digestSha256 + '.png',
+      referenceId,
+    );
+
+    const previewAsset = proposal.previewSource.media.assets.find(
+      (asset) => asset.id === proposal.resolvedTarget.assetId,
+    );
+    assert.deepEqual(previewAsset, {
+      id: proposal.resolvedTarget.assetId,
+      src: proposal.resolvedTarget.assetSrc,
+      width: 1,
+      height: 1,
+    }, referenceId);
+    assert.equal(proposal.previewSource.media.assets.length, source.media.assets.length + 1, referenceId);
+
+    const previewHero = proposal.previewSource.site.pages
+      .find((candidate) => candidate.id === page.id).components
+      .find((component) => component.id === hero.id);
+    assert.equal(previewHero.content.media.assetId, previewAsset.id, referenceId);
+    assert.equal(previewHero.content.media.alt, referenceId + ' imported local hero', referenceId);
+    assert.equal(previewHero.content.media.decorative, false, referenceId);
+    assert.equal(JSON.stringify(previewHero.content.media.treatment), treatment, referenceId);
+
+    const applied = applyV2AuthoringProposal(session, proposal);
+    assert.equal(applied.history[0].inverseCommand.removeImportedAsset, true, referenceId);
+    assert.equal(applied.history[0].inverseCommand.restoreAssetId, hero.content.media.assetId, referenceId);
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(serializeV2DeploymentAgnosticVenueSource(undone.draftSource), baseline, referenceId);
+    assert.equal(
+      undone.draftSource.media.assets.some((asset) => asset.id === previewAsset.id),
+      false,
+      referenceId,
+    );
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(redone.draftDigest, applied.draftDigest, referenceId);
+    assert.equal(
+      redone.draftSource.media.assets.filter((asset) => asset.id === previewAsset.id).length,
+      1,
+      referenceId,
+    );
+  }
+});
+
+test('repeated identical local bytes reuse the derived asset and preserve exact two-step undo redo', () => {
+  const source = REFERENCE_FACTORIES.restaurant();
+  const firstSession = createV2AuthoringSession(source);
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const nodeId = 'component:' + hero.id;
+
+  const firstProposal = proposeV2ImportLocalHeroMedia(
+    firstSession,
+    importMediaCommand(firstSession, nodeId, 'First imported description'),
+  );
+  const firstApplied = applyV2AuthoringProposal(firstSession, firstProposal);
+  const importedId = firstProposal.resolvedTarget.assetId;
+
+  const secondProposal = proposeV2ImportLocalHeroMedia(
+    firstApplied,
+    importMediaCommand(firstApplied, nodeId, 'Second imported description'),
+  );
+  assert.equal(secondProposal.resolvedTarget.assetId, importedId);
+  assert.equal(secondProposal.resolvedTarget.assetWasAdded, false);
+  assert.equal(
+    secondProposal.previewSource.media.assets.filter((asset) => asset.id === importedId).length,
+    1,
+  );
+
+  const secondApplied = applyV2AuthoringProposal(firstApplied, secondProposal);
+  assert.equal(secondApplied.history[1].inverseCommand.removeImportedAsset, false);
+  const undoSecond = undoV2AuthoringSession(secondApplied);
+  assert.equal(
+    undoSecond.draftSource.media.assets.filter((asset) => asset.id === importedId).length,
+    1,
+  );
+  assert.equal(
+    undoSecond.draftSource.site.pages.find((candidate) => candidate.id === page.id)
+      .components.find((component) => component.id === hero.id).content.media.alt,
+    'First imported description',
+  );
+
+  const undoFirst = undoV2AuthoringSession(undoSecond);
+  assert.equal(
+    serializeV2DeploymentAgnosticVenueSource(undoFirst.draftSource),
+    serializeV2DeploymentAgnosticVenueSource(source),
+  );
+  assert.equal(undoFirst.draftSource.media.assets.some((asset) => asset.id === importedId), false);
+
+  const redoFirst = redoV2AuthoringSession(undoFirst);
+  const redoSecond = redoV2AuthoringSession(redoFirst);
+  assert.equal(redoSecond.draftDigest, secondApplied.draftDigest);
+  assert.equal(
+    redoSecond.draftSource.media.assets.filter((asset) => asset.id === importedId).length,
+    1,
+  );
+});
+
+test('local hero media import rejects forged derived authority malformed bytes stale state and accessibility misuse', () => {
+  const source = REFERENCE_FACTORIES.restaurant();
+  const session = createV2AuthoringSession(source);
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const nodeId = 'component:' + hero.id;
+  const valid = importMediaCommand(session, nodeId, 'Imported dining room');
+
+  const rejected = [
+    { ...valid, expectedDraftDigest: '0'.repeat(64) },
+    { ...valid, bytesBase64: Buffer.from('not an image').toString('base64') },
+    { ...valid, bytesBase64: valid.bytesBase64.replace(/=$/, '') },
+    { ...valid, target: { nodeId: 'component:home-gallery' } },
+    { ...valid, slot: 'gallery-item' },
+    { ...valid, decorative: true, alt: 'must be null' },
+    { ...valid, decorative: false, alt: '' },
+    { ...valid, assetId: 'browser-owned-id' },
+    { ...valid, src: '/browser-owned.png' },
+    { ...valid, width: 100 },
+    { ...valid, height: 100 },
+    { ...valid, mediaType: 'image/png' },
+    { ...valid, digestSha256: '0'.repeat(64) },
+    { ...valid, treatment: { fit: 'contain' } },
+  ];
+  for (const command of rejected) {
+    assert.throws(
+      () => proposeV2ImportLocalHeroMedia(session, command),
+      V2AuthoringTransactionError,
+    );
+    assert.equal(session.draftDigest, session.baselineDigest);
+  }
+
+  const decorative = proposeV2ImportLocalHeroMedia(session, {
+    ...valid,
+    alt: null,
+    decorative: true,
+  });
+  const decoratedHero = decorative.previewSource.site.pages
+    .find((candidate) => candidate.id === page.id).components
+    .find((component) => component.id === hero.id);
+  assert.equal(decoratedHero.content.media.alt, null);
+  assert.equal(decoratedHero.content.media.decorative, true);
 });
