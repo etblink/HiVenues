@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('node:path');
 const express = require('express');
 const {
   renderV2PublicStylesheet,
@@ -14,6 +15,8 @@ const {
 const {
   REFERENCE_FACTORIES,
 } = require('./v2-renderer-fixture');
+
+const PUBLIC_ROOT = path.join(__dirname, '..', '..', 'public');
 
 const SYNTHETIC_ASSETS = Object.freeze({
   'restaurant-logo.svg': ['Harbor & Hearth · logo', '#f3eadf', '#211a16'],
@@ -74,7 +77,7 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
         query: queryObject(request),
         studioPath: '/studio',
         previewPathForPage(page) {
-          return `/studio-preview/${encodeURIComponent(page.id)}`;
+          return `/studio-preview/page/${encodeURIComponent(page.id)}`;
         },
       }));
     } catch (error) {
@@ -86,34 +89,63 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
     }
   });
 
-  app.get('/studio-preview/:pageId', (request, response) => {
+  function previewOptions() {
+    return {
+      basePath: '/studio-preview/site',
+      stylesheetHref: '/__hivenues-v2/styles.css',
+      themeStylesheetHref: '/__hivenues-v2/theme.css',
+      eventBasePath: '/events',
+      capabilityPaths: {
+        community: '/community',
+        transaction: '/pay',
+      },
+    };
+  }
+
+  function sendPreviewPage(response, pageId) {
     diagnostics.previewGets += 1;
     try {
       response.type('html').send(renderV2ReadOnlyStudioPreview(
         source,
-        request.params.pageId,
-        {
-          basePath: '/studio-preview',
-          stylesheetHref: '/__hivenues-v2/styles.css',
-          themeStylesheetHref: '/__hivenues-v2/theme.css',
-          eventBasePath: '/events',
-          capabilityPaths: {
-            community: '/community',
-            transaction: '/pay',
-          },
-        },
+        pageId,
+        previewOptions(),
       ));
     } catch (error) {
       response.status(404).type('text/plain').send(error.message);
     }
+  }
+
+  app.get('/studio-preview/page/:pageId', (request, response) => {
+    sendPreviewPage(response, request.params.pageId);
+  });
+  app.get('/studio-preview/site/', (_request, response) => {
+    sendPreviewPage(response, source.site.homePageId);
+  });
+  app.get('/studio-preview/site/:pageSlug', (request, response, next) => {
+    if (request.params.pageSlug === '__hivenues-v2') return next();
+    const page = source.site.pages.find((candidate) => candidate.slug === request.params.pageSlug);
+    if (!page) {
+      response.status(404).type('text/plain').send('Preview page not found.');
+      return;
+    }
+    sendPreviewPage(response, page.id);
+  });
+  app.get('/studio-preview/site/community', (_request, response) => {
+    if (source.capabilities.community.state !== 'configured') {
+      response.status(404).type('text/plain').send('Community capability is disabled.');
+      return;
+    }
+    response.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Community preview</title></head><body><main><h1>Community</h1><p>Read-only Studio capability placeholder. No Hive RPC was attempted.</p></main></body></html>');
   });
 
-  app.get('/studio-preview/__hivenues-v2/styles.css', (_request, response) => {
+  app.get('/studio-preview/site/__hivenues-v2/styles.css', (_request, response) => {
     response.type('text/css').send(renderV2PublicStylesheet());
   });
-  app.get('/studio-preview/__hivenues-v2/theme.css', (_request, response) => {
+  app.get('/studio-preview/site/__hivenues-v2/theme.css', (_request, response) => {
     response.type('text/css').send(renderV2ThemeStylesheet(source));
   });
+
+  app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
 
   app.get('/fixtures/v2-renderer/:asset', (request, response) => {
     const spec = SYNTHETIC_ASSETS[request.params.asset];
@@ -128,7 +160,7 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
     if (['GET', 'HEAD'].includes(request.method)) return next();
     response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only Studio accepts GET and HEAD only.');
   });
-  app.all('/studio-preview/:pageId', (request, response, next) => {
+  app.all('/studio-preview/*', (request, response, next) => {
     if (['GET', 'HEAD'].includes(request.method)) return next();
     response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only preview accepts GET and HEAD only.');
   });
