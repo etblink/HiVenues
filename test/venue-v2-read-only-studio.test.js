@@ -260,9 +260,75 @@ test('public-only restaurant and music Studios do not acquire Hive/community/pay
 
     assert.doesNotMatch(studioText, /Community|Threads|Hive Keychain|HBD|Pay with|Sign in/i);
     assert.equal(document.querySelectorAll('form').length, 0);
-    assert.equal(document.querySelectorAll('button').length, 0);
+    const buttons = [...document.querySelectorAll('button')];
+    assert.equal(buttons.length, 2);
+    assert.deepEqual(
+      buttons.map((button) => button.getAttribute('data-studio-presentation-control')),
+      ['true', 'true'],
+    );
+    assert.deepEqual(
+      buttons.map((button) => button.textContent.trim()),
+      ['Inspect', 'Browse Preview'],
+    );
     assert.equal(document.querySelectorAll('input, textarea, select').length, 0);
   }
+});
+
+test('direct inspection bridge is same-origin, presentation-only, and binds selected component identity', () => {
+  const source = restaurantSource();
+  const html = renderV2ReadOnlyStudioSurface({
+    sourceInput: source,
+    query: {
+      nodeId: 'component:home-hero',
+      viewport: 'desktop',
+    },
+    studioPath: '/studio',
+    previewPathForPage: (page) => `/studio-preview/page/${page.id}`,
+  });
+  const document = documentFrom(html);
+  const main = document.querySelector('main.studio');
+
+  assert.equal(main.dataset.v2DirectInspection, 'true');
+  assert.equal(main.dataset.inspectionMode, 'inspect');
+  assert.equal(main.dataset.selectedComponentId, 'home-hero');
+  assert.equal(document.querySelector('iframe').dataset.v2StudioPreview, 'true');
+
+  const controls = [...document.querySelectorAll('[data-studio-presentation-control="true"]')];
+  assert.deepEqual(controls.map((control) => control.textContent.trim()), ['Inspect', 'Browse Preview']);
+  assert.deepEqual(controls.map((control) => control.getAttribute('aria-pressed')), ['true', 'false']);
+
+  assert.match(html, /frame\.contentWindow\.location\.origin !== window\.location\.origin/);
+  assert.match(html, /target\.origin !== window\.location\.origin/);
+  assert.match(html, /target\.pathname !== window\.location\.pathname/);
+  assert.match(html, /\.canvas-card\[data-component-id\]/);
+  assert.match(html, /\.v2-component\[data-component-id\]/);
+  assert.match(html, /window\.location\.assign\(target\.pathname \+ target\.search\)/);
+  assert.doesNotMatch(html, /postMessage\s*\(/);
+  assert.doesNotMatch(html, /\beval\s*\(/);
+});
+
+test('page selection leaves direct Canvas component highlight unbound while resource selection binds its owning component', () => {
+  const source = restaurantSource();
+  const pageHtml = renderV2ReadOnlyStudioSurface({
+    sourceInput: source,
+    query: { nodeId: 'page:home', viewport: 'desktop' },
+    studioPath: '/studio',
+    previewPathForPage: (page) => `/studio-preview/page/${page.id}`,
+  });
+  const pageDocument = documentFrom(pageHtml);
+  assert.equal(pageDocument.querySelector('main.studio').dataset.selectedComponentId, '');
+
+  const resourceHtml = renderV2ReadOnlyStudioSurface({
+    sourceInput: source,
+    query: {
+      nodeId: 'component:home-menu/resource:menus:dinner',
+      viewport: 'desktop',
+    },
+    studioPath: '/studio',
+    previewPathForPage: (page) => `/studio-preview/page/${page.id}`,
+  });
+  const resourceDocument = documentFrom(resourceHtml);
+  assert.equal(resourceDocument.querySelector('main.studio').dataset.selectedComponentId, 'home-menu');
 });
 
 test('isolated Studio fixture is GET-only, uses the real renderer, and records zero Hive/write effects', async () => {

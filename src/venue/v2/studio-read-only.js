@@ -525,6 +525,169 @@ function renderViewportControls(model, studioPath) {
   }).join('');
 }
 
+function renderV2ReadOnlyStudioDirectInspectionScript() {
+  return `<script>
+(() => {
+  'use strict';
+
+  const root = document.querySelector('main.studio[data-v2-direct-inspection="true"]');
+  if (!root) return;
+  const frame = root.querySelector('iframe[data-v2-studio-preview="true"]');
+  const inspectButton = root.querySelector('[data-inspection-mode="inspect"]');
+  const browseButton = root.querySelector('[data-inspection-mode="browse"]');
+  const status = root.querySelector('[data-inspection-status]');
+  if (!frame || !inspectButton || !browseButton || !status) return;
+
+  const selectedComponentId = root.dataset.selectedComponentId || '';
+  let mode = 'inspect';
+
+  function setStatus(message) {
+    status.textContent = message;
+  }
+
+  function cardForComponentId(componentId) {
+    return [...root.querySelectorAll('.canvas-card[data-component-id]')]
+      .find((card) => card.dataset.componentId === componentId) || null;
+  }
+
+  function labelForComponentId(componentId) {
+    const card = cardForComponentId(componentId);
+    return card?.querySelector('strong')?.textContent?.trim() || componentId;
+  }
+
+  function frameDocument() {
+    try {
+      if (!frame.contentWindow || frame.contentWindow.location.origin !== window.location.origin) return null;
+      return frame.contentDocument;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearInspectionPresentation(doc) {
+    doc.getElementById('hivenues-v2-studio-inspection-style')?.remove();
+    for (const component of doc.querySelectorAll('[data-hivenues-studio-inspectable]')) {
+      if (component.dataset.hivenuesStudioAddedTabindex === 'true') {
+        component.removeAttribute('tabindex');
+      }
+      component.removeAttribute('data-hivenues-studio-added-tabindex');
+      component.removeAttribute('data-hivenues-studio-inspectable');
+      component.removeAttribute('data-hivenues-studio-selected');
+    }
+  }
+
+  function installInspectionStyle(doc) {
+    if (doc.getElementById('hivenues-v2-studio-inspection-style')) return;
+    const style = doc.createElement('style');
+    style.id = 'hivenues-v2-studio-inspection-style';
+    style.textContent = [
+      '[data-hivenues-studio-inspectable="true"]{cursor:crosshair;outline-offset:4px}',
+      '[data-hivenues-studio-inspectable="true"]:hover,[data-hivenues-studio-inspectable="true"]:focus-visible{outline:3px dashed #0f766e}',
+      '[data-hivenues-studio-selected="true"]{outline:4px solid #0f766e;outline-offset:4px;box-shadow:0 0 0 7px rgba(15,118,110,.18)}'
+    ].join('');
+    doc.head.append(style);
+  }
+
+  function navigateToComponent(componentId) {
+    const card = cardForComponentId(componentId);
+    if (!card) {
+      setStatus('Inspect mode · Unknown rendered component; selection unchanged.');
+      return;
+    }
+    const target = new URL(card.href, window.location.href);
+    if (target.origin !== window.location.origin || target.pathname !== window.location.pathname) {
+      setStatus('Inspect mode · Unsafe selection target rejected.');
+      return;
+    }
+    setStatus('Inspect mode · Selecting ' + labelForComponentId(componentId) + '…');
+    window.location.assign(target.pathname + target.search);
+  }
+
+  function ensureFrameHandlers(doc) {
+    if (doc.documentElement.dataset.hivenuesStudioInspectionBridge === '1') return;
+    doc.documentElement.dataset.hivenuesStudioInspectionBridge = '1';
+
+    doc.addEventListener('click', (event) => {
+      if (mode !== 'inspect') return;
+      const ElementCtor = doc.defaultView?.Element;
+      if (!ElementCtor || !(event.target instanceof ElementCtor)) return;
+      const component = event.target.closest('.v2-component[data-component-id]');
+      if (component) {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateToComponent(component.dataset.componentId || '');
+        return;
+      }
+      if (event.target.closest('a')) {
+        event.preventDefault();
+        event.stopPropagation();
+        setStatus('Inspect mode · Switch to Browse Preview to follow public links.');
+      }
+    }, true);
+
+    doc.addEventListener('keydown', (event) => {
+      if (mode !== 'inspect' || !['Enter', ' '].includes(event.key)) return;
+      const ElementCtor = doc.defaultView?.Element;
+      if (!ElementCtor || !(event.target instanceof ElementCtor)) return;
+      if (event.target.getAttribute('data-hivenues-studio-inspectable') !== 'true') return;
+      event.preventDefault();
+      event.stopPropagation();
+      navigateToComponent(event.target.dataset.componentId || '');
+    }, true);
+  }
+
+  function configureFrame() {
+    const doc = frameDocument();
+    if (!doc) {
+      setStatus('Preview unavailable for direct inspection.');
+      return;
+    }
+
+    ensureFrameHandlers(doc);
+    clearInspectionPresentation(doc);
+
+    if (mode === 'browse') {
+      setStatus('Browse Preview · Public links navigate normally; Studio selection stays unchanged.');
+      return;
+    }
+
+    installInspectionStyle(doc);
+    const components = [...doc.querySelectorAll('.v2-component[data-component-id]')];
+    for (const component of components) {
+      component.dataset.hivenuesStudioInspectable = 'true';
+      if (!component.hasAttribute('tabindex')) {
+        component.dataset.hivenuesStudioAddedTabindex = 'true';
+        component.tabIndex = 0;
+      }
+      if (selectedComponentId && component.dataset.componentId === selectedComponentId) {
+        component.dataset.hivenuesStudioSelected = 'true';
+      }
+    }
+
+    if (selectedComponentId && components.some((component) => component.dataset.componentId === selectedComponentId)) {
+      setStatus('Inspect mode · Selected: ' + labelForComponentId(selectedComponentId) + '.');
+    } else {
+      setStatus('Inspect mode · Choose a rendered component to inspect it directly.');
+    }
+  }
+
+  function setMode(nextMode) {
+    if (!['inspect', 'browse'].includes(nextMode)) return;
+    mode = nextMode;
+    root.dataset.inspectionMode = mode;
+    inspectButton.setAttribute('aria-pressed', String(mode === 'inspect'));
+    browseButton.setAttribute('aria-pressed', String(mode === 'browse'));
+    configureFrame();
+  }
+
+  inspectButton.addEventListener('click', () => setMode('inspect'));
+  browseButton.addEventListener('click', () => setMode('browse'));
+  frame.addEventListener('load', configureFrame);
+  setMode('inspect');
+})();
+</script>`;
+}
+
 function renderV2ReadOnlyStudioSurface({
   sourceInput,
   query,
@@ -556,7 +719,7 @@ function renderV2ReadOnlyStudioSurface({
 *{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}a,summary{min-height:44px}a:focus-visible,summary:focus-visible,[tabindex]:focus{outline:3px solid #0f766e;outline-offset:3px}
 .skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:white}.skip:focus{top:12px}
 .studio{min-height:100vh;display:grid;grid-template-rows:auto auto 1fr}.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 22px;border-bottom:1px solid #ccd3d6;background:#fff}.brand{display:flex;align-items:center;gap:14px;min-width:0}.brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#143c42;color:#fff;font-weight:900}.eyebrow{margin:0;color:#4b5a5f;font-size:.7rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase}.brand h1{margin:2px 0 0;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.authority-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #a8b7b7;border-radius:999px;background:#f4f8f7;color:#29494b;font-size:.74rem;font-weight:800}.authority-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#2f855a}
-.modebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.mode-copy strong{display:block;font-size:.82rem}.mode-copy span{display:block;margin-top:2px;color:#4b5a5f;font-size:.72rem}.viewport-options{display:flex;gap:5px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.viewport-option{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option strong{font-size:.78rem}.viewport-option span{font-size:.65rem}.viewport-option.is-selected{background:#143c42;color:#fff}
+.modebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.mode-copy strong{display:block;font-size:.82rem}.mode-copy span{display:block;margin-top:2px;color:#4b5a5f;font-size:.72rem}.mode-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}.inspection-wrap{display:grid;gap:3px}.inspection-modes{display:flex;gap:4px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.inspection-mode{min-height:44px;border:0;border-radius:8px;background:transparent;padding:7px 11px;color:#405057;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer}.inspection-mode[aria-pressed="true"]{background:#176b61;color:#fff}.inspection-mode:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.inspection-status{margin:0;max-width:360px;color:#4b5a5f;font-size:.64rem;line-height:1.35}.viewport-options{display:flex;gap:5px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.viewport-option{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option strong{font-size:.78rem}.viewport-option span{font-size:.65rem}.viewport-option.is-selected{background:#143c42;color:#fff}
 .workspace{display:grid;grid-template-columns:230px minmax(0,1fr) 310px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.studio-tree,.inspector-fields{list-style:none;margin:0;padding:8px}.studio-tree li{padding-left:calc(var(--tree-depth) * 8px)}.studio-tree__link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.studio-tree__link span:first-child{min-width:0}.studio-tree__link strong,.studio-tree__link small{display:block;overflow-wrap:anywhere}.studio-tree__link strong{font-size:.78rem}.studio-tree__link small{margin-top:2px;color:#536166;font-size:.65rem}.studio-tree__link:hover{background:#f0f4f4}.studio-tree__link.is-context{background:#f4f8f7}.studio-tree__link.is-selected{border-color:#73a9a1;background:#e8f4f1}.selection-dot{flex:none;padding:3px 5px;border-radius:5px;background:#176b61;color:#fff;font-size:.58rem;font-weight:800}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:180px;max-width:250px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem;overflow-wrap:anywhere}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}
 .preview-area{display:grid;place-items:start center;min-height:650px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}
@@ -568,21 +731,30 @@ function renderV2ReadOnlyStudioSurface({
 dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr);gap:6px 10px}dt{color:#536166;font-size:.65rem}dd{margin:0;font-size:.7rem;overflow-wrap:anywhere}dd span{display:block;color:#536166;font-size:.61rem;font-weight:400}.diagnostics{margin:10px;border:1px solid #d9e0e2;border-radius:9px}.diagnostics summary{display:flex;align-items:center;padding:9px 10px;cursor:pointer;font-size:.7rem;font-weight:800}.diagnostics dl{padding:0 10px 10px}
 .read-only-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
 @media(max-width:1180px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector-panel{grid-column:2;position:static;max-height:none}.preview-holder.viewport-desktop{width:624px;height:433px}.preview-holder.viewport-desktop iframe{transform:scale(.433)}}
-@media(max-width:720px){.topbar{align-items:flex-start;padding:12px}.brand h1{white-space:normal}.authority-badge{font-size:.65rem}.modebar{align-items:flex-start;flex-direction:column;padding:10px 12px}.viewport-options{width:100%;overflow-x:auto}.viewport-option{flex:1 0 auto;justify-content:center}.viewport-option span{display:none}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;max-height:none;position:static}.tree-panel{order:2;max-height:none;position:static}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.canvas-tools{padding:7px}.canvas-card{min-width:155px}.tree-panel,.inspector-panel{width:100%}}
+@media(max-width:720px){.topbar{align-items:flex-start;padding:12px}.brand h1{white-space:normal}.authority-badge{font-size:.65rem}.modebar{align-items:flex-start;flex-direction:column;padding:10px 12px}.mode-controls{width:100%;align-items:stretch;flex-direction:column}.inspection-wrap{width:100%}.inspection-modes{width:100%}.inspection-mode{flex:1}.inspection-status{max-width:none}.viewport-options{width:100%;overflow-x:auto}.viewport-option{flex:1 0 auto;justify-content:center}.viewport-option span{display:none}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;max-height:none;position:static}.tree-panel{order:2;max-height:none;position:static}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.canvas-tools{padding:7px}.canvas-card{min-width:155px}.tree-panel,.inspector-panel{width:100%}}
 @media(max-width:380px){.preview-holder.viewport-desktop{width:317px;height:220px}.preview-holder.viewport-desktop iframe{transform:scale(.22)}.preview-holder.viewport-tablet{width:317px;height:423px}.preview-holder.viewport-tablet iframe{transform:scale(.38)}.preview-holder.viewport-mobile{width:320px;height:693px}.preview-holder.viewport-mobile iframe{transform:scale(.82)}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <a class="skip" href="#studio-canvas-heading">Skip to Canvas</a>
-<main class="studio" data-source-digest="${escapeHtml(model.sourceDigest)}" data-studio-derived="true" data-studio-persistent="false" data-studio-mutations="false">
+<main class="studio" data-source-digest="${escapeHtml(model.sourceDigest)}" data-studio-derived="true" data-studio-persistent="false" data-studio-mutations="false" data-v2-direct-inspection="true" data-inspection-mode="inspect" data-selected-component-id="${escapeHtml(model.selectedEntry.componentId || '')}">
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><div><p class="eyebrow">HiVenues · Venue Studio</p><h1>${escapeHtml(model.venue.displayName)}</h1></div></div>
     <span class="authority-badge">Read-only v2 foundation</span>
   </header>
-  <section class="modebar" aria-label="Responsive preview mode">
+  <section class="modebar" aria-label="Studio presentation controls">
     <div class="mode-copy"><strong>Responsive preview</strong><span>Presentation state only · source remains unchanged</span></div>
-    <nav class="viewport-options" aria-label="Preview viewport">${viewportControls}</nav>
+    <div class="mode-controls">
+      <div class="inspection-wrap">
+        <div class="inspection-modes" role="group" aria-label="Canvas interaction mode">
+          <button class="inspection-mode" type="button" data-studio-presentation-control="true" data-inspection-mode="inspect" aria-pressed="true">Inspect</button>
+          <button class="inspection-mode" type="button" data-studio-presentation-control="true" data-inspection-mode="browse" aria-pressed="false">Browse Preview</button>
+        </div>
+        <p class="inspection-status" data-inspection-status aria-live="polite">Inspect mode · Preparing rendered semantic components…</p>
+      </div>
+      <nav class="viewport-options" aria-label="Preview viewport">${viewportControls}</nav>
+    </div>
   </section>
   <div class="workspace">
     <nav class="panel tree-panel" aria-labelledby="studio-tree-heading">
@@ -592,7 +764,7 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
     <section class="panel canvas-panel" aria-labelledby="studio-canvas-heading">
       <header class="panel-head"><h2 id="studio-canvas-heading" tabindex="-1">Venue Canvas</h2><span>Real v2 renderer</span></header>
       <nav class="canvas-tools" aria-label="Page component selection">${cards}</nav>
-      <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}" data-preview-viewport="${escapeHtml(model.viewport.id)}" data-preview-width="${model.viewport.width}" data-preview-height="${model.viewport.height}"><iframe title="Real v2 venue renderer preview" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
+      <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}" data-preview-viewport="${escapeHtml(model.viewport.id)}" data-preview-width="${model.viewport.width}" data-preview-height="${model.viewport.height}"><iframe title="Real v2 venue renderer preview" data-v2-studio-preview="true" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
       <div class="preview-meta"><strong>${escapeHtml(model.previewPage.title)}</strong><span>${escapeHtml(model.viewport.label)} · ${model.viewport.width} × ${model.viewport.height}</span></div>
       <p class="read-only-note">Selection and viewport changes are local presentation state. This surface cannot edit, keep, save, publish, deploy, or perform external actions.</p>
     </section>
@@ -602,6 +774,7 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
     </aside>
   </div>
 </main>
+${renderV2ReadOnlyStudioDirectInspectionScript()}
 </body>
 </html>`;
 }
