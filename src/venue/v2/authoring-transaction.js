@@ -1,9 +1,8 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const {
   MAX_MANAGED_IMAGE_BYTES,
-  inspectManagedImage,
+  deriveManagedImage,
 } = require('../managed-assets');
 
 const {
@@ -787,25 +786,24 @@ function resolveHeroMediaTarget(sourceInput, targetInput, slotInput = V2_HERO_ME
 
 function deriveImportedMediaAsset(bytesBase64) {
   const bytes = Buffer.from(canonicalImageBase64(bytesBase64), 'base64');
-  let inspected;
+  let derived;
   try {
-    inspected = inspectManagedImage(bytes);
+    derived = deriveManagedImage(bytes);
   } catch (error) {
     throw new V2AuthoringTransactionError(`local image inspection failed: ${error.message}`);
   }
-  const digestSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-  const assetId = `local-image-${digestSha256}`;
-  const src = `${V2_SESSION_MEDIA_PATH_PREFIX}${digestSha256}.${inspected.extension}`;
+  const assetId = `local-image-${derived.digestSha256}`;
   return deepFreeze({
     bytesBase64: bytes.toString('base64'),
-    digestSha256,
-    mediaType: inspected.mediaType,
-    extension: inspected.extension,
+    digestSha256: derived.digestSha256,
+    mediaType: derived.mediaType,
+    extension: derived.extension,
+    managedFilename: derived.filename,
     asset: {
       id: assetId,
-      src,
-      width: inspected.width,
-      height: inspected.height,
+      src: derived.sourcePath,
+      width: derived.width,
+      height: derived.height,
     },
   });
 }
