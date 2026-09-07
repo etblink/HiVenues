@@ -1,0 +1,154 @@
+'use strict';
+
+const express = require('express');
+const {
+  renderV2PublicStylesheet,
+  renderV2ThemeStylesheet,
+} = require('../../src/venue/v2/renderer');
+const {
+  SAFE_V2_READ_ONLY_STUDIO_ERROR,
+  V2ReadOnlyStudioError,
+  renderV2ReadOnlyStudioPreview,
+  renderV2ReadOnlyStudioSurface,
+} = require('../../src/venue/v2/studio-read-only');
+const {
+  REFERENCE_FACTORIES,
+} = require('./v2-renderer-fixture');
+
+const SYNTHETIC_ASSETS = Object.freeze({
+  'restaurant-logo.svg': ['Harbor & Hearth · logo', '#f3eadf', '#211a16'],
+  'restaurant-dining.svg': ['Harbor & Hearth · dining room', '#a76e43', '#fffaf3'],
+  'restaurant-private.svg': ['Harbor & Hearth · private dining', '#d7c2a9', '#2b211b'],
+  'restaurant-plate.svg': ['Harbor & Hearth · seasonal plate', '#6d7462', '#fffaf3'],
+  'music-logo.svg': ['Northline Hall · logo', '#111525', '#ff6a78'],
+  'music-stage.svg': ['Northline Hall · stage', '#171d31', '#8fd4ff'],
+  'music-poster-one.svg': ['The Static Lights · poster', '#351728', '#ff929d'],
+  'music-poster-two.svg': ['Signal / Noise · poster', '#102b3c', '#8fd4ff'],
+});
+
+function syntheticSvg(label, background, foreground) {
+  const safe = String(label).replace(/[<>&'"]/g, '');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="${safe}">
+  <rect width="1600" height="1000" fill="${background}"/>
+  <circle cx="1240" cy="210" r="320" fill="${foreground}" opacity=".08"/>
+  <circle cx="300" cy="860" r="420" fill="${foreground}" opacity=".06"/>
+  <path d="M0 720 C360 570 590 890 960 670 C1210 520 1380 610 1600 490 V1000 H0Z" fill="${foreground}" opacity=".09"/>
+  <text x="110" y="170" fill="${foreground}" font-family="system-ui,sans-serif" font-size="58" font-weight="700">${safe}</text>
+  <text x="112" y="235" fill="${foreground}" opacity=".72" font-family="system-ui,sans-serif" font-size="28">Synthetic HiVenues reference artwork</text>
+</svg>`;
+}
+
+function queryObject(request) {
+  const result = {};
+  for (const key of ['nodeId', 'fieldId', 'viewport']) {
+    if (typeof request.query[key] === 'string') result[key] = request.query[key];
+  }
+  return result;
+}
+
+function createV2ReadOnlyStudioFixture(sourceInput) {
+  const sourceFactory = typeof sourceInput === 'function' ? sourceInput : () => sourceInput;
+  const source = sourceFactory();
+  const app = express();
+  const diagnostics = {
+    requests: 0,
+    studioGets: 0,
+    previewGets: 0,
+    mutationRequests: 0,
+    hiveRpcAttempts: 0,
+    writes: 0,
+  };
+
+  app.disable('x-powered-by');
+  app.use((request, _response, next) => {
+    diagnostics.requests += 1;
+    if (!['GET', 'HEAD'].includes(request.method)) diagnostics.mutationRequests += 1;
+    next();
+  });
+
+  app.get('/studio', (request, response) => {
+    diagnostics.studioGets += 1;
+    try {
+      response.type('html').send(renderV2ReadOnlyStudioSurface({
+        sourceInput: source,
+        query: queryObject(request),
+        studioPath: '/studio',
+        previewPathForPage(page) {
+          return `/studio-preview/${encodeURIComponent(page.id)}`;
+        },
+      }));
+    } catch (error) {
+      if (error instanceof V2ReadOnlyStudioError) {
+        response.status(400).type('text/plain').send(SAFE_V2_READ_ONLY_STUDIO_ERROR);
+        return;
+      }
+      throw error;
+    }
+  });
+
+  app.get('/studio-preview/:pageId', (request, response) => {
+    diagnostics.previewGets += 1;
+    try {
+      response.type('html').send(renderV2ReadOnlyStudioPreview(
+        source,
+        request.params.pageId,
+        {
+          basePath: '/studio-preview',
+          stylesheetHref: '/__hivenues-v2/styles.css',
+          themeStylesheetHref: '/__hivenues-v2/theme.css',
+          eventBasePath: '/events',
+          capabilityPaths: {
+            community: '/community',
+            transaction: '/pay',
+          },
+        },
+      ));
+    } catch (error) {
+      response.status(404).type('text/plain').send(error.message);
+    }
+  });
+
+  app.get('/studio-preview/__hivenues-v2/styles.css', (_request, response) => {
+    response.type('text/css').send(renderV2PublicStylesheet());
+  });
+  app.get('/studio-preview/__hivenues-v2/theme.css', (_request, response) => {
+    response.type('text/css').send(renderV2ThemeStylesheet(source));
+  });
+
+  app.get('/fixtures/v2-renderer/:asset', (request, response) => {
+    const spec = SYNTHETIC_ASSETS[request.params.asset];
+    if (!spec) {
+      response.status(404).type('text/plain').send('Fixture asset not found.');
+      return;
+    }
+    response.type('image/svg+xml').send(syntheticSvg(...spec));
+  });
+
+  app.all('/studio', (request, response, next) => {
+    if (['GET', 'HEAD'].includes(request.method)) return next();
+    response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only Studio accepts GET and HEAD only.');
+  });
+  app.all('/studio-preview/:pageId', (request, response, next) => {
+    if (['GET', 'HEAD'].includes(request.method)) return next();
+    response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only preview accepts GET and HEAD only.');
+  });
+
+  return Object.freeze({
+    app,
+    source,
+    diagnostics() {
+      return Object.freeze({ ...diagnostics });
+    },
+  });
+}
+
+function createReferenceV2ReadOnlyStudioFixture(referenceId) {
+  const factory = REFERENCE_FACTORIES[referenceId];
+  if (!factory) throw new TypeError(`Unknown v2 Studio reference: ${referenceId}`);
+  return createV2ReadOnlyStudioFixture(factory);
+}
+
+module.exports = {
+  createReferenceV2ReadOnlyStudioFixture,
+  createV2ReadOnlyStudioFixture,
+};
