@@ -1,5 +1,7 @@
 'use strict';
 
+const { URLSearchParams } = require('node:url');
+
 const path = require('node:path');
 const express = require('express');
 const {
