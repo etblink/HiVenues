@@ -30,9 +30,6 @@ const {
   resolveManagedAssetFile,
 } = require('../../src/venue/managed-assets');
 const {
-  V2_PERSISTED_SOURCE_ABSENT,
-} = require('../../src/venue/v2/source-file');
-const {
   V2WorkspaceCheckpointError,
   inspectV2WorkspaceCheckpoint,
   saveV2WorkspaceCheckpoint,
