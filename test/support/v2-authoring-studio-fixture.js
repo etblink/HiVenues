@@ -270,6 +270,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
         request.body,
         'apply form',
         new Set(['nodeId', 'fieldId', 'viewport']),
+        new Set(['fieldId']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to apply');
       session = applyV2AuthoringProposal(session, proposal);
@@ -288,6 +289,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
         request.body,
         'discard form',
         new Set(['nodeId', 'fieldId', 'viewport']),
+        new Set(['fieldId']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to discard');
       session = discardV2AuthoringProposal(session, proposal);
