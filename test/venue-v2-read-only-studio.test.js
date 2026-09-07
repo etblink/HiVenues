@@ -52,6 +52,12 @@ test('one read-only v2 Studio model serves all four references with explicit non
     assert.equal(model.selection.fieldId, null, referenceId);
     assert.equal(model.selection.viewport, 'desktop', referenceId);
     assert.equal(model.previewPage.id, source.site.homePageId, referenceId);
+    assert.deepEqual(
+      model.pages.map((page) => ({ id: page.id, slug: page.slug, title: page.title })),
+      source.site.pages.map((page) => ({ id: page.id, slug: page.slug, title: page.title })),
+      referenceId,
+    );
+    assert.ok(model.pages.every((page) => page.selectionId === `page:${page.id}`), referenceId);
     assert.ok(model.treeRows.length >= source.site.pages.length + 1, referenceId);
   }
 });
@@ -307,6 +313,90 @@ test('direct inspection bridge is same-origin, presentation-only, and binds sele
   assert.doesNotMatch(html, /\beval\s*\(/);
 });
 
+test('canonical page-context map binds only known local page paths to stable GET selection', () => {
+  const source = restaurantSource();
+  const html = renderV2ReadOnlyStudioSurface({
+    sourceInput: source,
+    query: { nodeId: 'page:home', viewport: 'tablet' },
+    studioPath: '/studio',
+    previewPathForPage: (page) => `/studio-preview/page/${page.id}`,
+    browsePathForPage: (page) => (
+      page.id === source.site.homePageId
+        ? '/studio-preview/site/'
+        : `/studio-preview/site/${page.slug}`
+    ),
+  });
+  const document = documentFrom(html);
+  const main = document.querySelector('main.studio');
+  assert.equal(main.dataset.selectedPageId, 'home');
+
+  const records = [...document.querySelectorAll('[data-v2-page-context="true"]')].map((anchor) => ({
+    previewPath: anchor.dataset.previewPath,
+    pageId: anchor.dataset.pageId,
+    pageTitle: anchor.dataset.pageTitle,
+    href: anchor.getAttribute('href'),
+  }));
+  const byPath = new Map(records.map((record) => [record.previewPath, record]));
+
+  assert.deepEqual(byPath.get('/studio-preview/page/home'), {
+    previewPath: '/studio-preview/page/home',
+    pageId: 'home',
+    pageTitle: source.site.pages.find((page) => page.id === 'home').title,
+    href: '/studio?nodeId=page%3Ahome&viewport=tablet',
+  });
+  assert.equal(byPath.get('/studio-preview/site/').pageId, 'home');
+  assert.equal(byPath.get('/studio-preview/page/menu').pageId, 'menu');
+  assert.equal(byPath.get('/studio-preview/site/menu').pageId, 'menu');
+  assert.equal(
+    byPath.get('/studio-preview/site/menu').href,
+    '/studio?nodeId=page%3Amenu&viewport=tablet',
+  );
+
+  const action = document.querySelector('[data-inspect-browsed-page]');
+  assert.equal(action.closest('[data-browsed-page-context]').hidden, true);
+  assert.equal(action.textContent.trim(), 'Inspect this page');
+  assert.equal(document.querySelector('iframe').dataset.selectedPreviewPath, '/studio-preview/page/home');
+
+  assert.match(html, /currentPageContext/);
+  assert.match(html, /Studio selection stays unchanged until you choose Inspect this page/);
+  assert.match(html, /target\.origin !== window\.location\.origin/);
+  assert.match(html, /target\.pathname !== window\.location\.pathname/);
+  assert.doesNotMatch(html, /postMessage\s*\(/);
+  assert.doesNotMatch(html, /\beval\s*\(/);
+});
+
+test('page-context path authority rejects unsafe callbacks and ambiguous canonical mappings', () => {
+  const source = restaurantSource();
+  const base = {
+    sourceInput: source,
+    query: { viewport: 'desktop' },
+    studioPath: '/studio',
+    previewPathForPage: (page) => `/studio-preview/page/${page.id}`,
+  };
+
+  assert.throws(
+    () => renderV2ReadOnlyStudioSurface({
+      ...base,
+      browsePathForPage: () => 'https://example.com/not-local',
+    }),
+    V2ReadOnlyStudioError,
+  );
+  assert.throws(
+    () => renderV2ReadOnlyStudioSurface({
+      ...base,
+      browsePathForPage: () => '/studio-preview/site/shared',
+    }),
+    /preview path maps to multiple pages/,
+  );
+  assert.throws(
+    () => renderV2ReadOnlyStudioSurface({
+      ...base,
+      browsePathForPage: '/studio-preview/site/',
+    }),
+    V2ReadOnlyStudioError,
+  );
+});
+
 test('page selection leaves direct Canvas component highlight unbound while resource selection binds its owning component', () => {
   const source = restaurantSource();
   const pageHtml = renderV2ReadOnlyStudioSurface({
@@ -338,6 +428,9 @@ test('isolated Studio fixture is GET-only, uses the real renderer, and records z
     const document = documentFrom(studio.text);
     assert.equal(document.documentElement.dataset.v2ReadOnlyStudio, 'true', referenceId);
     assert.match(document.querySelector('iframe').getAttribute('src'), /^\/studio-preview\/page\//, referenceId);
+    const pageContextPaths = [...document.querySelectorAll('[data-v2-page-context="true"]')]
+      .map((anchor) => anchor.dataset.previewPath);
+    assert.ok(pageContextPaths.includes('/studio-preview/site/'), referenceId);
 
     const previewPath = document.querySelector('iframe').getAttribute('src');
     const preview = await request(fixture.app).get(previewPath).expect(200);
