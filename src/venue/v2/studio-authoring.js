@@ -328,6 +328,12 @@ function renderStructuralEditor({ model, session, proposal, source, actionPaths 
   if (model.selection.nodeId.startsWith('page:')) {
     return renderAddEditor({ model, session, proposal, source, actionPaths });
   }
+  if (matchingMoveProposal(proposal, model)) {
+    return renderMoveEditor({ model, session, proposal, source, actionPaths });
+  }
+  if (matchingRemoveProposal(proposal, model)) {
+    return renderRemoveEditor({ model, session, proposal, source, actionPaths });
+  }
   const move = renderMoveEditor({ model, session, proposal, source, actionPaths });
   const remove = renderRemoveEditor({ model, session, proposal, source, actionPaths });
   return `${move}${remove}`;
