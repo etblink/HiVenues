@@ -159,8 +159,18 @@ function storeManagedImage({ workspaceDirectory, bytes: input, fsImpl = fs } = {
 }
 
 function prepareManagedImage(options = {}) {
-  const { created: _created, ...asset } = storeManagedImage(options);
-  return Object.freeze(asset);
+  const stored = storeManagedImage(options);
+  return Object.freeze({
+    extension: stored.extension,
+    mediaType: stored.mediaType,
+    width: stored.width,
+    height: stored.height,
+    bytes: stored.bytes,
+    digestSha256: stored.digestSha256,
+    filename: stored.filename,
+    filePath: stored.filePath,
+    sourcePath: stored.sourcePath,
+  });
 }
 
 function managedAssetFilenameFromSourcePath(sourcePath, { allowStarter = true } = {}) {
