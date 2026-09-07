@@ -228,7 +228,11 @@ async function runReference(browser, spec) {
   );
   assert.ok(pageSource, spec.referenceId + ': media-bearing page missing');
   const hero = pageSource.components.find((component) => component.kind === 'venue-hero' && component.content.media);
-  const targetAsset = source.media.assets.find((asset) => asset.id !== hero.content.media.assetId);
+  const targetAsset = source.media.assets.find(
+    (asset) =>
+      asset.id !== hero.content.media.assetId
+      && asset.id !== source.site.brand.logoAssetId,
+  ) || source.media.assets.find((asset) => asset.id !== hero.content.media.assetId);
   assert.ok(targetAsset, spec.referenceId + ': alternate managed asset missing');
   const nodeId = 'component:' + hero.id;
   const targetAlt = spec.referenceId + ' alternate hero image';
