@@ -60,7 +60,7 @@ async function geometry(page, label) {
   const metrics = await page.evaluate(() => {
     const root = globalThis.document.documentElement;
     const targetHeights = [...globalThis.document.querySelectorAll(
-      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.skip,summary',
+      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.inspection-mode,.skip,summary',
     )]
       .map((element) => element.getBoundingClientRect().height)
       .filter((height) => height > 0);
@@ -149,9 +149,9 @@ async function snapshotCurrent(page, {
   const geometryMetrics = await geometry(page, label);
   const preview = await previewHealth(page, label);
   const accessibilityFindings = await accessibility(page, label);
-
   const filename = path.join(SCREENSHOTS, `${referenceId}-${stateId}.png`);
   await page.screenshot({ path: filename, fullPage: false });
+
   return {
     referenceId,
     stateId,
@@ -189,8 +189,10 @@ async function inspectRenderedComponent(page, {
   }
   await navigation;
 
-  const selected = await page.locator('main.studio').getAttribute('data-selected-component-id');
-  assert.equal(selected, componentId);
+  assert.equal(
+    await page.locator('main.studio').getAttribute('data-selected-component-id'),
+    componentId,
+  );
   const afterDigest = await page.locator('main.studio').getAttribute('data-source-digest');
   assert.equal(afterDigest, beforeDigest, 'direct inspection changed source digest');
 
@@ -201,143 +203,14 @@ async function inspectRenderedComponent(page, {
     `.v2-component[data-component-id="${componentId}"][data-hivenues-studio-selected="true"]`,
   ).waitFor({ state: 'attached' });
 
-  const selectedTree = await page.locator('.studio-tree__link[aria-current="location"]').getAttribute('data-selection-id');
-  const selectedCard = await page.locator(`.canvas-card[data-component-id="${componentId}"][aria-current="location"]`).count();
-  assert.equal(selectedCard, 1);
-  assert.match(selectedTree || '', new RegExp(`component:${componentId.replace(/[.*+?^\${}()|[\\]\\]/g, '\\\\async function capture(page, {
-  origin,
-  referenceId,
-  stateId,
-  shellViewport,
-  query,
-}) {')}#!/usr/bin/env node
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { URLSearchParams } = require('node:url');
-const axe = require('axe-core');
-const { chromium } = require('playwright');
-const {
-  REFERENCE_FACTORIES,
-} = require('../test/support/v2-renderer-fixture');
-const {
-  createReferenceV2ReadOnlyStudioFixture,
-} = require('../test/support/v2-studio-fixture');
-const {
-  closeServer,
-  listenLoopback,
-  sha256,
-} = require('./support/visual-harness');
-
-const ROOT = path.join(__dirname, '..');
-const OUTPUT = path.resolve(
-  ROOT,
-  process.env.V2_STUDIO_REVIEW_ROOT || 'artifacts/v2-studio-review',
-);
-const SCREENSHOTS = path.join(OUTPUT, 'screenshots');
-const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
-const SHELL_VIEWPORTS = Object.freeze({
-  desktop: { width: 1440, height: 1000 },
-  tablet: { width: 834, height: 1112 },
-  mobile: { width: 390, height: 844 },
-});
-
-async function runAxeInFrame(frame) {
-  await frame.addScriptTag({ content: axe.source });
-  const result = await frame.evaluate(async () => globalThis.axe.run(globalThis.document, {
-    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
-    resultTypes: ['violations'],
-  }));
-  return result.violations.map((violation) => ({
-    id: violation.id,
-    impact: violation.impact,
-    nodes: violation.nodes.length,
-    targets: violation.nodes.map((node) => node.target),
-    failureSummaries: violation.nodes.map((node) => node.failureSummary).filter(Boolean),
-  }));
-}
-
-async function accessibility(page, label) {
-  const outer = await runAxeInFrame(page.mainFrame());
-  const iframe = page.frames().find((frame) => frame !== page.mainFrame());
-  const preview = iframe ? await runAxeInFrame(iframe) : [];
-  const blocking = [...outer, ...preview].filter((finding) => BLOCKING_IMPACTS.has(finding.impact));
-  assert.deepEqual(blocking, [], `${label}: blocking accessibility findings\n${JSON.stringify(blocking, null, 2)}`);
-  return { outer, preview };
-}
-
-async function geometry(page, label) {
-  const metrics = await page.evaluate(() => {
-    const root = globalThis.document.documentElement;
-    const targetHeights = [...globalThis.document.querySelectorAll(
-      '.studio-tree__link,.canvas-card,.inspector-field,.viewport-option,.skip,summary',
-    )]
-      .map((element) => element.getBoundingClientRect().height)
-      .filter((height) => height > 0);
-    return {
-      clientWidth: root.clientWidth,
-      scrollWidth: root.scrollWidth,
-      h1Count: globalThis.document.querySelectorAll('h1').length,
-      mainCount: globalThis.document.querySelectorAll('main').length,
-      iframeCount: globalThis.document.querySelectorAll('iframe').length,
-      formCount: globalThis.document.querySelectorAll('form').length,
-      inputCount: globalThis.document.querySelectorAll('input,textarea,select').length,
-      buttonCount: globalThis.document.querySelectorAll('button').length,
-      presentationButtonCount: globalThis.document.querySelectorAll('button[data-studio-presentation-control="true"]').length,
-      unexpectedButtonCount: [...globalThis.document.querySelectorAll('button')]
-        .filter((button) => button.getAttribute('data-studio-presentation-control') !== 'true').length,
-      minimumStudioTargetHeight: targetHeights.length ? Math.min(...targetHeights) : null,
-    };
-  });
-
-  assert.ok(
-    metrics.scrollWidth - metrics.clientWidth <= 1,
-    `${label}: horizontal overflow ${JSON.stringify(metrics)}`,
+  assert.equal(
+    await page.locator('.studio-tree__link[aria-current="location"]').getAttribute('data-selection-id'),
+    `component:${componentId}`,
   );
-  assert.equal(metrics.h1Count, 1, `${label}: expected one Studio h1`);
-  assert.equal(metrics.mainCount, 1, `${label}: expected one main landmark`);
-  assert.equal(metrics.iframeCount, 1, `${label}: expected one real-renderer iframe`);
-  assert.equal(metrics.formCount, 0, `${label}: read-only Studio unexpectedly contains a form`);
-  assert.equal(metrics.inputCount, 0, `${label}: read-only Studio unexpectedly contains editable controls`);
-  assert.equal(metrics.presentationButtonCount, 2, `${label}: expected two presentation-only mode buttons`);
-  assert.equal(metrics.unexpectedButtonCount, 0, `${label}: unexpected non-presentation button found`);
-  assert.ok(
-    metrics.minimumStudioTargetHeight === null || metrics.minimumStudioTargetHeight >= 43.5,
-    `${label}: Studio target below 44px convention ${JSON.stringify(metrics)}`,
+  assert.equal(
+    await page.locator(`.canvas-card[data-component-id="${componentId}"][aria-current="location"]`).count(),
+    1,
   );
-  return metrics;
-}
-
-async function previewHealth(page, label) {
-  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
-  assert.ok(frame, `${label}: real renderer iframe missing`);
-  await frame.waitForLoadState('networkidle');
-  const data = await frame.evaluate(() => ({
-    h1Count: globalThis.document.querySelectorAll('h1').length,
-    mainCount: globalThis.document.querySelectorAll('main').length,
-    venueWordmark: globalThis.document.querySelector('.v2-wordmark')?.textContent?.trim() || null,
-    failedImages: [...globalThis.document.images]
-      .filter((image) => image.complete && image.naturalWidth === 0)
-      .map((image) => image.getAttribute('src')),
-  }));
-  assert.equal(data.mainCount, 1, `${label}: renderer preview main landmark mismatch`);
-  assert.equal(data.h1Count, 1, `${label}: renderer preview heading mismatch`);
-  assert.deepEqual(data.failedImages, [], `${label}: renderer preview image failure`);
-  return data;
-}
-
-function screenshotRecord(filename) {
-  const bytes = fs.readFileSync(filename);
-  return {
-    file: path.relative(OUTPUT, filename).replaceAll(path.sep, '/'),
-    sha256: sha256(bytes),
-    bytes: bytes.length,
-  };
-}
-
-));
 
   return {
     kind: 'direct-inspection',
