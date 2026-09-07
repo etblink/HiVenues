@@ -182,7 +182,7 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
     if (['GET', 'HEAD'].includes(request.method)) return next();
     response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only Studio accepts GET and HEAD only.');
   });
-  app.all('/studio-preview/*', (request, response, next) => {
+  app.use('/studio-preview', (request, response, next) => {
     if (['GET', 'HEAD'].includes(request.method)) return next();
     response.status(405).set('Allow', 'GET, HEAD').type('text/plain').send('Read-only preview accepts GET and HEAD only.');
   });
