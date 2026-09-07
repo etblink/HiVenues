@@ -1000,7 +1000,11 @@ test('Media editor exposes only existing managed hero assets and previews throug
   assert.equal(response.status, 200);
   assert.match(response.text, /id="media-editor-heading">Hero image/);
   assert.match(response.text, /action="\/studio-authoring\/media"/);
+  assert.match(response.text, /data-media-meaning="meaningful"/);
+  assert.match(response.text, /data-media-meaning="decorative"/);
   assert.match(response.text, /name="mediaSlot" value="hero-media"/);
+  assert.match(response.text, /Preview meaningful image/);
+  assert.match(response.text, /Preview as decorative/);
   assert.equal(response.text.includes('name="sourcePointer"'), false);
   assert.equal(response.text.includes('name="src"'), false);
   assert.equal(response.text.includes('name="treatment"'), false);
@@ -1051,6 +1055,43 @@ test('Media editor exposes only existing managed hero assets and previews throug
     .send({ nodeId, viewport: 'desktop', fieldId: '' })
     .expect(303);
   assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(fixture.diagnostics().persistentWrites, 0);
+  assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(fixture.diagnostics().hiveWrites, 0);
+});
+
+test('Media decorative path requires no manual alt clearing and renders empty alt plus aria-hidden', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('restaurant');
+  const source = fixture.session().draftSource;
+  const page = source.site.pages.find((candidate) =>
+    candidate.components.some((component) => component.kind === 'venue-hero' && component.content.media)
+  );
+  const hero = page.components.find((component) => component.kind === 'venue-hero' && component.content.media);
+  const asset = source.media.assets.find((candidate) => candidate.id !== hero.content.media.assetId);
+  const nodeId = 'component:' + hero.id;
+  const openingDigest = fixture.session().draftDigest;
+
+  const response = await request(fixture.app)
+    .post('/studio-authoring/media')
+    .type('form')
+    .send({
+      nodeId,
+      mediaSlot: 'hero-media',
+      assetId: asset.id,
+      decorative: 'true',
+      viewport: 'tablet',
+      expectedDraftDigest: openingDigest,
+    });
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().command.decorative, true);
+  assert.equal(fixture.proposal().command.alt, null);
+
+  const preview = await request(fixture.app)
+    .get('/studio-authoring-preview/page/' + page.id)
+    .expect(200);
+  assert.equal(preview.text.includes(asset.src), true);
+  assert.match(preview.text, /alt=""[^>]*aria-hidden="true"/);
   assert.equal(fixture.diagnostics().persistentWrites, 0);
   assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
   assert.equal(fixture.diagnostics().hiveWrites, 0);
