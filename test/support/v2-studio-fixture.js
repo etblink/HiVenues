@@ -79,6 +79,11 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
     next();
   });
 
+  function publicPagePath(page) {
+    if (page.id === source.site.homePageId) return '/studio-preview/site/';
+    return `/studio-preview/site/${encodeURIComponent(page.slug)}`;
+  }
+
   app.get('/studio', (request, response) => {
     diagnostics.studioGets += 1;
     try {
@@ -89,6 +94,7 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
         previewPathForPage(page) {
           return `/studio-preview/page/${encodeURIComponent(page.id)}`;
         },
+        browsePathForPage: publicPagePath,
       }));
     } catch (error) {
       if (error instanceof V2ReadOnlyStudioError) {
