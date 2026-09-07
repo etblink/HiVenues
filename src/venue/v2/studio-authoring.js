@@ -143,7 +143,25 @@ function matchingThemeProposal(proposal) {
   return Boolean(proposal && proposal.command.type === SET_THEME_RECIPE);
 }
 
-function renderThemeEditor({ model, session, proposal, source, actionPaths }) {
+function acceptedStateMarkup(
+  persistence,
+  {
+    label = 'Accepted session draft',
+    memoryDetail = 'Memory only · not saved · not published',
+  } = {},
+) {
+  let detail = memoryDetail;
+  if (persistence?.enabled) {
+    detail = persistence.isPersisted
+      ? 'Workspace checkpoint saved · not published · not deployed'
+      : persistence.persistedDigest === 'ABSENT'
+        ? 'Not saved yet · not published · not deployed'
+        : 'Accepted draft differs from saved checkpoint · not published · not deployed';
+  }
+  return `<div class="accepted-state"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(detail)}</span></div>`;
+}
+
+function renderThemeEditor({ model, session, proposal, source, actionPaths, persistence }) {
   const context = listV2ThemeRecipeOptions(source);
   if (proposal && !matchingThemeProposal(proposal)) {
     return '<section class="editor-card"><p class="eyebrow">Theme</p><h3>Finish the active preview first</h3><p class="muted">Apply or discard the current proposal before starting a global theme change.</p></section>';
@@ -190,7 +208,10 @@ function renderThemeEditor({ model, session, proposal, source, actionPaths }) {
 
   const status = isProposal
     ? '<div class="preview-state" role="status"><strong>Theme preview — not applied</strong><span>The real Canvas is rendering the proposed global design recipe. The accepted session draft is unchanged.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted global theme</strong><span>Curated semantic recipes · memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence, {
+      label: 'Accepted global theme',
+      memoryDetail: 'Curated semantic recipes · memory only · not saved · not published',
+    });
 
   return `<section class="editor-card theme-card" aria-labelledby="theme-editor-heading">
     <p class="eyebrow">Venue design</p>
@@ -219,7 +240,7 @@ function matchingMediaProposal(proposal, model) {
   );
 }
 
-function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
+function renderMediaEditor({ model, session, proposal, source, actionPaths, persistence }) {
   const context = mediaUsageContext(source, model.selection.nodeId);
   if (!context) return '';
   if (proposal && !matchingMediaProposal(proposal, model)) {
@@ -239,7 +260,10 @@ function renderMediaEditor({ model, session, proposal, source, actionPaths }) {
   ).join('');
   const status = isProposal
     ? '<div class="preview-state" role="status"><strong>Media preview — not applied</strong><span>The real Canvas is rendering the proposed managed asset. The accepted session draft is unchanged.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted hero media</strong><span>Existing managed assets only · memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence, {
+      label: 'Accepted hero media',
+      memoryDetail: 'Existing managed assets only · memory only · not saved · not published',
+    });
 
   if (isProposal) {
     const meaning = usage.decorative ? 'Decorative image' : `Meaningful · ${usage.alt}`;
@@ -442,7 +466,7 @@ function renderProposalActions(model, actionPaths) {
   </div>`;
 }
 
-function renderAddEditor({ model, session, proposal, source, actionPaths }) {
+function renderAddEditor({ model, session, proposal, source, actionPaths, persistence }) {
   const context = componentAddContext(source, model.selection.nodeId);
   if (!context) return '';
   const isProposalTarget = matchingAddProposal(proposal, model);
@@ -462,7 +486,7 @@ function renderAddEditor({ model, session, proposal, source, actionPaths }) {
   }).join('');
   const status = isProposalTarget
     ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the catalog component proposal. The accepted session draft is unchanged.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence);
 
   return `<section class="editor-card" aria-labelledby="component-add-heading">
     <p class="eyebrow">Component library</p>
@@ -484,13 +508,13 @@ function renderAddEditor({ model, session, proposal, source, actionPaths }) {
   </section>`;
 }
 
-function renderRemoveEditor({ model, session, proposal, source, actionPaths }) {
+function renderRemoveEditor({ model, session, proposal, source, actionPaths, persistence }) {
   const context = componentRemovalContext(source, model.selection.nodeId);
   if (!context?.eligible) return '';
   const isProposalTarget = matchingRemoveProposal(proposal, model);
   const status = isProposalTarget
     ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering this component removed. The accepted session draft still contains it.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence);
 
   return `<section class="editor-card" aria-labelledby="component-remove-heading">
     <p class="eyebrow">Component library</p>
@@ -507,7 +531,7 @@ function renderRemoveEditor({ model, session, proposal, source, actionPaths }) {
   </section>`;
 }
 
-function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
+function renderMoveEditor({ model, session, proposal, source, actionPaths, persistence }) {
   const context = componentMoveContext(source, model.selection.nodeId);
   if (!context) {
     return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Select a field</h3><p class="muted">Choose an editable text field, or select an existing page component to change its position. Media, themes, capabilities, persistence, and publishing remain outside this slice.</p></section>';
@@ -517,7 +541,7 @@ function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
   const activeDestination = isProposalTarget ? proposal.command.destination : null;
   const status = isProposalTarget
     ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the proposed component position. The accepted session draft is unchanged.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence);
 
   if (context.destinations.length === 0) {
     return `<section class="editor-card"><p class="eyebrow">Position</p><h3>Only component on page</h3><p class="target-path">${escapeHtml(context.componentId)} · position ${context.position} of ${context.count}</p><p class="muted">There is no different same-page position available for this component.</p></section>`;
@@ -565,18 +589,18 @@ function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
   </section>`;
 }
 
-function renderStructuralEditor({ model, session, proposal, source, actionPaths }) {
+function renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence }) {
   if (model.selection.nodeId.startsWith('page:')) {
-    return renderAddEditor({ model, session, proposal, source, actionPaths });
+    return renderAddEditor({ model, session, proposal, source, actionPaths, persistence });
   }
   if (matchingMoveProposal(proposal, model)) {
-    return renderMoveEditor({ model, session, proposal, source, actionPaths });
+    return renderMoveEditor({ model, session, proposal, source, actionPaths, persistence });
   }
   if (matchingRemoveProposal(proposal, model)) {
-    return renderRemoveEditor({ model, session, proposal, source, actionPaths });
+    return renderRemoveEditor({ model, session, proposal, source, actionPaths, persistence });
   }
-  const move = renderMoveEditor({ model, session, proposal, source, actionPaths });
-  const remove = renderRemoveEditor({ model, session, proposal, source, actionPaths });
+  const move = renderMoveEditor({ model, session, proposal, source, actionPaths, persistence });
+  const remove = renderRemoveEditor({ model, session, proposal, source, actionPaths, persistence });
   return `${move}${remove}`;
 }
 function renderEditor({
@@ -585,6 +609,7 @@ function renderEditor({
   proposal,
   source,
   actionPaths,
+  persistence,
 }) {
   if ([SET_MEDIA_USAGE_ASSET, IMPORT_LOCAL_HERO_MEDIA].includes(proposal?.command.type)) {
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Media preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Media proposal below before starting another content or structure change.</p></section>';
@@ -593,7 +618,7 @@ function renderEditor({
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
   }
   if (!model.selection.fieldId) {
-    return renderStructuralEditor({ model, session, proposal, source, actionPaths });
+    return renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence });
   }
 
   const resolved = editableField(source, model.selection.nodeId, model.selection.fieldId);
@@ -607,7 +632,7 @@ function renderEditor({
     : resolved.currentValue;
   const status = isProposalTarget
     ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the proposal. The accepted session draft is unchanged.</span></div>'
-    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+    : acceptedStateMarkup(persistence);
 
   return `<section class="editor-card" aria-labelledby="field-editor-heading">
     <p class="eyebrow">Selected field</p>
@@ -809,9 +834,9 @@ function renderV2AuthoringStudioSurface({
       <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · media · theme</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
-      ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
-      ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
-      ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
+      ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
+      ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
+      ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
       ${renderHistoryControls(session, normalizedActions, model)}
       ${renderPersistenceControls(session, proposal, persistence, normalizedActions, model)}
     </aside>
