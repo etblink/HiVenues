@@ -384,6 +384,16 @@ function createV2ReadOnlyStudioModel(sourceInput, queryInput) {
   const selectedEntry = entries.find((entry) => entry.selectionId === selection.nodeId);
   const inspector = buildInspector(source, selectedEntry, selection);
   const previewPage = source.site.pages.find((page) => page.id === selectedEntry.pageId);
+  const pages = source.site.pages.map((page) => {
+    const pageEntry = entries.find((entry) => entry.kind === 'page' && entry.pageId === page.id);
+    if (!pageEntry) throw new V2ReadOnlyStudioError(`missing page entry: ${page.id}`);
+    return {
+      id: page.id,
+      slug: page.slug,
+      title: page.title,
+      selectionId: pageEntry.selectionId,
+    };
+  });
   const treeRows = entries.map((entry) => ({
     selectionId: entry.selectionId,
     nodeId: entry.nodeId,
@@ -427,6 +437,7 @@ function createV2ReadOnlyStudioModel(sourceInput, queryInput) {
       slug: previewPage.slug,
       title: previewPage.title,
     },
+    pages,
     viewport: {
       id: selection.viewport,
       ...V2_READ_ONLY_STUDIO_VIEWPORTS[selection.viewport],
@@ -523,6 +534,47 @@ function renderViewportControls(model, studioPath) {
     );
     return `<a class="viewport-option${model.viewport.id === id ? ' is-selected' : ''}" href="${escapeHtml(href)}"${model.viewport.id === id ? ' aria-current="true"' : ''}><strong>${viewport.label}</strong><span>${viewport.width} × ${viewport.height}</span></a>`;
   }).join('');
+}
+
+function renderV2ReadOnlyStudioPageContextMap(
+  model,
+  studioPath,
+  previewPathForPage,
+  browsePathForPage,
+) {
+  const pathToPage = new Map();
+  const records = [];
+
+  for (const page of model.pages) {
+    const paths = new Set([
+      strictLocalPath(previewPathForPage(page), 'preview path'),
+      strictLocalPath(
+        (browsePathForPage || previewPathForPage)(page),
+        'browse preview path',
+      ),
+    ]);
+    const selectionHref = v2ReadOnlyStudioSelectionHref(
+      studioPath,
+      selectionFor(model, { nodeId: page.selectionId, fieldId: null }),
+    );
+
+    for (const previewPath of paths) {
+      const existing = pathToPage.get(previewPath);
+      if (existing && existing !== page.id) {
+        throw new V2ReadOnlyStudioError(`preview path maps to multiple pages: ${previewPath}`);
+      }
+      if (existing) continue;
+      pathToPage.set(previewPath, page.id);
+      records.push({
+        previewPath,
+        pageId: page.id,
+        pageTitle: page.title,
+        selectionHref,
+      });
+    }
+  }
+
+  return `<div data-v2-page-context-map="true" hidden>${records.map((record) => `<a data-v2-page-context="true" data-preview-path="${escapeHtml(record.previewPath)}" data-page-id="${escapeHtml(record.pageId)}" data-page-title="${escapeHtml(record.pageTitle)}" href="${escapeHtml(record.selectionHref)}"></a>`).join('')}</div>`;
 }
 
 function renderV2ReadOnlyStudioDirectInspectionScript() {
@@ -693,10 +745,14 @@ function renderV2ReadOnlyStudioSurface({
   query,
   studioPath = '/studio',
   previewPathForPage,
+  browsePathForPage,
 } = {}) {
   const normalizedStudioPath = strictLocalPath(studioPath, 'Studio path');
   if (typeof previewPathForPage !== 'function') {
     throw new V2ReadOnlyStudioError('previewPathForPage must be a function');
+  }
+  if (browsePathForPage !== undefined && typeof browsePathForPage !== 'function') {
+    throw new V2ReadOnlyStudioError('browsePathForPage must be a function when provided');
   }
   const model = createV2ReadOnlyStudioModel(sourceInput, query);
   const previewHref = strictLocalPath(
@@ -707,6 +763,12 @@ function renderV2ReadOnlyStudioSurface({
   const cards = renderCanvasCards(model, normalizedStudioPath);
   const inspector = renderInspector(model, normalizedStudioPath);
   const viewportControls = renderViewportControls(model, normalizedStudioPath);
+  const pageContextMap = renderV2ReadOnlyStudioPageContextMap(
+    model,
+    normalizedStudioPath,
+    previewPathForPage,
+    browsePathForPage,
+  );
 
   return `<!doctype html>
 <html lang="en" data-v2-read-only-studio="true">
@@ -719,7 +781,7 @@ function renderV2ReadOnlyStudioSurface({
 *{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}a,summary{min-height:44px}a:focus-visible,summary:focus-visible,[tabindex]:focus{outline:3px solid #0f766e;outline-offset:3px}
 .skip{position:fixed;top:-90px;left:12px;z-index:50;padding:12px 16px;border-radius:10px;background:#102a2e;color:white}.skip:focus{top:12px}
 .studio{min-height:100vh;display:grid;grid-template-rows:auto auto 1fr}.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 22px;border-bottom:1px solid #ccd3d6;background:#fff}.brand{display:flex;align-items:center;gap:14px;min-width:0}.brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#143c42;color:#fff;font-weight:900}.eyebrow{margin:0;color:#4b5a5f;font-size:.7rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase}.brand h1{margin:2px 0 0;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.authority-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #a8b7b7;border-radius:999px;background:#f4f8f7;color:#29494b;font-size:.74rem;font-weight:800}.authority-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#2f855a}
-.modebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.mode-copy strong{display:block;font-size:.82rem}.mode-copy span{display:block;margin-top:2px;color:#4b5a5f;font-size:.72rem}.mode-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}.inspection-wrap{display:grid;gap:3px}.inspection-modes{display:flex;gap:4px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.inspection-mode{min-height:44px;border:0;border-radius:8px;background:transparent;padding:7px 11px;color:#405057;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer}.inspection-mode[aria-pressed="true"]{background:#176b61;color:#fff}.inspection-mode:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.inspection-status{margin:0;max-width:360px;color:#4b5a5f;font-size:.64rem;line-height:1.35}.viewport-options{display:flex;gap:5px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.viewport-option{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option strong{font-size:.78rem}.viewport-option span{font-size:.65rem}.viewport-option.is-selected{background:#143c42;color:#fff}
+.modebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.mode-copy strong{display:block;font-size:.82rem}.mode-copy span{display:block;margin-top:2px;color:#4b5a5f;font-size:.72rem}.mode-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}.inspection-wrap{display:grid;gap:3px}.inspection-modes{display:flex;gap:4px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.inspection-mode{min-height:44px;border:0;border-radius:8px;background:transparent;padding:7px 11px;color:#405057;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer}.inspection-mode[aria-pressed="true"]{background:#176b61;color:#fff}.inspection-mode:focus-visible{outline:3px solid #0f766e;outline-offset:3px}.inspection-status{margin:0;max-width:360px;color:#4b5a5f;font-size:.64rem;line-height:1.35}.page-context{display:flex;align-items:center;gap:7px;max-width:430px;padding:5px 6px 5px 9px;border:1px solid #b9d1cc;border-radius:9px;background:#edf7f4;color:#29494b}.page-context[hidden]{display:none}.page-context span{font-size:.65rem;font-weight:700;line-height:1.35}.inspect-page-action{display:inline-flex;align-items:center;justify-content:center;flex:none;padding:6px 9px;border-radius:7px;background:#176b61;color:#fff;font-size:.66rem;font-weight:900}.viewport-options{display:flex;gap:5px;padding:4px;border:1px solid #cbd4d7;border-radius:12px;background:#fff}.viewport-option{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option strong{font-size:.78rem}.viewport-option span{font-size:.65rem}.viewport-option.is-selected{background:#143c42;color:#fff}
 .workspace{display:grid;grid-template-columns:230px minmax(0,1fr) 310px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.studio-tree,.inspector-fields{list-style:none;margin:0;padding:8px}.studio-tree li{padding-left:calc(var(--tree-depth) * 8px)}.studio-tree__link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.studio-tree__link span:first-child{min-width:0}.studio-tree__link strong,.studio-tree__link small{display:block;overflow-wrap:anywhere}.studio-tree__link strong{font-size:.78rem}.studio-tree__link small{margin-top:2px;color:#536166;font-size:.65rem}.studio-tree__link:hover{background:#f0f4f4}.studio-tree__link.is-context{background:#f4f8f7}.studio-tree__link.is-selected{border-color:#73a9a1;background:#e8f4f1}.selection-dot{flex:none;padding:3px 5px;border-radius:5px;background:#176b61;color:#fff;font-size:.58rem;font-weight:800}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:180px;max-width:250px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem;overflow-wrap:anywhere}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}
 .preview-area{display:grid;place-items:start center;min-height:650px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}
@@ -738,7 +800,8 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
 </head>
 <body>
 <a class="skip" href="#studio-canvas-heading">Skip to Canvas</a>
-<main class="studio" data-source-digest="${escapeHtml(model.sourceDigest)}" data-studio-derived="true" data-studio-persistent="false" data-studio-mutations="false" data-v2-direct-inspection="true" data-inspection-mode="inspect" data-selected-component-id="${escapeHtml(model.selectedEntry.componentId || '')}">
+<main class="studio" data-source-digest="${escapeHtml(model.sourceDigest)}" data-studio-derived="true" data-studio-persistent="false" data-studio-mutations="false" data-v2-direct-inspection="true" data-inspection-mode="inspect" data-selected-page-id="${escapeHtml(model.previewPage.id)}" data-selected-component-id="${escapeHtml(model.selectedEntry.componentId || '')}">
+  ${pageContextMap}
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><div><p class="eyebrow">HiVenues · Venue Studio</p><h1>${escapeHtml(model.venue.displayName)}</h1></div></div>
     <span class="authority-badge">Read-only v2 foundation</span>
@@ -752,6 +815,10 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
           <button class="inspection-mode" type="button" data-studio-presentation-control="true" data-inspection-mode="browse" aria-pressed="false">Browse Preview</button>
         </div>
         <p class="inspection-status" data-inspection-status aria-live="polite">Inspect mode · Preparing rendered semantic components…</p>
+        <div class="page-context" data-browsed-page-context hidden>
+          <span data-browsed-page-copy></span>
+          <a class="inspect-page-action" data-inspect-browsed-page href="#">Inspect this page</a>
+        </div>
       </div>
       <nav class="viewport-options" aria-label="Preview viewport">${viewportControls}</nav>
     </div>
