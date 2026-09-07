@@ -1,5 +1,7 @@
 'use strict';
 
+const { URLSearchParams } = require('node:url');
+
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
