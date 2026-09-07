@@ -103,21 +103,35 @@ function regularDirectory(filename, label, fsImpl = fs) {
   }
 }
 
-function prepareManagedImage({ workspaceDirectory, bytes: input, fsImpl = fs } = {}) {
-  const workspace = resolveTurnkeyWorkspace(workspaceDirectory);
-  regularDirectory(workspace.root, 'workspace', fsImpl);
-  regularDirectory(workspace.assetDirectory, 'managed asset directory', fsImpl);
+function deriveManagedImage(input) {
   const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
   const inspected = inspectManagedImage(bytes);
   const digest = crypto.createHash('sha256').update(bytes).digest('hex');
   const filename = `media-${digest.slice(0, 20)}.${inspected.extension}`;
-  const target = path.join(workspace.assetDirectory, filename);
+  return Object.freeze({
+    ...inspected,
+    bytes: bytes.length,
+    digestSha256: digest,
+    filename,
+    sourcePath: `/${TURNKEY_ASSET_DIRECTORY}/${filename}`,
+  });
+}
+
+function storeManagedImage({ workspaceDirectory, bytes: input, fsImpl = fs } = {}) {
+  const workspace = resolveTurnkeyWorkspace(workspaceDirectory);
+  regularDirectory(workspace.root, 'workspace', fsImpl);
+  regularDirectory(workspace.assetDirectory, 'managed asset directory', fsImpl);
+  const bytes = Buffer.isBuffer(input) ? input : Buffer.from(input || []);
+  const derived = deriveManagedImage(bytes);
+  const target = path.join(workspace.assetDirectory, derived.filename);
   if (path.dirname(target) !== workspace.assetDirectory) {
     throw new ManagedAssetError('managed media target escaped the venue-assets directory');
   }
 
+  let created = false;
   try {
     fsImpl.writeFileSync(target, bytes, { flag: 'wx', mode: 0o644 });
+    created = true;
   } catch (error) {
     if (error?.code !== 'EEXIST') {
       throw new ManagedAssetError(`could not store selected image: ${error.message}`, { cause: error });
@@ -138,12 +152,24 @@ function prepareManagedImage({ workspaceDirectory, bytes: input, fsImpl = fs } =
   }
 
   return Object.freeze({
-    ...inspected,
-    bytes: bytes.length,
-    digestSha256: digest,
-    filename,
+    ...derived,
     filePath: target,
-    sourcePath: `/${TURNKEY_ASSET_DIRECTORY}/${filename}`,
+    created,
+  });
+}
+
+function prepareManagedImage(options = {}) {
+  const stored = storeManagedImage(options);
+  return Object.freeze({
+    extension: stored.extension,
+    mediaType: stored.mediaType,
+    width: stored.width,
+    height: stored.height,
+    bytes: stored.bytes,
+    digestSha256: stored.digestSha256,
+    filename: stored.filename,
+    filePath: stored.filePath,
+    sourcePath: stored.sourcePath,
   });
 }
 
@@ -183,9 +209,11 @@ module.exports = {
   MAX_MANAGED_IMAGE_BYTES,
   ManagedAssetError,
   STARTER_MEDIA_FILENAME_PATTERN,
+  deriveManagedImage,
   inspectManagedImage,
   managedAssetFilenameFromSourcePath,
   prepareManagedImage,
   resolveManagedAssetFile,
+  storeManagedImage,
   sourceMediaReferences,
 };

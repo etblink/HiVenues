@@ -1,6 +1,6 @@
 'use strict';
 
-const crypto = require('node:crypto');
+const fs = require('node:fs');
 const { URLSearchParams } = require('node:url');
 
 const path = require('node:path');
@@ -25,8 +25,15 @@ const {
 } = require('../../src/venue/v2/authoring-transaction');
 const {
   MAX_MANAGED_IMAGE_BYTES,
-  inspectManagedImage,
+  deriveManagedImage,
+  managedAssetFilenameFromSourcePath,
+  resolveManagedAssetFile,
 } = require('../../src/venue/managed-assets');
+const {
+  V2WorkspaceCheckpointError,
+  inspectV2WorkspaceCheckpoint,
+  saveV2WorkspaceCheckpoint,
+} = require('../../src/venue/v2/workspace-checkpoint');
 const {
   renderV2AuthoringStudioSurface,
   V2AuthoringStudioError,
@@ -133,11 +140,28 @@ function parseMoveDestinationForm(value) {
   return { kind: BEFORE_COMPONENT, beforeComponentId };
 }
 
-function createV2AuthoringStudioFixture(sourceInput) {
+function createV2AuthoringStudioFixture(sourceInput, options = {}) {
+  const fsImpl = options.fsImpl || fs;
+  const workspaceDirectory = options.workspaceDirectory || null;
+  const checkpoint = workspaceDirectory
+    ? inspectV2WorkspaceCheckpoint({ workspaceDirectory, fsImpl })
+    : null;
   const sourceFactory = typeof sourceInput === 'function' ? sourceInput : () => sourceInput;
-  const openingSource = sourceFactory();
+  const openingSource = sourceInput === undefined
+    ? checkpoint?.source
+    : sourceFactory();
+  if (!openingSource) {
+    throw new V2AuthoringStudioError('workspace has no persisted v2 source to reopen');
+  }
   let session = createV2AuthoringSession(openingSource);
   let proposal = null;
+  let persistedDigest = checkpoint?.persistedDigest || null;
+  const persistedMediaPaths = new Set(
+    checkpoint?.source?.media?.assets
+      ?.map((asset) => asset.src)
+      .filter((src) => src.startsWith('/venue-assets/'))
+      || [],
+  );
   const app = express();
   const diagnostics = {
     requests: 0,
@@ -155,6 +179,9 @@ function createV2AuthoringStudioFixture(sourceInput) {
     localMediaImportRequests: 0,
     ephemeralMediaEntries: 0,
     ephemeralMediaBytes: 0,
+    saveRequests: 0,
+    saveSuccesses: 0,
+    saveFailures: 0,
   };
 
   app.disable('x-powered-by');
@@ -177,6 +204,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
     theme: '/studio-authoring/theme',
     media: '/studio-authoring/media',
     mediaImport: '/studio-authoring/media-import',
+    save: '/studio-authoring/save-workspace',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -197,15 +225,21 @@ function createV2AuthoringStudioFixture(sourceInput) {
   function commandMediaPayload(command, source) {
     if (!command || command.type !== IMPORT_LOCAL_HERO_MEDIA) return null;
     const bytes = Buffer.from(command.bytesBase64, 'base64');
-    const inspected = inspectManagedImage(bytes);
-    const digestSha256 = crypto.createHash('sha256').update(bytes).digest('hex');
-    const assetId = 'local-image-' + digestSha256;
+    const derived = deriveManagedImage(bytes);
+    const assetId = 'local-image-' + derived.digestSha256;
     const asset = source.media.assets.find((candidate) => candidate.id === assetId);
     if (!asset) return null;
+    if (
+      asset.src !== derived.sourcePath
+      || asset.width !== derived.width
+      || asset.height !== derived.height
+    ) {
+      throw new V2AuthoringStudioError('session media history no longer matches derived managed identity');
+    }
     return {
       src: asset.src,
       bytes,
-      mediaType: inspected.mediaType,
+      mediaType: derived.mediaType,
     };
   }
 
@@ -214,13 +248,36 @@ function createV2AuthoringStudioFixture(sourceInput) {
     const source = currentPreviewSource();
     for (const entry of session.history.slice(0, session.historyIndex)) {
       const payload = commandMediaPayload(entry.command, source);
-      if (payload) ephemeralMedia.set(payload.src, payload);
+      if (payload && !persistedMediaPaths.has(payload.src)) {
+        ephemeralMedia.set(payload.src, payload);
+      }
     }
     const proposalPayload = commandMediaPayload(proposal?.command, source);
-    if (proposalPayload) ephemeralMedia.set(proposalPayload.src, proposalPayload);
+    if (proposalPayload && !persistedMediaPaths.has(proposalPayload.src)) {
+      ephemeralMedia.set(proposalPayload.src, proposalPayload);
+    }
     diagnostics.ephemeralMediaEntries = ephemeralMedia.size;
     diagnostics.ephemeralMediaBytes = [...ephemeralMedia.values()]
       .reduce((sum, payload) => sum + payload.bytes.length, 0);
+  }
+
+  function persistenceState() {
+    if (!workspaceDirectory) return Object.freeze({ enabled: false });
+    return Object.freeze({
+      enabled: true,
+      persistedDigest,
+      isPersisted: persistedDigest === session.draftDigest,
+      sourceFilename: 'venue-source-v2.json',
+    });
+  }
+
+  function mediaBytesForSave() {
+    return new Map(
+      [...ephemeralMedia.entries()].map(([sourcePath, payload]) => [
+        sourcePath,
+        { bytes: payload.bytes },
+      ]),
+    );
   }
 
   function previewOptions() {
@@ -240,6 +297,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
     if (
       error instanceof V2AuthoringTransactionError
       || error instanceof V2AuthoringStudioError
+      || error instanceof V2WorkspaceCheckpointError
     ) {
       response.status(400).type('text/plain').send(SAFE_V2_AUTHORING_STUDIO_ERROR);
       return true;
@@ -264,6 +322,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
         query: queryObject(request),
         studioPath: '/studio-authoring',
         actionPaths,
+        persistence: persistenceState(),
         previewPathForPage(page) {
           return `/studio-authoring-preview/page/${encodeURIComponent(page.id)}`;
         },
@@ -415,6 +474,47 @@ function createV2AuthoringStudioFixture(sourceInput) {
       }
     },
   );
+
+  app.post(actionPaths.save, (request, response) => {
+    try {
+      if (!workspaceDirectory) {
+        throw new V2AuthoringStudioError('workspace persistence is not enabled');
+      }
+      requireNoActiveProposal();
+      const body = plainStrings(
+        request.body,
+        'save workspace form',
+        new Set([
+          'nodeId',
+          'fieldId',
+          'viewport',
+          'expectedDraftDigest',
+          'expectedPersistedDigest',
+        ]),
+        new Set(['fieldId']),
+      );
+      diagnostics.saveRequests += 1;
+      const savedPaths = [...ephemeralMedia.keys()];
+      const saved = saveV2WorkspaceCheckpoint({
+        workspaceDirectory,
+        sourceInput: session.draftSource,
+        expectedDraftDigest: body.expectedDraftDigest,
+        expectedPersistedDigest: body.expectedPersistedDigest,
+        mediaBytes: mediaBytesForSave(),
+        fsImpl,
+      });
+      persistedDigest = saved.persistedDigest;
+      for (const sourcePath of savedPaths) persistedMediaPaths.add(sourcePath);
+      diagnostics.persistentWrites += 1 + saved.createdMediaPaths.length;
+      diagnostics.saveSuccesses += 1;
+      syncEphemeralMedia();
+      selectionRedirect(response, body);
+    } catch (error) {
+      diagnostics.saveFailures += 1;
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
 
   app.post(actionPaths.media, (request, response) => {
     try {
@@ -626,14 +726,40 @@ function createV2AuthoringStudioFixture(sourceInput) {
     response.type('text/css').send(renderV2ThemeStylesheet(currentPreviewSource()));
   });
 
-  app.get('/__hivenues-v2/session-media/:filename', (request, response) => {
+  app.get('/venue-assets/:filename', (request, response) => {
     const payload = ephemeralMedia.get(request.path);
-    if (!payload) {
-      response.status(404).type('text/plain').send('Session media not found.');
+    if (payload) {
+      response.set('Cache-Control', 'no-store');
+      response.type(payload.mediaType).send(payload.bytes);
       return;
     }
-    response.set('Cache-Control', 'no-store');
-    response.type(payload.mediaType).send(payload.bytes);
+    if (!workspaceDirectory) {
+      response.status(404).type('text/plain').send('Managed venue asset not found.');
+      return;
+    }
+    try {
+      const sourcePath = '/venue-assets/' + request.params.filename;
+      managedAssetFilenameFromSourcePath(sourcePath, { allowStarter: true });
+      const filename = resolveManagedAssetFile(workspaceDirectory, sourcePath, { allowStarter: true });
+      const stat = fsImpl.lstatSync(filename);
+      if (!stat.isFile() || stat.isSymbolicLink()) {
+        throw new V2AuthoringStudioError('managed venue asset is not a regular file');
+      }
+      const extension = path.extname(filename).toLowerCase();
+      const mediaType = extension === '.png'
+        ? 'image/png'
+        : extension === '.jpg'
+          ? 'image/jpeg'
+          : extension === '.gif'
+            ? 'image/gif'
+            : extension === '.svg'
+              ? 'image/svg+xml'
+              : 'application/octet-stream';
+      response.set('Cache-Control', 'no-store');
+      response.type(mediaType).send(fsImpl.readFileSync(filename));
+    } catch {
+      response.status(404).type('text/plain').send('Managed venue asset not found.');
+    }
   });
 
   app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
@@ -671,17 +797,26 @@ function createV2AuthoringStudioFixture(sourceInput) {
     diagnostics() {
       return Object.freeze({ ...diagnostics });
     },
+    persistence() {
+      return persistenceState();
+    },
+    workspaceDirectory,
   });
 }
 
-function createReferenceV2AuthoringStudioFixture(referenceId) {
+function createReferenceV2AuthoringStudioFixture(referenceId, options = {}) {
   const factory = REFERENCE_FACTORIES[referenceId];
   if (!factory) throw new TypeError(`Unknown v2 authoring Studio reference: ${referenceId}`);
-  return createV2AuthoringStudioFixture(factory);
+  return createV2AuthoringStudioFixture(factory, options);
+}
+
+function createV2AuthoringStudioWorkspaceFixture({ workspaceDirectory, fsImpl = fs } = {}) {
+  return createV2AuthoringStudioFixture(undefined, { workspaceDirectory, fsImpl });
 }
 
 module.exports = {
   SAFE_V2_AUTHORING_STUDIO_ERROR,
   createReferenceV2AuthoringStudioFixture,
   createV2AuthoringStudioFixture,
+  createV2AuthoringStudioWorkspaceFixture,
 };
