@@ -14,6 +14,7 @@ const {
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
+  proposeV2SetThemeRecipe,
   redoV2AuthoringSession,
   undoV2AuthoringSession,
   V2AuthoringTransactionError,
@@ -162,6 +163,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
     reorder: '/studio-authoring/reorder',
     add: '/studio-authoring/add',
     remove: '/studio-authoring/remove',
+    theme: '/studio-authoring/theme',
     apply: '/studio-authoring/apply',
     discard: '/studio-authoring/discard',
     undo: '/studio-authoring/undo',
@@ -201,6 +203,14 @@ function createV2AuthoringStudioFixture(sourceInput) {
     return false;
   }
 
+  function requireNoActiveProposal() {
+    if (proposal) {
+      throw new V2AuthoringStudioError(
+        'apply or discard the active proposal before starting another proposal',
+      );
+    }
+  }
+
   app.get('/studio-authoring', (request, response) => {
     diagnostics.authoringGets += 1;
     try {
@@ -222,6 +232,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.propose, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'proposal form',
@@ -249,6 +260,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.reorder, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'reorder form',
@@ -270,6 +282,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
   });
   app.post(actionPaths.add, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'add component form',
@@ -293,6 +306,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.remove, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'remove component form',
@@ -311,6 +325,43 @@ function createV2AuthoringStudioFixture(sourceInput) {
       throw error;
     }
   });
+  app.post(actionPaths.theme, (request, response) => {
+    try {
+      requireNoActiveProposal();
+      const body = plainStrings(
+        request.body,
+        'theme recipe form',
+        new Set([
+          'themeNodeId',
+          'dimension',
+          'recipeId',
+          'nodeId',
+          'fieldId',
+          'viewport',
+          'expectedDraftDigest',
+        ]),
+        new Set(['fieldId']),
+      );
+      proposal = proposeV2SetThemeRecipe(session, {
+        schemaVersion: 1,
+        type: 'SET_THEME_RECIPE',
+        target: { nodeId: body.themeNodeId },
+        dimension: body.dimension,
+        recipeId: body.recipeId,
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, {
+        nodeId: body.nodeId,
+        fieldId: body.fieldId || '',
+        viewport: body.viewport,
+      });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
   app.post(actionPaths.apply, (request, response) => {
     try {
       const body = plainStrings(

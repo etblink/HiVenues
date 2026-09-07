@@ -134,6 +134,11 @@ test('theme stylesheet is deterministic semantic output and public stylesheet co
   assert.match(publicCss, /prefers-reduced-motion: reduce/);
   assert.match(publicCss, /min-height: 44px/);
   assert.match(publicCss, /focus-visible/);
+  assert.match(publicCss, /body \{[\s\S]*font-family: inherit;/);
+  assert.match(publicCss, /\.v2-type--system-sans \{ font-family: ui-sans-serif/);
+  assert.match(publicCss, /\.v2-type--editorial \{ font-family: Georgia/);
+  assert.match(publicCss, /\.v2-type--grotesk-display \{ font-family: "Arial Narrow"/);
+  assert.match(publicCss, /\.v2-type--poster \{ font-family: "Arial Black"/);
   assert.doesNotMatch(publicCss, /fourth-street|juniper|harbor-hearth|northline-hall/i);
 });
 

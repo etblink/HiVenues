@@ -1,7 +1,11 @@
 'use strict';
 
 const {
+  DENSITY_RECIPE_IDS,
   OWNERSHIP,
+  SHAPE_RECIPE_IDS,
+  SURFACE_RECIPE_IDS,
+  TYPOGRAPHY_RECIPE_IDS,
   createV2DeploymentAgnosticVenueSource,
   createV2SemanticCanvasProjection,
   deriveV2DeploymentAgnosticVenueSourceDigest,
@@ -15,6 +19,7 @@ const V2_AUTHORING_SESSION_SCHEMA_VERSION = 1;
 const V2_AUTHORING_PROPOSAL_SCHEMA_VERSION = 1;
 const V2_AUTHORING_HISTORY_SCHEMA_VERSION = 1;
 const SET_FIELD = 'SET_FIELD';
+const SET_THEME_RECIPE = 'SET_THEME_RECIPE';
 const MOVE_COMPONENT = 'MOVE_COMPONENT';
 const ADD_COMPONENT = 'ADD_COMPONENT';
 const REMOVE_COMPONENT = 'REMOVE_COMPONENT';
@@ -23,6 +28,30 @@ const BEFORE_COMPONENT = 'BEFORE_COMPONENT';
 const END_OF_PAGE = 'END_OF_PAGE';
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+const V2_GLOBAL_THEME_TARGET = 'theme:global';
+const V2_THEME_RECIPE_DIMENSIONS = deepFreeze({
+  typographyRecipeId: {
+    id: 'typographyRecipeId',
+    label: 'Typography',
+    values: [...TYPOGRAPHY_RECIPE_IDS],
+  },
+  densityRecipeId: {
+    id: 'densityRecipeId',
+    label: 'Density',
+    values: [...DENSITY_RECIPE_IDS],
+  },
+  shapeRecipeId: {
+    id: 'shapeRecipeId',
+    label: 'Shape',
+    values: [...SHAPE_RECIPE_IDS],
+  },
+  surfaceRecipeId: {
+    id: 'surfaceRecipeId',
+    label: 'Surface',
+    values: [...SURFACE_RECIPE_IDS],
+  },
+});
 
 const V2_COMPONENT_CATALOG = deepFreeze({
   'story-intro': {
@@ -183,6 +212,49 @@ function parseSetFieldCommand(value) {
   };
 }
 
+function parseThemeTarget(value) {
+  const target = plainRecord(value, 'target', new Set(['nodeId']));
+  const nodeId = scalarString(target.nodeId, 'target.nodeId', { max: 80 });
+  if (nodeId !== V2_GLOBAL_THEME_TARGET) {
+    throw new V2AuthoringTransactionError('global theme target is invalid');
+  }
+  return { nodeId };
+}
+
+function themeDimension(value) {
+  const id = scalarString(value, 'dimension', { max: 80 });
+  const definition = V2_THEME_RECIPE_DIMENSIONS[id];
+  if (!definition) throw new V2AuthoringTransactionError('unsupported theme recipe dimension');
+  return definition;
+}
+
+function parseSetThemeRecipeCommand(value) {
+  const command = plainRecord(
+    value,
+    'command',
+    new Set(['schemaVersion', 'type', 'target', 'dimension', 'recipeId', 'expectedDraftDigest']),
+  );
+  if (command.schemaVersion !== V2_AUTHORING_COMMAND_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('unsupported command schema version');
+  }
+  if (command.type !== SET_THEME_RECIPE) {
+    throw new V2AuthoringTransactionError('unsupported command type');
+  }
+  const definition = themeDimension(command.dimension);
+  const recipeId = scalarString(command.recipeId, 'recipeId', { max: 80 });
+  if (!definition.values.includes(recipeId)) {
+    throw new V2AuthoringTransactionError('unsupported theme recipe value');
+  }
+  return {
+    schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+    type: SET_THEME_RECIPE,
+    target: parseThemeTarget(command.target),
+    dimension: definition.id,
+    recipeId,
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
 function parseComponentTarget(value) {
   const target = plainRecord(value, 'target', new Set(['nodeId']));
   return {
@@ -335,15 +407,72 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
       'catalogItemId',
       'componentSnapshot',
       'destination',
+      'dimension',
+      'recipeId',
       'expectedDraftDigest',
     ]),
   );
   if (command.type === SET_FIELD) return parseSetFieldCommand(value);
+  if (command.type === SET_THEME_RECIPE) return parseSetThemeRecipeCommand(value);
   if (command.type === MOVE_COMPONENT) return parseMoveComponentCommand(value);
   if (command.type === ADD_COMPONENT) return parseAddComponentCommand(value);
   if (command.type === REMOVE_COMPONENT) return parseRemoveComponentCommand(value);
   if (command.type === RESTORE_COMPONENT && allowInternal) return parseRestoreComponentCommand(value);
   throw new V2AuthoringTransactionError('unsupported command type');
+}
+
+function resolveThemeRecipe(sourceInput, targetInput, dimensionInput, recipeIdInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseThemeTarget(targetInput);
+  const definition = themeDimension(dimensionInput);
+  const recipeId = scalarString(recipeIdInput, 'recipeId', { max: 80 });
+  if (!definition.values.includes(recipeId)) {
+    throw new V2AuthoringTransactionError('unsupported theme recipe value');
+  }
+  const pointer = `/site/brand/design/${definition.id}`;
+  const ownership = pathOwnership(pointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
+    throw new V2AuthoringTransactionError('theme recipe is not operator-authored');
+  }
+  const currentValue = source.site.brand.design[definition.id];
+  if (currentValue === recipeId) {
+    throw new V2AuthoringTransactionError('theme recipe selection is a no-op');
+  }
+  return deepFreeze({
+    nodeId: target.nodeId,
+    dimension: definition.id,
+    label: definition.label,
+    allowedValues: [...definition.values],
+    pointer,
+    ownership,
+    currentValue,
+    recipeId,
+  });
+}
+
+function withThemeRecipe(sourceInput, resolved) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const candidate = clone(source);
+  candidate.site.brand.design[resolved.dimension] = resolved.recipeId;
+  return createV2DeploymentAgnosticVenueSource(candidate);
+}
+
+function listV2ThemeRecipeOptions(sourceInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const pointer = '/site/brand/design';
+  if (pathOwnership(pointer) !== OWNERSHIP.OPERATOR_AUTHORED) {
+    throw new V2AuthoringTransactionError('global theme design is not operator-authored');
+  }
+  return deepFreeze({
+    target: { nodeId: V2_GLOBAL_THEME_TARGET },
+    ownership: OWNERSHIP.OPERATOR_AUTHORED,
+    dimensions: Object.values(V2_THEME_RECIPE_DIMENSIONS).map((definition) => ({
+      id: definition.id,
+      label: definition.label,
+      value: source.site.brand.design[definition.id],
+      values: [...definition.values],
+    })),
+  });
 }
 
 function componentMatches(source, componentId) {
@@ -868,6 +997,48 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
     });
   }
 
+  if (command.type === SET_THEME_RECIPE) {
+    const resolved = resolveThemeRecipe(
+      source,
+      command.target,
+      command.dimension,
+      command.recipeId,
+    );
+    const afterSource = withThemeRecipe(source, resolved);
+    const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    const validatedCommand = deepFreeze({
+      ...command,
+      target: { ...command.target },
+      dimension: resolved.dimension,
+      recipeId: resolved.recipeId,
+    });
+    const inverseCommand = deepFreeze({
+      schemaVersion: V2_AUTHORING_COMMAND_SCHEMA_VERSION,
+      type: SET_THEME_RECIPE,
+      target: { ...validatedCommand.target },
+      dimension: resolved.dimension,
+      recipeId: resolved.currentValue,
+      expectedDraftDigest: afterDigest,
+    });
+    return deepFreeze({
+      command: validatedCommand,
+      inverseCommand,
+      beforeDigest,
+      afterDigest,
+      afterSource,
+      resolvedTarget: {
+        nodeId: validatedCommand.target.nodeId,
+        fieldId: resolved.dimension,
+        pageId: null,
+        componentId: null,
+        sourcePointer: resolved.pointer,
+        ownership: resolved.ownership,
+        themeDimension: resolved.dimension,
+        recipeId: resolved.recipeId,
+      },
+    });
+  }
+
   if (command.type === ADD_COMPONENT) {
     const resolved = resolveComponentAdd(
       source,
@@ -1201,6 +1372,14 @@ function proposeV2SetField(sessionInput, commandInput) {
   return proposal;
 }
 
+function proposeV2SetThemeRecipe(sessionInput, commandInput) {
+  const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
+  if (proposal.command.type !== SET_THEME_RECIPE) {
+    throw new V2AuthoringTransactionError('SET_THEME_RECIPE proposal requires SET_THEME_RECIPE command');
+  }
+  return proposal;
+}
+
 function proposeV2MoveComponent(sessionInput, commandInput) {
   const proposal = proposeV2AuthoringCommand(sessionInput, commandInput);
   if (proposal.command.type !== MOVE_COMPONENT) {
@@ -1315,7 +1494,10 @@ module.exports = {
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_FIELD,
+  SET_THEME_RECIPE,
   V2_COMPONENT_CATALOG,
+  V2_GLOBAL_THEME_TARGET,
+  V2_THEME_RECIPE_DIMENSIONS,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
   V2_AUTHORING_PROPOSAL_SCHEMA_VERSION,
@@ -1328,11 +1510,13 @@ module.exports = {
   listV2ComponentAddDestinations,
   listV2ComponentCatalogOptions,
   listV2ComponentMoveDestinations,
+  listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2AuthoringCommand,
   proposeV2MoveComponent,
   proposeV2RemoveComponent,
   proposeV2SetField,
+  proposeV2SetThemeRecipe,
   redoV2AuthoringSession,
   resolveV2AuthoringTarget: resolveTarget,
   resolveV2ComponentMove: resolveComponentMove,

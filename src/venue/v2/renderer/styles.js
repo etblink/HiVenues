@@ -75,7 +75,7 @@ body {
     radial-gradient(circle at 20% -10%, color-mix(in srgb, var(--v2-accent) 14%, transparent), transparent 32rem),
     var(--v2-canvas);
   color: var(--v2-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: inherit;
   line-height: 1.55;
   text-rendering: optimizeLegibility;
 }
@@ -346,6 +346,7 @@ p { margin: 0; }
 .v2-site-footer p { margin-top: .35rem; }
 .v2-page-intro { padding-block: 3rem 1rem; }
 
+.v2-type--system-sans { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .v2-type--editorial { font-family: Georgia, "Times New Roman", serif; }
 .v2-type--editorial .v2-nav, .v2-type--editorial .v2-kicker, .v2-type--editorial .v2-action, .v2-type--editorial .v2-state { font-family: ui-sans-serif, system-ui, sans-serif; }
 .v2-type--grotesk-display { font-family: "Arial Narrow", "Segoe UI", ui-sans-serif, system-ui, sans-serif; }

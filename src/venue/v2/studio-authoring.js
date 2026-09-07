@@ -11,9 +11,12 @@ const {
   END_OF_PAGE,
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
+  SET_THEME_RECIPE,
+  V2_GLOBAL_THEME_TARGET,
   getV2ComponentRemovalContext,
   listV2ComponentAddDestinations,
   listV2ComponentMoveDestinations,
+  listV2ThemeRecipeOptions,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
 
@@ -110,6 +113,90 @@ function renderFields(model, source, studioPath) {
     if (!href) return `<li><div class="field-link is-locked" aria-disabled="true">${content}</div></li>`;
     return `<li><a class="field-link${field.selected ? ' is-selected' : ''}" href="${escapeHtml(href)}"${field.selected ? ' aria-current="location"' : ''}>${content}</a></li>`;
   }).join('')}</ul>`;
+}
+
+const THEME_RECIPE_COPY = Object.freeze({
+  'type-system-sans': ['System Sans', 'Clean, familiar, highly legible typography.'],
+  'type-editorial': ['Editorial', 'A more literary, publication-like visual voice.'],
+  'type-grotesk-display': ['Grotesk Display', 'Bold display character with a contemporary venue feel.'],
+  'type-poster': ['Poster', 'High-impact type for event-forward and expressive venues.'],
+  'density-compact': ['Compact', 'Tighter spacing for information-dense experiences.'],
+  'density-standard': ['Standard', 'Balanced spacing for everyday venue content.'],
+  'density-generous': ['Generous', 'More breathing room and a premium editorial rhythm.'],
+  'shape-crisp': ['Crisp', 'Sharper geometry and restrained corner treatment.'],
+  'shape-soft': ['Soft', 'Gentle rounding for a welcoming modern character.'],
+  'shape-rounded': ['Rounded', 'More expressive curves and friendly visual softness.'],
+  'surface-flat': ['Flat', 'Minimal surface separation and quieter layering.'],
+  'surface-layered': ['Layered', 'Balanced panels and hierarchy across the page.'],
+  'surface-elevated': ['Elevated', 'Stronger depth and emphasis between content surfaces.'],
+});
+
+function themeRecipeCopy(recipeId) {
+  return THEME_RECIPE_COPY[recipeId] || [humanize(recipeId), 'Curated HiVenues design recipe.'];
+}
+
+function matchingThemeProposal(proposal) {
+  return Boolean(proposal && proposal.command.type === SET_THEME_RECIPE);
+}
+
+function renderThemeEditor({ model, session, proposal, source, actionPaths }) {
+  const context = listV2ThemeRecipeOptions(source);
+  if (proposal && !matchingThemeProposal(proposal)) {
+    return '<section class="editor-card"><p class="eyebrow">Theme</p><h3>Finish the active preview first</h3><p class="muted">Apply or discard the current proposal before starting a global theme change.</p></section>';
+  }
+
+  const isProposal = matchingThemeProposal(proposal);
+  const activeDimension = isProposal ? proposal.command.dimension : null;
+  const activeRecipe = isProposal ? proposal.command.recipeId : null;
+  const controls = context.dimensions.map((dimension) => {
+    const currentCopy = themeRecipeCopy(dimension.value);
+    if (isProposal) {
+      const shownValue = dimension.id === activeDimension ? activeRecipe : dimension.value;
+      const shownCopy = themeRecipeCopy(shownValue);
+      return `<div class="theme-control${dimension.id === activeDimension ? ' is-preview' : ''}">
+        <div><strong>${escapeHtml(dimension.label)}</strong><span>${escapeHtml(dimension.id === activeDimension ? 'Preview' : 'Accepted')}</span></div>
+        <p>${escapeHtml(shownCopy[0])}</p>
+        <small>${escapeHtml(shownCopy[1])}</small>
+      </div>`;
+    }
+
+    const options = dimension.values
+      .filter((value) => value !== dimension.value)
+      .map((value) => {
+        const copy = themeRecipeCopy(value);
+        return `<option value="${escapeHtml(value)}">${escapeHtml(copy[0])}</option>`;
+      })
+      .join('');
+    return `<form class="theme-control" method="post" action="${escapeHtml(actionPaths.theme)}">
+      <input type="hidden" name="themeNodeId" value="${escapeHtml(V2_GLOBAL_THEME_TARGET)}">
+      <input type="hidden" name="dimension" value="${escapeHtml(dimension.id)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <div><label for="theme-${escapeHtml(dimension.id)}">${escapeHtml(dimension.label)}</label><span>Current · ${escapeHtml(currentCopy[0])}</span></div>
+      <small>${escapeHtml(currentCopy[1])}</small>
+      <select id="theme-${escapeHtml(dimension.id)}" name="recipeId" required>
+        <option value="" selected disabled>Choose a different ${escapeHtml(dimension.label.toLowerCase())}…</option>
+        ${options}
+      </select>
+      <button class="button secondary" type="submit">Preview ${escapeHtml(dimension.label.toLowerCase())}</button>
+    </form>`;
+  }).join('');
+
+  const status = isProposal
+    ? '<div class="preview-state" role="status"><strong>Theme preview — not applied</strong><span>The real Canvas is rendering the proposed global design recipe. The accepted session draft is unchanged.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted global theme</strong><span>Curated semantic recipes · memory only · not saved · not published</span></div>';
+
+  return `<section class="editor-card theme-card" aria-labelledby="theme-editor-heading">
+    <p class="eyebrow">Venue design</p>
+    <h3 id="theme-editor-heading">Theme</h3>
+    <p class="target-path">Global semantic design · ${escapeHtml(humanize(context.ownership))}</p>
+    ${status}
+    <div class="theme-grid">${controls}</div>
+    <p class="form-help">Theme controls use HiVenues design recipes. Raw CSS, arbitrary token keys, font URLs, media, responsive overrides, persistence, and publishing are not available here.</p>
+    ${isProposal ? renderProposalActions(model, actionPaths) : ''}
+  </section>`;
 }
 
 function matchingFieldProposal(proposal, model) {
@@ -345,6 +432,9 @@ function renderEditor({
   source,
   actionPaths,
 }) {
+  if (matchingThemeProposal(proposal)) {
+    return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
+  }
   if (!model.selection.fieldId) {
     return renderStructuralEditor({ model, session, proposal, source, actionPaths });
   }
@@ -425,6 +515,7 @@ function renderV2AuthoringStudioSurface({
     reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
     add: strictLocalPath(actionPaths.add || `${normalizedStudioPath}/add`, 'add path'),
     remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
+    theme: strictLocalPath(actionPaths.theme || `${normalizedStudioPath}/theme`, 'theme path'),
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
@@ -464,7 +555,7 @@ function renderV2AuthoringStudioSurface({
 .statebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.state-copy strong,.state-copy span{display:block}.state-copy strong{font-size:.82rem}.state-copy span{margin-top:2px;color:#4b5a5f;font-size:.72rem}.digest-pair{display:flex;gap:8px;flex-wrap:wrap}.digest-chip{padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #ccd3d6;font-size:.64rem}.digest-chip strong{display:block}.digest-chip code{font-size:.6rem}
 .workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 330px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.tree-list,.field-list{list-style:none;margin:0;padding:8px}.tree-list li{padding-left:calc(var(--depth) * 8px)}.tree-link,.field-link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.tree-link strong,.tree-link small,.field-link strong,.field-link small{display:block}.tree-link strong,.field-link strong{font-size:.76rem}.tree-link small,.field-link small{margin-top:2px;color:#536166;font-size:.63rem}.tree-link.is-selected,.field-link.is-selected{border-color:#73a9a1;background:#e8f4f1}.field-link.is-locked{opacity:.66}.selected-chip,.ownership-chip{flex:none;padding:4px 6px;border-radius:999px;background:#edf2f2;color:#395255;font-size:.6rem;font-weight:800}.selected-chip{background:#176b61;color:#fff}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:170px;max-width:245px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}.preview-area{display:grid;place-items:start center;min-height:620px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}.preview-holder.viewport-desktop{width:720px;height:500px}.preview-holder.viewport-desktop iframe{width:1440px;height:1000px;transform:scale(.5)}.preview-holder.viewport-tablet{width:459px;height:612px}.preview-holder.viewport-tablet iframe{width:834px;height:1112px;transform:scale(.55)}.preview-holder.viewport-mobile{width:273px;height:591px}.preview-holder.viewport-mobile iframe{width:390px;height:844px;transform:scale(.70)}.preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-top:1px solid #cbd3d6;background:#fff;font-size:.68rem}.viewport-options{display:flex;gap:5px;padding:8px;border-top:1px solid #dce2e4;background:#fff}.viewport-option{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option span{font-size:.62rem}.viewport-option.is-selected{background:#143c42;color:#fff}
-.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form textarea{resize:vertical;min-height:110px}.edit-form select{min-height:44px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
+.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.theme-grid{display:grid;gap:9px;margin:10px 0}.theme-control{display:grid;gap:7px;padding:10px;border:1px solid #d5dcde;border-radius:10px;background:#fbfcfc}.theme-control.is-preview{border-color:#d69e2e;background:#fffaf0}.theme-control>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.theme-control strong,.theme-control label{font-size:.7rem;font-weight:800}.theme-control span{font-size:.6rem;color:#536166}.theme-control p{margin:0;font-size:.76rem;font-weight:800}.theme-control small{color:#536166;font-size:.64rem;line-height:1.4}.theme-control select{width:100%;min-height:44px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form textarea{resize:vertical;min-height:110px}.edit-form select{min-height:44px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
 @media(max-width:1180px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector-panel{grid-column:2;position:static;max-height:none}.preview-holder.viewport-desktop{width:620px;height:431px}.preview-holder.viewport-desktop iframe{transform:scale(.431)}}
 @media(max-width:720px){.topbar,.statebar{align-items:flex-start;flex-direction:column;padding:12px}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;position:static;max-height:none}.tree-panel{order:2;position:static;max-height:none}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.history-card{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
@@ -495,10 +586,11 @@ function renderV2AuthoringStudioSurface({
       <p class="memory-note">Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
-      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Typed content + structure</span></header>
+      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · theme</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
+      ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
       ${renderHistoryControls(session, normalizedActions, model)}
     </aside>
   </div>
