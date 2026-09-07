@@ -6,9 +6,13 @@ const {
   createV2ReadOnlyStudioModel,
 } = require('./studio-read-only');
 const {
+  ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
   MOVE_COMPONENT,
+  REMOVE_COMPONENT,
+  getV2ComponentRemovalContext,
+  listV2ComponentAddDestinations,
   listV2ComponentMoveDestinations,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
@@ -289,6 +293,8 @@ function renderV2AuthoringStudioSurface({
   const normalizedActions = {
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
     reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
+    add: strictLocalPath(actionPaths.add || `${normalizedStudioPath}/add`, 'add path'),
+    remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
     apply: strictLocalPath(actionPaths.apply || `${normalizedStudioPath}/apply`, 'apply path'),
     discard: strictLocalPath(actionPaths.discard || `${normalizedStudioPath}/discard`, 'discard path'),
     undo: strictLocalPath(actionPaths.undo || `${normalizedStudioPath}/undo`, 'undo path'),
@@ -354,7 +360,7 @@ function renderV2AuthoringStudioSurface({
       <p class="memory-note">Canvas changes in this phase are session-memory state only. Publishing and persistence remain separate unauthorized capabilities.</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
-      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Typed content + position</span></header>
+      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Typed content + structure</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions })}
