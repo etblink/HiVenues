@@ -533,6 +533,12 @@ const navigationEntrySchema = z.object({
 const rootSchema = z.object({
   kind: z.literal(V2_SOURCE_KIND),
   schemaVersion: z.literal(V2_SOURCE_SCHEMA_VERSION),
+  provenance: z.object({
+    origin: z.enum(['native-v2', 'v1-migration']),
+    sourceSchemaVersion: z.number().int().positive().nullable(),
+    sourcePackageId: ID.nullable(),
+    starterId: ID.nullable().default(null),
+  }).strict(),
   venue: z.object({
     id: z.string().trim().regex(VENUE_ID_PATTERN),
     displayName: z.string().trim().min(1).max(80),
@@ -764,6 +770,7 @@ function deriveV2DeploymentAgnosticVenueSourceDigest(input) {
 function pathOwnership(pointer) {
   if (pointer === '') return OWNERSHIP.PLATFORM_FIXED;
   if (pointer === '/kind' || pointer === '/schemaVersion') return OWNERSHIP.PLATFORM_FIXED;
+  if (/^\/provenance(?:\/.*)?$/.test(pointer)) return OWNERSHIP.DERIVED;
 
   if (pointer === '/venue/id' || pointer === '/site/id') return OWNERSHIP.INTEGRATION_OWNED;
 
