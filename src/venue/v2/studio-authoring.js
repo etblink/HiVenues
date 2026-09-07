@@ -126,6 +126,37 @@ function matchingMoveProposal(proposal, model) {
   );
 }
 
+function matchingAddProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === ADD_COMPONENT
+    && proposal.command.target.nodeId === model.selection.nodeId
+  );
+}
+
+function matchingRemoveProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === REMOVE_COMPONENT
+    && proposal.command.target.nodeId === model.selection.nodeId
+  );
+}
+
+function componentAddContext(source, nodeId) {
+  try {
+    return listV2ComponentAddDestinations(source, { nodeId });
+  } catch {
+    return null;
+  }
+}
+
+function componentRemovalContext(source, nodeId) {
+  try {
+    return getV2ComponentRemovalContext(source, { nodeId });
+  } catch {
+    return null;
+  }
+}
 function componentMoveContext(source, nodeId) {
   try {
     return listV2ComponentMoveDestinations(source, { nodeId });
@@ -148,6 +179,91 @@ function destinationLabel(model, destination) {
     return `Before ${componentLabel(model, destination.beforeComponentId)}`;
   }
   return 'Unknown destination';
+}
+
+function renderProposalActions(model, actionPaths) {
+  const field = model.selection.fieldId
+    ? `<input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId)}">`
+    : '';
+  return `<div class="proposal-actions">
+    <form method="post" action="${escapeHtml(actionPaths.apply)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      ${field}
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <button class="button primary" type="submit">Apply to draft</button>
+    </form>
+    <form method="post" action="${escapeHtml(actionPaths.discard)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      ${field}
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <button class="button secondary" type="submit">Discard preview</button>
+    </form>
+  </div>`;
+}
+
+function renderAddEditor({ model, session, proposal, source, actionPaths }) {
+  const context = componentAddContext(source, model.selection.nodeId);
+  if (!context) return '';
+  const isProposalTarget = matchingAddProposal(proposal, model);
+  const activeCatalog = isProposalTarget ? proposal.command.catalogItemId : context.catalog[0]?.id;
+  const activeDestination = isProposalTarget ? proposal.command.destination : context.destinations.at(-1);
+  const catalogOptions = context.catalog.map((item) =>
+    `<option value="${escapeHtml(item.id)}"${item.id === activeCatalog ? ' selected' : ''}>${escapeHtml(item.label)}</option>`
+  ).join('');
+  const destinationOptions = context.destinations.map((destination) => {
+    const value = destination.kind === END_OF_PAGE
+      ? END_OF_PAGE
+      : `${BEFORE_COMPONENT}:${destination.beforeComponentId}`;
+    const selected = activeDestination
+      && activeDestination.kind === destination.kind
+      && (destination.kind === END_OF_PAGE || activeDestination.beforeComponentId === destination.beforeComponentId);
+    return `<option value="${escapeHtml(value)}"${selected ? ' selected' : ''}>${escapeHtml(destinationLabel(model, destination))}</option>`;
+  }).join('');
+  const status = isProposalTarget
+    ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering the catalog component proposal. The accepted session draft is unchanged.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+
+  return `<section class="editor-card" aria-labelledby="component-add-heading">
+    <p class="eyebrow">Component library</p>
+    <h3 id="component-add-heading">Add component</h3>
+    <p class="target-path">${escapeHtml(context.pageId)} · ${escapeHtml(humanize(context.ownership))}</p>
+    ${status}
+    <form class="edit-form" method="post" action="${escapeHtml(actionPaths.add)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="authoring-catalog-item">Component</label>
+      <select id="authoring-catalog-item" name="catalogItemId" required>${catalogOptions}</select>
+      <label for="authoring-add-destination">Position</label>
+      <select id="authoring-add-destination" name="destination" required>${destinationOptions}</select>
+      <p class="form-help">HiVenues owns the component type, recipe, defaults, responsive behavior, and stable ID. You choose only the semantic component and its position on this page.</p>
+      <button class="button primary" type="submit">Preview component</button>
+    </form>
+    ${isProposalTarget ? renderProposalActions(model, actionPaths) : ''}
+  </section>`;
+}
+
+function renderRemoveEditor({ model, session, proposal, source, actionPaths }) {
+  const context = componentRemovalContext(source, model.selection.nodeId);
+  if (!context?.eligible) return '';
+  const isProposalTarget = matchingRemoveProposal(proposal, model);
+  const status = isProposalTarget
+    ? '<div class="preview-state" role="status"><strong>Preview — not applied</strong><span>The Canvas is rendering this component removed. The accepted session draft still contains it.</span></div>'
+    : '<div class="accepted-state"><strong>Accepted session draft</strong><span>Memory only · not saved · not published</span></div>';
+
+  return `<section class="editor-card" aria-labelledby="component-remove-heading">
+    <p class="eyebrow">Component library</p>
+    <h3 id="component-remove-heading">Remove component</h3>
+    <p class="target-path">${escapeHtml(context.componentId)} · approved removable component</p>
+    ${status}
+    ${isProposalTarget ? renderProposalActions(model, actionPaths) : `<form class="edit-form" method="post" action="${escapeHtml(actionPaths.remove)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <p class="form-help">Removal is limited to approved catalog-backed components. Undo restores the exact server-owned component snapshot and order.</p>
+      <button class="button secondary" type="submit">Preview removal</button>
+    </form>`}
+  </section>`;
 }
 
 function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
@@ -208,6 +324,14 @@ function renderMoveEditor({ model, session, proposal, source, actionPaths }) {
   </section>`;
 }
 
+function renderStructuralEditor({ model, session, proposal, source, actionPaths }) {
+  if (model.selection.nodeId.startsWith('page:')) {
+    return renderAddEditor({ model, session, proposal, source, actionPaths });
+  }
+  const move = renderMoveEditor({ model, session, proposal, source, actionPaths });
+  const remove = renderRemoveEditor({ model, session, proposal, source, actionPaths });
+  return `${move}${remove}`;
+}
 function renderEditor({
   model,
   session,
@@ -216,7 +340,7 @@ function renderEditor({
   actionPaths,
 }) {
   if (!model.selection.fieldId) {
-    return renderMoveEditor({ model, session, proposal, source, actionPaths });
+    return renderStructuralEditor({ model, session, proposal, source, actionPaths });
   }
 
   const resolved = editableField(source, model.selection.nodeId, model.selection.fieldId);
