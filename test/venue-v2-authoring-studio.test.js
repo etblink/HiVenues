@@ -467,15 +467,20 @@ test('page selections expose the bounded component catalog across four reference
     assert.match(response.text, /Hours &amp; Location/, referenceId);
     assert.match(response.text, /Contact \/ Visit/, referenceId);
     assert.match(response.text, /action="\/studio-authoring\/add"/, referenceId);
-    assert.match(response.text, /name="catalogItemId"/, referenceId);
-    assert.match(response.text, /name="destination"/, referenceId);
-    assert.doesNotMatch(response.text, /name="componentId"/, referenceId);
-    assert.doesNotMatch(response.text, /name="kind"/, referenceId);
-    assert.doesNotMatch(response.text, /name="recipeId"/, referenceId);
-    assert.doesNotMatch(response.text, /name="content"/, referenceId);
-    assert.doesNotMatch(response.text, /name="responsive"/, referenceId);
-    assert.doesNotMatch(response.text, /name="pageIndex"/, referenceId);
-    assert.doesNotMatch(response.text, /name="sourcePointer"/, referenceId);
+    const addFormMatch = response.text.match(
+      /<form class="edit-form" method="post" action="\/studio-authoring\/add">([\s\S]*?)<\/form>/,
+    );
+    assert.ok(addFormMatch, referenceId);
+    const addForm = addFormMatch[1];
+    assert.match(addForm, /name="catalogItemId"/, referenceId);
+    assert.match(addForm, /name="destination"/, referenceId);
+    assert.doesNotMatch(addForm, /name="componentId"/, referenceId);
+    assert.doesNotMatch(addForm, /name="kind"/, referenceId);
+    assert.doesNotMatch(addForm, /name="recipeId"/, referenceId);
+    assert.doesNotMatch(addForm, /name="content"/, referenceId);
+    assert.doesNotMatch(addForm, /name="responsive"/, referenceId);
+    assert.doesNotMatch(addForm, /name="pageIndex"/, referenceId);
+    assert.doesNotMatch(addForm, /name="sourcePointer"/, referenceId);
   }
 });
 
