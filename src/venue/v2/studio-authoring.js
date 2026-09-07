@@ -108,10 +108,18 @@ function renderFields(model, source, studioPath) {
   }).join('')}</ul>`;
 }
 
-function matchingProposal(proposal, model) {
-  if (!proposal || !model.selection.fieldId) return false;
+function matchingFieldProposal(proposal, model) {
+  if (!proposal || proposal.command.type !== 'SET_FIELD' || !model.selection.fieldId) return false;
   return proposal.command.target.nodeId === model.selection.nodeId
     && proposal.command.target.fieldId === model.selection.fieldId;
+}
+
+function matchingMoveProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === MOVE_COMPONENT
+    && proposal.command.target.nodeId === model.selection.nodeId
+  );
 }
 
 function renderEditor({
@@ -130,7 +138,7 @@ function renderEditor({
     return '<section class="editor-card"><p class="eyebrow">Edit</p><h3>Read-only field</h3><p class="muted">This field is outside the first ordinary operator-authored scalar-text mutation slice.</p></section>';
   }
 
-  const isProposalTarget = matchingProposal(proposal, model);
+  const isProposalTarget = matchingFieldProposal(proposal, model);
   const inputValue = isProposalTarget
     ? proposal.command.payload.value
     : resolved.currentValue;
