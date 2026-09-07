@@ -211,27 +211,108 @@ function withTargetValue(source, resolved, value) {
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
+function validateHistoryEntry(entryInput, expectedBeforeDigest) {
+  const entry = plainRecord(
+    entryInput,
+    'history entry',
+    new Set([
+      'kind',
+      'schemaVersion',
+      'command',
+      'beforeDigest',
+      'afterDigest',
+      'beforeSource',
+      'afterSource',
+    ]),
+  );
+  if (entry.kind !== 'hivenues-v2-authoring-history-entry') {
+    throw new V2AuthoringTransactionError('history entry kind is invalid');
+  }
+  if (entry.schemaVersion !== V2_AUTHORING_HISTORY_SCHEMA_VERSION) {
+    throw new V2AuthoringTransactionError('history entry schema version is invalid');
+  }
+
+  const beforeSource = createV2DeploymentAgnosticVenueSource(entry.beforeSource);
+  const afterSource = createV2DeploymentAgnosticVenueSource(entry.afterSource);
+  const beforeDigest = deriveV2DeploymentAgnosticVenueSourceDigest(beforeSource);
+  const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+  if (entry.beforeDigest !== beforeDigest || entry.afterDigest !== afterDigest) {
+    throw new V2AuthoringTransactionError('history entry source/digest binding is invalid');
+  }
+  if (beforeDigest !== expectedBeforeDigest) {
+    throw new V2AuthoringTransactionError('history chain continuity is invalid');
+  }
+
+  const command = parseSetFieldCommand(entry.command);
+  if (command.expectedDraftDigest !== beforeDigest) {
+    throw new V2AuthoringTransactionError('history command digest binding is invalid');
+  }
+  const resolved = resolveTarget(beforeSource, command.target);
+  const expectedAfterSource = withTargetValue(beforeSource, resolved, command.payload.value);
+  if (
+    serializeV2DeploymentAgnosticVenueSource(expectedAfterSource)
+    !== serializeV2DeploymentAgnosticVenueSource(afterSource)
+  ) {
+    throw new V2AuthoringTransactionError('history command/source binding is invalid');
+  }
+
+  return deepFreeze({
+    kind: 'hivenues-v2-authoring-history-entry',
+    schemaVersion: V2_AUTHORING_HISTORY_SCHEMA_VERSION,
+    command,
+    beforeDigest,
+    afterDigest,
+    beforeSource,
+    afterSource,
+  });
+}
+
+function validateHistory(historyInput, baselineDigest) {
+  if (!Array.isArray(historyInput)) {
+    throw new V2AuthoringTransactionError('history must be an array');
+  }
+  const result = [];
+  let expectedBeforeDigest = baselineDigest;
+  for (const entryInput of historyInput) {
+    const entry = validateHistoryEntry(entryInput, expectedBeforeDigest);
+    result.push(entry);
+    expectedBeforeDigest = entry.afterDigest;
+  }
+  return result;
+}
+
 function makeSession({ baselineSource, draftSource, history, historyIndex }) {
   const baseline = createV2DeploymentAgnosticVenueSource(baselineSource);
   const draft = createV2DeploymentAgnosticVenueSource(draftSource);
-  if (!Array.isArray(history)) {
-    throw new V2AuthoringTransactionError('history must be an array');
-  }
-  if (!Number.isInteger(historyIndex) || historyIndex < 0 || historyIndex > history.length) {
+  const baselineDigest = deriveV2DeploymentAgnosticVenueSourceDigest(baseline);
+  const draftDigest = deriveV2DeploymentAgnosticVenueSourceDigest(draft);
+  const validatedHistory = validateHistory(history, baselineDigest);
+  if (
+    !Number.isInteger(historyIndex)
+    || historyIndex < 0
+    || historyIndex > validatedHistory.length
+  ) {
     throw new V2AuthoringTransactionError('history index is invalid');
+  }
+
+  const expectedDraftDigest = historyIndex === 0
+    ? baselineDigest
+    : validatedHistory[historyIndex - 1].afterDigest;
+  if (draftDigest !== expectedDraftDigest) {
+    throw new V2AuthoringTransactionError('accepted draft is not bound to history position');
   }
 
   return deepFreeze({
     kind: 'hivenues-v2-authoring-session',
     schemaVersion: V2_AUTHORING_SESSION_SCHEMA_VERSION,
     baselineSource: baseline,
-    baselineDigest: deriveV2DeploymentAgnosticVenueSourceDigest(baseline),
+    baselineDigest,
     draftSource: draft,
-    draftDigest: deriveV2DeploymentAgnosticVenueSourceDigest(draft),
-    history: [...history],
+    draftDigest,
+    history: validatedHistory,
     historyIndex,
     canUndo: historyIndex > 0,
-    canRedo: historyIndex < history.length,
+    canRedo: historyIndex < validatedHistory.length,
     authority: {
       persistent: false,
       runtimeWired: false,
