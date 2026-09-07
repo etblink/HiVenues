@@ -140,7 +140,11 @@ test('isolated preview harness renders pages, styles and event routes with zero 
   for (const [referenceId, factory] of Object.entries(REFERENCE_FACTORIES)) {
     const fixture = createV2RendererPreviewFixture(factory());
     const home = await request(fixture.app).get('/').expect(200);
-    assert.equal(home.text.includes(fixture.source.venue.displayName), true);
+    const homeDocument = documentFrom(home.text);
+    assert.equal(
+      homeDocument.querySelector('.v2-wordmark').textContent.trim(),
+      fixture.source.venue.displayName,
+    );
 
     const styles = await request(fixture.app).get('/__hivenues-v2/styles.css').expect(200);
     assert.match(styles.text, /v2-site-header/);
