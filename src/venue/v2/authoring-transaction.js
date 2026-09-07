@@ -346,6 +346,51 @@ function resolveComponentMove(sourceInput, targetInput, destinationInput) {
   });
 }
 
+function listV2ComponentMoveDestinations(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseComponentTarget(targetInput);
+  const projection = createV2SemanticCanvasProjection(source);
+  const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === target.nodeId);
+  if (!node || node.stableIdentity?.type !== 'component-id') {
+    throw new V2AuthoringTransactionError('stable component target does not exist');
+  }
+  const matches = componentMatches(source, node.stableIdentity.value);
+  if (matches.length !== 1) {
+    throw new V2AuthoringTransactionError('component stable identity is ambiguous or missing');
+  }
+  const match = matches[0];
+  const collectionPointer = `/site/pages/${match.pageIndex}/components`;
+  const ownership = pathOwnership(collectionPointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+    throw new V2AuthoringTransactionError('component collection is not operator-authored');
+  }
+
+  const components = match.page.components;
+  const destinations = [];
+  for (let index = 0; index < components.length; index += 1) {
+    const sibling = components[index];
+    if (sibling.id === match.component.id) continue;
+    if (index === match.componentIndex + 1) continue;
+    destinations.push({
+      kind: BEFORE_COMPONENT,
+      beforeComponentId: sibling.id,
+    });
+  }
+  if (match.componentIndex !== components.length - 1) {
+    destinations.push({ kind: END_OF_PAGE });
+  }
+
+  return deepFreeze({
+    pageId: match.page.id,
+    componentId: match.component.id,
+    position: match.componentIndex + 1,
+    count: components.length,
+    ownership,
+    collectionPointer,
+    destinations,
+  });
+}
+
 function withComponentMove(sourceInput, resolved) {
   const source = createV2DeploymentAgnosticVenueSource(sourceInput);
   const candidate = clone(source);
@@ -733,6 +778,7 @@ module.exports = {
   applyV2AuthoringProposal,
   createV2AuthoringSession,
   discardV2AuthoringProposal,
+  listV2ComponentMoveDestinations,
   proposeV2AuthoringCommand,
   proposeV2MoveComponent,
   proposeV2SetField,
