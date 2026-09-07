@@ -588,13 +588,103 @@ function renderV2ReadOnlyStudioDirectInspectionScript() {
   const inspectButton = root.querySelector('[data-inspection-mode="inspect"]');
   const browseButton = root.querySelector('[data-inspection-mode="browse"]');
   const status = root.querySelector('[data-inspection-status]');
-  if (!frame || !inspectButton || !browseButton || !status) return;
+  const pageContextPanel = root.querySelector('[data-browsed-page-context]');
+  const pageContextCopy = root.querySelector('[data-browsed-page-copy]');
+  const inspectPageAction = root.querySelector('[data-inspect-browsed-page]');
+  if (!frame || !inspectButton || !browseButton || !status
+    || !pageContextPanel || !pageContextCopy || !inspectPageAction) return;
 
+  const selectedPageId = root.dataset.selectedPageId || '';
   const selectedComponentId = root.dataset.selectedComponentId || '';
+  const selectedPreviewPath = frame.dataset.selectedPreviewPath || '';
+  const pageContexts = [...root.querySelectorAll('[data-v2-page-context="true"]')]
+    .map((anchor) => {
+      const previewPath = anchor.dataset.previewPath || '';
+      const pageId = anchor.dataset.pageId || '';
+      const pageTitle = anchor.dataset.pageTitle || '';
+      let target;
+      try {
+        target = new URL(anchor.href, window.location.href);
+      } catch {
+        return null;
+      }
+      if (!previewPath.startsWith('/') || previewPath.startsWith('//')
+        || /[?#\\s\\\\]/.test(previewPath)
+        || !pageId || !pageTitle
+        || target.origin !== window.location.origin
+        || target.pathname !== window.location.pathname
+        || target.hash) {
+        return null;
+      }
+      return {
+        previewPath,
+        pageId,
+        pageTitle,
+        selectionHref: target.pathname + target.search,
+      };
+    })
+    .filter(Boolean);
   let mode = 'inspect';
 
   function setStatus(message) {
     status.textContent = message;
+  }
+
+  function hidePageContext() {
+    pageContextPanel.hidden = true;
+    pageContextCopy.textContent = '';
+    inspectPageAction.removeAttribute('href');
+  }
+
+  function safeFrameLocation() {
+    try {
+      const location = frame.contentWindow?.location;
+      if (!location || location.origin !== window.location.origin) return null;
+      return {
+        origin: location.origin,
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function currentPageContext() {
+    const location = safeFrameLocation();
+    if (!location || location.search || location.hash) return null;
+    return pageContexts.find((context) => context.previewPath === location.pathname) || null;
+  }
+
+  function updateBrowsePageContext() {
+    hidePageContext();
+    const location = safeFrameLocation();
+    if (!location) {
+      setStatus('Browse Preview · External or unavailable routes remain preview-only.');
+      return;
+    }
+    if (location.search || location.hash) {
+      setStatus('Browse Preview · This route variant is preview-only and cannot become Studio page context.');
+      return;
+    }
+    const context = currentPageContext();
+    if (!context) {
+      setStatus('Browse Preview · This route is preview-only and is not a canonical site page.');
+      return;
+    }
+    if (context.pageId === selectedPageId) {
+      setStatus('Browse Preview · ' + context.pageTitle + ' is already the current Studio page.');
+      return;
+    }
+
+    pageContextCopy.textContent = 'Previewing ' + context.pageTitle;
+    inspectPageAction.href = context.selectionHref;
+    pageContextPanel.hidden = false;
+    setStatus(
+      'Browse Preview · ' + context.pageTitle
+      + ' is a canonical site page; Studio selection stays unchanged until you choose Inspect this page.',
+    );
   }
 
   function cardForComponentId(componentId) {
@@ -690,6 +780,14 @@ function renderV2ReadOnlyStudioDirectInspectionScript() {
 
   function configureFrame() {
     const doc = frameDocument();
+
+    if (mode === 'browse') {
+      if (doc) clearInspectionPresentation(doc);
+      updateBrowsePageContext();
+      return;
+    }
+
+    hidePageContext();
     if (!doc) {
       setStatus('Preview unavailable for direct inspection.');
       return;
@@ -697,12 +795,6 @@ function renderV2ReadOnlyStudioDirectInspectionScript() {
 
     ensureFrameHandlers(doc);
     clearInspectionPresentation(doc);
-
-    if (mode === 'browse') {
-      setStatus('Browse Preview · Public links navigate normally; Studio selection stays unchanged.');
-      return;
-    }
-
     installInspectionStyle(doc);
     const components = [...doc.querySelectorAll('.v2-component[data-component-id]')];
     for (const component of components) {
@@ -729,8 +821,41 @@ function renderV2ReadOnlyStudioDirectInspectionScript() {
     root.dataset.inspectionMode = mode;
     inspectButton.setAttribute('aria-pressed', String(mode === 'inspect'));
     browseButton.setAttribute('aria-pressed', String(mode === 'browse'));
+
+    if (mode === 'inspect') {
+      const location = safeFrameLocation();
+      if (selectedPreviewPath && (!location
+        || location.pathname !== selectedPreviewPath
+        || location.search
+        || location.hash)) {
+        hidePageContext();
+        setStatus('Inspect mode · Returning to the selected Studio page…');
+        frame.src = selectedPreviewPath;
+        return;
+      }
+    }
+
     configureFrame();
   }
+
+  inspectPageAction.addEventListener('click', (event) => {
+    let target;
+    try {
+      target = new URL(inspectPageAction.href, window.location.href);
+    } catch {
+      event.preventDefault();
+      setStatus('Browse Preview · Unsafe page-context target rejected.');
+      return;
+    }
+    const context = currentPageContext();
+    if (!context
+      || target.origin !== window.location.origin
+      || target.pathname !== window.location.pathname
+      || target.pathname + target.search !== context.selectionHref) {
+      event.preventDefault();
+      setStatus('Browse Preview · Unsafe page-context target rejected.');
+    }
+  });
 
   inspectButton.addEventListener('click', () => setMode('inspect'));
   browseButton.addEventListener('click', () => setMode('browse'));
@@ -831,7 +956,7 @@ dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr)
     <section class="panel canvas-panel" aria-labelledby="studio-canvas-heading">
       <header class="panel-head"><h2 id="studio-canvas-heading" tabindex="-1">Venue Canvas</h2><span>Real v2 renderer</span></header>
       <nav class="canvas-tools" aria-label="Page component selection">${cards}</nav>
-      <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}" data-preview-viewport="${escapeHtml(model.viewport.id)}" data-preview-width="${model.viewport.width}" data-preview-height="${model.viewport.height}"><iframe title="Real v2 venue renderer preview" data-v2-studio-preview="true" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
+      <div class="preview-area"><div class="preview-holder viewport-${escapeHtml(model.viewport.id)}" data-preview-viewport="${escapeHtml(model.viewport.id)}" data-preview-width="${model.viewport.width}" data-preview-height="${model.viewport.height}"><iframe title="Real v2 venue renderer preview" data-v2-studio-preview="true" data-selected-preview-path="${escapeHtml(previewHref)}" src="${escapeHtml(previewHref)}" width="${model.viewport.width}" height="${model.viewport.height}"></iframe></div></div>
       <div class="preview-meta"><strong>${escapeHtml(model.previewPage.title)}</strong><span>${escapeHtml(model.viewport.label)} · ${model.viewport.width} × ${model.viewport.height}</span></div>
       <p class="read-only-note">Selection and viewport changes are local presentation state. This surface cannot edit, keep, save, publish, deploy, or perform external actions.</p>
     </section>
