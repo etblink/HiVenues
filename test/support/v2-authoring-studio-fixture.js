@@ -342,6 +342,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
           'viewport',
           'expectedDraftDigest',
         ]),
+        new Set(['alt']),
       );
       if (!['true', 'false'].includes(body.decorative)) {
         throw new V2AuthoringStudioError('media decorative value is invalid');
@@ -353,7 +354,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
         target: { nodeId: body.nodeId },
         slot: body.mediaSlot,
         assetId: body.assetId,
-        alt: decorative && body.alt === '' ? null : body.alt,
+        alt: decorative && (body.alt === undefined || body.alt === '') ? null : body.alt,
         decorative,
         expectedDraftDigest: body.expectedDraftDigest,
       });
