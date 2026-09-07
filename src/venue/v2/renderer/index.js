@@ -478,6 +478,12 @@ function eventStructuredData(source, event, options) {
   return data;
 }
 
+function eventIndexPath(source) {
+  const eventPage = source.site.pages.find((page) =>
+    page.components.some((component) => component.kind === 'event-list'));
+  return eventPage ? pagePath(eventPage) : '/';
+}
+
 function renderV2EventDetail(input, eventSlug, options = {}) {
   const source = createV2DeploymentAgnosticVenueSource(input);
   const event = source.resources.events.find((candidate) => candidate.slug === eventSlug);
@@ -496,7 +502,7 @@ function renderV2EventDetail(input, eventSlug, options = {}) {
       }, { eager: true })
     : '';
   const body = `<article class="v2-event-detail v2-shell">
-    <a class="v2-back-link" href="${escapeHtml(joinBase(options.basePath || '', '/shows'))}">← All shows</a>
+    <a class="v2-back-link" href="${escapeHtml(joinBase(options.basePath || '', eventIndexPath(source)))}">← Back to events</a>
     <div class="v2-event-detail__grid">
       <div class="v2-event-detail__copy">
         <p class="v2-kicker">Live event</p>
