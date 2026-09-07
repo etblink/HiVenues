@@ -159,6 +159,10 @@ test('workflow preserves universal qualification and deliberate full-path semant
   assert.match(workflow, /V2_CHECKPOINT_REVIEW_ROOT: artifacts\/v2-workspace-checkpoint-review/);
   assert.match(workflow, /const v2Checkpoint = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-workspace-checkpoint-review\/manifest\.json'/);
   assert.match(workflow, /artifacts\/v2-workspace-checkpoint-review/);
+  assert.match(workflow, /node scripts\/capture-v2-fresh-bootstrap-visual\.js/);
+  assert.match(workflow, /V2_BOOTSTRAP_REVIEW_ROOT: artifacts\/v2-fresh-bootstrap-review/);
+  assert.match(workflow, /const v2Bootstrap = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-fresh-bootstrap-review\/manifest\.json'/);
+  assert.match(workflow, /artifacts\/v2-fresh-bootstrap-review/);
   assert.match(workflow, /node scripts\/assemble-current-visual-evidence\.js/);
   assert.match(workflow, /artifacts\/current-visual-review/);
   assert.doesNotMatch(workflow, /path:\s*artifacts\s*$/m);
