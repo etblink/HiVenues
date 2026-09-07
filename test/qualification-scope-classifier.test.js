@@ -71,6 +71,7 @@ test('all retained trigger families and exact classifier inputs qualify isolated
   const f = fixture(t);
   const examples = [
     'src/venue/canvas-source-preview.js', 'src/venue/editable-venue-canvas-surface.js',
+    'src/venue/v2/renderer/index.js',
     'docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md',
     'views/nested/page.ejs', 'public/nested/image.svg', 'src/input.css', 'src/app.js',
     'routes/page.js', 'src/routes/page.js', 'src/content/page.js', 'src/onboarding/page.js',
@@ -87,7 +88,8 @@ test('all retained trigger families and exact classifier inputs qualify isolated
     'config/issue-130-presentation-review.json', 'test/visual-qualification-contract.test.js',
     'test/issue-130-presentation-quality.test.js', 'test/turnkey-release.test.js',
     'test/support/nested/visual-helper.js', 'test/support/hv6-native-editor-fixture.js',
-    'test/support/source-authoring-fixture.js', '.github/workflows/ci.yml',
+    'test/support/source-authoring-fixture.js', 'test/support/v2-renderer-fixture.js',
+    'test/venue-v2-renderer.test.js', '.github/workflows/ci.yml',
     'scripts/classify-qualification-scope.js', 'test/qualification-scope-classifier.test.js',
   ];
   for (const file of examples) {
