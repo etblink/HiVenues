@@ -147,6 +147,11 @@ function createV2AuthoringStudioFixture(sourceInput) {
     redo: '/studio-authoring/redo',
   });
 
+  app.use(['/studio-authoring', '/studio-authoring-preview'], (_request, response, next) => {
+    response.set('Cache-Control', 'no-store');
+    next();
+  });
+
   function currentPreviewSource() {
     return proposal ? proposal.previewSource : session.draftSource;
   }
