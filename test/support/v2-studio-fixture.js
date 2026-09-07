@@ -3,6 +3,7 @@
 const path = require('node:path');
 const express = require('express');
 const {
+  renderV2EventDetail,
   renderV2PublicStylesheet,
   renderV2ThemeStylesheet,
 } = require('../../src/venue/v2/renderer');
@@ -121,6 +122,25 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
   app.get('/studio-preview/site/', (_request, response) => {
     sendPreviewPage(response, source.site.homePageId);
   });
+  app.get('/studio-preview/site/community', (_request, response) => {
+    if (source.capabilities.community.state !== 'configured') {
+      response.status(404).type('text/plain').send('Community capability is disabled.');
+      return;
+    }
+    response.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Community preview</title></head><body><main><h1>Community</h1><p>Read-only Studio capability placeholder. No Hive RPC was attempted.</p></main></body></html>');
+  });
+  app.get('/studio-preview/site/events/:eventSlug', (request, response) => {
+    diagnostics.previewGets += 1;
+    try {
+      response.type('html').send(renderV2EventDetail(
+        source,
+        request.params.eventSlug,
+        previewOptions(),
+      ));
+    } catch (error) {
+      response.status(404).type('text/plain').send(error.message);
+    }
+  });
   app.get('/studio-preview/site/:pageSlug', (request, response, next) => {
     if (request.params.pageSlug === '__hivenues-v2') return next();
     const page = source.site.pages.find((candidate) => candidate.slug === request.params.pageSlug);
@@ -129,13 +149,6 @@ function createV2ReadOnlyStudioFixture(sourceInput) {
       return;
     }
     sendPreviewPage(response, page.id);
-  });
-  app.get('/studio-preview/site/community', (_request, response) => {
-    if (source.capabilities.community.state !== 'configured') {
-      response.status(404).type('text/plain').send('Community capability is disabled.');
-      return;
-    }
-    response.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Community preview</title></head><body><main><h1>Community</h1><p>Read-only Studio capability placeholder. No Hive RPC was attempted.</p></main></body></html>');
   });
 
   app.get('/studio-preview/site/__hivenues-v2/styles.css', (_request, response) => {
