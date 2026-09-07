@@ -119,6 +119,56 @@ test('live-music event details derive from the canonical Event resource and emit
   );
 });
 
+test('poster rows preserve managed artwork, event order, literal copy and visitor actions without source mutation', () => {
+  const source = JSON.parse(JSON.stringify(musicSource()));
+  source.resources.events[0].title = 'Lights <and> Sound';
+  source.resources.events[0].description = 'Music & stories <script>never markup</script>';
+  const before = deriveV2DeploymentAgnosticVenueSourceDigest(source);
+  const document = documentFrom(renderV2Page(source, { pageSlug: 'shows', basePath: '/preview' }));
+  const cards = [...document.querySelectorAll('.v2-event-card--poster')];
+  assert.deepEqual(cards.map((card) => card.dataset.resourceId), source.resources.events.map((event) => event.id));
+  cards.forEach((card, index) => {
+    const event = source.resources.events[index];
+    const asset = source.media.assets.find((entry) => entry.id === event.mediaAssetId);
+    const image = card.querySelector('img');
+    assert.equal(image.getAttribute('src'), asset.src);
+    assert.equal(image.getAttribute('width'), String(asset.width));
+    assert.equal(image.getAttribute('height'), String(asset.height));
+    assert.equal(image.alt, event.title);
+    assert.equal(image.getAttribute('loading'), 'lazy');
+    assert.ok(image.closest('.v2-fit--contain'), 'poster artwork must not be cropped');
+    assert.equal(card.querySelector('h3').textContent, event.title);
+    assert.equal(card.querySelector('h3 a').getAttribute('href'), `/preview/events/${event.slug}`);
+    assert.equal(card.querySelector('time').getAttribute('datetime'), event.startAt);
+    assert.equal(card.querySelector('.v2-action--primary').getAttribute('href'), event.externalAction.href);
+    assert.equal(card.querySelector('.v2-event-card__copy > p').textContent, event.description);
+    assert.equal(card.querySelectorAll('script').length, 0);
+  });
+  assert.equal(deriveV2DeploymentAgnosticVenueSourceDigest(source), before);
+});
+
+test('poster rows handle absent artwork and actions while other event recipes retain their existing markup', () => {
+  const source = JSON.parse(JSON.stringify(musicSource()));
+  source.resources.events[0].mediaAssetId = null;
+  source.resources.events[0].externalAction = null;
+  let document = documentFrom(renderV2Page(source, { pageSlug: 'shows' }));
+  const textRow = document.querySelector('.v2-event-card--text-only');
+  assert.ok(textRow);
+  assert.equal(textRow.querySelectorAll('img,.v2-event-card__artwork,.v2-action--primary').length, 0);
+  assert.equal(textRow.querySelector('.v2-action--secondary').textContent, 'Details');
+  assert.equal(document.querySelectorAll('.v2-event-card--poster img').length, 1);
+
+  const page = source.site.pages.find((entry) => entry.slug === 'shows');
+  page.components[0].recipeId = 'list-card-grid';
+  document = documentFrom(renderV2Page(source, { pageSlug: 'shows' }));
+  assert.equal(document.querySelectorAll('.v2-event-card').length, 2);
+  assert.equal(document.querySelectorAll('.v2-event-card--poster,.v2-event-card__copy,.v2-event-card img').length, 0);
+
+  page.components[0].recipeId = 'list-poster-rows';
+  source.resources.events[1].mediaAssetId = 'unknown-asset';
+  assert.throws(() => renderV2Page(source, { pageSlug: 'shows' }), /media|asset/i);
+});
+
 test('theme stylesheet is deterministic semantic output and public stylesheet contains responsive/accessibility guardrails', () => {
   const source = restaurantSource();
   const first = renderV2ThemeStylesheet(source);

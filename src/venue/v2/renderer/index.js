@@ -193,14 +193,24 @@ function renderOfficialUpdates(component) {
 function renderEventList(source, component, resources, options) {
   const content = component.content;
   const events = content.resourceIds.map((id) => resources.events.get(id));
+  const posterRows = component.recipeId === 'list-poster-rows';
   const items = events.map((event) => {
     if (!event) throw new V2RendererError(`event-list references missing event`);
     const href = joinBase(options.basePath, `${options.eventBasePath}/${encodeURIComponent(event.slug)}`);
-    return `<article class="v2-list-card v2-event-card" data-resource-id="${escapeHtml(event.id)}">
+    const artwork = posterRows && event.mediaAssetId ? renderMediaUsage(source, {
+      assetId: event.mediaAssetId,
+      alt: event.title,
+      decorative: false,
+      treatment: { aspectRecipeId: 'aspect-portrait', fit: 'contain' },
+    }) : '';
+    const copy = `
       <div class="v2-list-card__meta"><time datetime="${escapeHtml(event.startAt)}">${escapeHtml(formatTimestamp(event.startAt))}</time><span class="v2-state" data-state="${escapeHtml(event.state)}">${escapeHtml(event.state)}</span></div>
       <h3><a href="${escapeHtml(href)}">${escapeHtml(event.title)}</a></h3>
       <p>${escapeHtml(event.description)}</p>
-      ${event.accessNote ? `<p class="v2-note">${escapeHtml(event.accessNote)}</p>` : ''}
+      ${event.accessNote ? `<p class="v2-note">${escapeHtml(event.accessNote)}</p>` : ''}`;
+    return `<article class="v2-list-card v2-event-card${posterRows ? ` v2-event-card--poster${artwork ? '' : ' v2-event-card--text-only'}` : ''}" data-resource-id="${escapeHtml(event.id)}">
+      ${artwork ? `<div class="v2-component__media v2-event-card__artwork">${artwork}</div>` : ''}
+      ${posterRows ? `<div class="v2-event-card__copy">${copy}</div>` : copy}
       <div class="v2-actions"><a class="v2-action v2-action--secondary" href="${escapeHtml(href)}">Details</a>${renderAction(event.externalAction, 'v2-action--primary')}</div>
     </article>`;
   }).join('');
