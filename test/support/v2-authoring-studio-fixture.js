@@ -203,6 +203,14 @@ function createV2AuthoringStudioFixture(sourceInput) {
     return false;
   }
 
+  function requireNoActiveProposal() {
+    if (proposal) {
+      throw new V2AuthoringStudioError(
+        'apply or discard the active proposal before starting another proposal',
+      );
+    }
+  }
+
   app.get('/studio-authoring', (request, response) => {
     diagnostics.authoringGets += 1;
     try {
@@ -224,6 +232,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.propose, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'proposal form',
@@ -251,6 +260,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.reorder, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'reorder form',
@@ -272,6 +282,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
   });
   app.post(actionPaths.add, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'add component form',
@@ -295,6 +306,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
 
   app.post(actionPaths.remove, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'remove component form',
@@ -315,6 +327,7 @@ function createV2AuthoringStudioFixture(sourceInput) {
   });
   app.post(actionPaths.theme, (request, response) => {
     try {
+      requireNoActiveProposal();
       const body = plainStrings(
         request.body,
         'theme recipe form',
