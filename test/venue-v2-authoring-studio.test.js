@@ -755,3 +755,223 @@ test('cardinality browser transport rejects unknown stale cross-page and browser
   assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
   assert.equal(fixture.diagnostics().hiveWrites, 0);
 });
+
+
+test('Theme exposes four curated semantic recipe controls across all references', async () => {
+  for (const spec of CASES) {
+    const fixture = createReferenceV2AuthoringStudioFixture(spec.referenceId);
+    const response = await request(fixture.app).get(selectionPath(spec));
+
+    assert.equal(response.status, 200, spec.referenceId);
+    assert.match(response.text, /<h3 id="theme-editor-heading">Theme<\/h3>/, spec.referenceId);
+    assert.match(response.text, /name="themeNodeId" value="theme:global"/, spec.referenceId);
+    assert.match(response.text, /name="dimension" value="typographyRecipeId"/, spec.referenceId);
+    assert.match(response.text, /name="dimension" value="densityRecipeId"/, spec.referenceId);
+    assert.match(response.text, /name="dimension" value="shapeRecipeId"/, spec.referenceId);
+    assert.match(response.text, /name="dimension" value="surfaceRecipeId"/, spec.referenceId);
+    assert.match(response.text, /Raw CSS, arbitrary token keys, font URLs, media, responsive overrides, persistence, and publishing are not available here/, spec.referenceId);
+    assert.doesNotMatch(response.text, /name="sourcePointer"/, spec.referenceId);
+    assert.doesNotMatch(response.text, /name="css"/, spec.referenceId);
+    assert.doesNotMatch(response.text, /name="style"/, spec.referenceId);
+    assert.doesNotMatch(response.text, /name="colors"/, spec.referenceId);
+  }
+});
+
+test('Theme proposal previews real renderer theme CSS without changing accepted draft and supports discard apply undo redo', async () => {
+  const spec = CASES.find((item) => item.referenceId === 'live-music');
+  const fixture = createReferenceV2AuthoringStudioFixture(spec.referenceId);
+  const openingDigest = fixture.session().draftDigest;
+  const openingSerialization = JSON.stringify(fixture.session().draftSource);
+  const current = fixture.session().draftSource.site.brand.design.typographyRecipeId;
+  const recipeId = current === 'type-poster' ? 'type-editorial' : 'type-poster';
+
+  const baselineTheme = await request(fixture.app)
+    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+    .expect(200);
+
+  let response = await request(fixture.app)
+    .post('/studio-authoring/theme')
+    .type('form')
+    .send({
+      themeNodeId: 'theme:global',
+      dimension: 'typographyRecipeId',
+      recipeId,
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+      expectedDraftDigest: openingDigest,
+    });
+
+  assert.equal(response.status, 303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+  assert.equal(fixture.proposal().command.type, 'SET_THEME_RECIPE');
+  assert.equal(fixture.proposal().command.dimension, 'typographyRecipeId');
+  assert.equal(fixture.proposal().command.recipeId, recipeId);
+
+  response = await request(fixture.app).get(response.headers.location);
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Theme preview — not applied/);
+  assert.match(response.text, /Theme preview active/);
+  assert.match(response.text, /data-preview-active="true"/);
+
+  const previewTheme = await request(fixture.app)
+    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+    .expect(200);
+  assert.notEqual(previewTheme.text, baselineTheme.text);
+
+  response = await request(fixture.app)
+    .post('/studio-authoring/discard')
+    .type('form')
+    .send({
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+    });
+  assert.equal(response.status, 303);
+  assert.equal(fixture.proposal(), null);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+
+  const discardedTheme = await request(fixture.app)
+    .get('/studio-authoring-preview/site/__hivenues-v2/theme.css')
+    .expect(200);
+  assert.equal(discardedTheme.text, baselineTheme.text);
+
+  await request(fixture.app)
+    .post('/studio-authoring/theme')
+    .type('form')
+    .send({
+      themeNodeId: 'theme:global',
+      dimension: 'typographyRecipeId',
+      recipeId,
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+      expectedDraftDigest: openingDigest,
+    })
+    .expect(303);
+
+  const appliedDigest = fixture.proposal().afterDigest;
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+    })
+    .expect(303);
+
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(
+    fixture.session().draftSource.site.brand.design.typographyRecipeId,
+    recipeId,
+  );
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+    })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(JSON.stringify(fixture.session().draftSource), openingSerialization);
+
+  await request(fixture.app)
+    .post('/studio-authoring/redo')
+    .type('form')
+    .send({
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'mobile',
+    })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+
+  const diagnostics = fixture.diagnostics();
+  assert.equal(diagnostics.persistentWrites, 0);
+  assert.equal(diagnostics.hiveRpcAttempts, 0);
+  assert.equal(diagnostics.hiveWrites, 0);
+});
+
+test('Theme transport rejects stale no-op unknown target dimension value and browser-owned implementation payloads', async () => {
+  const spec = CASES.find((item) => item.referenceId === 'restaurant');
+  const fixture = createReferenceV2AuthoringStudioFixture(spec.referenceId);
+  const openingDigest = fixture.session().draftDigest;
+  const current = fixture.session().draftSource.site.brand.design.surfaceRecipeId;
+  const alternative = current === 'surface-elevated' ? 'surface-flat' : 'surface-elevated';
+
+  const base = {
+    themeNodeId: 'theme:global',
+    dimension: 'surfaceRecipeId',
+    recipeId: alternative,
+    nodeId: spec.nodeId,
+    fieldId: spec.fieldId,
+    viewport: 'desktop',
+    expectedDraftDigest: openingDigest,
+  };
+  const rejected = [
+    { ...base, expectedDraftDigest: '0'.repeat(64) },
+    { ...base, recipeId: current },
+    { ...base, themeNodeId: 'theme:other' },
+    { ...base, dimension: 'colorToken' },
+    { ...base, recipeId: 'surface-browser-owned' },
+    { ...base, sourcePointer: '/site/brand/design/surfaceRecipeId' },
+    { ...base, css: ':root{--brand:red}' },
+    { ...base, colors: '{"accent":"#ff0000"}' },
+    { ...base, fontUrl: 'https://example.com/font.woff2' },
+  ];
+
+  for (const body of rejected) {
+    await request(fixture.app)
+      .post('/studio-authoring/theme')
+      .type('form')
+      .send(body)
+      .expect(400);
+    assert.equal(fixture.proposal(), null);
+    assert.equal(fixture.session().draftDigest, openingDigest);
+  }
+});
+
+test('server rejects a second proposal while any proposal remains active', async () => {
+  const spec = CASES.find((item) => item.referenceId === 'fourth-street');
+  const fixture = createReferenceV2AuthoringStudioFixture(spec.referenceId);
+  const openingDigest = fixture.session().draftDigest;
+  const current = fixture.session().draftSource.site.brand.design.shapeRecipeId;
+  const recipeId = current === 'shape-rounded' ? 'shape-crisp' : 'shape-rounded';
+
+  await request(fixture.app)
+    .post('/studio-authoring/theme')
+    .type('form')
+    .send({
+      themeNodeId: 'theme:global',
+      dimension: 'shapeRecipeId',
+      recipeId,
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+    })
+    .expect(303);
+
+  const firstProposalDigest = fixture.proposal().afterDigest;
+
+  await request(fixture.app)
+    .post('/studio-authoring/propose')
+    .type('form')
+    .send({
+      nodeId: spec.nodeId,
+      fieldId: spec.fieldId,
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      value: spec.value,
+    })
+    .expect(400);
+
+  assert.equal(fixture.proposal().afterDigest, firstProposalDigest);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+});
