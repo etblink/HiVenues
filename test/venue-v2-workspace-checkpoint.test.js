@@ -390,6 +390,8 @@ test('workspace-backed Studio keeps Preview/Discard nonpersistent then saves and
   assert.match(studio.text, /data-studio-persisted="true"/);
   assert.match(studio.text, /Saved workspace checkpoint/);
   assert.match(studio.text, /Workspace saved/);
+  assert.match(studio.text, /Workspace checkpoint saved · not published · not deployed/);
+  assert.doesNotMatch(studio.text, /Memory only · not saved · not published/);
 
   const reopened = createV2AuthoringStudioWorkspaceFixture({
     workspaceDirectory: workspace.root,
@@ -404,6 +406,8 @@ test('workspace-backed Studio keeps Preview/Discard nonpersistent then saves and
     .query({ nodeId, fieldId, viewport: 'desktop' })
     .expect(200);
   assert.match(reopenedStudio.text, /data-studio-persisted="true"/);
+  assert.match(reopenedStudio.text, /Workspace checkpoint saved · not published · not deployed/);
+  assert.doesNotMatch(reopenedStudio.text, /Memory only · not saved · not published/);
   assert.equal(reopened.diagnostics().hiveRpcAttempts, 0);
   assert.equal(reopened.diagnostics().hiveWrites, 0);
 });
