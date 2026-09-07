@@ -1190,7 +1190,7 @@ test('local hero media import derives one in-memory asset and exact compound his
     );
     assert.equal(
       proposal.resolvedTarget.assetSrc,
-      '/__hivenues-v2/session-media/' + proposal.resolvedTarget.digestSha256 + '.png',
+      '/venue-assets/media-' + proposal.resolvedTarget.digestSha256.slice(0, 20) + '.png',
       referenceId,
     );
 
