@@ -39,7 +39,6 @@ const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 const V2_GLOBAL_THEME_TARGET = 'theme:global';
 const V2_HERO_MEDIA_SLOT = 'hero-media';
-const V2_SESSION_MEDIA_PATH_PREFIX = '/__hivenues-v2/session-media/';
 const MAX_IMAGE_BASE64_CHARS = Math.ceil(MAX_MANAGED_IMAGE_BYTES / 3) * 4;
 const V2_THEME_RECIPE_DIMENSIONS = deepFreeze({
   typographyRecipeId: {
@@ -2097,7 +2096,6 @@ module.exports = {
   V2_COMPONENT_CATALOG,
   V2_GLOBAL_THEME_TARGET,
   V2_HERO_MEDIA_SLOT,
-  V2_SESSION_MEDIA_PATH_PREFIX,
   V2_THEME_RECIPE_DIMENSIONS,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
