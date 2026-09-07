@@ -89,9 +89,10 @@ test('synthetic reference media bytes match every declared intrinsic dimension',
     const fixture = createV2RendererPreviewFixture(source);
     for (const asset of source.media.assets) {
       const response = await request(fixture.app).get(asset.src).expect(200);
-      assert.match(response.text, new RegExp(`width=["']${asset.width}["']`));
-      assert.match(response.text, new RegExp(`height=["']${asset.height}["']`));
-      assert.match(response.text, new RegExp(`viewBox=["']0 0 ${asset.width} ${asset.height}["']`));
+      const svg = response.text || response.body.toString('utf8');
+      assert.match(svg, new RegExp(`width=["']${asset.width}["']`));
+      assert.match(svg, new RegExp(`height=["']${asset.height}["']`));
+      assert.match(svg, new RegExp(`viewBox=["']0 0 ${asset.width} ${asset.height}["']`));
     }
   }
 });

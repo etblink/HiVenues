@@ -450,9 +450,9 @@ function musicSource() {
 }
 
 function fourthStreetSource() {
-  const source = migrateV1DeploymentAgnosticVenueSource(
+  const source = JSON.parse(JSON.stringify(migrateV1DeploymentAgnosticVenueSource(
     extractDeploymentAgnosticVenueSource(FOURTH_STREET_AUTHORING_INPUT),
-  );
+  )));
   const home = source.site.pages.find((page) => page.id === source.site.homePageId);
   const hero = home && home.components.find((component) => component.kind === 'venue-hero');
   if (!hero) throw new Error('Fourth Street PM4 reference requires a venue hero');
@@ -474,7 +474,12 @@ const REFERENCE_FACTORIES = Object.freeze({
 });
 
 function syntheticSvg(label, background, foreground, width, height, subtitle) {
-  const safe = (value) => String(value).replace(/[<>&'"]/g, '');
+  const safe = (value) => String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
   const safeLabel = safe(label);
   const safeSubtitle = safe(subtitle);
   const short = Math.min(width, height);
