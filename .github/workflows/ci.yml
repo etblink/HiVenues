@@ -142,6 +142,10 @@ jobs:
         env:
           ISSUE_132_TURNKEY_REVIEW_ROOT: artifacts/issue-132-turnkey-review
         run: node scripts/capture-issue-132-turnkey-visual.js
+      - name: Capture PM3 v2 renderer reference evidence
+        env:
+          V2_RENDERER_REVIEW_ROOT: artifacts/v2-renderer-review
+        run: node scripts/capture-v2-renderer-visual.js
       - name: Assemble bounded human-review evidence
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -156,6 +160,7 @@ jobs:
           const review = JSON.parse(fs.readFileSync('artifacts/current-visual-review/manifest.json', 'utf8'));
           const presentation = JSON.parse(fs.readFileSync('artifacts/issue-130-presentation-review/manifest.json', 'utf8'));
           const turnkey = JSON.parse(fs.readFileSync('artifacts/issue-132-turnkey-review/manifest.json', 'utf8'));
+          const v2Renderer = JSON.parse(fs.readFileSync('artifacts/v2-renderer-review/manifest.json', 'utf8'));
           console.log('## Current visual qualification contract');
           console.log('');
           console.log(`- Machine suites: ${machine.suites.length}`);
@@ -165,6 +170,8 @@ jobs:
           console.log(`- Issue #130 presentation-review screenshots: ${presentation.captures.length}`);
           console.log(`- Issue #132 Track A Studio screenshots: ${turnkey.tracks.A.screenshots.length}`);
           console.log(`- Issue #132 Track B generated-output screenshots: ${turnkey.tracks.B.screenshots.length}`);
+          console.log(`- Issue #171 v2 renderer references: ${v2Renderer.summary.referenceCount}; screenshots: ${v2Renderer.summary.screenshotCount}`);
+          console.log(`- Issue #171 blocking accessibility findings: ${v2Renderer.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Renderer.summary.horizontalOverflowFindings}`);
           console.log('- Historical full-page PNGs are ephemeral machine intermediates and are not uploaded as the acceptance artifact.');
           console.log('- A green job still does not constitute Project Lead visual approval; inspect the preserved bounded review artifacts.');
           NODE
@@ -177,6 +184,7 @@ jobs:
             artifacts/current-visual-review
             artifacts/issue-130-presentation-review
             artifacts/issue-132-turnkey-review
+            artifacts/v2-renderer-review
             artifacts/current-visual-machine-summary.json
           if-no-files-found: error
           retention-days: 90
