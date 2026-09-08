@@ -125,6 +125,7 @@ test('reference compositions expose archetype-specific semantic navigation and s
   assert.match(renderV2Page(juniper, { pageSlug: 'equipment' }), /Equipment status/);
 
   const restaurant = restaurantSource();
+  assert.equal(findComponentForTest(restaurant, 'home-hero').content.media.treatment.aspectRecipeId, 'aspect-landscape');
   assert.deepEqual(
     restaurant.site.navigation.map((entry) => entry.label),
     ['Home', 'Menu', 'Private Events', 'Gallery', 'Visit'],
@@ -279,6 +280,7 @@ test('isolated preview harness renders pages, styles and event routes with zero 
       const svg = response.text || response.body.toString('utf8');
       assert.match(svg, new RegExp(`<svg[^>]+width="${asset.width}"[^>]+height="${asset.height}"[^>]+viewBox="0 0 ${asset.width} ${asset.height}"`));
       assert.doesNotMatch(svg, /\bfixture\b|Synthetic HiVenues reference artwork/i);
+      if (asset.src.startsWith('/fixtures/juniper-works/')) assert.doesNotMatch(svg, /<text\b/i);
     }
 
     const diagnostics = fixture.diagnostics();
