@@ -20,6 +20,7 @@ const {
   createV2AuthoringSession,
   discardV2AuthoringProposal,
   listV2MediaUsageOptions,
+  listV2ResourceScalarFieldOptions,
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2ImportLocalHeroMedia,
@@ -36,6 +37,7 @@ const {
   serializeV2DeploymentAgnosticVenueSource,
 } = require('../src/venue/v2/source');
 const {
+  renderV2EventDetail,
   renderV2Page,
 } = require('../src/venue/v2/renderer');
 const {
@@ -191,6 +193,85 @@ test('one SET_FIELD engine proves proposal, apply, exact undo, and exact redo ac
   }
 });
 
+test('resource scalar field options expose only the preregistered stable server-owned fields', () => {
+  const live = REFERENCE_FACTORIES['live-music']();
+  const event = live.resources.events[0];
+  const eventOptions = listV2ResourceScalarFieldOptions(live, {
+    nodeId: `resource:events:${event.id}`,
+  });
+  assert.equal(eventOptions.resourceKind, 'events');
+  assert.equal(eventOptions.resourceId, event.id);
+  assert.deepEqual(eventOptions.fields.map((field) => field.id), ['title', 'state', 'description']);
+  assert.deepEqual(eventOptions.fields.find((field) => field.id === 'state').values, ['scheduled', 'full', 'cancelled']);
+
+  const juniper = REFERENCE_FACTORIES.juniper();
+  const program = juniper.resources.programs[0];
+  const equipment = juniper.resources.equipment[0];
+  assert.deepEqual(
+    listV2ResourceScalarFieldOptions(juniper, { nodeId: `resource:programs:${program.id}` }).fields.map((field) => field.id),
+    ['title', 'state', 'description', 'accessNote'],
+  );
+  assert.deepEqual(
+    listV2ResourceScalarFieldOptions(juniper, { nodeId: `resource:equipment:${equipment.id}` }).fields.map((field) => field.id),
+    ['name', 'state', 'note', 'accessNote'],
+  );
+
+  const restaurant = REFERENCE_FACTORIES.restaurant();
+  assert.throws(
+    () => listV2ResourceScalarFieldOptions(restaurant, { nodeId: `resource:menus:${restaurant.resources.menus[0].id}` }),
+    /outside the scalar authoring slice/,
+  );
+});
+
+test('resource SET_FIELD uses one exact transaction engine and updates every shared generated consumer', () => {
+  const cases = [
+    { referenceId: 'juniper', resourceKind: 'programs', fieldId: 'title', value: 'Open shop orientation', secondarySlug: 'programs' },
+    { referenceId: 'juniper', resourceKind: 'equipment', fieldId: 'state', value: 'maintenance', secondarySlug: 'equipment' },
+    { referenceId: 'live-music', resourceKind: 'events', fieldId: 'title', value: 'The Static Lights — Late Set', secondarySlug: 'shows', eventDetail: true },
+  ];
+
+  for (const spec of cases) {
+    const source = REFERENCE_FACTORIES[spec.referenceId]();
+    const resource = source.resources[spec.resourceKind][0];
+    const openingSerialization = serializeV2DeploymentAgnosticVenueSource(source);
+    const openingIds = Object.fromEntries(Object.entries(source.resources).map(([kind, items]) => [kind, items.map((item) => item.id)]));
+    const session = createV2AuthoringSession(source);
+    const nodeId = `resource:${spec.resourceKind}:${resource.id}`;
+    const proposal = proposeV2SetField(session, command(session, nodeId, spec.fieldId, spec.value));
+
+    assert.equal(proposal.resolvedTarget.resourceKind, spec.resourceKind, spec.referenceId);
+    assert.equal(proposal.resolvedTarget.resourceId, resource.id, spec.referenceId);
+    assert.equal(proposal.resolvedTarget.ownership, 'OPERATOR_AUTHORED', spec.referenceId);
+    assert.equal(proposal.previewSource.resources[spec.resourceKind][0][spec.fieldId], spec.value, spec.referenceId);
+    assert.ok(renderV2Page(proposal.previewSource).includes(spec.value), spec.referenceId);
+    assert.ok(renderV2Page(proposal.previewSource, { pageSlug: spec.secondarySlug }).includes(spec.value), spec.referenceId);
+    if (spec.eventDetail) assert.ok(renderV2EventDetail(proposal.previewSource, resource.slug).includes(spec.value), spec.referenceId);
+    assert.deepEqual(Object.fromEntries(Object.entries(proposal.previewSource.resources).map(([kind, items]) => [kind, items.map((item) => item.id)])), openingIds, spec.referenceId);
+
+    const applied = applyV2AuthoringProposal(session, proposal);
+    const undone = undoV2AuthoringSession(applied);
+    assert.equal(serializeV2DeploymentAgnosticVenueSource(undone.draftSource), openingSerialization, spec.referenceId);
+    const redone = redoV2AuthoringSession(undone);
+    assert.equal(redone.draftDigest, applied.draftDigest, spec.referenceId);
+    assert.equal(redone.draftSource.resources[spec.resourceKind][0][spec.fieldId], spec.value, spec.referenceId);
+  }
+});
+
+test('resource SET_FIELD fails closed on no-op stale invalid enum unknown field and forged target authority', () => {
+  const source = REFERENCE_FACTORIES['live-music']();
+  const event = source.resources.events[0];
+  const session = createV2AuthoringSession(source);
+  const nodeId = `resource:events:${event.id}`;
+  assert.throws(() => proposeV2SetField(session, command(session, nodeId, 'title', event.title)), /field change is a no-op/);
+  assert.throws(() => proposeV2SetField(session, command(session, nodeId, 'title', 'Stale show', { expectedDraftDigest: '0'.repeat(64) })), /stale expected draft digest/);
+  assert.throws(() => proposeV2SetField(session, command(session, nodeId, 'externalAction', 'https://example.com')), /outside the scalar authoring slice/);
+  assert.throws(() => proposeV2SetField(session, command(session, nodeId, 'state', 'browser-invented')));
+  assert.throws(() => proposeV2SetField(session, command(session, 'resource:events:missing-show', 'title', 'Unknown')), /stable target does not exist/);
+  assert.throws(
+    () => proposeV2SetField(session, { ...command(session, nodeId, 'title', 'Forged path'), target: { nodeId, fieldId: 'title', sourcePointer: '/resources/events/0/title' } }),
+    /unsupported key/,
+  );
+});
 test('discard validates the proposal but leaves the accepted draft byte/digest exact', () => {
   const session = createV2AuthoringSession(REFERENCE_FACTORIES.restaurant());
   const before = serializeV2DeploymentAgnosticVenueSource(session.draftSource);

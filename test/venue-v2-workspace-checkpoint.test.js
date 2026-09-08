@@ -412,6 +412,63 @@ test('workspace-backed Studio keeps Preview/Discard nonpersistent then saves and
   assert.equal(reopened.diagnostics().hiveWrites, 0);
 });
 
+test('workspace-backed Studio saves and reopens the exact accepted shared-resource edit', async (t) => {
+  const workspace = temporaryWorkspace(t);
+  const fixture = createReferenceV2AuthoringStudioFixture('juniper', { workspaceDirectory: workspace.root });
+  const source = fixture.session().draftSource;
+  const program = source.resources.programs[0];
+  const occurrence = `component:home-programs/resource:programs:${program.id}`;
+  const stable = `resource:programs:${program.id}`;
+  const value = 'Orientation and shop safety';
+
+  await request(fixture.app)
+    .post('/studio-authoring/resource')
+    .type('form')
+    .send({
+      nodeId: occurrence,
+      resourceNodeId: stable,
+      fieldId: 'title',
+      viewport: 'desktop',
+      expectedDraftDigest: fixture.session().draftDigest,
+      value,
+    })
+    .expect(303);
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId: occurrence, viewport: 'desktop' })
+    .expect(303);
+
+  const acceptedDigest = fixture.session().draftDigest;
+  assert.equal(fixture.session().draftSource.resources.programs[0].title, value);
+  await request(fixture.app)
+    .post('/studio-authoring/save-workspace')
+    .type('form')
+    .send({
+      nodeId: occurrence,
+      viewport: 'desktop',
+      expectedDraftDigest: acceptedDigest,
+      expectedPersistedDigest: V2_PERSISTED_SOURCE_ABSENT,
+    })
+    .expect(303);
+  assert.equal(fixture.persistence().persistedDigest, acceptedDigest);
+
+  const reopened = createV2AuthoringStudioWorkspaceFixture({ workspaceDirectory: workspace.root });
+  assert.equal(reopened.session().draftDigest, acceptedDigest);
+  assert.equal(reopened.session().draftSource.resources.programs[0].title, value);
+  assert.equal(
+    serializeV2DeploymentAgnosticVenueSource(reopened.session().draftSource),
+    serializeV2DeploymentAgnosticVenueSource(fixture.session().draftSource),
+  );
+  const reopenedStudio = await request(reopened.app)
+    .get('/studio-authoring')
+    .query({ nodeId: occurrence, viewport: 'desktop' })
+    .expect(200);
+  assert.match(reopenedStudio.text, /Orientation and shop safety/);
+  assert.match(reopenedStudio.text, /Workspace checkpoint saved · not published · not deployed/);
+  assert.equal(reopened.diagnostics().hiveRpcAttempts, 0);
+  assert.equal(reopened.diagnostics().hiveWrites, 0);
+});
 test('workspace-backed Studio imports local hero without disk writes, saves bytes/source, releases ephemeral cache, and reopens renderable media', async (t) => {
   const workspace = temporaryWorkspace(t);
   const fixture = createReferenceV2AuthoringStudioFixture(
