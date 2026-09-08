@@ -90,10 +90,18 @@ async function assertImagesLoaded(page, label) {
     complete: image.complete,
     naturalWidth: image.naturalWidth,
     naturalHeight: image.naturalHeight,
+    declaredWidth: Number(image.getAttribute('width')) || null,
+    declaredHeight: Number(image.getAttribute('height')) || null,
   })));
   for (const image of images) {
     assert.equal(image.complete, true, `${label}: image did not complete: ${image.src}`);
     assert.ok(image.naturalWidth > 0 && image.naturalHeight > 0, `${label}: image failed: ${JSON.stringify(image)}`);
+    if (image.declaredWidth) {
+      assert.equal(image.naturalWidth, image.declaredWidth, `${label}: intrinsic width does not match source metadata: ${JSON.stringify(image)}`);
+    }
+    if (image.declaredHeight) {
+      assert.equal(image.naturalHeight, image.declaredHeight, `${label}: intrinsic height does not match source metadata: ${JSON.stringify(image)}`);
+    }
   }
   return images;
 }
@@ -183,8 +191,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const manifest = {
     schemaVersion: 1,
-    issue: 171,
-    role: 'HiVenues v2 read-only public renderer reference evidence',
+    issue: 198,
+    role: 'HiVenues PM4 generated-reference composition and media evidence',
     reviewMode: 'viewport-only',
     viewports: VIEWPORTS,
     references: {},
@@ -344,7 +352,7 @@ async function main() {
     const typographyRecipes = new Set(
       Object.values(manifest.references).map((reference) => reference.typographyRecipeId),
     );
-    assert.ok(heroRecipes.size >= 3, `Expected at least three materially different hero recipes; got ${[...heroRecipes]}`);
+    assert.equal(heroRecipes.size, 4, `Expected four materially different hero recipes; got ${[...heroRecipes]}`);
     assert.ok(typographyRecipes.size >= 3, `Expected at least three typography recipes; got ${[...typographyRecipes]}`);
     assert.equal(manifest.captures.length, 24);
 
