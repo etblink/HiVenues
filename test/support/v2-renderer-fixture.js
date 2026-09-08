@@ -485,7 +485,7 @@ function musicSource() {
                 body: 'Two upcoming nights, clear ticket actions, and the venue details you need before the lights go down.',
                 note: 'Demonstration venue · lineup, tickets, and venue details are fictional.',
                 media: mediaUsage('stage', 'Synthetic live-music stage under dramatic lights'),
-                primaryAction: { label: 'See upcoming shows', href: '/shows' },
+                primaryAction: { label: 'See upcoming shows', href: 'https://northline-hall.example/shows' },
               },
               responsive: { tablet: {}, mobile: { textMeasure: 'narrow' } },
             },
@@ -581,7 +581,7 @@ function fourthStreetSource() {
     componentContent: {
       'home-hero': {
         eyebrow: 'East 4th Street · Reno',
-        primaryAction: { label: 'Plan your visit', href: '/visit' },
+        primaryAction: { label: 'Plan your visit', href: 'https://4thstreetbarreno.com/' },
       },
     },
     componentResponsive: {
