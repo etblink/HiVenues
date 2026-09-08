@@ -698,6 +698,7 @@ function renderResourceLifecycleEditor({ model, session, proposal, source, actio
     <input type="hidden" name="operation" value="${operation}">`;
   const formStart = `<form class="edit-form" method="post" action="${escapeHtml(actionPaths.resourceLifecycle)}">`;
   if (model.selectedEntry.kind !== 'resource-reference') {
+    if (!context.canAdd) return `<section class="editor-card resource-lifecycle-editor"><h3>List capacity reached</h3><p class="muted">Remove an item before adding another ${noun}.</p></section>`;
     const fields = context.resourceKind === 'equipment'
       ? [['name', 'Equipment name'], ['note', 'Availability note'], ['accessNote', 'Access requirements'], ['lastUpdated', 'Status checked at']]
       : [['title', `${noun === 'show' ? 'Show' : 'Program'} title`], ['description', 'Description'],

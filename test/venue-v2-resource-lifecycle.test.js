@@ -137,7 +137,16 @@ test('empty and full lists, duplicate occurrence ambiguity and server ID collisi
   source.resources.equipment = Array.from({ length: 200 }, (_, i) => ({ ...template, id: `full-${i}` }));
   for (const p of source.site.pages) for (const list of p.components) if (list.kind === 'equipment-status') list.content.resourceIds = ['full-0'];
   session = a.createV2AuthoringSession(source);
+  assert.equal(a.getV2ResourceListContext(source, { nodeId: `component:${spec.component}` }).canAdd, false);
   assert.throws(() => propose(session, cmd(session, spec, a.ADD_RESOURCE, { payload: spec.payload })));
+  source.resources.equipment.splice(100);
+  list(source, spec.component).content.resourceIds = source.resources.equipment.map((r) => r.id);
+  session = a.createV2AuthoringSession(source);
+  assert.equal(a.getV2ResourceListContext(source, { nodeId: `component:${spec.component}` }).canAdd, false);
+  assert.throws(() => propose(session, cmd(session, spec, a.ADD_RESOURCE, { payload: spec.payload })));
+  const html = require('../src/venue/v2/studio-authoring').renderV2AuthoringStudioSurface({ session, query: { nodeId: `component:${spec.component}` }, previewPathForPage: () => '/preview' });
+  assert.match(html, /List capacity reached/);
+  assert.doesNotMatch(html, /Preview new equipment item/);
 });
 
 test('Studio lifecycle rejects forged forms, requires named removal and preserves selection/history', async () => {

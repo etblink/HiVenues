@@ -1586,6 +1586,7 @@ function getV2ResourceListContext(sourceInput, targetInput) {
   return deepFreeze({
     resourceKind, pageId: page.id, componentId: component.id,
     label: component.content.heading,
+    canAdd: source.resources[resourceKind].length < 200 && component.content.resourceIds.length < 100,
     items: component.content.resourceIds.map((id) => {
       const resource = source.resources[resourceKind].find((entry) => entry.id === id);
       return { id, label: resource.title || resource.name };

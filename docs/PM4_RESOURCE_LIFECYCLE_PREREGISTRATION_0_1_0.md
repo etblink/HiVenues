@@ -34,7 +34,8 @@ Selection falls back to the surviving list after removal or history replay.
 | Empty/list/add/move/remove preview states, keyboard controls, responsive geometry/Axe | CI | `scripts/capture-v2-resource-lifecycle-visual.js` in pinned Chromium CI |
 | Studio usability, generated truth, authority boundaries | Project Lead review | exact candidate screenshots + diff + evidence manifest, independently A/B/C |
 
-One bounded browser journey per resource kind; capture representative add, move,
+One bounded browser journey per resource kind; eight captures include the capacity limit, ordinary
+creation controls as well as representative add, move,
 remove and empty states rather than every history step. Existing browser suites
 remain; no scope reduction or new dependency. Canonical post-merge CI remains
 required. Menus, action editing, timestamp editing, general media, component recipes

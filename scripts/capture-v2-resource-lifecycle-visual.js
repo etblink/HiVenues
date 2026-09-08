@@ -8,7 +8,7 @@ const { execFileSync } = require('node:child_process');
 const { URLSearchParams } = require('node:url');
 const { chromium } = require('playwright');
 const axe = require('axe-core');
-const { createReferenceV2AuthoringStudioFixture } = require('../test/support/v2-authoring-studio-fixture');
+const { createReferenceV2AuthoringStudioFixture, createV2AuthoringStudioFixture } = require('../test/support/v2-authoring-studio-fixture');
 const { closeServer, listenLoopback, sha256 } = require('./support/visual-harness');
 
 const OUTPUT = path.resolve(__dirname, '..', process.env.V2_RESOURCE_LIFECYCLE_REVIEW_ROOT || 'artifacts/v2-resource-lifecycle-review');
@@ -64,6 +64,13 @@ async function journey(browser, spec) {
       await page.locator('#new-resource-offset').selectOption('-07:00');
     };
     await fill();
+    if (spec.kind === 'programs') {
+      await page.locator('.inspector-panel').evaluate((panel) => {
+        const card = panel.querySelector('.resource-lifecycle-editor');
+        panel.scrollTop += card.getBoundingClientRect().top - panel.getBoundingClientRect().top;
+      });
+      await capture(page, 'programs-creation-controls', records);
+    }
     const create = page.getByRole('button', { name: `Preview new ${spec.noun}`, exact: true });
     await create.focus();
     const navigation = page.waitForNavigation({ waitUntil: 'networkidle' });
@@ -134,12 +141,31 @@ async function main() {
   fs.mkdirSync(path.join(OUTPUT, 'screenshots'), { recursive: true });
   const browser = await chromium.launch();
   const journeys = [];
-  try { for (const spec of specs) journeys.push(await journey(browser, spec)); }
+  const capacityRecords = [];
+  try {
+    for (const spec of specs) journeys.push(await journey(browser, spec));
+    const seed = createReferenceV2AuthoringStudioFixture('juniper').session().draftSource;
+    const source = JSON.parse(JSON.stringify(seed));
+    const item = source.resources.equipment[0];
+    source.resources.equipment = Array.from({ length: 200 }, (_, i) => ({ ...item, id: `capacity-${i}` }));
+    for (const p of source.site.pages) for (const c of p.components) {
+      if (c.kind === 'equipment-status') c.content.resourceIds = ['capacity-0'];
+    }
+    const fixture = createV2AuthoringStudioFixture(source);
+    const server = await listenLoopback(fixture.app);
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    try {
+      await page.goto(`http://127.0.0.1:${server.address().port}/studio-authoring?nodeId=component:home-equipment-status`, { waitUntil: 'networkidle' });
+      assert.equal(await page.getByRole('heading', { name: 'List capacity reached' }).count(), 1);
+      assert.equal(await page.getByRole('button', { name: 'Preview new equipment item' }).count(), 0);
+      await capture(page, 'equipment-capacity-reached', capacityRecords);
+    } finally { await page.close(); await closeServer(server); }
+  }
   finally { await browser.close(); }
-  const summary = { journeys: journeys.length, screenshots: journeys.reduce((n, j) => n + j.records.length, 0),
+  const summary = { journeys: journeys.length, screenshots: journeys.reduce((n, j) => n + j.records.length, capacityRecords.length),
     exactHistory: journeys.filter((j) => j.exactHistory).length, sharedRemoval: journeys.filter((j) => j.sharedRemoval).length };
-  assert.deepEqual(summary, { journeys: 3, screenshots: 6, exactHistory: 3, sharedRemoval: 3 });
-  fs.writeFileSync(path.join(OUTPUT, 'manifest.json'), JSON.stringify({ kind: 'hivenues-resource-lifecycle-review', schemaVersion: 1, commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), summary, journeys }, null, 2) + '\n');
+  assert.deepEqual(summary, { journeys: 3, screenshots: 8, exactHistory: 3, sharedRemoval: 3 });
+  fs.writeFileSync(path.join(OUTPUT, 'manifest.json'), JSON.stringify({ kind: 'hivenues-resource-lifecycle-review', schemaVersion: 1, commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), summary, journeys, capacityRecords }, null, 2) + '\n');
   console.log('V2_RESOURCE_LIFECYCLE_VISUAL_EVIDENCE', JSON.stringify(summary));
 }
 main().catch((error) => { console.error(error.stack || error.message); process.exitCode = 1; });
