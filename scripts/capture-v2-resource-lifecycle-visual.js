@@ -14,11 +14,11 @@ const { closeServer, listenLoopback, sha256 } = require('./support/visual-harnes
 const OUTPUT = path.resolve(__dirname, '..', process.env.V2_RESOURCE_LIFECYCLE_REVIEW_ROOT || 'artifacts/v2-resource-lifecycle-review');
 const specs = [
   { reference: 'juniper', kind: 'equipment', component: 'home-equipment-status', noun: 'equipment item', viewport: 'mobile',
-    values: { name: 'Portable workbench', note: 'Awaiting inspection', accessNote: 'Ask workshop staff', lastUpdated: '2026-09-08T10:00:00' } },
+    values: { name: 'Portable workbench', note: 'Awaiting inspection', accessNote: 'Ask workshop staff', lastUpdated: '2026-09-08T10:00' } },
   { reference: 'juniper', kind: 'programs', component: 'home-programs', noun: 'program', viewport: 'tablet',
-    values: { title: 'Open studio evening', description: 'Guided work and shared learning.', accessNote: 'Orientation required', startAt: '2026-09-18T18:00:00', endAt: '2026-09-18T20:00:00' } },
+    values: { title: 'Open studio evening', description: 'Guided work and shared learning.', accessNote: 'Orientation required', startAt: '2026-09-18T18:00', endAt: '2026-09-18T20:00' } },
   { reference: 'live-music', kind: 'events', component: 'home-shows', noun: 'show', viewport: 'desktop',
-    values: { title: 'Late summer session', description: 'An evening of live music.', startAt: '2026-09-18T18:00:00', endAt: '2026-09-18T20:00:00' } },
+    values: { title: 'Late summer session', description: 'An evening of live music.', startAt: '2026-09-18T18:00', endAt: '2026-09-18T20:00' } },
 ];
 
 async function click(page, name) {
