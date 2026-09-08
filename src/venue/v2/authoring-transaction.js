@@ -23,6 +23,11 @@ const V2_AUTHORING_COMMAND_SCHEMA_VERSION = 1;
 const V2_AUTHORING_SESSION_SCHEMA_VERSION = 1;
 const V2_AUTHORING_PROPOSAL_SCHEMA_VERSION = 1;
 const V2_AUTHORING_HISTORY_SCHEMA_VERSION = 1;
+const ADD_RESOURCE = 'ADD_RESOURCE';
+const REMOVE_RESOURCE = 'REMOVE_RESOURCE';
+const MOVE_RESOURCE = 'MOVE_RESOURCE';
+const RESTORE_RESOURCE = 'RESTORE_RESOURCE';
+const END_OF_LIST = 'END_OF_LIST';
 const SET_FIELD = 'SET_FIELD';
 const SET_THEME_RECIPE = 'SET_THEME_RECIPE';
 const SET_MEDIA_USAGE_ASSET = 'SET_MEDIA_USAGE_ASSET';
@@ -576,6 +581,9 @@ function parseRestoreComponentCommand(value) {
       'type',
       'target',
       'componentSnapshot',
+      'resourceSnapshot',
+      'references',
+      'beforeResourceId',
       'destination',
       'expectedDraftDigest',
     ]),
@@ -607,6 +615,9 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
       'payload',
       'catalogItemId',
       'componentSnapshot',
+      'resourceSnapshot',
+      'references',
+      'beforeResourceId',
       'destination',
       'dimension',
       'recipeId',
@@ -621,6 +632,8 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
       'expectedDraftDigest',
     ]),
   );
+  if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(command.type)
+    || (allowInternal && command.type === RESTORE_RESOURCE)) return parseResourceCommand(value);
   if (command.type === SET_FIELD) return parseSetFieldCommand(value);
   if (command.type === SET_THEME_RECIPE) return parseSetThemeRecipeCommand(value);
   if (command.type === SET_MEDIA_USAGE_ASSET) return parseMediaUsageCommand(value);
@@ -1520,12 +1533,202 @@ function withComponentMove(sourceInput, resolved) {
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
+const RESOURCE_LIST_KINDS = Object.freeze({
+  'event-list': 'events', 'program-list': 'programs', 'equipment-status': 'equipment',
+});
+
+function parseResourceCommand(value) {
+  const type = value.type;
+  const extras = type === ADD_RESOURCE ? ['payload']
+    : type === MOVE_RESOURCE ? ['destination']
+      : type === RESTORE_RESOURCE ? ['resourceSnapshot', 'references', 'beforeResourceId'] : [];
+  const command = plainRecord(value, 'resource command', new Set([
+    'schemaVersion', 'type', 'target', 'expectedDraftDigest', ...extras,
+  ]));
+  if (command.schemaVersion !== 1) throw new V2AuthoringTransactionError('unsupported command schema version');
+  const target = plainRecord(command.target, 'resource target',
+    new Set(type === ADD_RESOURCE || type === RESTORE_RESOURCE ? ['nodeId'] : ['nodeId', 'resourceId']));
+  const result = {
+    schemaVersion: 1, type,
+    target: { nodeId: scalarString(target.nodeId, 'list target', { max: 200 }) },
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+  if (type === MOVE_RESOURCE || type === REMOVE_RESOURCE) {
+    result.target.resourceId = scalarString(target.resourceId, 'resource identity', { max: 80 });
+  }
+  if (type === ADD_RESOURCE) result.payload = plainJsonData(command.payload, 'resource inputs');
+  if (type === MOVE_RESOURCE) result.destination = scalarString(command.destination, 'destination', { max: 80 });
+  if (type === RESTORE_RESOURCE) {
+    result.resourceSnapshot = plainJsonData(command.resourceSnapshot, 'resource snapshot');
+    result.references = plainJsonData(command.references, 'resource references');
+    result.beforeResourceId = command.beforeResourceId === null ? null
+      : scalarString(command.beforeResourceId, 'restore anchor', { max: 80 });
+  }
+  return result;
+}
+
+function getV2ResourceListContext(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = parseComponentTarget(targetInput);
+  const matches = source.site.pages.flatMap((page) => page.components
+    .filter((component) => `component:${component.id}` === target.nodeId)
+    .map((component) => ({ page, component })));
+  if (matches.length !== 1) throw new V2AuthoringTransactionError('resource list target is missing or ambiguous');
+  const { page, component } = matches[0];
+  const resourceKind = RESOURCE_LIST_KINDS[component.kind];
+  if (!resourceKind) throw new V2AuthoringTransactionError('unsupported resource list');
+  if (pathOwnership(`/resources/${resourceKind}`) !== OWNERSHIP.OPERATOR_AUTHORED_COLLECTION) {
+    throw new V2AuthoringTransactionError('resource collection is not operator-authored');
+  }
+  if (new Set(component.content.resourceIds).size !== component.content.resourceIds.length) {
+    throw new V2AuthoringTransactionError('resource list identities are ambiguous');
+  }
+  return deepFreeze({
+    resourceKind, pageId: page.id, componentId: component.id,
+    label: component.content.heading,
+    items: component.content.resourceIds.map((id) => {
+      const resource = source.resources[resourceKind].find((entry) => entry.id === id);
+      return { id, label: resource.title || resource.name };
+    }),
+  });
+}
+
+function resourceConsumers(source, kind, id) {
+  return source.site.pages.flatMap((page) => page.components
+    .filter((c) => RESOURCE_LIST_KINDS[c.kind] === kind && c.content.resourceIds.includes(id))
+    .map((c) => ({ componentId: c.id, label: `${page.title}: ${c.content.heading}`, resourceIds: [...c.content.resourceIds] })));
+}
+
+function resourceCreationInputs(kind, input) {
+  const keys = kind === 'equipment' ? ['name', 'note', 'accessNote', 'lastUpdated']
+    : kind === 'events' ? ['title', 'description', 'startAt', 'endAt']
+      : ['title', 'description', 'accessNote', 'startAt', 'endAt'];
+  const payload = plainRecord(input, 'resource inputs', new Set(keys));
+  const result = {};
+  for (const key of keys) {
+    result[key] = scalarString(payload[key], key, { max: key === 'description' ? 1200 : 240 }).trim();
+    if (!result[key]) throw new V2AuthoringTransactionError(`${key} is required`);
+    if (['startAt', 'endAt', 'lastUpdated'].includes(key)) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:\d{2})$/.exec(result[key]);
+      if (!match) throw new V2AuthoringTransactionError('time requires an explicit UTC offset');
+      const [, year, month, day, hour, minute, second = '0', offset] = match;
+      const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+      if (Number(year) < 1000 || date.getUTCFullYear() !== Number(year)
+        || date.getUTCMonth() !== Number(month) - 1 || date.getUTCDate() !== Number(day)
+        || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59
+        || (offset !== 'Z' && (Number(offset.slice(1, 3)) > 14 || Number(offset.slice(4)) > 59
+          || (Number(offset.slice(1, 3)) === 14 && Number(offset.slice(4)) !== 0)))) {
+        throw new V2AuthoringTransactionError('time is not a valid calendar date or UTC offset');
+      }
+    }
+  }
+  return result;
+}
+
+function resourceTransition(source, command, beforeDigest) {
+  const context = getV2ResourceListContext(source, { nodeId: command.target.nodeId });
+  const kind = context.resourceKind;
+  const candidate = clone(source);
+  const list = candidate.site.pages.flatMap((p) => p.components).find((c) => c.id === context.componentId);
+  const resources = candidate.resources[kind];
+  let resourceId = command.target.resourceId;
+  let inverse;
+  let normalized = command;
+  let affectedLists = [];
+  if (command.type === ADD_RESOURCE) {
+    const payload = resourceCreationInputs(kind, command.payload);
+    const used = new Set(resources.map((r) => r.id));
+    const slugs = new Set(resources.map((r) => r.slug));
+    const prefix = kind === 'events' ? 'show' : kind === 'programs' ? 'program' : 'equipment';
+    let suffix = 1;
+    while (used.has(`${prefix}-${suffix}`) || slugs.has(`${prefix}-${suffix}`)) suffix += 1;
+    resourceId = `${prefix}-${suffix}`;
+    const resource = kind === 'equipment'
+      ? { id: resourceId, ...payload, state: 'offline', group: null }
+      : kind === 'events'
+        ? { id: resourceId, slug: resourceId, ...payload, state: 'scheduled', mediaAssetId: null, accessNote: null, externalAction: null }
+        : { id: resourceId, ...payload, state: 'scheduled', link: null };
+    resources.push(resource);
+    list.content.resourceIds.push(resourceId);
+    normalized = { ...command, payload };
+    inverse = { type: REMOVE_RESOURCE, target: { ...command.target, resourceId } };
+  } else if (command.type === RESTORE_RESOURCE) {
+    const snapshot = command.resourceSnapshot;
+    if (!snapshot || typeof snapshot.id !== 'string' || resources.some((r) => r.id === snapshot.id)) {
+      throw new V2AuthoringTransactionError('invalid resource restore identity');
+    }
+    resourceId = snapshot.id;
+    const position = command.beforeResourceId === null ? resources.length
+      : resources.findIndex((r) => r.id === command.beforeResourceId);
+    if (position < 0) throw new V2AuthoringTransactionError('missing resource restore anchor');
+    resources.splice(position, 0, clone(snapshot));
+    if (!Array.isArray(command.references) || !command.references.length) {
+      throw new V2AuthoringTransactionError('invalid resource reference restore');
+    }
+    const seen = new Set();
+    for (const ref of command.references) {
+      plainRecord(ref, 'restore reference', new Set(['componentId', 'resourceIds']));
+      const c = candidate.site.pages.flatMap((p) => p.components).find((entry) => entry.id === ref.componentId);
+      if (!c || RESOURCE_LIST_KINDS[c.kind] !== kind || seen.has(c.id)
+        || !Array.isArray(ref.resourceIds) || !ref.resourceIds.includes(resourceId)
+        || JSON.stringify(ref.resourceIds.filter((id) => id !== resourceId)) !== JSON.stringify(c.content.resourceIds)) {
+        throw new V2AuthoringTransactionError('resource restore would change unrelated references');
+      }
+      seen.add(c.id);
+      c.content.resourceIds = clone(ref.resourceIds);
+    }
+    inverse = { type: REMOVE_RESOURCE, target: { ...command.target, resourceId } };
+  } else {
+    const index = list.content.resourceIds.indexOf(resourceId);
+    const resourceIndex = resources.findIndex((r) => r.id === resourceId);
+    if (index < 0 || resourceIndex < 0) throw new V2AuthoringTransactionError('resource is not in the selected list');
+    if (command.type === MOVE_RESOURCE) {
+      const original = [...list.content.resourceIds];
+      if (command.destination === resourceId) throw new V2AuthoringTransactionError('resource move is a no-op');
+      list.content.resourceIds.splice(index, 1);
+      const destination = command.destination === END_OF_LIST ? list.content.resourceIds.length
+        : list.content.resourceIds.indexOf(command.destination);
+      if (destination < 0) throw new V2AuthoringTransactionError('destination is not in the selected list');
+      list.content.resourceIds.splice(destination, 0, resourceId);
+      if (JSON.stringify(original) === JSON.stringify(list.content.resourceIds)) throw new V2AuthoringTransactionError('resource move is a no-op');
+      inverse = { type: MOVE_RESOURCE, target: command.target, destination: original[index + 1] || END_OF_LIST };
+    } else {
+      affectedLists = resourceConsumers(source, kind, resourceId);
+      inverse = {
+        type: RESTORE_RESOURCE, target: { nodeId: command.target.nodeId },
+        resourceSnapshot: clone(resources[resourceIndex]),
+        beforeResourceId: resources[resourceIndex + 1]?.id || null,
+        references: affectedLists.map(({ componentId, resourceIds }) => ({ componentId, resourceIds })),
+      };
+      resources.splice(resourceIndex, 1);
+      for (const p of candidate.site.pages) for (const c of p.components) {
+        if (RESOURCE_LIST_KINDS[c.kind] === kind) c.content.resourceIds = c.content.resourceIds.filter((id) => id !== resourceId);
+      }
+    }
+  }
+  const afterSource = createV2DeploymentAgnosticVenueSource(candidate);
+  const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+  return deepFreeze({
+    command: normalized, beforeDigest, afterDigest, afterSource,
+    inverseCommand: parseResourceCommand({ schemaVersion: 1, ...inverse, expectedDraftDigest: afterDigest }),
+    resolvedTarget: {
+      nodeId: command.target.nodeId, pageId: context.pageId, componentId: context.componentId,
+      resourceKind: kind, resourceId, affectedLists: affectedLists.map((c) => c.label),
+      fieldId: null, sourcePointer: `/resources/${kind}`, ownership: OWNERSHIP.OPERATOR_AUTHORED_COLLECTION,
+    },
+  });
+}
+
 function commandTransition(sourceInput, commandInput, { allowInternal = false } = {}) {
   const source = createV2DeploymentAgnosticVenueSource(sourceInput);
   const command = parseAuthoringCommand(commandInput, { allowInternal });
   const beforeDigest = deriveV2DeploymentAgnosticVenueSourceDigest(source);
   if (command.expectedDraftDigest !== beforeDigest) {
     throw new V2AuthoringTransactionError('stale expected draft digest');
+  }
+
+  if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE, RESTORE_RESOURCE].includes(command.type)) {
+    return resourceTransition(source, command, beforeDigest);
   }
 
   if (command.type === SET_FIELD) {
@@ -2205,6 +2408,11 @@ function redoV2AuthoringSession(sessionInput) {
 }
 
 module.exports = {
+  ADD_RESOURCE,
+  REMOVE_RESOURCE,
+  MOVE_RESOURCE,
+  END_OF_LIST,
+  getV2ResourceListContext,
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
