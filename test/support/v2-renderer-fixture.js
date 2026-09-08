@@ -643,7 +643,7 @@ function juniperSource() {
       'home-hero': {
         eyebrow: 'Member-run workshop · Reno',
         note: 'Demonstration workshop — no live venue, account, or deployment is represented.',
-        primaryAction: { label: 'Explore programs', href: '/programs' },
+        primaryAction: { label: 'Explore programs', href: 'https://juniper-works.example/programs' },
       },
       'home-programs': {
         intro: 'Orientations, classes, and build sessions help visitors find a useful first step into the workshop.',
