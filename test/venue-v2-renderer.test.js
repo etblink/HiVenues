@@ -274,10 +274,11 @@ test('isolated preview harness renders pages, styles and event routes with zero 
       await request(fixture.app).get('/events/fixture-show-one').expect(200);
     }
 
-    for (const asset of fixture.source.media.assets.filter((entry) => entry.src.startsWith('/fixtures/v2-renderer/'))) {
+    for (const asset of fixture.source.media.assets.filter((entry) => entry.src.endsWith('.svg'))) {
       const response = await request(fixture.app).get(asset.src).expect(200);
-      assert.match(response.text, new RegExp(`<svg[^>]+width="${asset.width}"[^>]+height="${asset.height}"[^>]+viewBox="0 0 ${asset.width} ${asset.height}"`));
-      assert.doesNotMatch(response.text, /Synthetic HiVenues reference artwork/);
+      const svg = response.text || response.body.toString('utf8');
+      assert.match(svg, new RegExp(`<svg[^>]+width="${asset.width}"[^>]+height="${asset.height}"[^>]+viewBox="0 0 ${asset.width} ${asset.height}"`));
+      assert.doesNotMatch(svg, /\bfixture\b|Synthetic HiVenues reference artwork/i);
     }
 
     const diagnostics = fixture.diagnostics();
