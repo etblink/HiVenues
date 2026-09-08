@@ -742,6 +742,7 @@ function renderResourceLifecycleEditor({ model, session, proposal, source, actio
 }
 
 function renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence }) {
+  if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(proposal?.command.type)) return '';
   if (model.selection.nodeId.startsWith('page:')) {
     return renderAddEditor({ model, session, proposal, source, actionPaths, persistence });
   }
@@ -822,13 +823,13 @@ function renderEditor({
   </section>`;
 }
 
-function renderHistoryControls(session, actionPaths, model) {
+function renderHistoryControls(session, actionPaths, model, proposal) {
   const hidden = `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">`;
   return `<section class="history-card" aria-labelledby="history-heading">
-    <div><p class="eyebrow">Session history</p><h3 id="history-heading">Undo / Redo</h3><p>${session.historyIndex} applied change${session.historyIndex === 1 ? '' : 's'} in the current branch of history.</p></div>
+    <div><p class="eyebrow">Session history</p><h3 id="history-heading">Undo / Redo</h3><p>${proposal ? 'Apply or discard the preview before using history.' : `${session.historyIndex} applied change${session.historyIndex === 1 ? '' : 's'} in the current branch of history.`}</p></div>
     <div class="history-actions">
-      <form method="post" action="${escapeHtml(actionPaths.undo)}">${hidden}<button class="button secondary" type="submit"${session.canUndo ? '' : ' disabled'}>Undo</button></form>
-      <form method="post" action="${escapeHtml(actionPaths.redo)}">${hidden}<button class="button secondary" type="submit"${session.canRedo ? '' : ' disabled'}>Redo</button></form>
+      <form method="post" action="${escapeHtml(actionPaths.undo)}">${hidden}<button class="button secondary" type="submit"${session.canUndo && !proposal ? '' : ' disabled'}>Undo</button></form>
+      <form method="post" action="${escapeHtml(actionPaths.redo)}">${hidden}<button class="button secondary" type="submit"${session.canRedo && !proposal ? '' : ' disabled'}>Redo</button></form>
     </div>
   </section>`;
 }
@@ -997,7 +998,7 @@ function renderV2AuthoringStudioSurface({
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
       ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
       ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
-      ${renderHistoryControls(session, normalizedActions, model)}
+      ${renderHistoryControls(session, normalizedActions, model, proposal)}
       ${renderPersistenceControls(session, proposal, persistence, normalizedActions, model)}
     </aside>
   </div>

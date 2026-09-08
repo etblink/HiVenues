@@ -41,10 +41,16 @@ async function capture(page, name, records, resourceId = null) {
     return { text: element.textContent.trim(), top: rect.top, bottom: rect.bottom, height: globalThis.innerHeight };
   });
   assert.ok(visibleSubject.top >= 0 && visibleSubject.bottom <= visibleSubject.height, `${name}: review subject outside preview viewport`);
+  await page.evaluate(() => globalThis.scrollTo(0, 0));
   await page.locator('.inspector-panel').evaluate((panel) => {
     const card = panel.querySelector('.resource-lifecycle-editor');
     panel.scrollTop += card.getBoundingClientRect().top - panel.getBoundingClientRect().top;
   });
+  if (await page.locator('.resource-lifecycle-editor .preview-state').count()) {
+    assert.equal(await page.getByRole('button', { name: 'Preview position', exact: true }).count(), 0);
+    for (const name of ['Undo', 'Redo']) assert.equal(await page.getByRole('button', { name, exact: true }).isDisabled(), true);
+    for (const name of ['Apply to draft', 'Discard preview']) assert.equal(await page.getByRole('button', { name, exact: true }).isEnabled(), true);
+  }
   const geometry = await page.evaluate(() => ({ width: globalThis.document.documentElement.clientWidth, scroll: globalThis.document.documentElement.scrollWidth }));
   assert.ok(geometry.scroll <= geometry.width + 1, `${name}: outer overflow`);
   const findings = [];

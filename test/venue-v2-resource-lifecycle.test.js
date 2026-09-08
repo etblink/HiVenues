@@ -181,6 +181,10 @@ for (const spec of cases) test(`${spec.kind}: ordinary creation, local Save and 
   const payload = Object.fromEntries(Object.entries(spec.payload).map(([k, v]) => [k, ['startAt', 'endAt', 'lastUpdated'].includes(k) ? v.slice(0, 19) : v]));
   const form = { nodeId, viewport: 'mobile', operation: a.ADD_RESOURCE, expectedDraftDigest: fixture.session().draftDigest, ...payload, utcOffset: '-07:00' };
   await request(fixture.app).post('/studio-authoring/resource-lifecycle').type('form').send(form).expect(303);
+  const previewResponse = await request(fixture.app).get(`/studio-authoring?nodeId=${encodeURIComponent(nodeId)}`).expect(200);
+  const previewDocument = new JSDOM(previewResponse.text).window.document;
+  assert.equal(previewDocument.querySelector('form[action="/studio-authoring/reorder"]'), null);
+  for (const action of ['undo', 'redo']) assert.equal(previewDocument.querySelector(`form[action="/studio-authoring/${action}"] button`).disabled, true);
   const id = fixture.proposal().resolvedTarget.resourceId;
   assert.equal(fs.existsSync(path.join(root, 'venue-source-v2.json')), false);
   await request(fixture.app).post('/studio-authoring/apply').type('form').send({ nodeId, viewport: 'mobile' }).expect(303);

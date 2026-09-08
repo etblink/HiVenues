@@ -47,6 +47,9 @@ show the reviewed resource or empty state inside the real preview viewport and
 the lifecycle inspector controls. The capture script asserts the subject heading
 is within that viewport and records its text and geometry. An unrelated hero
 capture cannot satisfy generated-output review even when DOM content checks pass.
+The active lifecycle preview must offer Apply/Discard, suppress component reorder
+actions, and disable Undo/Redo until the proposal is resolved. HTTP and browser
+oracles check these controls against the existing server-side proposal lock.
 
 No schema expansion, production selection/deploy, Hive/Keychain/key/payment,
 infrastructure, real venue admission or repository-setting effects.
