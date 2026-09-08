@@ -245,6 +245,7 @@ p { margin: 0; }
   box-shadow: 0 22px 80px rgba(0,0,0,.24);
 }
 .v2-recipe--hero-poster .v2-display { text-transform: uppercase; letter-spacing: -.045em; }
+.v2-recipe--hero-editorial-split > .v2-hero { min-height: min(58vh, 620px); }
 .v2-recipe--hero-text-led > .v2-hero { min-height: 52vh; align-content: center; }
 .v2-resource-list {
   display: grid;

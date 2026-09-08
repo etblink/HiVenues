@@ -231,6 +231,30 @@ async function main() {
           }));
         }
 
+        if (referenceId === 'fourth-street') {
+          for (const viewport of [VIEWPORTS[0], VIEWPORTS[2]]) {
+            manifest.captures.push(await captureState(page, {
+              origin,
+              referenceId,
+              stateId: 'gallery',
+              pathname: '/gallery',
+              viewport,
+            }));
+          }
+        }
+
+        if (referenceId === 'juniper') {
+          for (const viewport of [VIEWPORTS[0], VIEWPORTS[2]]) {
+            manifest.captures.push(await captureState(page, {
+              origin,
+              referenceId,
+              stateId: 'equipment',
+              pathname: '/equipment',
+              viewport,
+            }));
+          }
+        }
+
         if (referenceId === 'restaurant') {
           for (const viewport of [VIEWPORTS[0], VIEWPORTS[2]]) {
             manifest.captures.push(await captureState(page, {
@@ -277,6 +301,7 @@ async function main() {
         if (['restaurant', 'live-music'].includes(referenceId)) {
           const publicText = await page.locator('body').innerText();
           assert.doesNotMatch(publicText, /Threads|Sign in|Hive Keychain|Pay with HBD/i);
+          assert.doesNotMatch(publicText, /fixture-only|event renderer|same semantic renderer|Synthetic HiVenues reference artwork/i);
         }
 
         const diagnostics = fixture.diagnostics();
@@ -321,7 +346,7 @@ async function main() {
     );
     assert.ok(heroRecipes.size >= 3, `Expected at least three materially different hero recipes; got ${[...heroRecipes]}`);
     assert.ok(typographyRecipes.size >= 3, `Expected at least three typography recipes; got ${[...typographyRecipes]}`);
-    assert.equal(manifest.captures.length, 20);
+    assert.equal(manifest.captures.length, 24);
 
     manifest.summary = {
       referenceCount: Object.keys(manifest.references).length,
