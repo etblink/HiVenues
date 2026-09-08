@@ -200,9 +200,9 @@ function restaurantSource() {
     media: {
       assets: [
         { id: 'logo', src: '/fixtures/v2-renderer/restaurant-logo.svg', width: 640, height: 640 },
-        { id: 'dining-room', src: '/fixtures/v2-renderer/restaurant-dining.svg', width: 1600, height: 1000 },
-        { id: 'private-room', src: '/fixtures/v2-renderer/restaurant-private.svg', width: 1200, height: 900 },
-        { id: 'plate', src: '/fixtures/v2-renderer/restaurant-plate.svg', width: 1200, height: 900 },
+        { id: 'dining-room', src: '/fixtures/v2-renderer/restaurant-dining.jpg', width: 320, height: 200 },
+        { id: 'private-room', src: '/fixtures/v2-renderer/restaurant-private.jpg', width: 320, height: 240 },
+        { id: 'plate', src: '/fixtures/v2-renderer/restaurant-table.jpg', width: 320, height: 240 },
       ],
     },
     resources: {
@@ -256,7 +256,7 @@ function restaurantSource() {
                 eyebrow: 'Waterfront dining',
                 heading: 'A warmer kind of gathering',
                 body: 'Seasonal cooking, a calm room, and an evening designed around the table.',
-                note: 'Demonstration venue · all business details are fictional.',
+                note: 'Demonstration venue · business details and imagery are synthetic.',
                 media: mediaUsage('dining-room', 'Waterfront dining room at sunset', 'aspect-landscape'),
                 primaryAction: { label: 'Reserve a table', href: 'https://harbor-hearth.example/reservations' },
               },
@@ -286,7 +286,7 @@ function restaurantSource() {
               content: {
                 kicker: 'The room',
                 heading: 'Made for unhurried evenings',
-                intro: 'Private dining, seasonal plates, and room details in a calm editorial rhythm.',
+                intro: 'Private dining, candlelit table settings, and room details in a calm editorial rhythm.',
                 items: [
                   {
                     id: 'gallery-private',
@@ -299,9 +299,9 @@ function restaurantSource() {
                   {
                     id: 'gallery-plate',
                     assetId: 'plate',
-                    alt: 'Seasonal plated dish on handmade stoneware',
+                    alt: 'Candlelit table setting with glassware and flowers',
                     decorative: false,
-                    caption: 'Seasonal plate',
+                    caption: 'Table setting',
                     treatment: mediaTreatment('aspect-square', 0.5, 0.45),
                   },
                 ],
@@ -740,93 +740,6 @@ function restaurantLogoSvg() {
   <text x="320" y="494" text-anchor="middle" fill="#6b5b50" font-family="system-ui,sans-serif" font-size="22" letter-spacing="5">DINNER · PRIVATE EVENTS</text>`, '#f3eadf');
 }
 
-function restaurantDiningSvg() {
-  return svgArtwork(1600, 1000, 'Warm waterfront dining room at sunset', `
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7c79b"/><stop offset=".48" stop-color="#db7b67"/><stop offset="1" stop-color="#6f6f86"/></linearGradient>
-    <linearGradient id="water" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4e7080"/><stop offset=".55" stop-color="#3b5b6c"/><stop offset="1" stop-color="#243e53"/></linearGradient>
-    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3025"/><stop offset="1" stop-color="#1e1715"/></linearGradient>
-    <radialGradient id="glow"><stop offset="0" stop-color="#fff0bf" stop-opacity=".95"/><stop offset=".35" stop-color="#f6c87c" stop-opacity=".45"/><stop offset="1" stop-color="#f6c87c" stop-opacity="0"/></radialGradient>
-    <linearGradient id="linen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8ea"/><stop offset="1" stop-color="#e9d8bd"/></linearGradient>
-    <pattern id="woodgrain" width="70" height="20" patternUnits="userSpaceOnUse"><path d="M0 7c16-8 34 8 70 0M-10 16c25-10 39 8 90-2" fill="none" stroke="#8d6048" stroke-opacity=".18" stroke-width="2"/></pattern>
-  </defs>
-  <rect width="1600" height="1000" fill="#211714"/>
-  <rect x="72" y="76" width="1456" height="570" rx="20" fill="url(#sky)"/>
-  <circle cx="1245" cy="214" r="70" fill="#ffd19b" opacity=".58"/>
-  <path d="M72 470 C260 444 360 494 550 468 C755 440 930 500 1130 458 C1300 425 1418 450 1528 412 L1528 646 L72 646Z" fill="url(#water)"/>
-  <g fill="none" stroke="#f0b38b" stroke-opacity=".28" stroke-width="7"><path d="M190 525h320M620 550h410M1080 508h305M280 596h250M840 594h440"/></g>
-  <g stroke="#3b2923" stroke-width="24"><path d="M555 76v570M1050 76v570"/></g>
-  <rect x="72" y="76" width="1456" height="570" rx="20" fill="none" stroke="#211714" stroke-width="24"/>
-  <path d="M0 0h1600v112H0z" fill="#1b1412"/>
-  <rect x="0" y="625" width="1600" height="375" fill="url(#floor)"/>
-  <rect x="0" y="625" width="1600" height="375" fill="url(#woodgrain)"/>
-  <g>
-    <circle cx="310" cy="264" r="145" fill="url(#glow)"/><circle cx="800" cy="252" r="145" fill="url(#glow)"/><circle cx="1292" cy="264" r="145" fill="url(#glow)"/>
-    <path d="M310 0v180M800 0v168M1292 0v180" stroke="#15100f" stroke-width="10"/>
-    <path d="M255 194h110l-24 60h-62zM745 182h110l-24 60h-62zM1237 194h110l-24 60h-62z" fill="#201716" stroke="#c18d5d" stroke-width="7"/>
-    <circle cx="310" cy="258" r="18" fill="#ffe0a2"/><circle cx="800" cy="246" r="18" fill="#ffe0a2"/><circle cx="1292" cy="258" r="18" fill="#ffe0a2"/>
-  </g>
-  <path d="M90 680h1420v132H90z" fill="#3a2520"/><path d="M112 700h1376v82H112z" fill="#6e4537"/>
-  <g stroke="#845849" stroke-width="5" opacity=".65"><path d="M260 700v82M480 700v82M700 700v82M920 700v82M1140 700v82M1360 700v82"/></g>
-  <g transform="translate(290 780)">
-    <ellipse cx="0" cy="28" rx="180" ry="62" fill="#211714" opacity=".38"/><ellipse cx="0" cy="0" rx="170" ry="57" fill="url(#linen)"/><rect x="-24" y="45" width="48" height="142" rx="14" fill="#2d211d"/>
-    <g fill="#f8efe0" stroke="#cdb99d" stroke-width="4"><circle cx="-65" cy="-2" r="23"/><circle cx="66" cy="3" r="23"/></g><g fill="#d7a96d"><circle cx="0" cy="-10" r="10"/><rect x="-4" y="-62" width="8" height="44" rx="4"/><circle cx="0" cy="-66" r="9" fill="#fff0b8"/></g><g fill="#2b201c"><rect x="-240" y="-12" width="55" height="130" rx="22"/><rect x="185" y="-12" width="55" height="130" rx="22"/></g>
-  </g>
-  <g transform="translate(810 788)">
-    <ellipse cx="0" cy="28" rx="205" ry="68" fill="#211714" opacity=".4"/><ellipse cx="0" cy="0" rx="195" ry="63" fill="url(#linen)"/><rect x="-25" y="50" width="50" height="140" rx="14" fill="#2d211d"/>
-    <g fill="#f8efe0" stroke="#cdb99d" stroke-width="4"><circle cx="-80" cy="-3" r="24"/><circle cx="80" cy="3" r="24"/></g><g fill="#d7a96d"><circle cx="0" cy="-10" r="10"/><rect x="-4" y="-65" width="8" height="48" rx="4"/><circle cx="0" cy="-70" r="9" fill="#fff0b8"/></g><g fill="#2b201c"><rect x="-272" y="-10" width="58" height="135" rx="22"/><rect x="214" y="-10" width="58" height="135" rx="22"/></g>
-  </g>
-  <g transform="translate(1320 782)">
-    <ellipse cx="0" cy="28" rx="170" ry="60" fill="#211714" opacity=".4"/><ellipse cx="0" cy="0" rx="160" ry="55" fill="url(#linen)"/><rect x="-23" y="43" width="46" height="144" rx="14" fill="#2d211d"/>
-    <g fill="#f8efe0" stroke="#cdb99d" stroke-width="4"><circle cx="-58" cy="-2" r="22"/><circle cx="62" cy="3" r="22"/></g><g fill="#2b201c"><rect x="-218" y="-12" width="54" height="132" rx="22"/><rect x="164" y="-12" width="54" height="132" rx="22"/></g>
-  </g>
-  <g transform="translate(104 635)"><rect x="0" y="112" width="72" height="88" rx="12" fill="#6f4e3e"/><path d="M36 120c-30-80-8-150 18-185M38 112c34-64 70-90 100-98M32 104c-58-44-70-88-66-122" fill="none" stroke="#65724b" stroke-width="20" stroke-linecap="round"/><g fill="#75815c"><ellipse cx="53" cy="-68" rx="38" ry="18" transform="rotate(-25 53 -68)"/><ellipse cx="119" cy="10" rx="42" ry="20" transform="rotate(-28 119 10)"/><ellipse cx="-18" cy="-22" rx="40" ry="18" transform="rotate(28 -18 -22)"/></g></g>
-  <path d="M0 0h1600v1000H0z" fill="none" stroke="#120d0c" stroke-opacity=".36" stroke-width="44"/>`, '#211714');
-}
-
-function restaurantPrivateSvg() {
-  return svgArtwork(1200, 900, 'Private dining room with a long table and waterfront windows', `
-  <defs>
-    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe2d0"/><stop offset="1" stop-color="#c4a17e"/></linearGradient>
-    <linearGradient id="window" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4b98a"/><stop offset=".55" stop-color="#d67870"/><stop offset="1" stop-color="#5d7588"/></linearGradient>
-    <linearGradient id="table" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4d3024"/><stop offset=".48" stop-color="#7b4d35"/><stop offset="1" stop-color="#452a20"/></linearGradient>
-    <radialGradient id="lamp"><stop offset="0" stop-color="#fff0bb"/><stop offset=".35" stop-color="#f7cf8d" stop-opacity=".45"/><stop offset="1" stop-color="#f7cf8d" stop-opacity="0"/></radialGradient>
-    <pattern id="grain" width="60" height="16" patternUnits="userSpaceOnUse"><path d="M0 6c17-7 31 7 60 0M-10 14c26-8 40 6 78-2" stroke="#2e1b15" stroke-width="2" stroke-opacity=".18" fill="none"/></pattern>
-  </defs>
-  <rect width="1200" height="900" fill="url(#wall)"/>
-  <rect x="110" y="92" width="980" height="410" rx="18" fill="url(#window)" stroke="#4b3428" stroke-width="18"/>
-  <path d="M110 390c170-42 270 22 430-7 180-32 320 22 550-43v162H110z" fill="#4e6877"/>
-  <path d="M435 92v410M760 92v410" stroke="#4b3428" stroke-width="16"/><path d="M110 305h980" stroke="#4b3428" stroke-width="13"/>
-  <g><circle cx="70" cy="245" r="95" fill="url(#lamp)"/><circle cx="1130" cy="245" r="95" fill="url(#lamp)"/><path d="M54 190h32v115H54zM1114 190h32v115h-32z" fill="#5c3b2b"/><circle cx="70" cy="180" r="18" fill="#ffe9ad"/><circle cx="1130" cy="180" r="18" fill="#ffe9ad"/></g>
-  <ellipse cx="600" cy="715" rx="480" ry="82" fill="#6c493b" opacity=".28"/>
-  <rect x="155" y="555" width="890" height="150" rx="70" fill="url(#table)" stroke="#3c261e" stroke-width="10"/><rect x="155" y="555" width="890" height="150" rx="70" fill="url(#grain)"/>
-  <rect x="250" y="690" width="55" height="145" rx="16" fill="#3c261e"/><rect x="895" y="690" width="55" height="145" rx="16" fill="#3c261e"/>
-  <g fill="#5f4235" stroke="#3c2a23" stroke-width="7"><rect x="120" y="515" width="80" height="155" rx="24"/><rect x="1000" y="515" width="80" height="155" rx="24"/><rect x="270" y="465" width="72" height="130" rx="22"/><rect x="420" y="455" width="72" height="130" rx="22"/><rect x="708" y="455" width="72" height="130" rx="22"/><rect x="858" y="465" width="72" height="130" rx="22"/><rect x="270" y="690" width="72" height="120" rx="22"/><rect x="420" y="700" width="72" height="120" rx="22"/><rect x="708" y="700" width="72" height="120" rx="22"/><rect x="858" y="690" width="72" height="120" rx="22"/></g>
-  <g fill="#f5ecdd" stroke="#d2bfa4" stroke-width="5"><circle cx="305" cy="620" r="29"/><circle cx="445" cy="620" r="29"/><circle cx="755" cy="620" r="29"/><circle cx="895" cy="620" r="29"/></g>
-  <g><rect x="586" y="545" width="28" height="82" rx="12" fill="#7a5f42"/><path d="M600 565c-58-48-75-82-63-120M600 563c44-46 70-75 62-116M601 570c-6-64 7-95 26-128" fill="none" stroke="#657b58" stroke-width="16" stroke-linecap="round"/><g fill="#8f9d72"><ellipse cx="535" cy="444" rx="30" ry="14" transform="rotate(22 535 444)"/><ellipse cx="663" cy="447" rx="30" ry="14" transform="rotate(-20 663 447)"/><ellipse cx="630" cy="422" rx="30" ry="14" transform="rotate(-58 630 422)"/></g></g>
-  <path d="M0 0h1200v900H0z" fill="none" stroke="#6b4634" stroke-opacity=".25" stroke-width="28"/>`, '#d8c0a4');
-}
-
-function restaurantPlateSvg() {
-  return svgArtwork(1200, 900, 'Seasonal plated dish on handmade stoneware', `
-  <defs>
-    <radialGradient id="plate" cx=".45" cy=".4" r=".65"><stop offset="0" stop-color="#fffdf8"/><stop offset=".72" stop-color="#e7e1d5"/><stop offset="1" stop-color="#bcb5aa"/></radialGradient>
-    <linearGradient id="table" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#59624d"/><stop offset="1" stop-color="#2f3b32"/></linearGradient>
-    <pattern id="linen" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M0 11h22M11 0v22" stroke="#e8e0ce" stroke-opacity=".09"/></pattern>
-    <radialGradient id="sauce"><stop offset="0" stop-color="#d78950"/><stop offset="1" stop-color="#9f503a"/></radialGradient>
-  </defs>
-  <rect width="1200" height="900" fill="url(#table)"/><rect width="1200" height="900" fill="url(#linen)"/>
-  <ellipse cx="615" cy="478" rx="380" ry="330" fill="#1a241e" opacity=".24"/><circle cx="600" cy="430" r="322" fill="url(#plate)" stroke="#d5cec0" stroke-width="12"/><circle cx="600" cy="430" r="260" fill="#f6f1e8"/>
-  <path d="M376 515c110-105 250-146 415-106 58 14 104 39 139 76-88-15-180-13-268 6-111 24-211 65-286 118-25-29-25-61 0-94z" fill="url(#sauce)" opacity=".8"/>
-  <g transform="rotate(-10 570 425)"><path d="M430 358c95-45 196-37 276 22 38 28 47 70 21 104-40 53-131 72-223 47-93-25-154-79-149-126 3-24 28-36 75-47z" fill="#c76f4c"/><path d="M442 382c74-25 158-17 225 21" fill="none" stroke="#e99b72" stroke-width="12" stroke-linecap="round" opacity=".7"/></g>
-  <g fill="#718348"><path d="M670 505c75-98 159-106 225-68-85 21-143 66-184 133z"/><path d="M513 574c-58-86-122-112-191-79 74 30 117 71 151 132z"/></g>
-  <g fill="#d9b064"><circle cx="422" cy="349" r="29"/><circle cx="759" cy="339" r="25"/><circle cx="795" cy="557" r="22"/><circle cx="480" cy="627" r="20"/></g><g fill="#8d473a"><circle cx="488" cy="317" r="17"/><circle cx="733" cy="592" r="16"/><circle cx="650" cy="315" r="12"/></g>
-  <g fill="none" stroke="#4f7146" stroke-width="10" stroke-linecap="round"><path d="M520 310c20-38 50-57 84-66M610 622c13-38 40-67 78-83M768 416c39-34 77-44 114-28"/></g>
-  <g fill="#5f7d50"><ellipse cx="548" cy="280" rx="30" ry="12" transform="rotate(-35 548 280)"/><ellipse cx="594" cy="255" rx="29" ry="12" transform="rotate(16 594 255)"/><ellipse cx="650" cy="585" rx="28" ry="12" transform="rotate(-55 650 585)"/><ellipse cx="700" cy="545" rx="28" ry="12" transform="rotate(-18 700 545)"/><ellipse cx="829" cy="389" rx="27" ry="12" transform="rotate(-15 829 389)"/></g>
-  <g stroke="#d6d2c7" stroke-width="12" stroke-linecap="round"><path d="M188 245l85 420M1010 250L915 670"/><path d="M174 270l48-10M198 260l-12-50M1028 275l-50-12"/></g>
-  <path d="M0 0h1200v900H0z" fill="none" stroke="#233027" stroke-opacity=".3" stroke-width="30"/>`, '#354339');
-}
-
 function musicLogoSvg() {
   return svgArtwork(640, 640, 'Northline Hall wordmark', `
   <circle cx="320" cy="260" r="168" fill="none" stroke="#ff6a78" stroke-width="18"/>
@@ -878,9 +791,6 @@ function musicPosterTwoSvg() {
 
 const SYNTHETIC_ASSETS = Object.freeze({
   'restaurant-logo.svg': restaurantLogoSvg(),
-  'restaurant-dining.svg': restaurantDiningSvg(),
-  'restaurant-private.svg': restaurantPrivateSvg(),
-  'restaurant-plate.svg': restaurantPlateSvg(),
   'music-logo.svg': musicLogoSvg(),
   'music-stage.svg': musicStageSvg(),
   'music-poster-one.svg': musicPosterOneSvg(),

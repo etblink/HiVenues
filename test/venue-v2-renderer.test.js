@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { createHash } = require('node:crypto');
 const path = require('node:path');
 const test = require('node:test');
 const { JSDOM } = require('jsdom');
@@ -126,6 +127,16 @@ test('reference compositions expose archetype-specific semantic navigation and s
 
   const restaurant = restaurantSource();
   assert.equal(findComponentForTest(restaurant, 'home-hero').content.media.treatment.aspectRecipeId, 'aspect-landscape');
+  assert.match(findComponentForTest(restaurant, 'home-hero').content.note, /imagery are synthetic/);
+  assert.deepEqual(
+    restaurant.media.assets.filter((asset) => ['dining-room', 'private-room', 'plate'].includes(asset.id))
+      .map((asset) => [asset.id, asset.src, asset.width, asset.height]),
+    [
+      ['dining-room', '/fixtures/v2-renderer/restaurant-dining.jpg', 320, 200],
+      ['private-room', '/fixtures/v2-renderer/restaurant-private.jpg', 320, 240],
+      ['plate', '/fixtures/v2-renderer/restaurant-table.jpg', 320, 240],
+    ],
+  );
   assert.deepEqual(
     restaurant.site.navigation.map((entry) => entry.label),
     ['Home', 'Menu', 'Private Events', 'Gallery', 'Visit'],
@@ -141,6 +152,23 @@ test('reference compositions expose archetype-specific semantic navigation and s
     renderV2Page(music),
   ].map((html) => documentFrom(html).body.textContent).join('\n');
   assert.doesNotMatch(visibleSyntheticCopy, /fixture-only|event renderer|same semantic renderer|Synthetic HiVenues reference artwork/i);
+});
+
+
+test('restaurant photographic studies are exact local synthetic payloads', () => {
+  const expected = new Map([
+    ['restaurant-dining.jpg', '366ff0144253f3bec1c648af39f6029d1fc743402e9738bd889eab3568bb7aeb'],
+    ['restaurant-private.jpg', 'd64d365f4f050d337f185d5549a5d86906b4d08fc4db2402afdf1e4c190f91fa'],
+    ['restaurant-table.jpg', '9a2e5fb6dcceebee707275addb8753df34c2347274a3f1b393811be74deeae49'],
+  ]);
+  for (const [name, sha256] of expected) {
+    const bytes = fs.readFileSync(path.join(ROOT, 'public', 'fixtures', 'v2-renderer', name));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), sha256);
+    assert.equal(bytes[0], 0xff);
+    assert.equal(bytes[1], 0xd8);
+    assert.equal(bytes.at(-2), 0xff);
+    assert.equal(bytes.at(-1), 0xd9);
+  }
 });
 
 test('live-music event details derive from the canonical Event resource and emit structured-data seam', () => {
