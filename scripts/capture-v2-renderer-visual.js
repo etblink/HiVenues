@@ -49,17 +49,28 @@ async function runAxe(page) {
 }
 
 async function geometry(page, label) {
-  const metrics = await page.evaluate(() => ({
-    clientWidth: globalThis.document.documentElement.clientWidth,
-    scrollWidth: globalThis.document.documentElement.scrollWidth,
-    h1Count: globalThis.document.querySelectorAll('h1').length,
-    emptyLinks: [...globalThis.document.querySelectorAll('a')].filter((link) => !link.textContent.trim()).length,
-    minimumPrimaryTargetHeight: Math.min(
-      ...[...globalThis.document.querySelectorAll('.v2-nav__link,.v2-action,.v2-back-link')]
-        .map((element) => element.getBoundingClientRect().height)
-        .filter((height) => height > 0),
-    ),
-  }));
+  const metrics = await page.evaluate(() => {
+    const nav = globalThis.document.querySelector('.v2-nav');
+    return {
+      clientWidth: globalThis.document.documentElement.clientWidth,
+      scrollWidth: globalThis.document.documentElement.scrollWidth,
+      h1Count: globalThis.document.querySelectorAll('h1').length,
+      emptyLinks: [...globalThis.document.querySelectorAll('a')].filter((link) => !link.textContent.trim()).length,
+      minimumPrimaryTargetHeight: Math.min(
+        ...[...globalThis.document.querySelectorAll('.v2-nav__link,.v2-action,.v2-back-link')]
+          .map((element) => element.getBoundingClientRect().height)
+          .filter((height) => height > 0),
+      ),
+      nav: nav ? {
+        clientWidth: nav.clientWidth,
+        scrollWidth: nav.scrollWidth,
+        links: [...nav.querySelectorAll('.v2-nav__link')].map((link) => {
+          const rect = link.getBoundingClientRect();
+          return { label: link.textContent.trim(), left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+        }),
+      } : null,
+    };
+  });
   assert.ok(metrics.scrollWidth - metrics.clientWidth <= 1, `${label}: horizontal overflow ${JSON.stringify(metrics)}`);
   assert.equal(metrics.h1Count, 1, `${label}: expected exactly one h1`);
   assert.equal(metrics.emptyLinks, 0, `${label}: empty link found`);
@@ -67,6 +78,12 @@ async function geometry(page, label) {
     !Number.isFinite(metrics.minimumPrimaryTargetHeight) || metrics.minimumPrimaryTargetHeight >= 43.5,
     `${label}: primary target below 44px convention ${JSON.stringify(metrics)}`,
   );
+  if (metrics.nav) {
+    assert.ok(metrics.nav.scrollWidth - metrics.nav.clientWidth <= 1, `${label}: navigation requires horizontal scrolling ${JSON.stringify(metrics.nav)}`);
+    for (const link of metrics.nav.links) {
+      assert.ok(link.left >= -1 && link.right <= metrics.clientWidth + 1, `${label}: navigation link is clipped ${JSON.stringify(link)}`);
+    }
+  }
   return metrics;
 }
 
@@ -260,6 +277,13 @@ async function main() {
               pathname: '/equipment',
               viewport,
             }));
+            manifest.captures.push(await captureState(page, {
+              origin,
+              referenceId,
+              stateId: 'projects',
+              pathname: '/projects',
+              viewport,
+            }));
           }
         }
 
@@ -270,6 +294,13 @@ async function main() {
               referenceId,
               stateId: 'menu',
               pathname: '/menu',
+              viewport,
+            }));
+            manifest.captures.push(await captureState(page, {
+              origin,
+              referenceId,
+              stateId: 'gallery',
+              pathname: '/gallery',
               viewport,
             }));
           }
@@ -354,7 +385,7 @@ async function main() {
     );
     assert.equal(heroRecipes.size, 4, `Expected four materially different hero recipes; got ${[...heroRecipes]}`);
     assert.ok(typographyRecipes.size >= 3, `Expected at least three typography recipes; got ${[...typographyRecipes]}`);
-    assert.equal(manifest.captures.length, 24);
+    assert.equal(manifest.captures.length, 28);
 
     manifest.summary = {
       referenceCount: Object.keys(manifest.references).length,

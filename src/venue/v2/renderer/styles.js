@@ -394,8 +394,8 @@ ${responsiveRules('m', '(max-width: 640px)')}
 }
 
 @media (max-width: 760px) {
-  .v2-site-header__inner { align-items: flex-start; flex-direction: column; padding-block: .8rem; }
-  .v2-nav { width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .15rem; }
+  .v2-site-header__inner { align-items: flex-start; flex-direction: column; padding-block: .8rem; gap: .45rem; }
+  .v2-nav { width: 100%; justify-content: flex-start; overflow-x: visible; flex-wrap: wrap; gap: .15rem .25rem; padding-bottom: 0; }
   .v2-nav__link { flex: 0 0 auto; }
   .v2-visit, .v2-event-detail__grid { grid-template-columns: 1fr; }
   .v2-community-entry { align-items: flex-start; flex-direction: column; }
