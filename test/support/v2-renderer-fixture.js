@@ -740,7 +740,7 @@ function restaurantLogoSvg() {
   <text x="320" y="494" text-anchor="middle" fill="#6b5b50" font-family="system-ui,sans-serif" font-size="22" letter-spacing="5">DINNER · PRIVATE EVENTS</text>`, '#f3eadf');
 }
 
-function musicLogoSvg() {function musicLogoSvg() {
+function musicLogoSvg() {
   return svgArtwork(640, 640, 'Northline Hall wordmark', `
   <circle cx="320" cy="260" r="168" fill="none" stroke="#ff6a78" stroke-width="18"/>
   <path d="M185 260h70l42-110 58 218 45-132 55 24" fill="none" stroke="#8fd4ff" stroke-width="18" stroke-linejoin="round"/>
