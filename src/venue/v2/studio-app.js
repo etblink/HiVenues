@@ -42,6 +42,9 @@ const {
   createV2ReadOnlyStudioModel,
 } = require('./studio-read-only');
 const {
+  V2VenueSourceError,
+} = require('./source');
+const {
   renderV2EventDetail,
   renderV2Page,
   renderV2PublicStylesheet,
@@ -277,6 +280,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       error instanceof V2AuthoringTransactionError
       || error instanceof V2AuthoringStudioError
       || error instanceof V2WorkspaceCheckpointError
+      || error instanceof V2VenueSourceError
     ) {
       response.status(400).type('text/plain').send(SAFE_V2_AUTHORING_STUDIO_ERROR);
       return true;

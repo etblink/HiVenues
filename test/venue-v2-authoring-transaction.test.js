@@ -226,7 +226,7 @@ test('resource scalar field options expose only the preregistered stable server-
 test('resource SET_FIELD uses one exact transaction engine and updates every shared generated consumer', () => {
   const cases = [
     { referenceId: 'juniper', resourceKind: 'programs', fieldId: 'title', value: 'Open shop orientation', secondarySlug: 'programs' },
-    { referenceId: 'juniper', resourceKind: 'equipment', fieldId: 'state', value: 'maintenance', secondarySlug: 'equipment' },
+    { referenceId: 'juniper', resourceKind: 'equipment', fieldId: 'state', value: 'available', secondarySlug: 'equipment' },
     { referenceId: 'live-music', resourceKind: 'events', fieldId: 'title', value: 'The Static Lights — Late Set', secondarySlug: 'shows', eventDetail: true },
   ];
 
