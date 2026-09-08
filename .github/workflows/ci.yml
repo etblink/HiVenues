@@ -154,6 +154,10 @@ jobs:
         env:
           V2_AUTHORING_REVIEW_ROOT: artifacts/v2-authoring-review
         run: node scripts/capture-v2-authoring-visual.js
+      - name: Capture PM4 v2 shared-resource scalar authoring evidence
+        env:
+          V2_RESOURCE_AUTHORING_REVIEW_ROOT: artifacts/v2-resource-authoring-review
+        run: node scripts/capture-v2-resource-authoring-visual.js
       - name: Capture PM3 v2 component reorder evidence
         env:
           V2_REORDER_REVIEW_ROOT: artifacts/v2-component-reorder-review
@@ -199,6 +203,7 @@ jobs:
           const v2Renderer = JSON.parse(fs.readFileSync('artifacts/v2-renderer-review/manifest.json', 'utf8'));
           const v2Studio = JSON.parse(fs.readFileSync('artifacts/v2-studio-review/manifest.json', 'utf8'));
           const v2Authoring = JSON.parse(fs.readFileSync('artifacts/v2-authoring-review/manifest.json', 'utf8'));
+          const v2ResourceAuthoring = JSON.parse(fs.readFileSync('artifacts/v2-resource-authoring-review/manifest.json', 'utf8'));
           const v2Reorder = JSON.parse(fs.readFileSync('artifacts/v2-component-reorder-review/manifest.json', 'utf8'));
           const v2Cardinality = JSON.parse(fs.readFileSync('artifacts/v2-component-cardinality-review/manifest.json', 'utf8'));
           const v2Theme = JSON.parse(fs.readFileSync('artifacts/v2-theme-authoring-review/manifest.json', 'utf8'));
@@ -223,6 +228,8 @@ jobs:
           console.log(`- Issue #177 blocking accessibility findings: ${v2Studio.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Studio.summary.horizontalOverflowFindings}; mutation-surface findings: ${v2Studio.summary.mutationSurfaceFindings}`);
           console.log(`- Issue #180 authoring references: ${v2Authoring.summary.referenceCount}; screenshots: ${v2Authoring.summary.screenshotCount}; keyboard completions: ${v2Authoring.summary.keyboardCompletionCount}; digest proofs: ${v2Authoring.summary.digestProofCount}`);
           console.log(`- Issue #180 blocking accessibility findings: ${v2Authoring.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Authoring.summary.horizontalOverflowFindings}; persistent writes: ${v2Authoring.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Authoring.summary.hiveRpcAttempts}/${v2Authoring.summary.hiveWrites}`);
+          console.log(`- Issue #199 resource-scalar scenarios/screenshots/shared-consumer proofs: ${v2ResourceAuthoring.summary.scenarioCount}/${v2ResourceAuthoring.summary.screenshotCount}/${v2ResourceAuthoring.summary.sharedConsumerProofCount}; Event-detail proofs: ${v2ResourceAuthoring.summary.eventDetailProofCount}; digest proofs: ${v2ResourceAuthoring.summary.digestProofCount}`);
+          console.log(`- Issue #199 resource-scalar blocking accessibility findings: ${v2ResourceAuthoring.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2ResourceAuthoring.summary.horizontalOverflowFindings}; persistent writes: ${v2ResourceAuthoring.summary.persistentWrites}; Hive RPC attempts/writes: ${v2ResourceAuthoring.summary.hiveRpcAttempts}/${v2ResourceAuthoring.summary.hiveWrites}`);
           console.log(`- Issue #182 reorder references: ${v2Reorder.summary.referenceCount}; screenshots: ${v2Reorder.summary.screenshotCount}; keyboard completions: ${v2Reorder.summary.keyboardCompletionCount}; digest proofs: ${v2Reorder.summary.digestProofCount}; order proofs: ${v2Reorder.summary.structuralOrderProofCount}`);
           console.log(`- Issue #182 blocking accessibility findings: ${v2Reorder.summary.blockingAccessibilityFindings}; horizontal-overflow findings: ${v2Reorder.summary.horizontalOverflowFindings}; persistent writes: ${v2Reorder.summary.persistentWrites}; Hive RPC attempts/writes: ${v2Reorder.summary.hiveRpcAttempts}/${v2Reorder.summary.hiveWrites}`);
           console.log(`- Issue #184 cardinality references: ${v2Cardinality.summary.referenceCount}; screenshots: ${v2Cardinality.summary.screenshotCount}; keyboard completions: ${v2Cardinality.summary.keyboardCompletionCount}; digest proofs: ${v2Cardinality.summary.digestProofCount}; add/remove/round-trip proofs: ${v2Cardinality.summary.addProofCount}/${v2Cardinality.summary.removeProofCount}/${v2Cardinality.summary.exactRoundTripProofCount}`);
@@ -258,6 +265,7 @@ jobs:
             artifacts/v2-renderer-review
             artifacts/v2-studio-review
             artifacts/v2-authoring-review
+            artifacts/v2-resource-authoring-review
             artifacts/v2-component-reorder-review
             artifacts/v2-component-cardinality-review
             artifacts/v2-theme-authoring-review

@@ -1338,3 +1338,114 @@ test('local decorative import derives null alt while forged transport authority 
   assert.equal(fixture.diagnostics().hiveRpcAttempts, 0);
   assert.equal(fixture.diagnostics().hiveWrites, 0);
 });
+
+function resourceSelectionPath(componentId, resourceKind, resourceId, viewport = 'desktop') {
+  const query = new URLSearchParams({
+    nodeId: `component:${componentId}/resource:${resourceKind}:${resourceId}`,
+    viewport,
+  });
+  return `/studio-authoring?${query.toString()}`;
+}
+
+test('selected semantic resources expose only typed server-owned scalar controls', async () => {
+  const live = createReferenceV2AuthoringStudioFixture('live-music');
+  const event = live.session().draftSource.resources.events[0];
+  const eventPath = resourceSelectionPath('home-shows', 'events', event.id);
+  const response = await request(live.app).get(eventPath).expect(200);
+  assert.match(response.text, /Shared resource/);
+  assert.match(response.text, /Show title/);
+  assert.match(response.text, /Show status/);
+  assert.match(response.text, /Show description/);
+  assert.match(response.text, /scheduled/);
+  assert.doesNotMatch(response.text, /startAt|endAt|externalAction|mediaAssetId|sourcePointer/);
+
+  const juniper = createReferenceV2AuthoringStudioFixture('juniper');
+  const source = juniper.session().draftSource;
+  const program = source.resources.programs[0];
+  const equipment = source.resources.equipment[0];
+  const programHtml = (await request(juniper.app).get(resourceSelectionPath('home-programs', 'programs', program.id)).expect(200)).text;
+  assert.match(programHtml, /Program title/);
+  assert.match(programHtml, /Program status/);
+  assert.match(programHtml, /Access note/);
+  const equipmentHtml = (await request(juniper.app).get(resourceSelectionPath('home-equipment-status', 'equipment', equipment.id)).expect(200)).text;
+  assert.match(equipmentHtml, /Equipment name/);
+  assert.match(equipmentHtml, /Equipment status/);
+  assert.match(equipmentHtml, /maintenance/);
+});
+
+test('resource proposal previews every shared consumer then apply undo redo preserve exact accepted authority', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('live-music');
+  const source = fixture.session().draftSource;
+  const event = source.resources.events[0];
+  const occurrence = `component:home-shows/resource:events:${event.id}`;
+  const stable = `resource:events:${event.id}`;
+  const openingDigest = fixture.session().draftDigest;
+  const value = 'The Static Lights — Second Set';
+
+  const proposalResponse = await request(fixture.app)
+    .post('/studio-authoring/resource')
+    .type('form')
+    .send({
+      nodeId: occurrence,
+      resourceNodeId: stable,
+      fieldId: 'title',
+      viewport: 'desktop',
+      expectedDraftDigest: openingDigest,
+      value,
+    })
+    .expect(303);
+  assert.match(proposalResponse.headers.location, /resource%3Aevents/);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.proposal().resolvedTarget.resourceId, event.id);
+  assert.equal(fixture.diagnostics().resourceScalarProposalRequests, 1);
+
+  assert.ok((await request(fixture.app).get('/studio-authoring-preview/site/').expect(200)).text.includes(value));
+  assert.ok((await request(fixture.app).get('/studio-authoring-preview/site/shows').expect(200)).text.includes(value));
+  assert.ok((await request(fixture.app).get(`/studio-authoring-preview/site/events/${event.slug}`).expect(200)).text.includes(value));
+
+  await request(fixture.app)
+    .post('/studio-authoring/apply')
+    .type('form')
+    .send({ nodeId: occurrence, viewport: 'desktop' })
+    .expect(303);
+  assert.equal(fixture.session().draftSource.resources.events[0].title, value);
+  const appliedDigest = fixture.session().draftDigest;
+
+  await request(fixture.app)
+    .post('/studio-authoring/undo')
+    .type('form')
+    .send({ nodeId: occurrence, viewport: 'desktop' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, openingDigest);
+  assert.equal(fixture.session().draftSource.resources.events[0].title, event.title);
+
+  await request(fixture.app)
+    .post('/studio-authoring/redo')
+    .type('form')
+    .send({ nodeId: occurrence, viewport: 'desktop' })
+    .expect(303);
+  assert.equal(fixture.session().draftDigest, appliedDigest);
+  assert.equal(fixture.session().draftSource.resources.events[0].title, value);
+});
+
+test('resource browser transport rejects mismatched occurrence forged field invalid enum and stale digest', async () => {
+  const fixture = createReferenceV2AuthoringStudioFixture('live-music');
+  const source = fixture.session().draftSource;
+  const event = source.resources.events[0];
+  const occurrence = `component:home-shows/resource:events:${event.id}`;
+  const stable = `resource:events:${event.id}`;
+  const base = {
+    nodeId: occurrence,
+    resourceNodeId: stable,
+    fieldId: 'title',
+    viewport: 'desktop',
+    expectedDraftDigest: fixture.session().draftDigest,
+    value: 'Safe title',
+  };
+  await request(fixture.app).post('/studio-authoring/resource').type('form').send({ ...base, resourceNodeId: 'resource:events:fixture-show-two' }).expect(400);
+  await request(fixture.app).post('/studio-authoring/resource').type('form').send({ ...base, fieldId: 'externalAction' }).expect(400);
+  await request(fixture.app).post('/studio-authoring/resource').type('form').send({ ...base, fieldId: 'state', value: 'browser-invented' }).expect(400);
+  await request(fixture.app).post('/studio-authoring/resource').type('form').send({ ...base, expectedDraftDigest: '0'.repeat(64) }).expect(400);
+  assert.equal(fixture.proposal(), null);
+  assert.equal(fixture.session().draftDigest, base.expectedDraftDigest);
+});

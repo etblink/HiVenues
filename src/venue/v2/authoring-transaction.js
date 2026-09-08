@@ -63,6 +63,26 @@ const V2_THEME_RECIPE_DIMENSIONS = deepFreeze({
   },
 });
 
+const V2_RESOURCE_SCALAR_FIELDS = deepFreeze({
+  events: {
+    title: { id: 'title', label: 'Show title', control: 'text', maxLength: 240, values: null },
+    state: { id: 'state', label: 'Show status', control: 'select', maxLength: 40, values: ['scheduled', 'full', 'cancelled'] },
+    description: { id: 'description', label: 'Show description', control: 'textarea', maxLength: 1200, values: null },
+  },
+  programs: {
+    title: { id: 'title', label: 'Program title', control: 'text', maxLength: 240, values: null },
+    state: { id: 'state', label: 'Program status', control: 'select', maxLength: 40, values: ['scheduled', 'full', 'cancelled'] },
+    description: { id: 'description', label: 'Program description', control: 'textarea', maxLength: 1200, values: null },
+    accessNote: { id: 'accessNote', label: 'Access note', control: 'textarea', maxLength: 240, values: null },
+  },
+  equipment: {
+    name: { id: 'name', label: 'Equipment name', control: 'text', maxLength: 240, values: null },
+    state: { id: 'state', label: 'Equipment status', control: 'select', maxLength: 40, values: ['available', 'limited', 'maintenance', 'offline'] },
+    note: { id: 'note', label: 'Equipment note', control: 'textarea', maxLength: 240, values: null },
+    accessNote: { id: 'accessNote', label: 'Access note', control: 'textarea', maxLength: 240, values: null },
+  },
+});
+
 const V2_COMPONENT_CATALOG = deepFreeze({
   'story-intro': {
     id: 'story-intro',
@@ -924,6 +944,93 @@ function listV2MediaUsageOptions(sourceInput, targetInput, slotInput = V2_HERO_M
   });
 }
 
+function resourceIdentityFromNode(source, node) {
+  if (node.stableIdentity?.type !== 'resource-id') {
+    throw new V2AuthoringTransactionError('stable target is not an editable resource');
+  }
+  const stableValue = node.stableIdentity.value;
+  const separator = stableValue.indexOf(':');
+  if (separator <= 0 || separator === stableValue.length - 1) {
+    throw new V2AuthoringTransactionError('resource stable identity is invalid');
+  }
+  const resourceKind = stableValue.slice(0, separator);
+  const resourceId = stableValue.slice(separator + 1);
+  const fieldDefinitions = V2_RESOURCE_SCALAR_FIELDS[resourceKind];
+  if (!fieldDefinitions) {
+    throw new V2AuthoringTransactionError('resource kind is outside the scalar authoring slice');
+  }
+  const collection = source.resources[resourceKind];
+  if (!Array.isArray(collection)) {
+    throw new V2AuthoringTransactionError('resource collection does not exist');
+  }
+  const indexes = [];
+  collection.forEach((resource, index) => {
+    if (resource.id === resourceId) indexes.push(index);
+  });
+  if (indexes.length !== 1) {
+    throw new V2AuthoringTransactionError('resource stable identity is ambiguous or missing');
+  }
+  const resourceIndex = indexes[0];
+  return {
+    resourceKind,
+    resourceId,
+    resourceIndex,
+    resource: collection[resourceIndex],
+    fieldDefinitions,
+  };
+}
+
+function resolveResourceScalarTarget(source, node, fieldId) {
+  const identity = resourceIdentityFromNode(source, node);
+  const definition = identity.fieldDefinitions[fieldId];
+  if (!definition) {
+    throw new V2AuthoringTransactionError('resource field is outside the scalar authoring slice');
+  }
+  const pointer = `/resources/${identity.resourceKind}/${identity.resourceIndex}/${fieldId}`;
+  const ownership = pathOwnership(pointer);
+  if (ownership !== OWNERSHIP.OPERATOR_AUTHORED) {
+    throw new V2AuthoringTransactionError('resource field is not ordinary operator-authored content');
+  }
+  const currentValue = identity.resource[fieldId];
+  if (typeof currentValue !== 'string') {
+    throw new V2AuthoringTransactionError('resource scalar authoring requires an existing string field');
+  }
+  return deepFreeze({
+    targetType: 'resource-field',
+    pageId: null,
+    componentId: null,
+    fieldId,
+    pointer,
+    ownership,
+    currentValue,
+    resourceKind: identity.resourceKind,
+    resourceId: identity.resourceId,
+    resourceIndex: identity.resourceIndex,
+    definition: clone(definition),
+  });
+}
+
+function listV2ResourceScalarFieldOptions(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = plainRecord(targetInput, 'resource target', new Set(['nodeId']));
+  const nodeId = scalarString(target.nodeId, 'resource target.nodeId', { max: 200 });
+  const projection = createV2SemanticCanvasProjection(source);
+  const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === nodeId);
+  if (!node) throw new V2AuthoringTransactionError('stable resource target does not exist');
+  const identity = resourceIdentityFromNode(source, node);
+  const label = identity.resource.title || identity.resource.name || identity.resource.id;
+  return deepFreeze({
+    target: { nodeId },
+    resourceKind: identity.resourceKind,
+    resourceId: identity.resourceId,
+    label,
+    fields: Object.values(identity.fieldDefinitions).map((definition) => ({
+      ...clone(definition),
+      currentValue: identity.resource[definition.id],
+    })),
+  });
+}
+
 function componentMatches(source, componentId) {
   const matches = [];
   source.site.pages.forEach((page, pageIndex) => {
@@ -942,6 +1049,10 @@ function resolveTarget(sourceInput, targetInput) {
   const projection = createV2SemanticCanvasProjection(source);
   const node = listV2CanvasNodes(projection).find((candidate) => candidate.id === target.nodeId);
   if (!node) throw new V2AuthoringTransactionError('stable target does not exist');
+
+  if (node.stableIdentity?.type === 'resource-id') {
+    return resolveResourceScalarTarget(source, node, target.fieldId);
+  }
 
   if (node.stableIdentity?.type === 'page-id') {
     if (target.fieldId !== 'title') {
@@ -1011,6 +1122,9 @@ function targetValue(source, resolved) {
   if (resolved.targetType === 'page-title') {
     return source.site.pages[resolved.pageIndex].title;
   }
+  if (resolved.targetType === 'resource-field') {
+    return source.resources[resolved.resourceKind][resolved.resourceIndex][resolved.fieldId];
+  }
   return source.site.pages[resolved.pageIndex]
     .components[resolved.componentIndex]
     .content[resolved.fieldId];
@@ -1020,6 +1134,8 @@ function withTargetValue(source, resolved, value) {
   const candidate = clone(source);
   if (resolved.targetType === 'page-title') {
     candidate.site.pages[resolved.pageIndex].title = value;
+  } else if (resolved.targetType === 'resource-field') {
+    candidate.resources[resolved.resourceKind][resolved.resourceIndex][resolved.fieldId] = value;
   } else {
     candidate.site.pages[resolved.pageIndex]
       .components[resolved.componentIndex]
@@ -1417,6 +1533,9 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
     const afterSource = withTargetValue(source, resolved, command.payload.value);
     const normalizedValue = targetValue(afterSource, resolved);
     const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+    if (afterDigest === beforeDigest) {
+      throw new V2AuthoringTransactionError('field change is a no-op');
+    }
     const validatedCommand = deepFreeze({
       ...command,
       target: { ...command.target },
@@ -1440,6 +1559,8 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
         fieldId: validatedCommand.target.fieldId,
         pageId: resolved.pageId,
         componentId: resolved.componentId,
+        resourceKind: resolved.resourceKind || null,
+        resourceId: resolved.resourceId || null,
         sourcePointer: resolved.pointer,
         ownership: resolved.ownership,
       },
@@ -2096,6 +2217,7 @@ module.exports = {
   V2_COMPONENT_CATALOG,
   V2_GLOBAL_THEME_TARGET,
   V2_HERO_MEDIA_SLOT,
+  V2_RESOURCE_SCALAR_FIELDS,
   V2_THEME_RECIPE_DIMENSIONS,
   V2_AUTHORING_COMMAND_SCHEMA_VERSION,
   V2_AUTHORING_HISTORY_SCHEMA_VERSION,
@@ -2110,6 +2232,7 @@ module.exports = {
   listV2ComponentCatalogOptions,
   listV2ComponentMoveDestinations,
   listV2MediaUsageOptions,
+  listV2ResourceScalarFieldOptions,
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2AuthoringCommand,

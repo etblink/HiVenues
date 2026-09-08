@@ -39,6 +39,12 @@ const {
   V2AuthoringStudioError,
 } = require('./studio-authoring');
 const {
+  createV2ReadOnlyStudioModel,
+} = require('./studio-read-only');
+const {
+  V2VenueSourceError,
+} = require('./source');
+const {
   renderV2EventDetail,
   renderV2Page,
   renderV2PublicStylesheet,
@@ -143,6 +149,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
     previewGets: 0,
     mutationRequests: 0,
     proposals: 0,
+    resourceScalarProposalRequests: 0,
     applies: 0,
     discards: 0,
     undos: 0,
@@ -172,6 +179,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
 
   const actionPaths = Object.freeze({
     propose: '/studio-authoring/propose',
+    resource: '/studio-authoring/resource',
     reorder: '/studio-authoring/reorder',
     add: '/studio-authoring/add',
     remove: '/studio-authoring/remove',
@@ -272,6 +280,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       error instanceof V2AuthoringTransactionError
       || error instanceof V2AuthoringStudioError
       || error instanceof V2WorkspaceCheckpointError
+      || error instanceof V2VenueSourceError
     ) {
       response.status(400).type('text/plain').send(SAFE_V2_AUTHORING_STUDIO_ERROR);
       return true;
@@ -329,6 +338,56 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       });
       diagnostics.proposals += 1;
       selectionRedirect(response, body);
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
+  app.post(actionPaths.resource, (request, response) => {
+    try {
+      requireNoActiveProposal();
+      const body = plainStrings(
+        request.body,
+        'resource field form',
+        new Set([
+          'nodeId',
+          'resourceNodeId',
+          'fieldId',
+          'viewport',
+          'expectedDraftDigest',
+          'value',
+        ]),
+      );
+      const selected = createV2ReadOnlyStudioModel(session.draftSource, {
+        nodeId: body.nodeId,
+        viewport: body.viewport,
+      });
+      if (selected.selectedEntry.kind !== 'resource-reference'
+        || selected.selectedEntry.nodeId !== body.resourceNodeId) {
+        throw new V2AuthoringStudioError(
+          'resource target does not match the selected semantic resource reference',
+        );
+      }
+      proposal = proposeV2SetField(session, {
+        schemaVersion: 1,
+        type: 'SET_FIELD',
+        target: {
+          nodeId: body.resourceNodeId,
+          fieldId: body.fieldId,
+        },
+        payload: {
+          value: body.value,
+        },
+        expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      diagnostics.resourceScalarProposalRequests += 1;
+      selectionRedirect(response, {
+        nodeId: body.nodeId,
+        viewport: body.viewport,
+        fieldId: '',
+      });
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
       throw error;

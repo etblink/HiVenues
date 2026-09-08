@@ -20,6 +20,7 @@ const {
   listV2ComponentAddDestinations,
   listV2ComponentMoveDestinations,
   listV2MediaUsageOptions,
+  listV2ResourceScalarFieldOptions,
   listV2ThemeRecipeOptions,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
@@ -105,6 +106,9 @@ function renderViewportOptions(model, studioPath) {
 
 function renderFields(model, source, studioPath) {
   if (model.inspector.fields.length === 0) {
+    if (model.selectedEntry.kind === 'resource-reference') {
+      return '<p class="muted">This shared resource is edited through the typed resource controls below.</p>';
+    }
     return '<p class="muted">Choose a page or semantic component with editable text fields.</p>';
   }
 
@@ -383,6 +387,81 @@ function matchingFieldProposal(proposal, model) {
     && proposal.command.target.fieldId === model.selection.fieldId;
 }
 
+function matchingResourceProposal(proposal, model) {
+  return Boolean(
+    proposal
+    && proposal.command.type === 'SET_FIELD'
+    && model.selectedEntry.kind === 'resource-reference'
+    && proposal.command.target.nodeId === model.selectedEntry.nodeId
+  );
+}
+
+function resourceScalarContext(source, model) {
+  if (model.selectedEntry.kind !== 'resource-reference') return null;
+  try {
+    return listV2ResourceScalarFieldOptions(source, { nodeId: model.selectedEntry.nodeId });
+  } catch {
+    return null;
+  }
+}
+
+function renderResourceInput(field, value) {
+  if (field.control === 'select') {
+    const options = field.values.map((candidate) =>
+      `<option value="${escapeHtml(candidate)}"${candidate === value ? ' selected' : ''}>${escapeHtml(humanize(candidate))}</option>`
+    ).join('');
+    return `<select id="resource-${escapeHtml(field.id)}" name="value" required>${options}</select>`;
+  }
+  if (field.control === 'textarea') {
+    return `<textarea id="resource-${escapeHtml(field.id)}" name="value" rows="4" maxlength="${field.maxLength}" required>${escapeHtml(value)}</textarea>`;
+  }
+  return `<input id="resource-${escapeHtml(field.id)}" name="value" type="text" maxlength="${field.maxLength}" value="${escapeHtml(value)}" required>`;
+}
+
+function renderResourceEditor({ model, session, proposal, source, actionPaths, persistence }) {
+  const context = resourceScalarContext(source, model);
+  if (!context) {
+    return '<section class="editor-card"><p class="eyebrow">Resource</p><h3>Read-only resource</h3><p class="muted">This resource kind has no scalar authoring controls in the current bounded command family.</p></section>';
+  }
+  const isProposalTarget = matchingResourceProposal(proposal, model);
+  if (proposal && !isProposalTarget) {
+    return '<section class="editor-card"><p class="eyebrow">Resource</p><h3>Finish the active preview first</h3><p class="muted">Apply or discard the current proposal before editing this shared resource.</p></section>';
+  }
+  const activeFieldId = isProposalTarget ? proposal.command.target.fieldId : null;
+  const controls = context.fields.map((field) => {
+    const active = activeFieldId === field.id;
+    const shownValue = active ? proposal.command.payload.value : field.currentValue;
+    if (isProposalTarget) {
+      return `<div class="theme-control${active ? ' is-preview' : ''}"><div><strong>${escapeHtml(field.label)}</strong><span>${active ? 'Preview' : 'Current'}</span></div><p>${escapeHtml(shownValue)}</p></div>`;
+    }
+    return `<form class="edit-form resource-field-form" method="post" action="${escapeHtml(actionPaths.resource)}">
+      <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+      <input type="hidden" name="resourceNodeId" value="${escapeHtml(context.target.nodeId)}">
+      <input type="hidden" name="fieldId" value="${escapeHtml(field.id)}">
+      <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+      <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+      <label for="resource-${escapeHtml(field.id)}">${escapeHtml(field.label)}</label>
+      ${renderResourceInput(field, shownValue)}
+      <button class="button primary" type="submit">Preview ${escapeHtml(field.label.toLowerCase())}</button>
+    </form>`;
+  }).join('');
+  const status = isProposalTarget
+    ? '<div class="preview-state" role="status"><strong>Resource preview — not applied</strong><span>Every generated consumer is rendering the proposed shared-resource value. The accepted draft is unchanged.</span></div>'
+    : acceptedStateMarkup(persistence, {
+      label: 'Accepted shared resource',
+      memoryDetail: 'Typed resource fields · memory only · not saved · not published',
+    });
+  return `<section class="editor-card resource-editor" aria-labelledby="resource-editor-heading">
+    <p class="eyebrow">Shared resource</p>
+    <h3 id="resource-editor-heading">${escapeHtml(context.label)}</h3>
+    <p class="target-path">${escapeHtml(humanize(context.resourceKind))} · stable ID ${escapeHtml(context.resourceId)}</p>
+    ${status}
+    <div class="resource-controls">${controls}</div>
+    <p class="form-help">HiVenues resolves the canonical resource, collection position, ownership, validation and every consumer. IDs, ordering, timestamps, actions, media and raw source structure are not editable in this slice.</p>
+    ${isProposalTarget ? renderProposalActions(model, actionPaths) : ''}
+  </section>`;
+}
+
 function matchingMoveProposal(proposal, model) {
   return Boolean(
     proposal
@@ -617,6 +696,9 @@ function renderEditor({
   if (matchingThemeProposal(proposal)) {
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
   }
+  if (model.selectedEntry.kind === 'resource-reference') {
+    return renderResourceEditor({ model, session, proposal, source, actionPaths, persistence });
+  }
   if (!model.selection.fieldId) {
     return renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence });
   }
@@ -735,6 +817,7 @@ function renderV2AuthoringStudioSurface({
   const persistence = normalizePersistence(persistenceInput, session);
   const normalizedActions = {
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
+    resource: strictLocalPath(actionPaths.resource || `${normalizedStudioPath}/resource`, 'resource path'),
     reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
     add: strictLocalPath(actionPaths.add || `${normalizedStudioPath}/add`, 'add path'),
     remove: strictLocalPath(actionPaths.remove || `${normalizedStudioPath}/remove`, 'remove path'),
@@ -800,7 +883,7 @@ function renderV2AuthoringStudioSurface({
 .statebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 22px;border-bottom:1px solid #ccd3d6;background:#f8fafb}.state-copy strong,.state-copy span{display:block}.state-copy strong{font-size:.82rem}.state-copy span{margin-top:2px;color:#4b5a5f;font-size:.72rem}.digest-pair{display:flex;gap:8px;flex-wrap:wrap}.digest-chip{padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #ccd3d6;font-size:.64rem}.digest-chip strong{display:block}.digest-chip code{font-size:.6rem}
 .workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 330px;gap:12px;padding:12px;min-width:0}.panel{min-width:0;border:1px solid #cbd3d6;border-radius:14px;background:#fff;box-shadow:0 3px 16px rgba(28,38,41,.05);overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 14px;border-bottom:1px solid #e0e5e7}.panel-head h2{margin:0;font-size:.85rem}.panel-head span{color:#4b5a5f;font-size:.68rem}.tree-panel,.inspector-panel{max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}.tree-list,.field-list{list-style:none;margin:0;padding:8px}.tree-list li{padding-left:calc(var(--depth) * 8px)}.tree-link,.field-link{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px;border-radius:9px;border:1px solid transparent}.tree-link strong,.tree-link small,.field-link strong,.field-link small{display:block}.tree-link strong,.field-link strong{font-size:.76rem}.tree-link small,.field-link small{margin-top:2px;color:#536166;font-size:.63rem}.tree-link.is-selected,.field-link.is-selected{border-color:#73a9a1;background:#e8f4f1}.field-link.is-locked{opacity:.66}.selected-chip,.ownership-chip{flex:none;padding:4px 6px;border-radius:999px;background:#edf2f2;color:#395255;font-size:.6rem;font-weight:800}.selected-chip{background:#176b61;color:#fff}
 .canvas-panel{background:#dce2e4}.canvas-tools{display:flex;gap:7px;overflow-x:auto;padding:9px;border-bottom:1px solid #cbd3d6;background:#f5f7f8}.canvas-card{display:flex;min-width:170px;max-width:245px;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid #cbd3d6;border-radius:9px;background:#fff}.canvas-card strong,.canvas-card small{display:block}.canvas-card strong{font-size:.75rem}.canvas-card small{margin-top:2px;color:#536166;font-size:.62rem}.canvas-card.is-selected{border:2px solid #176b61;background:#edf7f4}.preview-area{display:grid;place-items:start center;min-height:620px;padding:18px;overflow:hidden;background:linear-gradient(135deg,#dce2e4,#eef1f2)}.preview-holder{position:relative;overflow:hidden;border:1px solid #adb9bd;border-radius:12px;background:#fff;box-shadow:0 18px 42px rgba(21,34,38,.18)}.preview-holder iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:top left}.preview-holder.viewport-desktop{width:720px;height:500px}.preview-holder.viewport-desktop iframe{width:1440px;height:1000px;transform:scale(.5)}.preview-holder.viewport-tablet{width:459px;height:612px}.preview-holder.viewport-tablet iframe{width:834px;height:1112px;transform:scale(.55)}.preview-holder.viewport-mobile{width:273px;height:591px}.preview-holder.viewport-mobile iframe{width:390px;height:844px;transform:scale(.70)}.preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-top:1px solid #cbd3d6;background:#fff;font-size:.68rem}.viewport-options{display:flex;gap:5px;padding:8px;border-top:1px solid #dce2e4;background:#fff}.viewport-option{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;color:#536166}.viewport-option span{font-size:.62rem}.viewport-option.is-selected{background:#143c42;color:#fff}
-.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.theme-grid{display:grid;gap:9px;margin:10px 0}.theme-control{display:grid;gap:7px;padding:10px;border:1px solid #d5dcde;border-radius:10px;background:#fbfcfc}.theme-control.is-preview{border-color:#d69e2e;background:#fffaf0}.theme-control>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.theme-control strong,.theme-control label{font-size:.7rem;font-weight:800}.theme-control span{font-size:.6rem;color:#536166}.theme-control p{margin:0;font-size:.76rem;font-weight:800}.theme-control small{color:#536166;font-size:.64rem;line-height:1.4}.theme-control select{width:100%;min-height:44px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form input[type="file"]{padding:8px}.edit-form textarea{resize:vertical;min-height:110px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
+.inspector-summary,.editor-card,.history-card{padding:14px;border-bottom:1px solid #e5e9ea}.resource-controls{display:grid;gap:12px;margin:10px 0}.theme-grid{display:grid;gap:9px;margin:10px 0}.theme-control{display:grid;gap:7px;padding:10px;border:1px solid #d5dcde;border-radius:10px;background:#fbfcfc}.theme-control.is-preview{border-color:#d69e2e;background:#fffaf0}.theme-control>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.theme-control strong,.theme-control label{font-size:.7rem;font-weight:800}.theme-control span{font-size:.6rem;color:#536166}.theme-control p{margin:0;font-size:.76rem;font-weight:800}.theme-control small{color:#536166;font-size:.64rem;line-height:1.4}.theme-control select{width:100%;min-height:44px;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.inspector-summary h2,.editor-card h3,.history-card h3{margin:3px 0 8px}.muted,.target-path,.history-card p{color:#536166;font-size:.72rem;line-height:1.45}.edit-form{display:grid;gap:8px;margin-top:12px}.edit-form label{font-size:.7rem;font-weight:800}.edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px;border:1px solid #aebbc0;border-radius:9px;background:#fff;color:#1d2528;line-height:1.45}.edit-form input[type="file"]{padding:8px}.edit-form textarea{resize:vertical;min-height:110px}.form-help{margin:0;color:#536166;font-size:.66rem;line-height:1.4}.button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer}.button.primary{background:#176b61;color:#fff}.button.secondary{border:1px solid #aebbc0;background:#fff;color:#29494b}.button:disabled{cursor:not-allowed;opacity:.45}.preview-state,.accepted-state{display:grid;gap:3px;margin:10px 0;padding:10px;border-radius:9px}.preview-state{border:1px solid #d69e2e;background:#fff8df;color:#6b4f12}.accepted-state{border:1px solid #9bc8be;background:#edf7f4;color:#29494b}.preview-state span,.accepted-state span{font-size:.66rem}.proposal-actions,.history-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.history-card{display:flex;align-items:center;justify-content:space-between;gap:10px}.history-card p{margin:0}.memory-note{margin:0;padding:9px 14px;border-top:1px solid #dbe2e4;background:#f7faf9;color:#4b5a5f;font-size:.67rem}
 @media(max-width:1180px){.workspace{grid-template-columns:190px minmax(0,1fr)}.inspector-panel{grid-column:2;position:static;max-height:none}.preview-holder.viewport-desktop{width:620px;height:431px}.preview-holder.viewport-desktop iframe{transform:scale(.431)}}
 @media(max-width:720px){.topbar,.statebar{align-items:flex-start;flex-direction:column;padding:12px}.workspace{display:flex;flex-direction:column;padding:8px}.canvas-panel{order:0}.inspector-panel{order:1;position:static;max-height:none}.tree-panel{order:2;position:static;max-height:none}.preview-area{min-height:0;padding:10px}.preview-holder.viewport-desktop{width:346px;height:240px}.preview-holder.viewport-desktop iframe{transform:scale(.24)}.preview-holder.viewport-tablet{width:334px;height:445px}.preview-holder.viewport-tablet iframe{transform:scale(.40)}.preview-holder.viewport-mobile{width:343px;height:743px}.preview-holder.viewport-mobile iframe{transform:scale(.88)}.history-card{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
@@ -831,7 +914,7 @@ function renderV2AuthoringStudioSurface({
       <p class="memory-note">${escapeHtml(memoryNote)}</p>
     </section>
     <aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">
-      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · structure · media · theme</span></header>
+      <header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · resources · structure · media · theme</span></header>
       <section class="inspector-summary"><p class="eyebrow">Selected context</p><h2>${escapeHtml(model.inspector.label)}</h2><p class="muted">${escapeHtml(humanize(model.inspector.semanticKind))}</p></section>
       <section class="inspector-summary" aria-labelledby="authoring-fields-heading"><h3 id="authoring-fields-heading">Fields</h3>${renderFields(model, source, normalizedStudioPath)}</section>
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
