@@ -30,6 +30,15 @@ function documentFrom(html) {
   return new JSDOM(html).window.document;
 }
 
+function findPageForTest(source, pageId) {
+  return source.site.pages.find((page) => page.id === pageId);
+}
+
+function findComponentForTest(source, componentId) {
+  return source.site.pages.flatMap((page) => page.components)
+    .find((component) => component.id === componentId);
+}
+
 test('one generic v2 renderer renders all four reference sources without venue-id branches', async () => {
   const rendererSource = fs.readFileSync(
     path.join(ROOT, 'src', 'venue', 'v2', 'renderer', 'index.js'),
@@ -93,6 +102,44 @@ test('restaurant rendering uses semantic menu resources and recipe-driven editor
   const menuItems = [...document.querySelectorAll('[data-menu-item-id]')].map((node) => node.dataset.menuItemId);
   assert.deepEqual(menuItems, ['oysters', 'carrots', 'market-fish', 'short-rib']);
   assert.match(document.body.textContent, /A short seasonal menu/);
+});
+
+test('reference compositions expose archetype-specific semantic navigation and secondary pages', () => {
+  const fourth = REFERENCE_FACTORIES['fourth-street']();
+  const fourthHome = findPageForTest(fourth, 'home');
+  assert.equal(fourthHome.components[0].recipeId, 'hero-immersive-media');
+  assert.equal(findComponentForTest(fourth, 'home-gallery').recipeId, 'gallery-feature-grid');
+  assert.deepEqual(fourth.site.navigation.map((entry) => entry.label), ['Home', 'Gallery', 'Visit', 'Community']);
+  assert.match(renderV2Page(fourth, { pageSlug: 'gallery' }), /A real look at the place/);
+
+  const juniper = REFERENCE_FACTORIES.juniper();
+  const juniperHome = findPageForTest(juniper, 'home');
+  assert.equal(juniperHome.components[0].recipeId, 'hero-text-led');
+  assert.equal(findComponentForTest(juniper, 'home-programs').recipeId, 'list-card-grid');
+  assert.equal(findComponentForTest(juniper, 'home-equipment-status').recipeId, 'status-grid');
+  assert.equal(juniper.site.brand.design.typographyRecipeId, 'type-grotesk-display');
+  assert.deepEqual(
+    juniper.site.navigation.map((entry) => entry.label),
+    ['Home', 'Programs', 'Equipment', 'Projects', 'Visit', 'Community'],
+  );
+  assert.match(renderV2Page(juniper, { pageSlug: 'equipment' }), /Equipment status/);
+
+  const restaurant = restaurantSource();
+  assert.deepEqual(
+    restaurant.site.navigation.map((entry) => entry.label),
+    ['Home', 'Menu', 'Private Events', 'Gallery', 'Visit'],
+  );
+  assert.match(renderV2Page(restaurant, { pageSlug: 'gallery' }), /Made for unhurried evenings/);
+
+  const music = musicSource();
+  assert.deepEqual(music.site.navigation.map((entry) => entry.label), ['Home', 'Shows', 'Visit']);
+  assert.match(renderV2Page(music, { pageSlug: 'visit' }), /Doors, location, and venue details/);
+
+  const visibleSyntheticCopy = [
+    renderV2Page(restaurant),
+    renderV2Page(music),
+  ].map((html) => documentFrom(html).body.textContent).join('\n');
+  assert.doesNotMatch(visibleSyntheticCopy, /fixture-only|event renderer|same semantic renderer|Synthetic HiVenues reference artwork/i);
 });
 
 test('live-music event details derive from the canonical Event resource and emit structured-data seam', () => {
@@ -207,9 +254,31 @@ test('isolated preview harness renders pages, styles and event routes with zero 
     const theme = await request(fixture.app).get('/__hivenues-v2/theme.css').expect(200);
     assert.match(theme.text, /--v2-canvas/);
 
+    if (referenceId === 'fourth-street') {
+      await request(fixture.app).get('/gallery').expect(200);
+      await request(fixture.app).get('/visit').expect(200);
+    }
+    if (referenceId === 'juniper') {
+      await request(fixture.app).get('/programs').expect(200);
+      await request(fixture.app).get('/equipment').expect(200);
+      await request(fixture.app).get('/projects').expect(200);
+      await request(fixture.app).get('/visit').expect(200);
+    }
+    if (referenceId === 'restaurant') {
+      await request(fixture.app).get('/gallery').expect(200);
+      await request(fixture.app).get('/visit').expect(200);
+    }
     if (referenceId === 'live-music') {
       await request(fixture.app).get('/shows').expect(200);
+      await request(fixture.app).get('/visit').expect(200);
       await request(fixture.app).get('/events/fixture-show-one').expect(200);
+    }
+
+    for (const asset of fixture.source.media.assets.filter((entry) => entry.src.endsWith('.svg'))) {
+      const response = await request(fixture.app).get(asset.src).expect(200);
+      const svg = response.text || response.body.toString('utf8');
+      assert.match(svg, new RegExp(`<svg[^>]+width="${asset.width}"[^>]+height="${asset.height}"[^>]+viewBox="0 0 ${asset.width} ${asset.height}"`));
+      assert.doesNotMatch(svg, /\bfixture\b|Synthetic HiVenues reference artwork/i);
     }
 
     const diagnostics = fixture.diagnostics();
