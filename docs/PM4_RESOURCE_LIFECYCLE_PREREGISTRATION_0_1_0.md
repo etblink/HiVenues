@@ -42,5 +42,11 @@ required. Menus, action editing, timestamp editing, general media, component rec
 and full fresh-archetype closure stay open under #199. Complete #199 before the
 user-approved idealized-vs-current 2026 visual work, then #200 final measured gates.
 
+Evidence framing amendment after CI #750 review: every lifecycle screenshot must
+show the reviewed resource or empty state inside the real preview viewport and
+the lifecycle inspector controls. The capture script asserts the subject heading
+is within that viewport and records its text and geometry. An unrelated hero
+capture cannot satisfy generated-output review even when DOM content checks pass.
+
 No schema expansion, production selection/deploy, Hive/Keychain/key/payment,
 infrastructure, real venue admission or repository-setting effects.

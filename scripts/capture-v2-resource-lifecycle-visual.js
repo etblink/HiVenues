@@ -27,7 +27,24 @@ async function click(page, name) {
   await navigation;
 }
 
-async function capture(page, name, records) {
+async function capture(page, name, records, resourceId = null) {
+  // Frame the evidence being reviewed, rather than an unrelated page hero.
+  const selected = new URL(page.url()).searchParams.get('nodeId');
+  const componentId = selected.split('/')[0].slice('component:'.length);
+  const preview = page.frames().find((frame) => frame !== page.mainFrame());
+  const component = preview.locator(`[data-component-id="${componentId}"]`);
+  const subject = resourceId ? component.locator(`[data-resource-id="${resourceId}"]`)
+    : component.locator('.v2-resource-list');
+  await subject.evaluate((element) => element.scrollIntoView({ block: 'start', behavior: 'instant' }));
+  const visibleSubject = await subject.locator('h3, .v2-empty-state strong').first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { text: element.textContent.trim(), top: rect.top, bottom: rect.bottom, height: globalThis.innerHeight };
+  });
+  assert.ok(visibleSubject.top >= 0 && visibleSubject.bottom <= visibleSubject.height, `${name}: review subject outside preview viewport`);
+  await page.locator('.inspector-panel').evaluate((panel) => {
+    const card = panel.querySelector('.resource-lifecycle-editor');
+    panel.scrollTop += card.getBoundingClientRect().top - panel.getBoundingClientRect().top;
+  });
   const geometry = await page.evaluate(() => ({ width: globalThis.document.documentElement.clientWidth, scroll: globalThis.document.documentElement.scrollWidth }));
   assert.ok(geometry.scroll <= geometry.width + 1, `${name}: outer overflow`);
   const findings = [];
@@ -44,7 +61,7 @@ async function capture(page, name, records) {
   const file = `screenshots/${name}.png`;
   await page.screenshot({ path: path.join(OUTPUT, file), fullPage: false, animations: 'disabled' });
   const bytes = fs.readFileSync(path.join(OUTPUT, file));
-  records.push({ name, file, sha256: sha256(bytes), bytes: bytes.length, geometry, blockingAccessibilityFindings: 0 });
+  records.push({ name, file, sha256: sha256(bytes), bytes: bytes.length, geometry, visibleSubject, blockingAccessibilityFindings: 0 });
 }
 
 async function journey(browser, spec) {
@@ -65,10 +82,6 @@ async function journey(browser, spec) {
     };
     await fill();
     if (spec.kind === 'programs') {
-      await page.locator('.inspector-panel').evaluate((panel) => {
-        const card = panel.querySelector('.resource-lifecycle-editor');
-        panel.scrollTop += card.getBoundingClientRect().top - panel.getBoundingClientRect().top;
-      });
       await capture(page, 'programs-creation-controls', records);
     }
     const create = page.getByRole('button', { name: `Preview new ${spec.noun}`, exact: true });
@@ -86,7 +99,7 @@ async function journey(browser, spec) {
       const response = await fetch(`${base}/studio-authoring-preview/site/events/${slug}`);
       assert.ok(response.ok); assert.ok((await response.text()).includes(label));
     }
-    await capture(page, `${spec.kind}-add-preview`, records);
+    await capture(page, `${spec.kind}-add-preview`, records, id);
     await click(page, 'Discard preview'); assert.equal(fixture.session().draftDigest, before);
     await fill(); await click(page, `Preview new ${spec.noun}`); await click(page, 'Apply to draft');
     assert.equal(fixture.session().draftDigest, added.afterDigest);
