@@ -6,6 +6,11 @@ const {
   createV2ReadOnlyStudioModel,
 } = require('./studio-read-only');
 const {
+  ADD_RESOURCE,
+  REMOVE_RESOURCE,
+  MOVE_RESOURCE,
+  END_OF_LIST,
+  getV2ResourceListContext,
   ADD_COMPONENT,
   BEFORE_COMPONENT,
   END_OF_PAGE,
@@ -668,7 +673,76 @@ function renderMoveEditor({ model, session, proposal, source, actionPaths, persi
   </section>`;
 }
 
+function renderResourceLifecycleEditor({ model, session, proposal, source, actionPaths }) {
+  let context;
+  try {
+    context = getV2ResourceListContext(source, { nodeId: `component:${model.selectedEntry.componentId}` });
+  } catch { return ''; }
+  const noun = context.resourceKind === 'events' ? 'show' : context.resourceKind === 'programs' ? 'program' : 'equipment item';
+  const ownProposal = [ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(proposal?.command.type)
+    && proposal.resolvedTarget.componentId === context.componentId;
+  if (proposal) {
+    if (!ownProposal) return '';
+    const action = proposal.command.type === ADD_RESOURCE ? 'Add'
+      : proposal.command.type === MOVE_RESOURCE ? 'Reorder' : 'Remove';
+    const consequence = proposal.command.type === REMOVE_RESOURCE
+      ? `Removed from: ${proposal.resolvedTarget.affectedLists.join('; ')}. Undo restores every reference.`
+      : 'This list shows the proposed change. Other lists keep their existing selection and order.';
+    return `<section class="editor-card resource-lifecycle-editor"><h3>${action} ${noun}</h3>
+      <div class="preview-state" role="status"><strong>${action} preview — not applied</strong><span>${escapeHtml(consequence)}</span></div>
+      ${renderProposalActions(model, actionPaths)}</section>`;
+  }
+  const common = (operation) => `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
+    <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+    <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+    <input type="hidden" name="operation" value="${operation}">`;
+  const formStart = `<form class="edit-form" method="post" action="${escapeHtml(actionPaths.resourceLifecycle)}">`;
+  if (model.selectedEntry.kind !== 'resource-reference') {
+    if (!context.canAdd) return `<section class="editor-card resource-lifecycle-editor"><h3>List capacity reached</h3><p class="muted">Remove an item before adding another ${noun}.</p></section>`;
+    const fields = context.resourceKind === 'equipment'
+      ? [['name', 'Equipment name'], ['note', 'Availability note'], ['accessNote', 'Access requirements'], ['lastUpdated', 'Status checked at']]
+      : [['title', `${noun === 'show' ? 'Show' : 'Program'} title`], ['description', 'Description'],
+        ...(context.resourceKind === 'programs' ? [['accessNote', 'Access requirements']] : []), ['startAt', 'Starts'], ['endAt', 'Ends']];
+    const controls = fields.map(([key, label]) => {
+      const time = ['startAt', 'endAt', 'lastUpdated'].includes(key);
+      return `<label for="new-resource-${key}">${label}</label><input id="new-resource-${key}" name="${key}" type="${time ? 'datetime-local' : 'text'}" ${time ? 'step="1"' : `maxlength="${key === 'description' ? 1200 : 240}"`} required>`;
+    }).join('');
+    const offsets = [];
+    for (let minutes = -720; minutes <= 840; minutes += 15) {
+      const absolute = Math.abs(minutes);
+      const value = `${minutes < 0 ? '-' : '+'}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`;
+      offsets.push(`<option value="${value}"${minutes === 0 ? ' selected' : ''}>UTC${value}</option>`);
+    }
+    return `<section class="editor-card resource-lifecycle-editor"><h3>Add ${noun}</h3>
+      <p class="muted">${context.items.length ? `${context.items.length} items in this list.` : 'This list is empty.'} New items appear here. ${context.resourceKind === 'equipment' ? 'New equipment starts Offline until you change its status.' : 'New entries start Scheduled.'}</p>
+      ${formStart}${common(ADD_RESOURCE)}${controls}
+      <label for="new-resource-offset">UTC offset at the venue on this date</label>
+      <select id="new-resource-offset" name="utcOffset">${offsets.join('')}</select>
+      <button class="button primary" type="submit">Preview new ${noun}</button></form></section>`;
+  }
+  const resourceId = model.selectedEntry.nodeId.slice(`resource:${context.resourceKind}:`.length);
+  const selectedIndex = context.items.findIndex((item) => item.id === resourceId);
+  const item = context.items[selectedIndex];
+  if (!item) return '';
+  const destinations = context.items.filter((other) => other.id !== resourceId).map((other) => ({ id: other.id, label: `Before ${other.label}` }));
+  destinations.push({ id: END_OF_LIST, label: 'End of this list' });
+  const noOp = context.items[selectedIndex + 1]?.id || END_OF_LIST;
+  const choices = destinations.filter((d) => d.id !== noOp).map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.label)}</option>`).join('');
+  const move = choices ? `${formStart}${common(MOVE_RESOURCE)}
+    <input type="hidden" name="resourceId" value="${escapeHtml(resourceId)}">
+    <label for="resource-destination">Position in this list</label><select id="resource-destination" name="destination">${choices}</select>
+    <button class="button secondary" type="submit">Preview order</button></form>` : '<p class="muted">This is the only item in this list.</p>';
+  return `<section class="editor-card resource-lifecycle-editor"><h3>Manage ${escapeHtml(item.label)}</h3>${move}
+    <details><summary>Remove ${noun} everywhere</summary>
+    <p class="muted">Removes this shared item from every list and its detail page, when present. Undo restores it.</p>
+    ${formStart}${common(REMOVE_RESOURCE)}<input type="hidden" name="resourceId" value="${escapeHtml(resourceId)}">
+    <label for="resource-confirmation">Type “${escapeHtml(item.label)}” to confirm</label>
+    <input id="resource-confirmation" name="confirmation" type="text" required>
+    <button class="button secondary" type="submit">Preview removal</button></form></details></section>`;
+}
+
 function renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence }) {
+  if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(proposal?.command.type)) return '';
   if (model.selection.nodeId.startsWith('page:')) {
     return renderAddEditor({ model, session, proposal, source, actionPaths, persistence });
   }
@@ -697,10 +771,12 @@ function renderEditor({
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
   }
   if (model.selectedEntry.kind === 'resource-reference') {
-    return renderResourceEditor({ model, session, proposal, source, actionPaths, persistence });
+    return renderResourceLifecycleEditor({ model, session, proposal, source, actionPaths })
+      + renderResourceEditor({ model, session, proposal, source, actionPaths, persistence });
   }
   if (!model.selection.fieldId) {
-    return renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence });
+    return renderResourceLifecycleEditor({ model, session, proposal, source, actionPaths })
+      + renderStructuralEditor({ model, session, proposal, source, actionPaths, persistence });
   }
 
   const resolved = editableField(source, model.selection.nodeId, model.selection.fieldId);
@@ -747,13 +823,13 @@ function renderEditor({
   </section>`;
 }
 
-function renderHistoryControls(session, actionPaths, model) {
+function renderHistoryControls(session, actionPaths, model, proposal) {
   const hidden = `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">`;
   return `<section class="history-card" aria-labelledby="history-heading">
-    <div><p class="eyebrow">Session history</p><h3 id="history-heading">Undo / Redo</h3><p>${session.historyIndex} applied change${session.historyIndex === 1 ? '' : 's'} in the current branch of history.</p></div>
+    <div><p class="eyebrow">Session history</p><h3 id="history-heading">Undo / Redo</h3><p>${proposal ? 'Apply or discard the preview before using history.' : `${session.historyIndex} applied change${session.historyIndex === 1 ? '' : 's'} in the current branch of history.`}</p></div>
     <div class="history-actions">
-      <form method="post" action="${escapeHtml(actionPaths.undo)}">${hidden}<button class="button secondary" type="submit"${session.canUndo ? '' : ' disabled'}>Undo</button></form>
-      <form method="post" action="${escapeHtml(actionPaths.redo)}">${hidden}<button class="button secondary" type="submit"${session.canRedo ? '' : ' disabled'}>Redo</button></form>
+      <form method="post" action="${escapeHtml(actionPaths.undo)}">${hidden}<button class="button secondary" type="submit"${session.canUndo && !proposal ? '' : ' disabled'}>Undo</button></form>
+      <form method="post" action="${escapeHtml(actionPaths.redo)}">${hidden}<button class="button secondary" type="submit"${session.canRedo && !proposal ? '' : ' disabled'}>Redo</button></form>
     </div>
   </section>`;
 }
@@ -817,6 +893,7 @@ function renderV2AuthoringStudioSurface({
   const persistence = normalizePersistence(persistenceInput, session);
   const normalizedActions = {
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
+    resourceLifecycle: strictLocalPath(actionPaths.resourceLifecycle || `${normalizedStudioPath}/resource-lifecycle`, 'resource lifecycle path'),
     resource: strictLocalPath(actionPaths.resource || `${normalizedStudioPath}/resource`, 'resource path'),
     reorder: strictLocalPath(actionPaths.reorder || `${normalizedStudioPath}/reorder`, 'reorder path'),
     add: strictLocalPath(actionPaths.add || `${normalizedStudioPath}/add`, 'add path'),
@@ -837,7 +914,8 @@ function renderV2AuthoringStudioSurface({
   const previewSource = proposal ? proposal.previewSource : source;
   const previewSelectionNodeId = proposal?.command.type === REMOVE_COMPONENT
     ? `page:${proposal.resolvedTarget.pageId}`
-    : model.selection.nodeId;
+    : proposal?.command.type === REMOVE_RESOURCE
+      ? `component:${proposal.resolvedTarget.componentId}` : model.selection.nodeId;
   const previewModel = createV2ReadOnlyStudioModel(previewSource, {
     nodeId: previewSelectionNodeId,
     ...(previewSelectionNodeId === model.selection.nodeId && model.selection.fieldId
@@ -920,7 +998,7 @@ function renderV2AuthoringStudioSurface({
       ${renderEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
       ${renderMediaEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
       ${renderThemeEditor({ model, session, proposal, source, actionPaths: normalizedActions, persistence })}
-      ${renderHistoryControls(session, normalizedActions, model)}
+      ${renderHistoryControls(session, normalizedActions, model, proposal)}
       ${renderPersistenceControls(session, proposal, persistence, normalizedActions, model)}
     </aside>
   </div>

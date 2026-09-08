@@ -95,6 +95,7 @@ test('all retained trigger families and exact classifier inputs qualify isolated
     'test/support/source-authoring-fixture.js', 'test/support/v2-renderer-fixture.js',
     'test/support/v2-studio-fixture.js', 'test/venue-v2-read-only-studio.test.js',
     'test/venue-v2-renderer.test.js', '.github/workflows/ci.yml',
+    'src/venue/v2/studio-app.js', 'test/venue-v2-resource-lifecycle.test.js',
     'scripts/classify-qualification-scope.js', 'test/qualification-scope-classifier.test.js',
   ];
   for (const file of examples) {

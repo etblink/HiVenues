@@ -6,6 +6,11 @@ const { URLSearchParams } = require('node:url');
 const path = require('node:path');
 const express = require('express');
 const {
+  ADD_RESOURCE,
+  REMOVE_RESOURCE,
+  MOVE_RESOURCE,
+  getV2ResourceListContext,
+  proposeV2AuthoringCommand,
   BEFORE_COMPONENT,
   END_OF_PAGE,
   IMPORT_LOCAL_HERO_MEDIA,
@@ -40,6 +45,7 @@ const {
 } = require('./studio-authoring');
 const {
   createV2ReadOnlyStudioModel,
+  V2ReadOnlyStudioError,
 } = require('./studio-read-only');
 const {
   V2VenueSourceError,
@@ -180,6 +186,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
   const actionPaths = Object.freeze({
     propose: '/studio-authoring/propose',
     resource: '/studio-authoring/resource',
+    resourceLifecycle: '/studio-authoring/resource-lifecycle',
     reorder: '/studio-authoring/reorder',
     add: '/studio-authoring/add',
     remove: '/studio-authoring/remove',
@@ -277,7 +284,8 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
 
   function handleAuthoringError(error, response) {
     if (
-      error instanceof V2AuthoringTransactionError
+      error instanceof V2ReadOnlyStudioError
+      || error instanceof V2AuthoringTransactionError
       || error instanceof V2AuthoringStudioError
       || error instanceof V2WorkspaceCheckpointError
       || error instanceof V2VenueSourceError
@@ -338,6 +346,59 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       });
       diagnostics.proposals += 1;
       selectionRedirect(response, body);
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
+  app.post(actionPaths.resourceLifecycle, (request, response) => {
+    try {
+      requireNoActiveProposal();
+      const baseKeys = ['nodeId', 'viewport', 'expectedDraftDigest', 'operation'];
+      const selected = createV2ReadOnlyStudioModel(session.draftSource, {
+        nodeId: request.body.nodeId, viewport: request.body.viewport,
+      });
+      const context = getV2ResourceListContext(session.draftSource, {
+        nodeId: `component:${selected.selectedEntry.componentId}`,
+      });
+      const operation = request.body.operation;
+      if (![ADD_RESOURCE, MOVE_RESOURCE, REMOVE_RESOURCE].includes(operation)) {
+        throw new V2AuthoringStudioError('unsupported resource operation');
+      }
+      const fields = context.resourceKind === 'equipment' ? ['name', 'note', 'accessNote', 'lastUpdated']
+        : context.resourceKind === 'events' ? ['title', 'description', 'startAt', 'endAt']
+          : ['title', 'description', 'accessNote', 'startAt', 'endAt'];
+      const extraKeys = operation === ADD_RESOURCE ? [...fields, 'utcOffset']
+        : operation === MOVE_RESOURCE ? ['resourceId', 'destination'] : ['resourceId', 'confirmation'];
+      const body = plainStrings(request.body, 'resource lifecycle form', new Set([...baseKeys, ...extraKeys]));
+      const command = {
+        schemaVersion: 1, type: operation, target: { nodeId: `component:${context.componentId}` },
+        expectedDraftDigest: body.expectedDraftDigest,
+      };
+      if (operation === ADD_RESOURCE) {
+        if (selected.selectedEntry.kind === 'resource-reference') {
+          throw new V2AuthoringStudioError('select a list to add a resource');
+        }
+        if (!/^[+-]\d{2}:\d{2}$/.test(body.utcOffset)) throw new V2AuthoringStudioError('invalid UTC offset');
+        command.payload = Object.fromEntries(fields.map((key) => [key,
+          ['startAt', 'endAt', 'lastUpdated'].includes(key) ? `${body[key]}${body.utcOffset}` : body[key],
+        ]));
+      } else {
+        if (selected.selectedEntry.kind !== 'resource-reference'
+          || selected.selectedEntry.nodeId !== `resource:${context.resourceKind}:${body.resourceId}`) {
+          throw new V2AuthoringStudioError('resource operation does not match selected occurrence');
+        }
+        command.target.resourceId = body.resourceId;
+        if (operation === MOVE_RESOURCE) command.destination = body.destination;
+        else {
+          const item = context.items.find((entry) => entry.id === body.resourceId);
+          if (!item || body.confirmation !== item.label) throw new V2AuthoringStudioError('confirm the current resource name');
+        }
+      }
+      proposal = proposeV2AuthoringCommand(session, command);
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { nodeId: body.nodeId, viewport: body.viewport });
     } catch (error) {
       if (handleAuthoringError(error, response)) return;
       throw error;
@@ -639,7 +700,11 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       proposal = null;
       diagnostics.applies += 1;
       syncEphemeralMedia();
-      if (acceptedProposal.command.type === 'REMOVE_COMPONENT') {
+      if ([ADD_RESOURCE, MOVE_RESOURCE, REMOVE_RESOURCE].includes(acceptedProposal.command.type)) {
+        selectionRedirect(response, {
+          nodeId: `component:${acceptedProposal.resolvedTarget.componentId}`, viewport: body.viewport,
+        });
+      } else if (acceptedProposal.command.type === 'REMOVE_COMPONENT') {
         selectionRedirect(response, {
           nodeId: `page:${acceptedProposal.resolvedTarget.pageId}`,
           viewport: body.viewport,
@@ -683,7 +748,11 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
         new Set(['fieldId']),
       );
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before undo');
+      const historyCommand = session.history[session.historyIndex - 1]?.command;
       session = undoV2AuthoringSession(session);
+      if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+      }
       diagnostics.undos += 1;
       syncEphemeralMedia();
       selectionRedirect(response, { ...body, fieldId: body.fieldId || '' });
@@ -702,7 +771,11 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
         new Set(['fieldId']),
       );
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before redo');
+      const historyCommand = session.history[session.historyIndex]?.command;
       session = redoV2AuthoringSession(session);
+      if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+      }
       diagnostics.redos += 1;
       syncEphemeralMedia();
       selectionRedirect(response, { ...body, fieldId: body.fieldId || '' });

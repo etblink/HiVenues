@@ -125,6 +125,8 @@ jobs:
         run: npm run test:browser:m19-3-1
       - name: Build exact presentation assets once
         run: npm run build
+      - name: Capture PM4 resource lifecycle and list-order evidence
+        run: node scripts/capture-v2-resource-lifecycle-visual.js
       - name: Run current visual machine contract with bounded concurrency
         env:
           VISUAL_RAW_ROOT: artifacts/raw-visual
@@ -266,6 +268,7 @@ jobs:
             artifacts/v2-studio-review
             artifacts/v2-authoring-review
             artifacts/v2-resource-authoring-review
+            artifacts/v2-resource-lifecycle-review
             artifacts/v2-component-reorder-review
             artifacts/v2-component-cardinality-review
             artifacts/v2-theme-authoring-review
