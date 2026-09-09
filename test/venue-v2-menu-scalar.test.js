@@ -135,6 +135,30 @@ test('menu navigation preserves strict plain-data query authority', () => {
   }
 });
 
+test('mixed resource/menu history clears nested menu selection when adopting another component', async () => {
+  const source = sharedSource(); const workshop = REFERENCE_FACTORIES.juniper();
+  source.resources.equipment = clone(workshop.resources.equipment);
+  source.site.pages[0].components.push(clone(workshop.site.pages[0].components.find((c) => c.kind === 'equipment-status')));
+  const fixture = createV2AuthoringStudioFixture(source);
+  const equipmentNode = 'component:home-equipment-status';
+  await request(fixture.app).post('/studio-authoring/resource-lifecycle').type('form').send({
+    nodeId: equipmentNode, viewport: 'desktop', expectedDraftDigest: fixture.session().draftDigest, operation: a.ADD_RESOURCE,
+    name: 'Side table', note: 'Awaiting review', accessNote: 'Ask staff', lastUpdated: '2026-09-09T10:00', utcOffset: '-07:00',
+  }).expect(303);
+  await request(fixture.app).post('/studio-authoring/apply').type('form').send({ nodeId: equipmentNode, viewport: 'desktop' }).expect(303);
+  const selection = { nodeId: occurrence, viewport: 'desktop', menuEntry: 'item:starters:oysters' };
+  await request(fixture.app).post('/studio-authoring/menu-field').type('form').send({ nodeId: occurrence, viewport: 'desktop',
+    resourceNodeId: 'resource:menus:dinner', sectionId: 'starters', itemId: 'oysters', fieldId: 'priceLabel', value: '$24',
+    expectedDraftDigest: fixture.session().draftDigest }).expect(303);
+  await request(fixture.app).post('/studio-authoring/apply').type('form').send(selection).expect(303);
+  await request(fixture.app).post('/studio-authoring/undo').type('form').send(selection).expect(303);
+  for (const action of ['undo', 'redo']) {
+    const response = await request(fixture.app).post(`/studio-authoring/${action}`).type('form').send(selection).expect(303);
+    assert.equal(response.headers.location.includes('menuEntry='), false);
+    await request(fixture.app).get(response.headers.location).expect(200);
+  }
+});
+
 test('ordinary menu edit saves explicitly and reopens exact source in a fresh process', async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-menu-')); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'venue-assets'));

@@ -778,7 +778,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const historyCommand = session.history[session.historyIndex - 1]?.command;
       session = undoV2AuthoringSession(session);
       if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
-        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = ''; delete body.menuEntry;
       }
       diagnostics.undos += 1;
       syncEphemeralMedia();
@@ -801,7 +801,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const historyCommand = session.history[session.historyIndex]?.command;
       session = redoV2AuthoringSession(session);
       if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
-        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = ''; delete body.menuEntry;
       }
       diagnostics.redos += 1;
       syncEphemeralMedia();
