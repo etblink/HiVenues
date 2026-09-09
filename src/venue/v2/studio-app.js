@@ -9,6 +9,7 @@ const {
   ADD_RESOURCE,
   REMOVE_RESOURCE,
   MOVE_RESOURCE,
+  SET_MENU_FIELD,
   getV2ResourceListContext,
   proposeV2AuthoringCommand,
   BEFORE_COMPONENT,
@@ -88,7 +89,7 @@ function plainStrings(value, label, allowed, optional = new Set()) {
 }
 
 function queryObject(request) {
-  const allowed = new Set(['nodeId', 'fieldId', 'viewport']);
+  const allowed = new Set(['nodeId', 'fieldId', 'viewport', 'menuEntry']);
   const keys = Object.keys(request.query);
   if (keys.some((key) => !allowed.has(key))) {
     throw new V2AuthoringStudioError('query contains unsupported keys');
@@ -110,6 +111,7 @@ function selectionRedirect(response, body) {
     viewport: body.viewport,
   });
   if (body.fieldId) query.set('fieldId', body.fieldId);
+  if (body.menuEntry) query.set('menuEntry', body.menuEntry);
   response.redirect(303, `/studio-authoring?${query.toString()}`);
 }
 
@@ -184,6 +186,7 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
   }));
 
   const actionPaths = Object.freeze({
+    menu: '/studio-authoring/menu-field',
     propose: '/studio-authoring/propose',
     resource: '/studio-authoring/resource',
     resourceLifecycle: '/studio-authoring/resource-lifecycle',
@@ -405,6 +408,29 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
     }
   });
 
+  app.post(actionPaths.menu, (request, response) => {
+    try {
+      requireNoActiveProposal();
+      const body = plainStrings(request.body, 'menu field form', new Set([
+        'nodeId', 'resourceNodeId', 'sectionId', 'itemId', 'fieldId', 'viewport', 'expectedDraftDigest', 'value',
+      ]));
+      const selected = createV2ReadOnlyStudioModel(session.draftSource, { nodeId: body.nodeId, viewport: body.viewport });
+      if (selected.selectedEntry.kind !== 'resource-reference' || selected.selectedEntry.nodeId !== body.resourceNodeId) {
+        throw new V2AuthoringStudioError('menu target does not match selected resource occurrence');
+      }
+      proposal = proposeV2AuthoringCommand(session, {
+        schemaVersion: 1, type: SET_MENU_FIELD,
+        target: { nodeId: body.resourceNodeId, sectionId: body.sectionId || null, itemId: body.itemId || null, fieldId: body.fieldId },
+        payload: { value: body.value.trim() || null }, expectedDraftDigest: body.expectedDraftDigest,
+      });
+      diagnostics.proposals += 1;
+      selectionRedirect(response, { nodeId: body.nodeId, viewport: body.viewport, menuEntry: proposal.resolvedTarget.menuEntryId });
+    } catch (error) {
+      if (handleAuthoringError(error, response)) return;
+      throw error;
+    }
+  });
+
   app.post(actionPaths.resource, (request, response) => {
     try {
       requireNoActiveProposal();
@@ -581,11 +607,12 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
         new Set([
           'nodeId',
           'fieldId',
+          'menuEntry',
           'viewport',
           'expectedDraftDigest',
           'expectedPersistedDigest',
         ]),
-        new Set(['fieldId']),
+        new Set(['fieldId', 'menuEntry']),
       );
       diagnostics.saveRequests += 1;
       const savedPaths = [...ephemeralMedia.keys()];
@@ -691,8 +718,8 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const body = plainStrings(
         request.body,
         'apply form',
-        new Set(['nodeId', 'fieldId', 'viewport']),
-        new Set(['fieldId']),
+        new Set(['nodeId', 'fieldId', 'viewport', 'menuEntry']),
+        new Set(['fieldId', 'menuEntry']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to apply');
       const acceptedProposal = proposal;
@@ -724,8 +751,8 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const body = plainStrings(
         request.body,
         'discard form',
-        new Set(['nodeId', 'fieldId', 'viewport']),
-        new Set(['fieldId']),
+        new Set(['nodeId', 'fieldId', 'viewport', 'menuEntry']),
+        new Set(['fieldId', 'menuEntry']),
       );
       if (!proposal) throw new V2AuthoringStudioError('there is no active proposal to discard');
       session = discardV2AuthoringProposal(session, proposal);
@@ -744,14 +771,14 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const body = plainStrings(
         request.body,
         'undo form',
-        new Set(['nodeId', 'fieldId', 'viewport']),
-        new Set(['fieldId']),
+        new Set(['nodeId', 'fieldId', 'viewport', 'menuEntry']),
+        new Set(['fieldId', 'menuEntry']),
       );
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before undo');
       const historyCommand = session.history[session.historyIndex - 1]?.command;
       session = undoV2AuthoringSession(session);
       if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
-        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = ''; delete body.menuEntry;
       }
       diagnostics.undos += 1;
       syncEphemeralMedia();
@@ -767,14 +794,14 @@ function createV2AuthoringStudioApp(sourceInput, options = {}) {
       const body = plainStrings(
         request.body,
         'redo form',
-        new Set(['nodeId', 'fieldId', 'viewport']),
-        new Set(['fieldId']),
+        new Set(['nodeId', 'fieldId', 'viewport', 'menuEntry']),
+        new Set(['fieldId', 'menuEntry']),
       );
       if (proposal) throw new V2AuthoringStudioError('discard or apply the preview before redo');
       const historyCommand = session.history[session.historyIndex]?.command;
       session = redoV2AuthoringSession(session);
       if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(historyCommand?.type)) {
-        body.nodeId = historyCommand.target.nodeId; body.fieldId = '';
+        body.nodeId = historyCommand.target.nodeId; body.fieldId = ''; delete body.menuEntry;
       }
       diagnostics.redos += 1;
       syncEphemeralMedia();
