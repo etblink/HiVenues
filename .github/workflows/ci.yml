@@ -127,6 +127,13 @@ jobs:
         run: npm run build
       - name: Capture PM4 shared menu scalar evidence
         run: node scripts/capture-v2-menu-scalar-visual.js
+      - name: Publish menu evidence for concurrent Project Lead review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: menu-scalar-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/v2-menu-scalar-review
+          if-no-files-found: error
+          retention-days: 90
       - name: Capture PM4 resource lifecycle and list-order evidence
         run: node scripts/capture-v2-resource-lifecycle-visual.js
       - name: Run current visual machine contract with bounded concurrency

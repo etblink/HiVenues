@@ -38,6 +38,7 @@ async function capture(page, name, records) {
   });
   const active = await page.locator('.menu-editor .preview-state').count();
   if (active) {
+    assert.equal(await page.locator('.menu-entry-label').textContent(), 'Small plates / Coastal oysters');
     assert.equal(await page.locator('.menu-field-form,.menu-entry-form').count(), 0);
     for (const name of ['Undo', 'Redo']) assert.equal(await page.getByRole('button', { name, exact: true }).isDisabled(), true);
     for (const name of ['Apply to draft', 'Discard preview']) {

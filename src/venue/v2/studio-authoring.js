@@ -419,7 +419,7 @@ function renderMenuEditor({ model, session, proposal, source, actionPaths }) {
     <input id="menu-${escapeHtml(field.id)}" type="text" name="value" maxlength="${field.maxLength}" value="${escapeHtml(field.currentValue)}"${field.nullable ? '' : ' required'}>
     ${field.nullable ? '<p class="form-help">Leave blank to hide this from the menu.</p>' : ''}
     <button class="button primary" type="submit">Preview ${escapeHtml(field.label.toLowerCase())}</button></form>`).join('');
-  const active = proposal ? `<div class="preview-state" role="status"><strong>Menu preview — not applied</strong><span>${escapeHtml(proposal.resolvedTarget.label)}: ${escapeHtml(proposal.command.payload.value ?? 'Not shown')}</span></div>
+  const active = proposal ? `<h4 class="menu-entry-label">${escapeHtml(entry.label)}</h4><div class="preview-state" role="status"><strong>Menu preview — not applied</strong><span>${escapeHtml(proposal.resolvedTarget.label)}: ${escapeHtml(proposal.command.payload.value ?? 'Not shown')}</span></div>
     ${renderProposalActions({ ...model, menuEntry: entry.id }, actionPaths)}` : picker + `<h4>${escapeHtml(entry.label)}</h4>` + controls;
   return `<section class="editor-card menu-editor"><p class="eyebrow">Shared menu</p><h3>${escapeHtml(context.label)}</h3>
     <p class="muted">Changes appear everywhere this menu is shown.</p>${active}</section>`;

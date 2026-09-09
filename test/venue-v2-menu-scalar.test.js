@@ -113,6 +113,7 @@ test('Studio menu picker, strict forms, proposal lock and nested selection survi
   const preview = await request(fixture.app).post('/studio-authoring/menu-field').type('form').send(form).expect(303);
   doc = new JSDOM((await request(fixture.app).get(preview.headers.location).expect(200)).text).window.document;
   assert.equal(doc.querySelectorAll('.menu-field-form').length, 0);
+  assert.equal(doc.querySelector('.menu-entry-label').textContent, 'To begin / Oysters');
   for (const action of ['undo', 'redo']) assert.equal(doc.querySelector(`form[action="/studio-authoring/${action}"] button`).disabled, true);
   assert.equal(doc.querySelector('form[action="/studio-authoring/apply"] [name="menuEntry"]').value, 'item:starters:oysters');
   await request(fixture.app).post('/studio-authoring/menu-field').type('form').send(form).expect(400);

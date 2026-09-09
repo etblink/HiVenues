@@ -21,6 +21,8 @@ history. A native entry picker keeps only the selected entry's fields visible;
 operator labels describe menus, sections, dishes and prices, without requiring
 source editing. An active proposal has explicit Apply/Discard and no competing
 mutation controls. Accepted draft, preview and saved checkpoint stay distinct.
+The active preview also names the selected menu entry beside the changed field;
+the menu title alone is insufficient context for a dish-specific price change.
 
 ## Completion criteria and executable oracles
 
@@ -38,6 +40,9 @@ mutation controls. Accepted draft, preview and saved checkpoint stay distinct.
 Keep the complete existing qualification envelope. Run the new bounded browser
 journey early; measure its incremental cost. No speculative pruning. Require
 canonical post-merge qualification and artifact binding when SHA changes.
+Publish the menu manifest and three PNGs immediately after capture for concurrent
+Project Lead review. Preserve the same files in the complete evidence artifact;
+early review does not replace full CI success or canonical qualification.
 
 Menu resource/section/item creation, removal and ordering form the next separate
 cardinality family. Other #199 obligations remain actions, timestamp editing,
