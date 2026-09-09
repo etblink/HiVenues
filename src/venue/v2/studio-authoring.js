@@ -19,6 +19,7 @@ const {
   REMOVE_COMPONENT,
   SET_MEDIA_USAGE_ASSET,
   SET_THEME_RECIPE,
+  SET_MENU_FIELD,
   V2_GLOBAL_THEME_TARGET,
   V2_HERO_MEDIA_SLOT,
   getV2ComponentRemovalContext,
@@ -26,6 +27,7 @@ const {
   listV2ComponentMoveDestinations,
   listV2MediaUsageOptions,
   listV2ResourceScalarFieldOptions,
+  listV2MenuFieldOptions,
   listV2ThemeRecipeOptions,
   resolveV2AuthoringTarget,
 } = require('./authoring-transaction');
@@ -71,6 +73,7 @@ function selectionHref(studioPath, model, overrides = {}) {
     ? overrides.fieldId
     : model.selection.fieldId;
   if (fieldId) query.set('fieldId', fieldId);
+  if (model.menuEntry && query.get('nodeId') === model.selection.nodeId) query.set('menuEntry', model.menuEntry);
   return `${studioPath}?${query.toString()}`;
 }
 
@@ -392,6 +395,36 @@ function matchingFieldProposal(proposal, model) {
     && proposal.command.target.fieldId === model.selection.fieldId;
 }
 
+function menuSelectionHidden(model) {
+  return model.menuEntry ? `<input type="hidden" name="menuEntry" value="${escapeHtml(model.menuEntry)}">` : '';
+}
+
+function renderMenuEditor({ model, session, proposal, source, actionPaths }) {
+  const context = listV2MenuFieldOptions(source, { nodeId: model.selectedEntry.nodeId });
+  if (proposal && (proposal.command.type !== SET_MENU_FIELD || proposal.command.target.nodeId !== context.target.nodeId)) {
+    return '<section class="editor-card"><h3>Finish the active preview first</h3><p class="muted">Apply or discard the preview before editing this menu.</p></section>';
+  }
+  const entry = context.entries.find((e) => e.id === (proposal?.resolvedTarget.menuEntryId || model.menuEntry || 'menu'));
+  const options = context.entries.map((e) => `<option value="${escapeHtml(e.id)}"${e.id === entry.id ? ' selected' : ''}>${escapeHtml(e.label)}</option>`).join('');
+  const picker = `<form class="edit-form menu-entry-form" method="get" action="${escapeHtml(actionPaths.studio)}">
+    <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+    <label for="menu-entry">Menu, section or item</label><select id="menu-entry" name="menuEntry">${options}</select>
+    <button class="button secondary" type="submit">Edit selection</button></form>`;
+  const controls = entry.fields.map((field) => `<form class="edit-form menu-field-form" method="post" action="${escapeHtml(actionPaths.menu)}">
+    <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="resourceNodeId" value="${escapeHtml(context.target.nodeId)}">
+    <input type="hidden" name="sectionId" value="${escapeHtml(entry.sectionId)}"><input type="hidden" name="itemId" value="${escapeHtml(entry.itemId)}">
+    <input type="hidden" name="fieldId" value="${escapeHtml(field.id)}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
+    <input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}">
+    <label for="menu-${escapeHtml(field.id)}">${escapeHtml(field.label)}${field.nullable ? ' (optional)' : ''}</label>
+    <input id="menu-${escapeHtml(field.id)}" type="text" name="value" maxlength="${field.maxLength}" value="${escapeHtml(field.currentValue)}"${field.nullable ? '' : ' required'}>
+    ${field.nullable ? '<p class="form-help">Leave blank to hide this from the menu.</p>' : ''}
+    <button class="button primary" type="submit">Preview ${escapeHtml(field.label.toLowerCase())}</button></form>`).join('');
+  const active = proposal ? `<div class="preview-state" role="status"><strong>Menu preview — not applied</strong><span>${escapeHtml(proposal.resolvedTarget.label)}: ${escapeHtml(proposal.command.payload.value ?? 'Not shown')}</span></div>
+    ${renderProposalActions({ ...model, menuEntry: entry.id }, actionPaths)}` : picker + `<h4>${escapeHtml(entry.label)}</h4>` + controls;
+  return `<section class="editor-card menu-editor"><p class="eyebrow">Shared menu</p><h3>${escapeHtml(context.label)}</h3>
+    <p class="muted">Changes appear everywhere this menu is shown.</p>${active}</section>`;
+}
+
 function matchingResourceProposal(proposal, model) {
   return Boolean(
     proposal
@@ -538,12 +571,14 @@ function renderProposalActions(model, actionPaths) {
     <form method="post" action="${escapeHtml(actionPaths.apply)}">
       <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
       ${field}
+      ${menuSelectionHidden(model)}
       <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
       <button class="button primary" type="submit">Apply to draft</button>
     </form>
     <form method="post" action="${escapeHtml(actionPaths.discard)}">
       <input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}">
       ${field}
+      ${menuSelectionHidden(model)}
       <input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">
       <button class="button secondary" type="submit">Discard preview</button>
     </form>
@@ -771,6 +806,9 @@ function renderEditor({
     return '<section class="editor-card"><p class="eyebrow">Selected context</p><h3>Theme preview active</h3><p class="muted">The current Canvas selection remains available for orientation. Apply or discard the Theme proposal below before starting another content or structure change.</p></section>';
   }
   if (model.selectedEntry.kind === 'resource-reference') {
+    if (model.selectedEntry.nodeId.startsWith('resource:menus:')) {
+      return renderMenuEditor({ model, session, proposal, source, actionPaths });
+    }
     return renderResourceLifecycleEditor({ model, session, proposal, source, actionPaths })
       + renderResourceEditor({ model, session, proposal, source, actionPaths, persistence });
   }
@@ -824,7 +862,7 @@ function renderEditor({
 }
 
 function renderHistoryControls(session, actionPaths, model, proposal) {
-  const hidden = `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">`;
+  const hidden = `${menuSelectionHidden(model)}<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}">`;
   return `<section class="history-card" aria-labelledby="history-heading">
     <div><p class="eyebrow">Session history</p><h3 id="history-heading">Undo / Redo</h3><p>${proposal ? 'Apply or discard the preview before using history.' : `${session.historyIndex} applied change${session.historyIndex === 1 ? '' : 's'} in the current branch of history.`}</p></div>
     <div class="history-actions">
@@ -866,7 +904,7 @@ function renderPersistenceControls(session, proposal, persistence, actionPaths, 
         ? 'No durable v2 checkpoint exists yet.'
         : 'The accepted draft has changed since the last workspace checkpoint.';
   const buttonLabel = saved ? 'Workspace saved' : 'Save workspace checkpoint';
-  const hidden = `<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}"><input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}"><input type="hidden" name="expectedPersistedDigest" value="${escapeHtml(persistence.persistedDigest)}">`;
+  const hidden = `${menuSelectionHidden(model)}<input type="hidden" name="nodeId" value="${escapeHtml(model.selection.nodeId)}"><input type="hidden" name="fieldId" value="${escapeHtml(model.selection.fieldId || '')}"><input type="hidden" name="viewport" value="${escapeHtml(model.selection.viewport)}"><input type="hidden" name="expectedDraftDigest" value="${escapeHtml(session.draftDigest)}"><input type="hidden" name="expectedPersistedDigest" value="${escapeHtml(persistence.persistedDigest)}">`;
   return `<section class="history-card persistence-card" aria-labelledby="persistence-heading">
     <div><p class="eyebrow">Workspace checkpoint</p><h3 id="persistence-heading">${saved ? 'Saved' : 'Save accepted draft'}</h3><p>${escapeHtml(state)}</p><p><code>${escapeHtml(persistence.sourceFilename)}</code></p></div>
     <form method="post" action="${escapeHtml(actionPaths.save)}">${hidden}<button class="button primary" type="submit"${blocked || saved ? ' disabled' : ''}>${escapeHtml(buttonLabel)}</button></form>
@@ -892,6 +930,7 @@ function renderV2AuthoringStudioSurface({
   const normalizedStudioPath = strictLocalPath(studioPath, 'Studio path');
   const persistence = normalizePersistence(persistenceInput, session);
   const normalizedActions = {
+    menu: strictLocalPath(actionPaths.menu || `${normalizedStudioPath}/menu-field`, 'menu field path'),
     propose: strictLocalPath(actionPaths.propose || `${normalizedStudioPath}/propose`, 'propose path'),
     resourceLifecycle: strictLocalPath(actionPaths.resourceLifecycle || `${normalizedStudioPath}/resource-lifecycle`, 'resource lifecycle path'),
     resource: strictLocalPath(actionPaths.resource || `${normalizedStudioPath}/resource`, 'resource path'),
@@ -910,7 +949,31 @@ function renderV2AuthoringStudioSurface({
   };
 
   const source = session.draftSource;
-  const model = createV2ReadOnlyStudioModel(source, query);
+  const canvasQuery = {};
+  let menuEntry;
+  if (query !== undefined && query !== null) {
+    if (typeof query !== 'object' || Array.isArray(query)
+      || ![Object.prototype, null].includes(Object.getPrototypeOf(query))) {
+      throw new V2AuthoringStudioError('query must be a plain object');
+    }
+    for (const key of Reflect.ownKeys(query)) {
+      const descriptor = Object.getOwnPropertyDescriptor(query, key);
+      if (!['nodeId', 'fieldId', 'viewport', 'menuEntry'].includes(key)
+        || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) {
+        throw new V2AuthoringStudioError('query contains unsupported fields');
+      }
+      if (key === 'menuEntry') menuEntry = descriptor.value;
+      else canvasQuery[key] = descriptor.value;
+    }
+  }
+  const baseModel = createV2ReadOnlyStudioModel(source, canvasQuery);
+  if (menuEntry !== undefined) {
+    const context = listV2MenuFieldOptions(source, { nodeId: baseModel.selectedEntry.nodeId });
+    if (typeof menuEntry !== 'string' || !context.entries.some((e) => e.id === menuEntry)) {
+      throw new V2AuthoringStudioError('selected menu entry does not exist');
+    }
+  }
+  const model = { ...baseModel, menuEntry };
   const previewSource = proposal ? proposal.previewSource : source;
   const previewSelectionNodeId = proposal?.command.type === REMOVE_COMPONENT
     ? `page:${proposal.resolvedTarget.pageId}`

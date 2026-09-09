@@ -55,6 +55,7 @@ const visualPatterns = [
   'src/venue/v2/studio-authoring.js',
   'src/venue/v2/studio-app.js',
   'test/venue-v2-resource-lifecycle.test.js',
+  'test/venue-v2-menu-scalar.test.js',
   'test/support/v2-authoring-studio-fixture.js',
   'test/venue-v2-authoring-transaction.test.js',
   'test/venue-v2-authoring-studio.test.js',

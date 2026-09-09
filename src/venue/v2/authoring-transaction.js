@@ -29,6 +29,7 @@ const MOVE_RESOURCE = 'MOVE_RESOURCE';
 const RESTORE_RESOURCE = 'RESTORE_RESOURCE';
 const END_OF_LIST = 'END_OF_LIST';
 const SET_FIELD = 'SET_FIELD';
+const SET_MENU_FIELD = 'SET_MENU_FIELD';
 const SET_THEME_RECIPE = 'SET_THEME_RECIPE';
 const SET_MEDIA_USAGE_ASSET = 'SET_MEDIA_USAGE_ASSET';
 const IMPORT_LOCAL_HERO_MEDIA = 'IMPORT_LOCAL_HERO_MEDIA';
@@ -635,6 +636,7 @@ function parseAuthoringCommand(value, { allowInternal = false } = {}) {
   if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE].includes(command.type)
     || (allowInternal && command.type === RESTORE_RESOURCE)) return parseResourceCommand(value);
   if (command.type === SET_FIELD) return parseSetFieldCommand(value);
+  if (command.type === SET_MENU_FIELD) return parseMenuFieldCommand(value);
   if (command.type === SET_THEME_RECIPE) return parseSetThemeRecipeCommand(value);
   if (command.type === SET_MEDIA_USAGE_ASSET) return parseMediaUsageCommand(value);
   if (command.type === IMPORT_LOCAL_HERO_MEDIA) return parseImportLocalHeroMediaCommand(value);
@@ -1533,6 +1535,96 @@ function withComponentMove(sourceInput, resolved) {
   return createV2DeploymentAgnosticVenueSource(candidate);
 }
 
+function parseMenuFieldTarget(value) {
+  const target = plainRecord(value, 'menu field target', new Set(['nodeId', 'sectionId', 'itemId', 'fieldId']));
+  const identity = (id, label) => id === null ? null : scalarString(id, label, { max: 80 });
+  const result = {
+    nodeId: scalarString(target.nodeId, 'menu nodeId', { max: 200 }),
+    sectionId: identity(target.sectionId, 'menu sectionId'),
+    itemId: identity(target.itemId, 'menu itemId'),
+    fieldId: scalarString(target.fieldId, 'menu fieldId', { max: 80 }),
+  };
+  if (result.itemId && !result.sectionId) throw new V2AuthoringTransactionError('menu item requires a section');
+  return result;
+}
+
+function parseMenuFieldCommand(value) {
+  const command = plainRecord(value, 'menu field command', new Set(['schemaVersion', 'type', 'target', 'payload', 'expectedDraftDigest']));
+  if (command.schemaVersion !== 1 || command.type !== SET_MENU_FIELD) throw new V2AuthoringTransactionError('unsupported menu field command');
+  const payload = plainRecord(command.payload, 'menu field payload', new Set(['value']));
+  return {
+    schemaVersion: 1, type: SET_MENU_FIELD, target: parseMenuFieldTarget(command.target),
+    payload: { value: payload.value === null ? null : scalarString(payload.value, 'menu field value', { max: 240 }) },
+    expectedDraftDigest: digest(command.expectedDraftDigest, 'expectedDraftDigest'),
+  };
+}
+
+function menuEntryId(sectionId, itemId) {
+  return itemId ? `item:${sectionId}:${itemId}` : sectionId ? `section:${sectionId}` : 'menu';
+}
+
+function listV2MenuFieldOptions(sourceInput, targetInput) {
+  const source = createV2DeploymentAgnosticVenueSource(sourceInput);
+  const target = plainRecord(targetInput, 'menu target', new Set(['nodeId']));
+  const nodeId = scalarString(target.nodeId, 'menu nodeId', { max: 200 });
+  const node = listV2CanvasNodes(createV2SemanticCanvasProjection(source)).find((n) => n.id === nodeId);
+  if (!node || node.stableIdentity?.type !== 'resource-id' || !nodeId.startsWith('resource:menus:')) {
+    throw new V2AuthoringTransactionError('stable shared menu target does not exist');
+  }
+  const menuId = nodeId.slice('resource:menus:'.length);
+  const menuIndex = source.resources.menus.findIndex((m) => m.id === menuId);
+  if (menuIndex < 0) throw new V2AuthoringTransactionError('menu does not exist');
+  const menu = source.resources.menus[menuIndex];
+  const field = (id, label, nullable = false, maxLength = 240) => ({ id, label, nullable, maxLength });
+  const entries = [];
+  const add = (entity, sectionId, itemId, label, pointer, definitions) => {
+    const fields = definitions.map((definition) => {
+      const sourcePointer = `${pointer}/${definition.id}`;
+      if (pathOwnership(sourcePointer) !== OWNERSHIP.OPERATOR_AUTHORED) throw new V2AuthoringTransactionError('menu field is not operator authored');
+      return { ...definition, currentValue: entity[definition.id], sourcePointer };
+    });
+    entries.push({ id: menuEntryId(sectionId, itemId), sectionId, itemId, label, fields });
+  };
+  const root = `/resources/menus/${menuIndex}`;
+  add(menu, null, null, `${menu.title} — menu`, root, [field('title', 'Menu title')]);
+  menu.sections.forEach((section, si) => {
+    const pointer = `${root}/sections/${si}`;
+    add(section, section.id, null, `${section.title} — section`, pointer, [field('title', 'Section title')]);
+    section.items.forEach((item, ii) => add(item, section.id, item.id, `${section.title} / ${item.name}`, `${pointer}/items/${ii}`, [
+      field('name', 'Item name'), field('description', 'Description', true), field('priceLabel', 'Price', true, 80),
+    ]));
+  });
+  return deepFreeze({ target: { nodeId }, menuId, menuIndex, label: menu.title, entries });
+}
+
+function evaluateMenuField(source, command, beforeDigest) {
+  const context = listV2MenuFieldOptions(source, { nodeId: command.target.nodeId });
+  const entry = context.entries.find((e) => e.sectionId === command.target.sectionId && e.itemId === command.target.itemId);
+  const field = entry?.fields.find((f) => f.id === command.target.fieldId);
+  if (!field) throw new V2AuthoringTransactionError('menu field or nested membership is invalid');
+  const value = command.payload.value;
+  if (value === null ? !field.nullable : !value.trim() || value.length > field.maxLength) {
+    throw new V2AuthoringTransactionError('menu field value is outside its text/nullability bounds');
+  }
+  const candidate = clone(source);
+  let entity = candidate.resources.menus[context.menuIndex];
+  if (entry.sectionId) entity = entity.sections.find((s) => s.id === entry.sectionId);
+  if (entry.itemId) entity = entity.items.find((i) => i.id === entry.itemId);
+  entity[field.id] = value === null ? null : value.trim();
+  const afterSource = createV2DeploymentAgnosticVenueSource(candidate);
+  const afterDigest = deriveV2DeploymentAgnosticVenueSourceDigest(afterSource);
+  if (afterDigest === beforeDigest) throw new V2AuthoringTransactionError('menu field change is a no-op');
+  const validatedCommand = parseMenuFieldCommand({ ...command, payload: { value: entity[field.id] } });
+  const inverseCommand = parseMenuFieldCommand({ ...validatedCommand, payload: { value: field.currentValue }, expectedDraftDigest: afterDigest });
+  return deepFreeze({
+    command: validatedCommand, inverseCommand, beforeDigest, afterDigest, afterSource,
+    resolvedTarget: { nodeId: command.target.nodeId, resourceKind: 'menus', resourceId: context.menuId,
+      sectionId: entry.sectionId, itemId: entry.itemId, menuEntryId: entry.id,
+      fieldId: field.id, label: field.label, entryLabel: entry.label,
+      sourcePointer: field.sourcePointer, ownership: OWNERSHIP.OPERATOR_AUTHORED },
+  });
+}
+
 const RESOURCE_LIST_KINDS = Object.freeze({
   'event-list': 'events', 'program-list': 'programs', 'equipment-status': 'equipment',
 });
@@ -1731,6 +1823,7 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
   if ([ADD_RESOURCE, REMOVE_RESOURCE, MOVE_RESOURCE, RESTORE_RESOURCE].includes(command.type)) {
     return resourceTransition(source, command, beforeDigest);
   }
+  if (command.type === SET_MENU_FIELD) return evaluateMenuField(source, command, beforeDigest);
 
   if (command.type === SET_FIELD) {
     const resolved = resolveTarget(source, command.target);
@@ -2421,6 +2514,7 @@ module.exports = {
   MOVE_COMPONENT,
   REMOVE_COMPONENT,
   SET_FIELD,
+  SET_MENU_FIELD,
   SET_THEME_RECIPE,
   SET_MEDIA_USAGE_ASSET,
   V2_COMPONENT_CATALOG,
@@ -2442,6 +2536,7 @@ module.exports = {
   listV2ComponentMoveDestinations,
   listV2MediaUsageOptions,
   listV2ResourceScalarFieldOptions,
+  listV2MenuFieldOptions,
   listV2ThemeRecipeOptions,
   proposeV2AddComponent,
   proposeV2AuthoringCommand,
