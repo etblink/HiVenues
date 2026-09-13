@@ -116,7 +116,7 @@ test('v3 source admits the frozen native semantic action roles plus explicit leg
   for (const role of V3_ACTIVITY_PUBLIC_ACTION_ROLES) {
     const candidate = clone(nativeCreatorSource());
     candidate.resources.activities[0].publicActions = [{
-      id: `action:live-session-one:${role.toLowerCase()}`,
+      id: `action:live-session-one:${role.toLowerCase().replaceAll('_', '-')}`,
       role,
       label: `Action ${role}`,
       href: 'https://example.test/action',
@@ -158,7 +158,7 @@ test('public command boundary cannot create LEGACY_EXTERNAL, payment semantics, 
     label: 'Watch',
     href: 'https://user:secret@example.test/watch',
     destination: { kind: END_OF_PUBLIC_ACTIONS },
-  }), /credential-free HTTPS/);
+  }), /credential-free HTTPS|userinfo credentials/);
 });
 
 test('native public actions derive collision-safe stable ids, edit without relabeling role, reorder in renderer and round-trip Undo/Redo', () => {
@@ -434,7 +434,7 @@ test('Preview and Discard have no disk/external effect; accepted S3 state saves 
       destination: { kind: END_OF_MANAGED_MEDIA },
     });
     const saved = atomicSaveV3DeploymentAgnosticVenueSourceFile(filename, session.draftSource, {
-      expectedPersistedDigest: V3_PERSISTED_SOURCE_ABSENT,
+      expectedDigest: V3_PERSISTED_SOURCE_ABSENT,
     });
     assert.equal(saved.digest, session.draftDigest);
     const reopened = loadV3DeploymentAgnosticVenueSourceFile(filename);
