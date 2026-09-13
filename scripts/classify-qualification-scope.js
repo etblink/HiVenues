@@ -74,6 +74,7 @@ const dedicatedV3Patterns = [
   'test/venue-v3-cross-host-studio.test.js',
   'scripts/capture-v3-cross-host-journeys-visual.js',
   'scripts/capture-v3-s7-generated-experience-visual.js',
+  'scripts/capture-v3-s8-social-surface-visual.js',
   '.github/workflows/v3-s4-browser.yml',
 ].map((pattern) => new RegExp('^' + pattern.split('*')
   .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))

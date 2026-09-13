@@ -12,6 +12,7 @@ const {
   SURFACE_RECIPE_IDS,
   TYPOGRAPHY_RECIPE_IDS,
 } = require('../v2/source');
+const { validateHiveSocialBindings } = require('./social-bindings');
 
 const V3_SOURCE_KIND = 'hive-venues-deployment-agnostic-source';
 const V3_SOURCE_SCHEMA_VERSION = 3;
@@ -479,7 +480,7 @@ const navigationEntrySchema = z.object({
 
 const emptyBindingRecordSchema = z.never();
 const activityBindingsSchema = z.object({
-  hiveSocial: z.array(emptyBindingRecordSchema).max(0),
+  hiveSocial: z.array(z.unknown()).max(500),
   providerMedia: z.array(emptyBindingRecordSchema).max(0),
   syndication: z.array(emptyBindingRecordSchema).max(0),
   value: z.array(emptyBindingRecordSchema).max(0),
@@ -601,6 +602,14 @@ function validateCrossReferences(source) {
     if (activity.seriesRef && !programIds.has(activity.seriesRef.id)) {
       throw new V3VenueSourceError(`activity ${activity.id} references missing program ${activity.seriesRef.id}`);
     }
+  }
+
+  try {
+    source.activityBindings.hiveSocial = clone(
+      validateHiveSocialBindings(source, source.activityBindings.hiveSocial),
+    );
+  } catch (error) {
+    throw new V3VenueSourceError(error.message, { cause: error });
   }
 
   if (source.site.brand.logoAssetId !== null && !mediaIds.has(source.site.brand.logoAssetId)) {

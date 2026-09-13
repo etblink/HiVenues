@@ -9,6 +9,7 @@ on:
       - 'test/venue-v3-cross-host-studio.test.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
       - 'scripts/capture-v3-s7-generated-experience-visual.js'
+      - 'scripts/capture-v3-s8-social-surface-visual.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   push:
@@ -21,6 +22,7 @@ on:
       - 'test/venue-v3-cross-host-studio.test.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
       - 'scripts/capture-v3-s7-generated-experience-visual.js'
+      - 'scripts/capture-v3-s8-social-surface-visual.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   workflow_dispatch:
@@ -64,20 +66,25 @@ jobs:
         env:
           V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
         run: node scripts/capture-v3-s7-generated-experience-visual.js
-      - name: Publish S4/S7 review evidence
+      - name: Run S8 social surface qualification
+        env:
+          V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
+        run: node scripts/capture-v3-s8-social-surface-visual.js
+      - name: Publish S4/S7/S8 review evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: v3-s4-cross-host-review-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/v3-s4-cross-host-review
           if-no-files-found: error
           retention-days: 90
-      - name: Publish S4/S7 metrics
+      - name: Publish S4/S7/S8 metrics
         shell: bash
         run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('node:fs');
           const manifest = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/manifest.json', 'utf8'));
           const s7 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s7-generated-experience/manifest.json', 'utf8'));
+          const s8 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s8-social-surface/manifest.json', 'utf8'));
           console.log('## V3 S4 cross-host operator journeys');
           console.log('');
           console.log(`- References completed: ${manifest.summary.referenceCount}`);
@@ -99,4 +106,14 @@ jobs:
           console.log(`- External browser requests: ${s7.summary.externalRequests}`);
           console.log(`- Hive/provider writes: ${s7.summary.hiveWrites}/${s7.summary.providerWrites}`);
           console.log(`- Payment/signing/deployment effects: ${s7.summary.payments}/${s7.summary.signingAttempts}/${s7.summary.deployments}`);
+          console.log('');
+          console.log('## V3 S8 social surface');
+          console.log('');
+          console.log(`- Capability variants: ${s8.summary.variantCount} (configured ${s8.summary.configuredCapabilityCount}; disabled ${s8.summary.disabledCapabilityCount})`);
+          console.log(`- Desktop/narrow screenshots: ${s8.summary.desktopScreenshotCount}/${s8.summary.narrowScreenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${s8.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal-overflow findings: ${s8.summary.horizontalOverflowFindings}`);
+          console.log(`- External browser requests: ${s8.summary.externalRequests}`);
+          console.log(`- Hive RPC attempts/writes: ${s8.summary.hiveRpcAttempts}/${s8.summary.hiveWrites}`);
+          console.log(`- Provider writes: ${s8.summary.providerWrites}`);
           NODE
