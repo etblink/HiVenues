@@ -303,7 +303,7 @@ function createV3PreviewFixture(sourceInput, options = {}) {
   app.get('/__hivenues-v3/styles.css', (_request, response) => {
     response.type('text/css').send(renderV3PublicStylesheet());
   });
-  app.use(express.static(PUBLIC_ROOT, { fallthrough: true }));
+  app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
   app.use((request, response) => {
     try {
       response.type('html').send(renderV3Route(source, request.path, { legacyEventRoutes }));
