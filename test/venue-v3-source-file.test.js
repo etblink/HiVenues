@@ -109,8 +109,8 @@ test('v3 source persistence rejects noncanonical persisted bytes and unsafe dest
     const realLstat = fs.lstatSync.bind(fs);
     const fsImpl = {
       ...fs,
-      lstatSync(candidate) {
-        const stat = realLstat(candidate);
+      lstatSync(candidate, options) {
+        const stat = realLstat(candidate, options);
         if (path.resolve(candidate) !== path.resolve(filename)) return stat;
         return new Proxy(stat, {
           get(target, property) {
@@ -140,8 +140,8 @@ test('v3 source persistence detects same-digest destination path replacement dur
     let destinationInspections = 0;
     const fsImpl = {
       ...fs,
-      lstatSync(candidate) {
-        const stat = realLstat(candidate);
+      lstatSync(candidate, options) {
+        const stat = realLstat(candidate, options);
         if (path.resolve(candidate) === path.resolve(filename)) {
           destinationInspections += 1;
           if (destinationInspections >= 2) return replacedInodeStat(stat);
