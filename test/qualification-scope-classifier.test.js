@@ -67,7 +67,7 @@ test('Canvas module alone selects visual qualification through the CI executable
   selected(f.run({ EVENT_NAME: 'push', PR_BASE_SHA: 'invalid-unused', PUSH_BEFORE_SHA: base }), true);
 });
 
-test('all retained trigger families and exact classifier inputs qualify isolated changes', async (t) => {
+test('all retained legacy visual trigger families qualify isolated changes', async (t) => {
   const f = fixture(t);
   const examples = [
     'src/venue/canvas-source-preview.js', 'src/venue/editable-venue-canvas-surface.js',
@@ -97,7 +97,6 @@ test('all retained trigger families and exact classifier inputs qualify isolated
     'test/venue-v2-renderer.test.js', '.github/workflows/ci.yml',
     'src/venue/v2/studio-app.js', 'test/venue-v2-resource-lifecycle.test.js',
     'test/venue-v2-menu-scalar.test.js', 'scripts/capture-v2-menu-scalar-visual.js',
-    'scripts/classify-qualification-scope.js', 'test/qualification-scope-classifier.test.js',
   ];
   for (const file of examples) {
     await t.test(file, () => {
@@ -106,6 +105,23 @@ test('all retained trigger families and exact classifier inputs qualify isolated
       assert.equal(f.git('diff', '--name-only', base, 'HEAD'), file);
       selected(f.run({ PR_BASE_SHA: base, PUSH_BEFORE_SHA: 'invalid-unused' }), true);
     });
+  }
+});
+
+test('v3-owned browser inputs and classifier maintenance do not replay legacy visual evidence', (t) => {
+  const f = fixture(t);
+  for (const file of [
+    'src/venue/v3/renderer/index.js',
+    'scripts/capture-v3-s8-social-visual.js',
+    'test/support/v3-social-visual-fixture.js',
+    'test/venue-v3-social-surface.test.js',
+    '.github/workflows/v3-s4-browser.yml',
+    'scripts/classify-qualification-scope.js',
+    'test/qualification-scope-classifier.test.js',
+  ]) {
+    const base = f.git('rev-parse', 'HEAD');
+    f.commit(file);
+    selected(f.run({ PR_BASE_SHA: base }), false);
   }
 });
 
