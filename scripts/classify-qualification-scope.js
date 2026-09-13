@@ -4,7 +4,9 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 
 // The single executable selection policy. '*' retains Bash case semantics,
-// including nested directories. Exact classifier inputs also qualify themselves.
+// including nested directories. The legacy/current visual suite remains available
+// for its own product surfaces and manual dispatch, while v3 browser evidence is
+// owned by the dedicated v3-s4-browser workflow.
 const visualPatterns = [
   'docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md',
   'views/*',
@@ -61,11 +63,24 @@ const visualPatterns = [
   'test/venue-v2-authoring-studio.test.js',
   'src/venue/editable-venue-canvas-surface.js',
   '.github/workflows/ci.yml',
-  'scripts/classify-qualification-scope.js',
-  'test/qualification-scope-classifier.test.js',
 ].map((pattern) => new RegExp('^' + pattern.split('*')
   .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   .join('[\\s\\S]*') + '$'));
+
+const dedicatedV3Patterns = [
+  'src/venue/v3/*',
+  'scripts/capture-v3-*-visual.js',
+  'test/support/v3-*',
+  'test/venue-v3-*',
+  '.github/workflows/v3-s4-browser.yml',
+].map((pattern) => new RegExp('^' + pattern.split('*')
+  .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  .join('[\\s\\S]*') + '$'));
+
+function requiresLegacyVisual(path) {
+  if (dedicatedV3Patterns.some((pattern) => pattern.test(path))) return false;
+  return visualPatterns.some((pattern) => pattern.test(path));
+}
 
 function git(args) {
   return execFileSync('git', args, {
@@ -90,18 +105,18 @@ function main() {
     if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(base)) throw new Error('Base must be a full Git commit SHA');
     // Resolve a commit, reject missing objects, and separate revisions from paths.
     const commit = git(['rev-parse', '--verify', base + '^{commit}']).trim();
-    // Include both sides of renames; deleting a visual path must still qualify.
+    // Include both sides of renames; deleting a legacy visual path must still qualify.
     const changed = git(['diff', '--no-renames', '--name-only', '-z', commit, 'HEAD', '--'])
       .split('\0').filter(Boolean);
     console.log('Changed paths: ' + JSON.stringify(changed));
-    visual = changed.some((path) => visualPatterns.some((pattern) => pattern.test(path)));
+    visual = changed.some(requiresLegacyVisual);
   } else {
     console.log('Manual qualification: current-contract UI/UX visual evidence selected.');
   }
 
   // No output is emitted until invocation and Git comparison have succeeded.
   fs.appendFileSync(GITHUB_OUTPUT, 'visual=' + visual + '\n');
-  console.log('UI/UX visual evidence required: ' + visual);
+  console.log('Legacy/current UI/UX visual evidence required: ' + visual);
 }
 
 try {
