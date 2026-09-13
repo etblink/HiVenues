@@ -31,16 +31,21 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function gitBlobSha(bytes) {
+function canonicalTextGitBlobSha(bytes) {
+  // Git stores this tracked text file with LF bytes, while Windows checkout may
+  // materialize CRLF. Normalize only CRLF -> LF so the test verifies the exact
+  // accepted repository text object without weakening any other byte/content
+  // difference.
+  const canonicalBytes = Buffer.from(bytes.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
   return createHash('sha1')
-    .update(Buffer.from(`blob ${bytes.length}\0`, 'utf8'))
-    .update(bytes)
+    .update(Buffer.from(`blob ${canonicalBytes.length}\0`, 'utf8'))
+    .update(canonicalBytes)
     .digest('hex');
 }
 
-test('first v3 slice leaves the exact accepted v2 source parser bytes unchanged', () => {
+test('first v3 slice preserves the exact accepted canonical v2 source parser text object', () => {
   const bytes = fs.readFileSync(path.join(ROOT, 'src', 'venue', 'v2', 'source.js'));
-  assert.equal(gitBlobSha(bytes), V2_SOURCE_GIT_BLOB);
+  assert.equal(canonicalTextGitBlobSha(bytes), V2_SOURCE_GIT_BLOB);
 });
 
 test('all three frozen references use one strict v3 source family with distinct deterministic digests', () => {
