@@ -189,6 +189,7 @@ function contentOperationArray(operation, config, payload) {
   ];
 }
 
+
 function buildPost({ account: accountValue, payload, config }) {
   const account = requireHiveAccount(accountValue);
   const title = requireOptionalTitle(payload?.title);
