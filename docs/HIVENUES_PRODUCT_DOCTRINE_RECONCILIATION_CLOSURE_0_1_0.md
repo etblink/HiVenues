@@ -140,7 +140,7 @@ The sole Ubuntu deterministic failure was the existing product-identity continui
 EXPECTED_README_PHRASE = multi-venue community and social platform powered by Hive
 ```
 
-The broader doctrine wording had truthfully expanded product scope, but had accidentally removed that exact established product description. The test therefore correctly prevented the reconciliation from silently discarding accepted product identity language.
+The broader doctrine wording had truthfully expanded product scope, but had accidentally removed that exact established product description. The test correctly prevented the reconciliation from silently discarding accepted product identity language.
 
 This finding was not waived and the test was not changed.
 
@@ -157,9 +157,56 @@ TEST_ORACLE_WEAKENED = NO
 
 The resulting product statement begins with the accepted continuity phrase while immediately clarifying the broader host-identity doctrine. This is a semantic reconciliation, not a retreat to physical-venue-only scope.
 
+## Exact-head requalification — CI #761 and third continuity finding
+
+The closure record was then updated and exact-head PR CI reran on:
+
+```text
+CI_RUN = 761
+CI_RUN_ID = 34735454087
+CI_HEAD = fd09bb2519a1759e5dd9361e3c89119fbdc395eb
+CI_HEAD_TREE = 3da11e7678dad593b58b93195a5c917c1074daef
+```
+
+This run again established that the repaired release/runtime gates were sound before the sole deterministic failure:
+
+```text
+CHECK_RELEASE_COHERENCE = PASS
+HIVENUES_V1_RELEASE_GATE = PASS
+FUNCTIONAL_V1_BASELINE = PASS
+DEPENDENCY_AUDIT_UBUNTU = PASS
+DEPENDENCY_AUDIT_WINDOWS = PASS
+DETERMINISTIC_TESTS_UBUNTU = 1077_PASS__1_FAIL__1078_TOTAL
+```
+
+The sole failure was another accepted documentation-continuity assertion in `test/hv6-current-routing.test.js`:
+
+```text
+EXPECTED_ROADMAP_HEADING = ## Completed CID lane
+```
+
+The rewritten roadmap had retained the CID facts but folded them into a broader successor-foundations section. That lost the exact accepted historical lane heading and also obscured the legacy summary token `CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY`.
+
+Again, the finding was not waived and the test was not changed.
+
+## Third bounded repair — CID lane continuity
+
+The roadmap now retains the doctrine overlay **and** restores the accepted CID lane as an explicit historical compatibility section:
+
+```text
+CID_LANE_CONTINUITY_REPAIR = 9c3d0dd29f628c1c65d31ecb85ab2d20b53b924c
+ROADMAP_HEADING = ## Completed CID lane
+CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY = PRESERVED
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+TEST_ORACLE_WEAKENED = NO
+```
+
+This does not reopen CID adoption and does not narrow the broadened host doctrine. It preserves an accepted historical technical result in the exact living-document form expected by the repository's continuity tests.
+
 ## Scope qualification
 
-The operation remains documentation-only. Allowed changed paths are exactly:
+The operation remains documentation-only. Allowed changed paths across the complete operation are exactly:
 
 ```text
 README.md
