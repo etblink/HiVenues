@@ -260,13 +260,15 @@ async function capturePage(browser, reference, spec) {
   try {
     const url = spec.routeKind === 'home' ? reference.urls.home : reference.urls.activity;
     await page.goto(url, { waitUntil: 'networkidle' });
-    const accessibility = await collectAccessibility(page);
+    // Capture product-state measurements and the screenshot before injecting Axe,
+    // so the measurement itself does not add a synthetic script element.
     const geometry = await collectGeometry(page);
     const metadata = await collectMetadata(page);
     const performance = await collectPerformance(page);
     const pathname = new URL(url).pathname;
     const filename = path.join(SCREENSHOTS, `${reference.referenceId}-${spec.viewport.id}-${spec.routeKind}.png`);
     await page.screenshot({ path: filename, fullPage: false });
+    const accessibility = await collectAccessibility(page);
     return {
       routeKind: spec.routeKind,
       viewport: spec.viewport,
@@ -335,64 +337,67 @@ async function main() {
   fs.rmSync(EVIDENCE, { recursive: true, force: true });
   fs.mkdirSync(SCREENSHOTS, { recursive: true });
   const target = await startV3S9ReviewTarget({ buildIdentity: process.env.GITHUB_SHA || null });
-  const browser = await chromium.launch();
   const references = [];
 
   try {
-    for (const reference of target.references) references.push(await runReference(browser, reference));
+    const browser = await chromium.launch();
+    try {
+      for (const reference of target.references) references.push(await runReference(browser, reference));
+    } finally {
+      await browser.close();
+    }
+
+    const diagnostics = target.diagnostics();
+    assertZeroExternalDiagnostics(diagnostics);
+    const allPages = references.flatMap((reference) => reference.pages);
+    assert.equal(references.length, 3, 'S9 deep reference count');
+    assert.equal(allPages.length, 15, 'S9 viewport-only visitor screenshot count');
+    assert.equal(allPages.filter((page) => page.routeKind === 'home').length, 9, 'S9 home screenshot count');
+    assert.equal(allPages.filter((page) => page.routeKind === 'activity').length, 6, 'S9 Activity screenshot count');
+    assert.equal(allPages.reduce((sum, page) => sum + page.externalRequests, 0), 0, 'S9 external browser requests');
+
+    const summary = {
+      referenceCount: references.length,
+      screenshotCount: allPages.length,
+      viewportOnlyScreenshotCount: allPages.length,
+      homeScreenshotCount: allPages.filter((page) => page.routeKind === 'home').length,
+      activityScreenshotCount: allPages.filter((page) => page.routeKind === 'activity').length,
+      mobileScreenshotCount: allPages.filter((page) => page.viewport.id === 'mobile').length,
+      tabletScreenshotCount: allPages.filter((page) => page.viewport.id === 'tablet').length,
+      desktopScreenshotCount: allPages.filter((page) => page.viewport.id === 'desktop').length,
+      accessibilityViolationCount: allPages.reduce((sum, page) => sum + page.accessibility.violations.length, 0),
+      seriousOrCriticalAccessibilityCount: allPages.reduce((sum, page) => sum + page.accessibility.seriousOrCritical.length, 0),
+      horizontalOverflowCount: allPages.filter((page) => page.geometry.scrollWidth - page.geometry.clientWidth > 1).length,
+      imageOverflowCount: allPages.filter((page) => page.geometry.imageOverflowCount > 0).length,
+      incompleteImageCount: allPages.filter((page) => page.geometry.incompleteImageCount > 0).length,
+      below44pxActionTargetPageCount: allPages.filter((page) => page.geometry.minimumActionTargetHeight !== null && page.geometry.minimumActionTargetHeight < 43.5).length,
+      missingDescriptionCount: allPages.filter((page) => !page.metadata.description).length,
+      missingCanonicalCount: allPages.filter((page) => !page.metadata.canonical).length,
+      missingOpenGraphTitleCount: allPages.filter((page) => !page.metadata.openGraph.title).length,
+      jsonLdBlockCount: allPages.reduce((sum, page) => sum + page.metadata.jsonLd.length, 0),
+      externalRequests: allPages.reduce((sum, page) => sum + page.externalRequests, 0),
+      screenshotBytes: allPages.reduce((sum, page) => sum + page.screenshot.bytes, 0),
+      diagnostics,
+    };
+
+    const manifest = {
+      kind: 'hivenues-v3-s9-untouched-measured-baseline',
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      measurementOnly: true,
+      productRemediationPerformed: false,
+      astraCreditsSpent: 0,
+      buildIdentity: target.manifest.buildIdentity,
+      reviewTarget: target.manifest,
+      summary,
+      references,
+    };
+    fs.writeFileSync(path.join(EVIDENCE, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    console.log('V3_S9_MEASURED_BASELINE', JSON.stringify(summary));
   } finally {
-    await browser.close();
+    const closeDiagnostics = await target.close();
+    assertZeroExternalDiagnostics(closeDiagnostics);
   }
-
-  const diagnostics = target.diagnostics();
-  assertZeroExternalDiagnostics(diagnostics);
-  const allPages = references.flatMap((reference) => reference.pages);
-  assert.equal(references.length, 3, 'S9 deep reference count');
-  assert.equal(allPages.length, 15, 'S9 viewport-only visitor screenshot count');
-  assert.equal(allPages.filter((page) => page.routeKind === 'home').length, 9, 'S9 home screenshot count');
-  assert.equal(allPages.filter((page) => page.routeKind === 'activity').length, 6, 'S9 Activity screenshot count');
-  assert.equal(allPages.reduce((sum, page) => sum + page.externalRequests, 0), 0, 'S9 external browser requests');
-
-  const summary = {
-    referenceCount: references.length,
-    screenshotCount: allPages.length,
-    viewportOnlyScreenshotCount: allPages.length,
-    homeScreenshotCount: allPages.filter((page) => page.routeKind === 'home').length,
-    activityScreenshotCount: allPages.filter((page) => page.routeKind === 'activity').length,
-    mobileScreenshotCount: allPages.filter((page) => page.viewport.id === 'mobile').length,
-    tabletScreenshotCount: allPages.filter((page) => page.viewport.id === 'tablet').length,
-    desktopScreenshotCount: allPages.filter((page) => page.viewport.id === 'desktop').length,
-    accessibilityViolationCount: allPages.reduce((sum, page) => sum + page.accessibility.violations.length, 0),
-    seriousOrCriticalAccessibilityCount: allPages.reduce((sum, page) => sum + page.accessibility.seriousOrCritical.length, 0),
-    horizontalOverflowCount: allPages.filter((page) => page.geometry.scrollWidth - page.geometry.clientWidth > 1).length,
-    imageOverflowCount: allPages.filter((page) => page.geometry.imageOverflowCount > 0).length,
-    incompleteImageCount: allPages.filter((page) => page.geometry.incompleteImageCount > 0).length,
-    below44pxActionTargetPageCount: allPages.filter((page) => page.geometry.minimumActionTargetHeight !== null && page.geometry.minimumActionTargetHeight < 43.5).length,
-    missingDescriptionCount: allPages.filter((page) => !page.metadata.description).length,
-    missingCanonicalCount: allPages.filter((page) => !page.metadata.canonical).length,
-    missingOpenGraphTitleCount: allPages.filter((page) => !page.metadata.openGraph.title).length,
-    jsonLdBlockCount: allPages.reduce((sum, page) => sum + page.metadata.jsonLd.length, 0),
-    externalRequests: allPages.reduce((sum, page) => sum + page.externalRequests, 0),
-    screenshotBytes: allPages.reduce((sum, page) => sum + page.screenshot.bytes, 0),
-    diagnostics,
-  };
-
-  const manifest = {
-    kind: 'hivenues-v3-s9-untouched-measured-baseline',
-    schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
-    measurementOnly: true,
-    productRemediationPerformed: false,
-    astraCreditsSpent: 0,
-    buildIdentity: target.manifest.buildIdentity,
-    reviewTarget: target.manifest,
-    summary,
-    references,
-  };
-  fs.writeFileSync(path.join(EVIDENCE, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  const closeDiagnostics = await target.close();
-  assertZeroExternalDiagnostics(closeDiagnostics);
-  console.log('V3_S9_MEASURED_BASELINE', JSON.stringify(summary));
 }
 
 main().catch((error) => {
