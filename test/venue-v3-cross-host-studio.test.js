@@ -56,13 +56,20 @@ function externalZero(diagnostics) {
   assert.equal(diagnostics.deployments, 0);
 }
 
-test('one v3 Studio application exposes ordinary controls and real renderer preview for R1/R2/R3', async () => {
+test('one v3 Studio application exposes the converged Studio shell, ordinary controls and real renderer preview for R1/R2/R3', async () => {
   for (const referenceId of ['migratedPhysical', 'nativeCreator', 'nativeRelease']) {
     const fixture = createReferenceV3AuthoringStudioFixture(referenceId);
     const activity = selectedActivity(fixture);
     const response = await request(fixture.app).get(`/v3-studio?activityId=${encodeURIComponent(activity.id)}`);
     assert.equal(response.status, 200, referenceId);
-    assert.match(response.text, /HiVenues v3 Studio/);
+    assert.match(response.text, /<title>HiVenues Studio ·/);
+    assert.match(response.text, /<div class="eyebrow">HiVenues Studio<\/div>/);
+    assert.match(response.text, /Activity workspace · Live generated preview/);
+    assert.match(response.text, /data-s6-product-convergence="true"/);
+    assert.match(response.text, /data-s6-state-feedback="true"/);
+    assert.match(response.text, /Edit activity/);
+    assert.match(response.text, /Activity selection/);
+    assert.doesNotMatch(response.text, /HiVenues v3 Studio · S4 journey/);
     assert.match(response.text, /Generated activity preview/);
     assert.match(response.text, /Preview title/);
     assert.match(response.text, /Public actions/);
@@ -193,9 +200,13 @@ test('shared S4 persistence saves accepted draft and fresh-reopens the exact dig
   }
 });
 
-test('S4 divergence audit: shared application contains no host-type/provider-specific transaction or save fork', () => {
-  const implementation = fs.readFileSync(path.join(__dirname, '..', 'src', 'venue', 'v3', 'studio-app.js'), 'utf8');
-  assert.doesNotMatch(implementation, /migratedPhysical|nativeCreator|nativeRelease|hostType|providerName|providerUrl/);
-  assert.equal((implementation.match(/createV3ActivityAuthoringSession/g) || []).length >= 1, true);
-  assert.equal((implementation.match(/atomicSaveV3DeploymentAgnosticVenueSourceFile/g) || []).length >= 1, true);
+test('S6 reconciliation audit: shared adapter has no host fork and S4 authority remains in the byte-preserved core', () => {
+  const adapter = fs.readFileSync(path.join(__dirname, '..', 'src', 'venue', 'v3', 'studio-app.js'), 'utf8');
+  const core = fs.readFileSync(path.join(__dirname, '..', 'src', 'venue', 'v3', 'studio-app-core.js'), 'utf8');
+  assert.doesNotMatch(adapter, /migratedPhysical|nativeCreator|nativeRelease|hostType|providerName|providerUrl/);
+  assert.doesNotMatch(core, /migratedPhysical|nativeCreator|nativeRelease|hostType|providerName|providerUrl/);
+  assert.match(adapter, /createCoreV3AuthoringStudioApp/);
+  assert.doesNotMatch(adapter, /createV3ActivityAuthoringSession|atomicSaveV3DeploymentAgnosticVenueSourceFile/);
+  assert.match(core, /createV3ActivityAuthoringSession/);
+  assert.match(core, /atomicSaveV3DeploymentAgnosticVenueSourceFile/);
 });

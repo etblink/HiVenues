@@ -141,7 +141,56 @@ async function authority(page) {
     persistent: element.dataset.studioPersistent,
     runtimeWired: element.dataset.studioRuntimeWired,
     externalEffects: element.dataset.externalEffects,
+    productConvergence: element.dataset.s6ProductConvergence,
+    studioState: element.dataset.s6StudioState,
   }));
+}
+
+async function productContract(page, expected, label) {
+  const contract = await page.evaluate(() => {
+    const root = globalThis.document.querySelector('main.v3-studio');
+    const status = globalThis.document.querySelector('[data-s6-state-feedback="true"]');
+    const stage = globalThis.document.querySelector('.state-stage[data-s6-state]');
+    const workspace = globalThis.document.querySelector('#studio-workspace-state[data-s6-workspace-state]');
+    const editSection = globalThis.document.querySelector('section[data-s6-edit-selection="true"]');
+    const selection = editSection?.querySelector('label');
+    return {
+      title: globalThis.document.title,
+      eyebrow: globalThis.document.querySelector('.eyebrow')?.textContent?.trim() || null,
+      context: globalThis.document.querySelector('.studio-context')?.textContent?.trim() || null,
+      productConvergence: root?.dataset.s6ProductConvergence || null,
+      studioState: root?.dataset.s6StudioState || null,
+      statusRole: status?.getAttribute('role') || null,
+      statusLabel: status?.getAttribute('aria-label') || null,
+      ariaLive: status?.getAttribute('aria-live') || null,
+      ariaAtomic: status?.getAttribute('aria-atomic') || null,
+      stageState: stage?.dataset.s6State || null,
+      stageLabel: stage?.textContent?.trim() || null,
+      editHeading: editSection?.querySelector('h2')?.textContent?.trim() || null,
+      selectionLabel: selection?.textContent?.trim() || null,
+      workspaceState: workspace?.dataset.s6WorkspaceState || null,
+      workspaceCopy: workspace?.textContent?.trim() || null,
+      visibleLegacyProductLabel: globalThis.document.body.innerText.includes('HiVenues v3 Studio · S4 journey'),
+    };
+  });
+
+  assert.match(contract.title, /^HiVenues Studio · /, `${label}: document title`);
+  assert.equal(contract.eyebrow, 'HiVenues Studio', `${label}: product identity`);
+  assert.equal(contract.context, 'Activity workspace · Live generated preview', `${label}: orientation copy`);
+  assert.equal(contract.productConvergence, 'true', `${label}: product convergence marker`);
+  assert.equal(contract.studioState, expected.state, `${label}: Studio state`);
+  assert.equal(contract.statusRole, 'status', `${label}: status role`);
+  assert.equal(contract.statusLabel, 'Studio status', `${label}: status label`);
+  assert.equal(contract.ariaLive, 'polite', `${label}: status live mode`);
+  assert.equal(contract.ariaAtomic, 'true', `${label}: status atomic mode`);
+  assert.equal(contract.stageState, expected.state, `${label}: state badge semantic id`);
+  assert.equal(contract.stageLabel, expected.label, `${label}: state badge label`);
+  assert.equal(contract.editHeading, 'Edit activity', `${label}: editing context`);
+  assert.match(contract.selectionLabel, /^Activity selection/, `${label}: selection language`);
+  assert.equal(contract.workspaceState, expected.workspaceState, `${label}: workspace state`);
+  assert.equal(contract.workspaceCopy, expected.workspaceCopy, `${label}: workspace feedback`);
+  assert.equal(contract.visibleLegacyProductLabel, false, `${label}: legacy visible product label`);
+  return contract;
 }
 
 async function previewFrame(page) {
@@ -258,6 +307,14 @@ async function runReference(browser, spec) {
     assert.equal(baseline.persistent, 'true');
     assert.equal(baseline.runtimeWired, 'false');
     assert.equal(baseline.externalEffects, 'false');
+    assert.equal(baseline.productConvergence, 'true');
+    assert.equal(baseline.studioState, 'unsaved');
+    const baselineProductContract = await productContract(page, {
+      state: 'unsaved',
+      label: 'Unsaved draft',
+      workspaceState: 'unsaved',
+      workspaceCopy: 'No workspace checkpoint has been saved yet.',
+    }, `${spec.referenceId}/baseline`);
     assert.match(await previewBody(page), new RegExp(activity.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
     await fillTitle(page, `${spec.title} Preview`);
@@ -265,6 +322,14 @@ async function runReference(browser, spec) {
     assert.equal(preview.acceptedDigest, baseline.acceptedDigest);
     assert.notEqual(preview.previewDigest, baseline.acceptedDigest);
     assert.equal(preview.previewActive, 'true');
+    assert.equal(preview.productConvergence, 'true');
+    assert.equal(preview.studioState, 'preview');
+    const previewProductContract = await productContract(page, {
+      state: 'preview',
+      label: 'Preview',
+      workspaceState: 'preview-blocked',
+      workspaceCopy: 'Preview is not applied. Apply or discard it before saving.',
+    }, `${spec.referenceId}/preview-product`);
     assert.match(await previewBody(page), new RegExp(`${spec.title} Preview`));
     const previewGeometry = await geometry(page, `${spec.referenceId}/preview`);
     const previewAccessibility = await accessibility(page, `${spec.referenceId}/preview`);
@@ -274,6 +339,7 @@ async function runReference(browser, spec) {
     const discarded = await authority(page);
     assert.equal(discarded.acceptedDigest, baseline.acceptedDigest);
     assert.equal(discarded.previewActive, 'false');
+    assert.equal(discarded.studioState, 'unsaved');
     assert.equal(canonical(fixture.session().draftSource), original);
 
     await fillTitle(page, spec.title);
@@ -311,6 +377,7 @@ async function runReference(browser, spec) {
     await navigateByButton(page, 'Redo');
     const redone = await authority(page);
     assert.equal(redone.acceptedDigest, beforeUndo.acceptedDigest);
+    assert.equal(redone.studioState, 'unsaved');
 
     await navigateByButton(page, 'Save workspace');
     const persisted = fixture.persistence();
@@ -318,6 +385,15 @@ async function runReference(browser, spec) {
     const reopened = loadV3DeploymentAgnosticVenueSourceFile(sourceFilename);
     assert.equal(deriveV3DeploymentAgnosticVenueSourceDigest(reopened), fixture.session().draftDigest);
     assert.equal(canonical(reopened), canonical(fixture.session().draftSource));
+    const savedAuthority = await authority(page);
+    assert.equal(savedAuthority.productConvergence, 'true');
+    assert.equal(savedAuthority.studioState, 'saved');
+    const finalProductContract = await productContract(page, {
+      state: 'saved',
+      label: 'Saved workspace',
+      workspaceState: 'saved',
+      workspaceCopy: 'Accepted draft matches the saved workspace.',
+    }, `${spec.referenceId}/saved`);
 
     const finalGeometry = await geometry(page, `${spec.referenceId}/final`);
     const finalAccessibility = await accessibility(page, `${spec.referenceId}/final`);
@@ -337,6 +413,11 @@ async function runReference(browser, spec) {
       activityId: activity.id,
       viewport: spec.viewport,
       keyboardTitleCompletion: true,
+      productConvergence: {
+        baseline: baselineProductContract,
+        preview: previewProductContract,
+        saved: finalProductContract,
+      },
       semantics: {
         temporalKind: finalActivity.temporal.kind,
         presenceKind: finalActivity.presence.kind,
@@ -382,6 +463,7 @@ async function main() {
     referenceCount: references.length,
     screenshotCount: references.reduce((sum, reference) => sum + reference.screenshots.length, 0),
     keyboardCompletionCount: references.filter((reference) => reference.keyboardTitleCompletion).length,
+    s6ProductContractCount: references.filter((reference) => reference.productConvergence?.baseline && reference.productConvergence?.preview && reference.productConvergence?.saved).length,
     blockingAccessibilityFindings: references.reduce((sum, reference) => sum + reference.previewAccessibility.blocking.length + reference.finalAccessibility.blocking.length, 0),
     horizontalOverflowFindings: references.filter((reference) => reference.previewGeometry.outer.scrollWidth - reference.previewGeometry.outer.clientWidth > 1 || reference.finalGeometry.outer.scrollWidth - reference.finalGeometry.outer.clientWidth > 1 || reference.previewGeometry.preview.scrollWidth - reference.previewGeometry.preview.clientWidth > 1 || reference.finalGeometry.preview.scrollWidth - reference.finalGeometry.preview.clientWidth > 1).length,
     externalRequests: references.reduce((sum, reference) => sum + reference.externalRequests, 0),
@@ -393,6 +475,7 @@ async function main() {
   };
   assert.equal(summary.referenceCount, 3);
   assert.equal(summary.keyboardCompletionCount, 3);
+  assert.equal(summary.s6ProductContractCount, 3);
   assert.equal(summary.blockingAccessibilityFindings, 0);
   assert.equal(summary.horizontalOverflowFindings, 0);
   assert.equal(summary.externalRequests, 0);
@@ -403,14 +486,14 @@ async function main() {
   assert.equal(summary.deployments, 0);
 
   const manifest = {
-    kind: 'hivenues-v3-s4-cross-host-complete-operator-journey-evidence',
+    kind: 'hivenues-v3-s6-cross-host-complete-operator-journey-evidence',
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     summary,
     references,
   };
   fs.writeFileSync(path.join(OUTPUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-  console.log('V3_S4_CROSS_HOST_BROWSER_EVIDENCE', JSON.stringify(summary));
+  console.log('V3_S6_CROSS_HOST_BROWSER_EVIDENCE', JSON.stringify(summary));
 }
 
 main().catch((error) => {
