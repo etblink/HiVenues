@@ -26,6 +26,19 @@ const ID = z.string().trim().min(2).max(80).regex(ID_PATTERN);
 const ACTION_ID = z.string().trim().min(2).max(160).regex(ACTION_ID_PATTERN);
 const SHORT_COPY = z.string().trim().min(1).max(240);
 const COPY = z.string().trim().min(1).max(2400);
+const V3_NATIVE_ACTIVITY_PUBLIC_ACTION_ROLES = Object.freeze([
+  'INFO',
+  'TICKETS',
+  'RSVP',
+  'RESERVE',
+  'WATCH',
+  'LISTEN',
+  'CALENDAR',
+]);
+const V3_ACTIVITY_PUBLIC_ACTION_ROLES = Object.freeze([
+  'LEGACY_EXTERNAL',
+  ...V3_NATIVE_ACTIVITY_PUBLIC_ACTION_ROLES,
+]);
 
 class V3VenueSourceError extends Error {
   constructor(message, options = {}) {
@@ -202,7 +215,7 @@ const managedMediaSchema = z.object({
 
 const publicActionSchema = z.object({
   id: ACTION_ID,
-  role: z.literal('LEGACY_EXTERNAL'),
+  role: z.enum(V3_ACTIVITY_PUBLIC_ACTION_ROLES),
   label: SHORT_COPY,
   href: HTTPS_URL,
 }).strict();
@@ -346,7 +359,6 @@ const globalDesignSchema = z.object({
   shapeRecipeId: z.enum(SHAPE_RECIPE_IDS),
   surfaceRecipeId: z.enum(SURFACE_RECIPE_IDS),
 }).strict();
-
 const responsiveOverrideSchema = z.object({
   layoutVariant: z.enum(['split', 'stacked', 'compact-stacked', 'grid', 'list', 'feature']).optional(),
   alignment: z.enum(['start', 'center']).optional(),
@@ -575,7 +587,13 @@ function validateCrossReferences(source) {
     }
     uniqueIds(activity.presence.destinations || [], `destination in ${activity.id}`);
     uniqueIds(activity.publicActions, `public action in ${activity.id}`);
+    const managedMediaKeys = new Set();
     for (const media of activity.managedMedia) {
+      const key = `${media.assetId}\0${media.role}`;
+      if (managedMediaKeys.has(key)) {
+        throw new V3VenueSourceError(`activity ${activity.id} has duplicate managed media usage ${media.assetId}/${media.role}`);
+      }
+      managedMediaKeys.add(key);
       if (!mediaIds.has(media.assetId)) {
         throw new V3VenueSourceError(`activity ${activity.id} references missing media ${media.assetId}`);
       }
@@ -666,7 +684,9 @@ function deriveV3DeploymentAgnosticVenueSourceDigest(input) {
 }
 
 module.exports = {
+  V3_ACTIVITY_PUBLIC_ACTION_ROLES,
   V3_MIGRATION_CONTRACT_VERSION,
+  V3_NATIVE_ACTIVITY_PUBLIC_ACTION_ROLES,
   V3_SOURCE_KIND,
   V3_SOURCE_SCHEMA_VERSION,
   V3VenueSourceError,
