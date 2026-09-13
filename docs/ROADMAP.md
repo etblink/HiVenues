@@ -88,6 +88,19 @@ The following accepted progression remains part of the platform foundation:
 - **Deployment-agnostic source durability** — PR #103.
 - **Local operator launcher** — PR #104.
 
+## Completed CID lane
+
+The accepted CID technical spike and comparative capability-gap adjudication remain part of the historical successor foundation. The current host-identity doctrine neither reopens nor silently discards that result:
+
+```text
+CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY
+CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
+CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
+BASELINE = CANONICAL_SHA256_PLUS_ORDINARY_FILES_GIT
+```
+
+The demonstrated capability gap is stable subfile content-address reuse. Adoption remains deferred without prejudice because the accepted product evidence did not justify the added operational complexity at that stage; future host workflows may reopen the value equation without rewriting this historical result.
+
 Additional accepted facts remain:
 
 ```text
