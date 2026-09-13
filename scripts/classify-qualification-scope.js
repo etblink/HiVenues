@@ -5,8 +5,8 @@ const fs = require('node:fs');
 
 // The single executable selection policy. '*' retains Bash case semantics,
 // including nested directories. The legacy/current visual suite remains available
-// for its own product surfaces and manual dispatch, while v3 browser evidence is
-// owned by the dedicated v3-s4-browser workflow.
+// for its own product surfaces and manual dispatch. Only paths already owned by
+// the dedicated v3-s4-browser workflow are excluded from the legacy replay.
 const visualPatterns = [
   'docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md',
   'views/*',
@@ -69,9 +69,11 @@ const visualPatterns = [
 
 const dedicatedV3Patterns = [
   'src/venue/v3/*',
-  'scripts/capture-v3-*-visual.js',
-  'test/support/v3-*',
-  'test/venue-v3-*',
+  'test/support/v3-authoring-studio-fixture.js',
+  'test/support/v3-reference-fixtures.js',
+  'test/venue-v3-cross-host-studio.test.js',
+  'scripts/capture-v3-cross-host-journeys-visual.js',
+  'scripts/capture-v3-s7-generated-experience-visual.js',
   '.github/workflows/v3-s4-browser.yml',
 ].map((pattern) => new RegExp('^' + pattern.split('*')
   .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
