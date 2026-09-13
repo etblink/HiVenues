@@ -46,10 +46,10 @@ async function main() {
   process.once('SIGINT', () => void shutdown(0));
   process.once('SIGTERM', () => void shutdown(0));
   await new Promise((resolve) => {
-    const timer = setInterval(() => {}, 60_000);
+    const timer = globalThis.setInterval(() => {}, 60_000);
     timer.unref();
     process.once('beforeExit', () => {
-      clearInterval(timer);
+      globalThis.clearInterval(timer);
       resolve();
     });
   });
