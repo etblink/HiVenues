@@ -92,6 +92,16 @@ function requireRegularDirectory(filename, stat, label) {
   }
 }
 
+function exactLstat(fsImpl, filename) {
+  return fsImpl.lstatSync(filename, { bigint: true });
+}
+
+function exceedsSourceFileLimit(size) {
+  return typeof size === 'bigint'
+    ? size > BigInt(MAX_VENUE_SOURCE_FILE_BYTES)
+    : size > MAX_VENUE_SOURCE_FILE_BYTES;
+}
+
 function statIdentity(stat) {
   return `${String(stat.dev)}:${String(stat.ino)}`;
 }
@@ -100,7 +110,7 @@ function inspectParentDirectory(parent, { fsImpl = fs } = {}) {
   let stat;
   let realpath;
   try {
-    stat = fsImpl.lstatSync(parent);
+    stat = exactLstat(fsImpl, parent);
     requireRegularDirectory(parent, stat, 'source directory');
     realpath = fsImpl.realpathSync(parent);
   } catch (error) {
@@ -121,7 +131,7 @@ function inspectV3DeploymentAgnosticVenueSourceFile(filename, { fsImpl = fs } = 
   const resolved = sourceFilename(filename);
   let stat;
   try {
-    stat = fsImpl.lstatSync(resolved);
+    stat = exactLstat(fsImpl, resolved);
   } catch (error) {
     if (error?.code === 'ENOENT') {
       return Object.freeze({
@@ -137,7 +147,7 @@ function inspectV3DeploymentAgnosticVenueSourceFile(filename, { fsImpl = fs } = 
   }
 
   requireRegularFile(resolved, stat, 'source file');
-  if (stat.size > MAX_VENUE_SOURCE_FILE_BYTES) {
+  if (exceedsSourceFileLimit(stat.size)) {
     throw new V3VenueSourceFileError(
       `source file exceeds ${MAX_VENUE_SOURCE_FILE_BYTES} bytes`,
     );
@@ -214,7 +224,7 @@ function atomicSaveV3DeploymentAgnosticVenueSourceFile(
     });
     temporaryCreated = true;
 
-    const temporaryStat = fsImpl.lstatSync(temporary);
+    const temporaryStat = exactLstat(fsImpl, temporary);
     requireRegularFile(temporary, temporaryStat, 'temporary source file');
     const stagedBytes = fsImpl.readFileSync(temporary, 'utf8');
     if (stagedBytes !== bytes) {
