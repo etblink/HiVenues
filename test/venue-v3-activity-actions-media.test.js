@@ -436,7 +436,7 @@ test('Preview and Discard have no disk/external effect; accepted S3 state saves 
     const saved = atomicSaveV3DeploymentAgnosticVenueSourceFile(filename, session.draftSource, {
       expectedDigest: V3_PERSISTED_SOURCE_ABSENT,
     });
-    assert.equal(saved.digest, session.draftDigest);
+    assert.equal(saved.persistedDigest, session.draftDigest);
     const reopened = loadV3DeploymentAgnosticVenueSourceFile(filename);
     assert.equal(deriveV3DeploymentAgnosticVenueSourceDigest(reopened), session.draftDigest);
     assert.equal(canonical(reopened), canonical(session.draftSource));
