@@ -8,6 +8,7 @@ on:
       - 'test/support/v3-reference-fixtures.js'
       - 'test/venue-v3-cross-host-studio.test.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
+      - 'scripts/capture-v3-s7-generated-experience-visual.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   push:
@@ -19,6 +20,7 @@ on:
       - 'test/support/v3-reference-fixtures.js'
       - 'test/venue-v3-cross-host-studio.test.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
+      - 'scripts/capture-v3-s7-generated-experience-visual.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   workflow_dispatch:
@@ -58,19 +60,24 @@ jobs:
         env:
           V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
         run: node scripts/capture-v3-cross-host-journeys-visual.js
-      - name: Publish S4 review evidence
+      - name: Run S7 direct generated experience qualification
+        env:
+          V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
+        run: node scripts/capture-v3-s7-generated-experience-visual.js
+      - name: Publish S4/S7 review evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: v3-s4-cross-host-review-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/v3-s4-cross-host-review
           if-no-files-found: error
           retention-days: 90
-      - name: Publish S4 metrics
+      - name: Publish S4/S7 metrics
         shell: bash
         run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('node:fs');
           const manifest = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/manifest.json', 'utf8'));
+          const s7 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s7-generated-experience/manifest.json', 'utf8'));
           console.log('## V3 S4 cross-host operator journeys');
           console.log('');
           console.log(`- References completed: ${manifest.summary.referenceCount}`);
@@ -81,4 +88,15 @@ jobs:
           console.log(`- External browser requests: ${manifest.summary.externalRequests}`);
           console.log(`- Hive/provider writes: ${manifest.summary.hiveWrites}/${manifest.summary.providerWrites}`);
           console.log(`- Payment/signing/deployment effects: ${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
+          console.log('');
+          console.log('## V3 S7 direct generated experience');
+          console.log('');
+          console.log(`- References completed: ${s7.summary.referenceCount}`);
+          console.log(`- Visitor-only pages captured: ${s7.summary.visitorPageCount}`);
+          console.log(`- Desktop/narrow screenshots: ${s7.summary.desktopScreenshotCount}/${s7.summary.narrowScreenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${s7.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal/image-overflow findings: ${s7.summary.horizontalOverflowFindings}/${s7.summary.imageOverflowFindings}`);
+          console.log(`- External browser requests: ${s7.summary.externalRequests}`);
+          console.log(`- Hive/provider writes: ${s7.summary.hiveWrites}/${s7.summary.providerWrites}`);
+          console.log(`- Payment/signing/deployment effects: ${s7.summary.payments}/${s7.summary.signingAttempts}/${s7.summary.deployments}`);
           NODE
