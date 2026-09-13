@@ -19,11 +19,36 @@ function shellError(label) {
   return new V2AuthoringStudioError(`S6.1 Studio shell anchor drifted: ${label}`);
 }
 
+function interactionError(label) {
+  return new V2AuthoringStudioError(`S6.2 Studio interaction anchor drifted: ${label}`);
+}
+
 function replaceExactlyOnce(html, search, replacement, label) {
   const first = html.indexOf(search);
   if (first === -1) throw shellError(label);
   if (html.indexOf(search, first + search.length) !== -1) throw shellError(`${label} is not unique`);
   return `${html.slice(0, first)}${replacement}${html.slice(first + search.length)}`;
+}
+
+function replaceInteractionExactlyOnce(html, search, replacement, label) {
+  const first = html.indexOf(search);
+  if (first === -1) throw interactionError(label);
+  if (html.indexOf(search, first + search.length) !== -1) {
+    throw interactionError(`${label} is not unique`);
+  }
+  return `${html.slice(0, first)}${replacement}${html.slice(first + search.length)}`;
+}
+
+function replaceInteractionBounded(html, search, replacement, {
+  label,
+  min,
+  max,
+}) {
+  const count = html.split(search).length - 1;
+  if (count < min || count > max) {
+    throw interactionError(`${label} count ${count} outside ${min}-${max}`);
+  }
+  return html.replaceAll(search, replacement);
 }
 
 function convergeTechnicalDetails(html) {
@@ -69,8 +94,38 @@ function convergeV2AuthoringStudioShell(html) {
   return output;
 }
 
+function convergeV2AuthoringStudioInteraction(html) {
+  let output = html;
+  output = replaceInteractionExactlyOnce(
+    output,
+    '<aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading">',
+    '<aside class="panel inspector-panel" aria-labelledby="authoring-inspector-heading" data-s6-edit-selection="true">',
+    'editing panel',
+  );
+  output = replaceInteractionExactlyOnce(
+    output,
+    '<header class="panel-head"><h2 id="authoring-inspector-heading">Inspector</h2><span>Content · resources · structure · media · theme</span></header>',
+    '<header class="panel-head"><h2 id="authoring-inspector-heading">Edit selection</h2><span>Content · resources · structure · media · theme</span></header>',
+    'editing panel heading',
+  );
+  output = replaceInteractionBounded(
+    output,
+    '<p class="eyebrow">Selected context</p>',
+    '<p class="eyebrow">Selection</p>',
+    { label: 'selection context label', min: 1, max: 2 },
+  );
+  output = replaceInteractionBounded(
+    output,
+    '<p class="eyebrow">Selected field</p>',
+    '<p class="eyebrow">Editing field</p>',
+    { label: 'field editing label', min: 0, max: 1 },
+  );
+  return output;
+}
+
 function renderV2AuthoringStudioSurface(options) {
-  return convergeV2AuthoringStudioShell(renderCoreV2AuthoringStudioSurface(options));
+  const shell = convergeV2AuthoringStudioShell(renderCoreV2AuthoringStudioSurface(options));
+  return convergeV2AuthoringStudioInteraction(shell);
 }
 
 module.exports = {
