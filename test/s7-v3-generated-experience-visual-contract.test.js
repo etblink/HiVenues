@@ -42,6 +42,7 @@ test('S7 visual contract keeps one shared venue-first renderer across frozen ref
     const document = documentFrom(renderV3Page(source));
     assert.equal(document.querySelectorAll('header.v3-site-header').length, 1, referenceId);
     assert.equal(document.querySelectorAll('main.v3-page').length, 1, referenceId);
+    assert.equal(document.querySelectorAll('.v3-page-heading--home h1').length, 1, referenceId);
     assert.equal(document.querySelector('.v3-wordmark').textContent.trim(), source.venue.displayName, referenceId);
   }
 });
@@ -74,6 +75,14 @@ test('S7.2-S7.4 shared composition gives media, activity facts and actions inten
 
   assert.doesNotMatch(css, /object-fit:/);
   assert.doesNotMatch(css, /northline|signal-room|northstar/i);
+});
+
+test('S7.5 visual review refinements keep landing hierarchy quiet and multi-column activities separated', () => {
+  const css = renderV3PublicStylesheet();
+
+  assert.match(css, /\.v3-page-heading--home\{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden/);
+  assert.match(css, /\.v3-activity-list__items\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,20rem\),1fr\)\);column-gap:clamp\(2rem,5vw,4rem\);row-gap:0/);
+  assert.match(css, /@media \(max-width:640px\).*\.v3-page-heading--home\{padding:0\}/);
 });
 
 test('S7 presentation layer remains self-contained, accessible and host-neutral', () => {
