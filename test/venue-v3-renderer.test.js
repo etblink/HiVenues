@@ -98,9 +98,20 @@ test('locationless online occurrence renders explicit destination without fabric
   assert.equal(document.querySelector('h1').textContent, activity.title);
   assert.equal(document.querySelector('time').getAttribute('datetime'), activity.temporal.startAt);
   assert.match(document.body.textContent, /Join online/);
-  assert.equal(document.querySelector('.v3-activity-presence a').getAttribute('href'), activity.presence.destinations[0].href);
-  assert.doesNotMatch(document.body.textContent, /address|directions|location/i);
+  assert.equal(
+    document.querySelector('.v3-activity-presence a').getAttribute('href'),
+    activity.presence.destinations[0].href,
+  );
   assert.equal(document.querySelectorAll('address').length, 0);
+  assert.equal(
+    [...document.querySelectorAll('a')].some((link) => /map and directions/i.test(link.textContent)),
+    false,
+  );
+  assert.equal(
+    [...document.querySelectorAll('.v3-activity-presence h2')]
+      .some((heading) => heading.textContent.trim() === 'Location'),
+    false,
+  );
 });
 
 test('release detail renders release moment with no fake end time or physical location', () => {
@@ -177,6 +188,14 @@ test('isolated v3 preview performs zero Hive RPC, Hive writes or provider writes
     createV3PreviewFixture(nativeReleaseSource()),
   ];
   for (const fixture of fixtures) {
+    const home = await request(fixture.app).get('/').expect(200);
+    const homeDocument = documentFrom(home.text);
+    assert.ok(homeDocument.querySelector('main.v3-page'));
+    assert.equal(
+      homeDocument.querySelector('.v3-wordmark').textContent.trim(),
+      fixture.source.venue.displayName,
+    );
+
     const activity = fixture.source.resources.activities[0];
     const response = await request(fixture.app).get(`/activities/${activity.slug}`).expect(200);
     assert.match(response.text, new RegExp(activity.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
