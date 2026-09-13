@@ -1,6 +1,7 @@
 'use strict';
 
 const {
+  V3_NATIVE_ACTIVITY_PUBLIC_ACTION_ROLES,
   createV3DeploymentAgnosticVenueSource,
   deriveV3DeploymentAgnosticVenueSourceDigest,
   serializeV3DeploymentAgnosticVenueSource,
@@ -23,8 +24,24 @@ const MOVE_ACTIVITY_REFERENCE = 'MOVE_ACTIVITY_REFERENCE';
 const BEFORE_ACTIVITY_REFERENCE = 'BEFORE_ACTIVITY_REFERENCE';
 const END_OF_ACTIVITY_LIST = 'END_OF_ACTIVITY_LIST';
 
+const ADD_ACTIVITY_PUBLIC_ACTION = 'ADD_ACTIVITY_PUBLIC_ACTION';
+const SET_ACTIVITY_PUBLIC_ACTION = 'SET_ACTIVITY_PUBLIC_ACTION';
+const REMOVE_ACTIVITY_PUBLIC_ACTION = 'REMOVE_ACTIVITY_PUBLIC_ACTION';
+const RESTORE_ACTIVITY_PUBLIC_ACTION = 'RESTORE_ACTIVITY_PUBLIC_ACTION';
+const MOVE_ACTIVITY_PUBLIC_ACTION = 'MOVE_ACTIVITY_PUBLIC_ACTION';
+const BEFORE_PUBLIC_ACTION = 'BEFORE_PUBLIC_ACTION';
+const END_OF_PUBLIC_ACTIONS = 'END_OF_PUBLIC_ACTIONS';
+
+const ADD_ACTIVITY_MANAGED_MEDIA = 'ADD_ACTIVITY_MANAGED_MEDIA';
+const REMOVE_ACTIVITY_MANAGED_MEDIA = 'REMOVE_ACTIVITY_MANAGED_MEDIA';
+const RESTORE_ACTIVITY_MANAGED_MEDIA = 'RESTORE_ACTIVITY_MANAGED_MEDIA';
+const MOVE_ACTIVITY_MANAGED_MEDIA = 'MOVE_ACTIVITY_MANAGED_MEDIA';
+const BEFORE_MANAGED_MEDIA = 'BEFORE_MANAGED_MEDIA';
+const END_OF_MANAGED_MEDIA = 'END_OF_MANAGED_MEDIA';
+
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ACTION_ID_PATTERN = /^[a-z0-9]+(?:(?:-|:)[a-z0-9]+)*$/;
 const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const LIFECYCLES = new Set([
   'DRAFT',
@@ -35,6 +52,8 @@ const LIFECYCLES = new Set([
   'CANCELLED',
 ]);
 const CAPACITIES = new Set(['UNSPECIFIED', 'AVAILABLE', 'FULL']);
+const NATIVE_PUBLIC_ACTION_ROLES = new Set(V3_NATIVE_ACTIVITY_PUBLIC_ACTION_ROLES);
+const MANAGED_MEDIA_ROLES = new Set(['PROMO', 'PRIMARY_VISUAL_COMPATIBILITY']);
 
 class V3ActivityAuthoringError extends Error {
   constructor(message, options = {}) {
@@ -100,9 +119,44 @@ function stableId(value, label) {
   return id;
 }
 
+function stableActionId(value, label) {
+  const id = scalarString(value, label, { min: 2, max: 160 });
+  if (!ACTION_ID_PATTERN.test(id)) throw new V3ActivityAuthoringError(`${label} is not a stable action id`);
+  return id;
+}
+
 function parseActivityTarget(value) {
   const target = plainRecord(value, 'activity target', new Set(['activityId']));
   return { activityId: stableId(target.activityId, 'activity target.activityId') };
+}
+
+function parseActionTarget(value) {
+  const target = plainRecord(value, 'public action target', new Set(['activityId', 'actionId']));
+  return {
+    activityId: stableId(target.activityId, 'public action target.activityId'),
+    actionId: stableActionId(target.actionId, 'public action target.actionId'),
+  };
+}
+
+function parseManagedMediaIdentity(value, label = 'managed media target') {
+  const target = plainRecord(value, label, new Set(['assetId', 'role']));
+  const role = scalarString(target.role, `${label}.role`, { max: 80 });
+  if (!MANAGED_MEDIA_ROLES.has(role)) throw new V3ActivityAuthoringError(`${label}.role is unsupported`);
+  return {
+    assetId: stableId(target.assetId, `${label}.assetId`),
+    role,
+  };
+}
+
+function parseManagedMediaTarget(value) {
+  const target = plainRecord(value, 'managed media target', new Set(['activityId', 'assetId', 'role']));
+  const role = scalarString(target.role, 'managed media target.role', { max: 80 });
+  if (!MANAGED_MEDIA_ROLES.has(role)) throw new V3ActivityAuthoringError('managed media target.role is unsupported');
+  return {
+    activityId: stableId(target.activityId, 'managed media target.activityId'),
+    assetId: stableId(target.assetId, 'managed media target.assetId'),
+    role,
+  };
 }
 
 function parseListTarget(value) {
@@ -129,6 +183,51 @@ function parseDestination(value) {
     };
   }
   throw new V3ActivityAuthoringError('unsupported activity-list destination');
+}
+
+function parseActionDestination(value) {
+  const destination = plainRecord(
+    value,
+    'public action destination',
+    new Set(['kind', 'beforeActionId']),
+  );
+  if (destination.kind === END_OF_PUBLIC_ACTIONS) {
+    if (Object.hasOwn(destination, 'beforeActionId')) {
+      throw new V3ActivityAuthoringError('END_OF_PUBLIC_ACTIONS cannot include beforeActionId');
+    }
+    return { kind: END_OF_PUBLIC_ACTIONS };
+  }
+  if (destination.kind === BEFORE_PUBLIC_ACTION) {
+    return {
+      kind: BEFORE_PUBLIC_ACTION,
+      beforeActionId: stableActionId(destination.beforeActionId, 'destination.beforeActionId'),
+    };
+  }
+  throw new V3ActivityAuthoringError('unsupported public action destination');
+}
+
+function parseManagedMediaDestination(value) {
+  const destination = plainRecord(
+    value,
+    'managed media destination',
+    new Set(['kind', 'beforeAssetId', 'beforeRole']),
+  );
+  if (destination.kind === END_OF_MANAGED_MEDIA) {
+    if (Object.hasOwn(destination, 'beforeAssetId') || Object.hasOwn(destination, 'beforeRole')) {
+      throw new V3ActivityAuthoringError('END_OF_MANAGED_MEDIA cannot include before media identity');
+    }
+    return { kind: END_OF_MANAGED_MEDIA };
+  }
+  if (destination.kind === BEFORE_MANAGED_MEDIA) {
+    const role = scalarString(destination.beforeRole, 'destination.beforeRole', { max: 80 });
+    if (!MANAGED_MEDIA_ROLES.has(role)) throw new V3ActivityAuthoringError('destination.beforeRole is unsupported');
+    return {
+      kind: BEFORE_MANAGED_MEDIA,
+      beforeAssetId: stableId(destination.beforeAssetId, 'destination.beforeAssetId'),
+      beforeRole: role,
+    };
+  }
+  throw new V3ActivityAuthoringError('unsupported managed media destination');
 }
 
 function parseTemporal(value) {
@@ -395,6 +494,136 @@ function parseMoveReferenceCommand(value) {
   };
 }
 
+function parseAddPublicActionCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'role', 'label', 'href', 'destination']);
+  if (command.type !== ADD_ACTIVITY_PUBLIC_ACTION) throw new V3ActivityAuthoringError('unsupported command type');
+  const role = scalarString(command.role, 'role', { max: 80 });
+  if (!NATIVE_PUBLIC_ACTION_ROLES.has(role)) {
+    throw new V3ActivityAuthoringError('public action creation requires a native semantic role');
+  }
+  return {
+    schemaVersion: 1,
+    type: ADD_ACTIVITY_PUBLIC_ACTION,
+    target: parseActivityTarget(command.target),
+    role,
+    label: scalarString(command.label, 'label'),
+    href: scalarString(command.href, 'href', { max: 2000 }),
+    destination: parseActionDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseSetPublicActionCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'label', 'href']);
+  if (command.type !== SET_ACTIVITY_PUBLIC_ACTION) throw new V3ActivityAuthoringError('unsupported command type');
+  return {
+    schemaVersion: 1,
+    type: SET_ACTIVITY_PUBLIC_ACTION,
+    target: parseActionTarget(command.target),
+    label: scalarString(command.label, 'label'),
+    href: scalarString(command.href, 'href', { max: 2000 }),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseRemovePublicActionCommand(value) {
+  const command = parseCommandEnvelope(value, ['target']);
+  if (command.type !== REMOVE_ACTIVITY_PUBLIC_ACTION) throw new V3ActivityAuthoringError('unsupported command type');
+  return {
+    schemaVersion: 1,
+    type: REMOVE_ACTIVITY_PUBLIC_ACTION,
+    target: parseActionTarget(command.target),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseRestorePublicActionCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'index', 'actionSnapshot']);
+  if (command.type !== RESTORE_ACTIVITY_PUBLIC_ACTION) throw new V3ActivityAuthoringError('unsupported command type');
+  if (!Number.isInteger(command.index) || command.index < 0) {
+    throw new V3ActivityAuthoringError('public action restore index is invalid');
+  }
+  if (!command.actionSnapshot || typeof command.actionSnapshot !== 'object' || Array.isArray(command.actionSnapshot)) {
+    throw new V3ActivityAuthoringError('actionSnapshot must be a plain object');
+  }
+  return {
+    schemaVersion: 1,
+    type: RESTORE_ACTIVITY_PUBLIC_ACTION,
+    target: parseActivityTarget(command.target),
+    index: command.index,
+    actionSnapshot: clone(command.actionSnapshot),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseMovePublicActionCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'destination']);
+  if (command.type !== MOVE_ACTIVITY_PUBLIC_ACTION) throw new V3ActivityAuthoringError('unsupported command type');
+  return {
+    schemaVersion: 1,
+    type: MOVE_ACTIVITY_PUBLIC_ACTION,
+    target: parseActionTarget(command.target),
+    destination: parseActionDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseAddManagedMediaCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'assetId', 'role', 'destination']);
+  if (command.type !== ADD_ACTIVITY_MANAGED_MEDIA) throw new V3ActivityAuthoringError('unsupported command type');
+  if (command.role !== 'PROMO') {
+    throw new V3ActivityAuthoringError('managed media creation admits PROMO only');
+  }
+  return {
+    schemaVersion: 1,
+    type: ADD_ACTIVITY_MANAGED_MEDIA,
+    target: parseActivityTarget(command.target),
+    assetId: stableId(command.assetId, 'assetId'),
+    role: 'PROMO',
+    destination: parseManagedMediaDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseRemoveManagedMediaCommand(value) {
+  const command = parseCommandEnvelope(value, ['target']);
+  if (command.type !== REMOVE_ACTIVITY_MANAGED_MEDIA) throw new V3ActivityAuthoringError('unsupported command type');
+  return {
+    schemaVersion: 1,
+    type: REMOVE_ACTIVITY_MANAGED_MEDIA,
+    target: parseManagedMediaTarget(command.target),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseRestoreManagedMediaCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'index', 'mediaSnapshot']);
+  if (command.type !== RESTORE_ACTIVITY_MANAGED_MEDIA) throw new V3ActivityAuthoringError('unsupported command type');
+  if (!Number.isInteger(command.index) || command.index < 0) {
+    throw new V3ActivityAuthoringError('managed media restore index is invalid');
+  }
+  return {
+    schemaVersion: 1,
+    type: RESTORE_ACTIVITY_MANAGED_MEDIA,
+    target: parseActivityTarget(command.target),
+    index: command.index,
+    mediaSnapshot: parseManagedMediaIdentity(command.mediaSnapshot, 'mediaSnapshot'),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
+function parseMoveManagedMediaCommand(value) {
+  const command = parseCommandEnvelope(value, ['target', 'destination']);
+  if (command.type !== MOVE_ACTIVITY_MANAGED_MEDIA) throw new V3ActivityAuthoringError('unsupported command type');
+  return {
+    schemaVersion: 1,
+    type: MOVE_ACTIVITY_MANAGED_MEDIA,
+    target: parseManagedMediaTarget(command.target),
+    destination: parseManagedMediaDestination(command.destination),
+    expectedDraftDigest: digest(command.expectedDraftDigest),
+  };
+}
+
 function parseActivityAuthoringCommand(value, { allowInternal = false } = {}) {
   const root = plainRecord(
     value,
@@ -417,6 +646,13 @@ function parseActivityAuthoringCommand(value, { allowInternal = false } = {}) {
       'resourceIndex',
       'activitySnapshot',
       'listSnapshots',
+      'role',
+      'label',
+      'href',
+      'assetId',
+      'index',
+      'actionSnapshot',
+      'mediaSnapshot',
     ]),
   );
   if (root.type === ADD_ACTIVITY) return parseAddActivityCommand(value);
@@ -427,7 +663,16 @@ function parseActivityAuthoringCommand(value, { allowInternal = false } = {}) {
   if (root.type === SET_ACTIVITY_TEMPORAL) return parseSetTemporalCommand(value);
   if (root.type === SET_ACTIVITY_PRESENCE) return parseSetPresenceCommand(value);
   if (root.type === MOVE_ACTIVITY_REFERENCE) return parseMoveReferenceCommand(value);
+  if (root.type === ADD_ACTIVITY_PUBLIC_ACTION) return parseAddPublicActionCommand(value);
+  if (root.type === SET_ACTIVITY_PUBLIC_ACTION) return parseSetPublicActionCommand(value);
+  if (root.type === REMOVE_ACTIVITY_PUBLIC_ACTION) return parseRemovePublicActionCommand(value);
+  if (root.type === MOVE_ACTIVITY_PUBLIC_ACTION) return parseMovePublicActionCommand(value);
+  if (root.type === ADD_ACTIVITY_MANAGED_MEDIA) return parseAddManagedMediaCommand(value);
+  if (root.type === REMOVE_ACTIVITY_MANAGED_MEDIA) return parseRemoveManagedMediaCommand(value);
+  if (root.type === MOVE_ACTIVITY_MANAGED_MEDIA) return parseMoveManagedMediaCommand(value);
   if (root.type === RESTORE_ACTIVITY && allowInternal) return parseRestoreActivityCommand(value);
+  if (root.type === RESTORE_ACTIVITY_PUBLIC_ACTION && allowInternal) return parseRestorePublicActionCommand(value);
+  if (root.type === RESTORE_ACTIVITY_MANAGED_MEDIA && allowInternal) return parseRestoreManagedMediaCommand(value);
   throw new V3ActivityAuthoringError('unsupported command type');
 }
 
@@ -439,6 +684,31 @@ function findActivity(source, activityId) {
   if (indexes.length !== 1) throw new V3ActivityAuthoringError('activity identity is missing or ambiguous');
   const index = indexes[0];
   return { activity: source.resources.activities[index], index };
+}
+
+function findPublicAction(activity, actionId) {
+  const indexes = [];
+  activity.publicActions.forEach((action, index) => {
+    if (action.id === actionId) indexes.push(index);
+  });
+  if (indexes.length !== 1) throw new V3ActivityAuthoringError('public action identity is missing or ambiguous');
+  const index = indexes[0];
+  return { action: activity.publicActions[index], index };
+}
+
+function mediaKey(value) {
+  return `${value.assetId}\0${value.role}`;
+}
+
+function findManagedMedia(activity, identity) {
+  const key = mediaKey(identity);
+  const indexes = [];
+  activity.managedMedia.forEach((media, index) => {
+    if (mediaKey(media) === key) indexes.push(index);
+  });
+  if (indexes.length !== 1) throw new V3ActivityAuthoringError('managed media identity is missing or ambiguous');
+  const index = indexes[0];
+  return { media: activity.managedMedia[index], index };
 }
 
 function activityLists(source) {
@@ -484,6 +754,16 @@ function deriveActivityIdentity(source, title) {
   throw new V3ActivityAuthoringError('activity identity space is exhausted');
 }
 
+function derivePublicActionIdentity(activity, role) {
+  const base = `action:${activity.id}:${role.toLowerCase()}`;
+  const used = new Set(activity.publicActions.map((action) => action.id));
+  for (let suffix = 1; suffix <= 9999; suffix += 1) {
+    const candidate = suffix === 1 ? base : `${base}-${suffix}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  throw new V3ActivityAuthoringError('public action identity space is exhausted');
+}
+
 function destinationInsertIndex(resourceIds, destination, movingId = null) {
   const remaining = movingId === null
     ? [...resourceIds]
@@ -510,6 +790,54 @@ function inverseDestination(resourceIds, activityId) {
   return next
     ? { kind: BEFORE_ACTIVITY_REFERENCE, beforeActivityId: next }
     : { kind: END_OF_ACTIVITY_LIST };
+}
+
+function actionDestinationInsertIndex(actions, destination, movingId = null) {
+  const remaining = movingId === null ? [...actions] : actions.filter((action) => action.id !== movingId);
+  if (destination.kind === END_OF_PUBLIC_ACTIONS) return remaining.length;
+  const index = remaining.findIndex((action) => action.id === destination.beforeActionId);
+  if (index < 0) throw new V3ActivityAuthoringError('destination public action does not exist');
+  return index;
+}
+
+function insertPublicAction(actions, action, destination, movingId = null) {
+  const remaining = movingId === null ? [...actions] : actions.filter((entry) => entry.id !== movingId);
+  const index = actionDestinationInsertIndex(actions, destination, movingId);
+  remaining.splice(index, 0, action);
+  return remaining;
+}
+
+function inverseActionDestination(actions, actionId) {
+  const index = actions.findIndex((action) => action.id === actionId);
+  if (index < 0) throw new V3ActivityAuthoringError('public action does not exist');
+  const next = actions[index + 1];
+  return next ? { kind: BEFORE_PUBLIC_ACTION, beforeActionId: next.id } : { kind: END_OF_PUBLIC_ACTIONS };
+}
+
+function mediaDestinationInsertIndex(media, destination, movingKey = null) {
+  const remaining = movingKey === null ? [...media] : media.filter((entry) => mediaKey(entry) !== movingKey);
+  if (destination.kind === END_OF_MANAGED_MEDIA) return remaining.length;
+  const beforeKey = mediaKey({ assetId: destination.beforeAssetId, role: destination.beforeRole });
+  const index = remaining.findIndex((entry) => mediaKey(entry) === beforeKey);
+  if (index < 0) throw new V3ActivityAuthoringError('destination managed media does not exist');
+  return index;
+}
+
+function insertManagedMedia(media, usage, destination, movingKey = null) {
+  const remaining = movingKey === null ? [...media] : media.filter((entry) => mediaKey(entry) !== movingKey);
+  const index = mediaDestinationInsertIndex(media, destination, movingKey);
+  remaining.splice(index, 0, usage);
+  return remaining;
+}
+
+function inverseManagedMediaDestination(media, identity) {
+  const key = mediaKey(identity);
+  const index = media.findIndex((entry) => mediaKey(entry) === key);
+  if (index < 0) throw new V3ActivityAuthoringError('managed media does not exist');
+  const next = media[index + 1];
+  return next
+    ? { kind: BEFORE_MANAGED_MEDIA, beforeAssetId: next.assetId, beforeRole: next.role }
+    : { kind: END_OF_MANAGED_MEDIA };
 }
 
 function validateCandidate(candidate) {
@@ -758,6 +1086,164 @@ function transitionMoveReference(source, command, beforeDigest) {
   });
 }
 
+function transitionAddPublicAction(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const action = {
+    id: derivePublicActionIdentity(found.activity, command.role),
+    role: command.role,
+    label: command.label,
+    href: command.href,
+  };
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].publicActions = insertPublicAction(
+    candidate.resources.activities[found.index].publicActions,
+    action,
+    command.destination,
+  );
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({
+    schemaVersion: 1,
+    type: REMOVE_ACTIVITY_PUBLIC_ACTION,
+    target: { activityId: found.activity.id, actionId: action.id },
+    expectedDraftDigest: afterDigest,
+  });
+  return deepFreeze({
+    command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource,
+    resolvedTarget: { activityId: found.activity.id, actionId: action.id, sourcePointer: `/resources/activities/${found.index}/publicActions` },
+  });
+}
+
+function transitionSetPublicAction(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const located = findPublicAction(found.activity, command.target.actionId);
+  const candidate = clone(source);
+  const action = candidate.resources.activities[found.index].publicActions[located.index];
+  const previous = { label: action.label, href: action.href };
+  action.label = command.label;
+  action.href = command.href;
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  if (afterDigest === beforeDigest) throw new V3ActivityAuthoringError('public action change is a no-op');
+  const inverseCommand = deepFreeze({
+    schemaVersion: 1,
+    type: SET_ACTIVITY_PUBLIC_ACTION,
+    target: clone(command.target),
+    label: previous.label,
+    href: previous.href,
+    expectedDraftDigest: afterDigest,
+  });
+  return deepFreeze({
+    command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource,
+    resolvedTarget: { activityId: found.activity.id, actionId: located.action.id, role: located.action.role, sourcePointer: `/resources/activities/${found.index}/publicActions/${located.index}` },
+  });
+}
+
+function transitionRemovePublicAction(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const located = findPublicAction(found.activity, command.target.actionId);
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].publicActions.splice(located.index, 1);
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({
+    schemaVersion: 1,
+    type: RESTORE_ACTIVITY_PUBLIC_ACTION,
+    target: { activityId: found.activity.id },
+    index: located.index,
+    actionSnapshot: clone(located.action),
+    expectedDraftDigest: afterDigest,
+  });
+  return deepFreeze({
+    command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource,
+    resolvedTarget: { activityId: found.activity.id, actionId: located.action.id, sourcePointer: `/resources/activities/${found.index}/publicActions/${located.index}` },
+  });
+}
+
+function transitionRestorePublicAction(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  if (command.index > found.activity.publicActions.length) throw new V3ActivityAuthoringError('public action restore index is outside the collection');
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].publicActions.splice(command.index, 0, clone(command.actionSnapshot));
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand: null, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, actionId: command.actionSnapshot.id, sourcePointer: `/resources/activities/${found.index}/publicActions/${command.index}` } });
+}
+
+function transitionMovePublicAction(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  findPublicAction(found.activity, command.target.actionId);
+  if (command.destination.kind === BEFORE_PUBLIC_ACTION && command.destination.beforeActionId === command.target.actionId) {
+    throw new V3ActivityAuthoringError('public action move cannot target itself');
+  }
+  const original = [...found.activity.publicActions];
+  const oldDestination = inverseActionDestination(original, command.target.actionId);
+  const moving = original.find((action) => action.id === command.target.actionId);
+  const moved = insertPublicAction(original, moving, command.destination, command.target.actionId);
+  if (JSON.stringify(moved) === JSON.stringify(original)) throw new V3ActivityAuthoringError('public action move is a no-op');
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].publicActions = moved;
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({ schemaVersion: 1, type: MOVE_ACTIVITY_PUBLIC_ACTION, target: clone(command.target), destination: oldDestination, expectedDraftDigest: afterDigest });
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, actionId: command.target.actionId, sourcePointer: `/resources/activities/${found.index}/publicActions` } });
+}
+
+function transitionAddManagedMedia(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const usage = { assetId: command.assetId, role: command.role };
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].managedMedia = insertManagedMedia(
+    candidate.resources.activities[found.index].managedMedia,
+    usage,
+    command.destination,
+  );
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({ schemaVersion: 1, type: REMOVE_ACTIVITY_MANAGED_MEDIA, target: { activityId: found.activity.id, assetId: usage.assetId, role: usage.role }, expectedDraftDigest: afterDigest });
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, assetId: usage.assetId, role: usage.role, sourcePointer: `/resources/activities/${found.index}/managedMedia` } });
+}
+
+function transitionRemoveManagedMedia(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const located = findManagedMedia(found.activity, command.target);
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].managedMedia.splice(located.index, 1);
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({ schemaVersion: 1, type: RESTORE_ACTIVITY_MANAGED_MEDIA, target: { activityId: found.activity.id }, index: located.index, mediaSnapshot: clone(located.media), expectedDraftDigest: afterDigest });
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, assetId: located.media.assetId, role: located.media.role, sourcePointer: `/resources/activities/${found.index}/managedMedia/${located.index}` } });
+}
+
+function transitionRestoreManagedMedia(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  if (command.index > found.activity.managedMedia.length) throw new V3ActivityAuthoringError('managed media restore index is outside the collection');
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].managedMedia.splice(command.index, 0, clone(command.mediaSnapshot));
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand: null, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, assetId: command.mediaSnapshot.assetId, role: command.mediaSnapshot.role, sourcePointer: `/resources/activities/${found.index}/managedMedia/${command.index}` } });
+}
+
+function transitionMoveManagedMedia(source, command, beforeDigest) {
+  const found = findActivity(source, command.target.activityId);
+  const located = findManagedMedia(found.activity, command.target);
+  const movingKey = mediaKey(located.media);
+  if (command.destination.kind === BEFORE_MANAGED_MEDIA && mediaKey({ assetId: command.destination.beforeAssetId, role: command.destination.beforeRole }) === movingKey) {
+    throw new V3ActivityAuthoringError('managed media move cannot target itself');
+  }
+  const original = [...found.activity.managedMedia];
+  const oldDestination = inverseManagedMediaDestination(original, located.media);
+  const moved = insertManagedMedia(original, located.media, command.destination, movingKey);
+  if (JSON.stringify(moved) === JSON.stringify(original)) throw new V3ActivityAuthoringError('managed media move is a no-op');
+  const candidate = clone(source);
+  candidate.resources.activities[found.index].managedMedia = moved;
+  const afterSource = validateCandidate(candidate);
+  const afterDigest = deriveV3DeploymentAgnosticVenueSourceDigest(afterSource);
+  const inverseCommand = deepFreeze({ schemaVersion: 1, type: MOVE_ACTIVITY_MANAGED_MEDIA, target: clone(command.target), destination: oldDestination, expectedDraftDigest: afterDigest });
+  return deepFreeze({ command: deepFreeze(clone(command)), inverseCommand, beforeDigest, afterDigest, afterSource, resolvedTarget: { activityId: found.activity.id, assetId: located.media.assetId, role: located.media.role, sourcePointer: `/resources/activities/${found.index}/managedMedia` } });
+}
+
 function commandTransition(sourceInput, commandInput, { allowInternal = false } = {}) {
   const source = createV3DeploymentAgnosticVenueSource(sourceInput);
   const command = parseActivityAuthoringCommand(commandInput, { allowInternal });
@@ -767,12 +1253,17 @@ function commandTransition(sourceInput, commandInput, { allowInternal = false } 
   }
   if (command.type === ADD_ACTIVITY) return transitionAdd(source, command, beforeDigest);
   if (command.type === REMOVE_ACTIVITY) return transitionRemove(source, command, beforeDigest);
-  if (command.type === RESTORE_ACTIVITY && allowInternal) {
-    return transitionRestore(source, command, beforeDigest);
-  }
-  if (command.type === MOVE_ACTIVITY_REFERENCE) {
-    return transitionMoveReference(source, command, beforeDigest);
-  }
+  if (command.type === RESTORE_ACTIVITY && allowInternal) return transitionRestore(source, command, beforeDigest);
+  if (command.type === MOVE_ACTIVITY_REFERENCE) return transitionMoveReference(source, command, beforeDigest);
+  if (command.type === ADD_ACTIVITY_PUBLIC_ACTION) return transitionAddPublicAction(source, command, beforeDigest);
+  if (command.type === SET_ACTIVITY_PUBLIC_ACTION) return transitionSetPublicAction(source, command, beforeDigest);
+  if (command.type === REMOVE_ACTIVITY_PUBLIC_ACTION) return transitionRemovePublicAction(source, command, beforeDigest);
+  if (command.type === RESTORE_ACTIVITY_PUBLIC_ACTION && allowInternal) return transitionRestorePublicAction(source, command, beforeDigest);
+  if (command.type === MOVE_ACTIVITY_PUBLIC_ACTION) return transitionMovePublicAction(source, command, beforeDigest);
+  if (command.type === ADD_ACTIVITY_MANAGED_MEDIA) return transitionAddManagedMedia(source, command, beforeDigest);
+  if (command.type === REMOVE_ACTIVITY_MANAGED_MEDIA) return transitionRemoveManagedMedia(source, command, beforeDigest);
+  if (command.type === RESTORE_ACTIVITY_MANAGED_MEDIA && allowInternal) return transitionRestoreManagedMedia(source, command, beforeDigest);
+  if (command.type === MOVE_ACTIVITY_MANAGED_MEDIA) return transitionMoveManagedMedia(source, command, beforeDigest);
   return transitionField(source, command, beforeDigest);
 }
 
@@ -1004,13 +1495,24 @@ function redoV3ActivityAuthoringSession(sessionInput) {
 
 module.exports = {
   ADD_ACTIVITY,
+  ADD_ACTIVITY_MANAGED_MEDIA,
+  ADD_ACTIVITY_PUBLIC_ACTION,
   BEFORE_ACTIVITY_REFERENCE,
+  BEFORE_MANAGED_MEDIA,
+  BEFORE_PUBLIC_ACTION,
   END_OF_ACTIVITY_LIST,
+  END_OF_MANAGED_MEDIA,
+  END_OF_PUBLIC_ACTIONS,
+  MOVE_ACTIVITY_MANAGED_MEDIA,
+  MOVE_ACTIVITY_PUBLIC_ACTION,
   MOVE_ACTIVITY_REFERENCE,
   REMOVE_ACTIVITY,
+  REMOVE_ACTIVITY_MANAGED_MEDIA,
+  REMOVE_ACTIVITY_PUBLIC_ACTION,
   SET_ACTIVITY_ACCESS,
   SET_ACTIVITY_LIFECYCLE,
   SET_ACTIVITY_PRESENCE,
+  SET_ACTIVITY_PUBLIC_ACTION,
   SET_ACTIVITY_TEMPORAL,
   SET_ACTIVITY_TEXT,
   V3_ACTIVITY_AUTHORING_COMMAND_SCHEMA_VERSION,
