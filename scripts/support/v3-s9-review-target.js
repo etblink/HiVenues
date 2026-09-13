@@ -96,6 +96,12 @@ ${cards}
 </main></body></html>`;
 }
 
+function referenceRole(referenceId) {
+  if (referenceId === 'migratedPhysical') return 'R1_MIGRATED_PHYSICAL_LIVE_MUSIC';
+  if (referenceId === 'nativeCreator') return 'R2_LOCATIONLESS_CREATOR';
+  return 'R3_RELEASE_PREMIERE';
+}
+
 async function startV3S9ReviewTarget(options = {}) {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-v3-s9-review-'));
   const references = [];
@@ -112,14 +118,9 @@ async function startV3S9ReviewTarget(options = {}) {
       if (!activity) throw new Error(`${referenceId}: representative Activity is missing`);
       const server = await listenLoopback(fixture.app);
       const baseUrl = `http://127.0.0.1:${server.address().port}`;
-      const role = referenceId === 'migratedPhysical'
-        ? 'R1_MIGRATED_PHYSICAL_LIVE_MUSIC'
-        : referenceId === 'nativeCreator'
-          ? 'R2_LOCATIONLESS_CREATOR'
-          : 'R3_RELEASE_PREMIERE';
       references.push({
         referenceId,
-        role,
+        role: referenceRole(referenceId),
         sourceFilename,
         fixture,
         activity,
