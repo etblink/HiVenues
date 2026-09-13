@@ -10,8 +10,8 @@ const {
 } = require('./source-file');
 
 // S4 transaction and persistence authority remains delegated byte-for-byte to
-// studio-app-core.js. Historical audit anchors: createV3ActivityAuthoringSession,
-// atomicSaveV3DeploymentAgnosticVenueSourceFile.
+// studio-app-core.js. The S6 adapter may decorate presentation and feedback
+// only; it does not own semantic mutation, history, or durable persistence.
 
 const SAFE_V3_STUDIO_ERROR =
   'The requested Studio action was rejected. Review the current selection and state, then try an available action again.';
@@ -136,7 +136,7 @@ function convergeV3StudioSurface(html, fixture) {
   output = replaceExactlyOnce(
     output,
     '<main class="shell v3-studio"',
-    `<!-- S4 provenance label: HiVenues v3 Studio -->\n<main class="shell v3-studio" data-s6-product-convergence="true" data-s6-studio-state="${state.id}"`,
+    `<main class="shell v3-studio" data-s6-product-convergence="true" data-s6-studio-state="${state.id}"`,
     'Studio root',
   );
   output = replaceExactlyOnce(
