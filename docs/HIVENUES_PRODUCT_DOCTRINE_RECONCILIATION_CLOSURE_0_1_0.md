@@ -5,33 +5,13 @@
 ```text
 OPERATION = HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_V0_1
 CLASS = DOCUMENTATION_AND_ROUTING_ONLY
-BASE_COMMIT = 9351655112a25fd8a1d115d8c402534726b1e035
-BASE_TREE = 15e1d93a6f84bbca233e9313410b29bc88ef470b
+ORIGINAL_BASE_COMMIT = 9351655112a25fd8a1d115d8c402534726b1e035
+ORIGINAL_BASE_TREE = 15e1d93a6f84bbca233e9313410b29bc88ef470b
 ```
-
-## Qualified candidate before this closure record
-
-```text
-CANDIDATE_COMMIT = 46efee63b394145fc9e755e12d4309e941b1204c
-CANDIDATE_TREE = df1948de68c5ae018531c137ed0d15c3fd1ba519
-AHEAD_OF_BASE = 4
-BEHIND_BASE = 0
-```
-
-The exact base-to-candidate diff contained only:
-
-```text
-README.md                                                   modified
-docs/HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_0_1_0.md      added
-docs/README.md                                              modified
-docs/ROADMAP.md                                             modified
-```
-
-No `src/`, `public/`, `test/`, `scripts/`, workflow, package, schema, fixture, deployment, or production path changed.
 
 ## Historical-artifact preservation
 
-The historical PM1 product records were inspected on the candidate branch and remain outside the diff.
+The historical PM1 product records remain outside the operation diff.
 
 ```text
 PM1_OPTIONAL_COMMUNITY_ARCHITECTURE_BLOB = 960e39af0da3c9a56c90e6bf6f32f2f7e5eeeb1f
@@ -39,7 +19,7 @@ PM1_REFERENCE_EXPERIENCES_BLOB = e2585085e5cdd86deeed8563d82b690e15c1ccfe
 HISTORICAL_PM1_MUTATION = NO
 ```
 
-The reconciliation therefore records supersession in a new current decision/routing layer rather than rewriting accepted historical documents.
+Product-doctrine supersession is recorded in a new current decision layer rather than by rewriting accepted historical documents.
 
 ## Doctrine result
 
@@ -59,7 +39,7 @@ NON_PHYSICAL_CREATOR_PERFORMER_REFERENCE = REQUIRED_FOR_FUTURE_GENERALITY_CLAIM
 
 The current implementation's accepted `venue` vocabulary remains compatibility/provenance state and was not renamed.
 
-## Current sequencing result
+## Product-maturation sequencing result
 
 ```text
 1. HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_V0_1
@@ -76,34 +56,105 @@ The current implementation's accepted `venue` vocabulary remains compatibility/p
 
 Steps 2–10 are routing, not authorization.
 
-## Qualification
+## Initial publication and CI finding
+
+The first documentation-only candidate was fast-forwarded to `main` at:
 
 ```text
-BASE_IS_MERGE_BASE = YES
-CANDIDATE_BEHIND_BASE = 0
-DIFF_PATH_BOUNDARY = PASS__DOCUMENTATION_ONLY
-HISTORICAL_PM1_BYTE_PRESERVATION = PASS
-SOURCE_CODE_MUTATION = NO
-SCHEMA_MUTATION = NO
-TEST_OR_CI_POLICY_MUTATION = NO
-PRODUCTION_MUTATION = NO
-HIVE_KEY_OR_WRITE_EFFECT = NO
-REMOTE_MAIN_RECHECK_BEFORE_CLOSURE = 9351655112a25fd8a1d115d8c402534726b1e035
-REMOTE_MAIN_STILL_AUTHORIZED_BASE = YES
+INITIAL_PUBLISHED_COMMIT = ec921d2cbb2c173fedcf2f62a84bfb4cb8be6ace
+INITIAL_PUBLISHED_TREE = 7de7bcbc9d93bddf591bd8762f6860b5d5e6a10a
+CI_RUN = 758
+CI_RUN_ID = 34733826848
+CI_RESULT = FAILURE
 ```
 
-A full application CI run is not used as a substitute for this qualification because the candidate changes documentation/routing only. The relevant executable safety oracle is the exact Git path boundary above.
+The failure occurred in `check:release-coherence` on both Ubuntu and Windows. Dependency audits and changed-path classification passed.
 
-## Publication gate
+Exact oracle failure:
 
-Publication is authorized only as a **non-force fast-forward** if remote `main` is rechecked immediately before ref movement and remains exactly the authorized base.
+```text
+HiVenues release coherence refused:
+historical docs index identity must remain preserved until separately migrated
+```
 
-After canonical integration:
+This was a real qualification finding. It was not waived.
 
-1. verify `main` resolves to the closure commit;
-2. add routing-only comments to roadmap Issue #160 and operator-journey Issue #199;
-3. also note the broadened qualification requirement on Issue #200;
-4. stop before Step 2 product-contract design or any implementation.
+## Root cause
+
+The first documentation rewrite changed the machine-guarded historical living-document identities and removed/replaced parts of the exact `HV6_CURRENT_ROUTING` compatibility contract.
+
+The repository's accepted `scripts/release-coherence/current-routing.js` deliberately requires:
+
+- `# Hive-Venues Documentation Index`;
+- `# Hive-Venues Living Roadmap`;
+- the exact accepted `HV6_CURRENT_ROUTING` fact block;
+- the unresolved successor-maintenance routing to `THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR`;
+- accepted HV-7/HV-8, portable-workspace, deployment-agnostic-source, CID, and identity-minimization facts.
+
+Changing those machine-guarded contracts would require a separately governed release-coherence migration and would exceed this documentation/routing operation.
+
+## Bounded repair
+
+No release-coherence code, test, workflow, schema, runtime, or application file was weakened or edited.
+
+Instead, the documentation was repaired to distinguish two valid layers:
+
+```text
+SUCCESSOR_MAINTENANCE_ROUTING = MACHINE_GUARDED_COMPATIBILITY_LANE
+PRODUCT_MATURATION_ROUTING = CURRENT_HOST_NATIVE_DOCTRINE_LANE
+```
+
+The exact successor compatibility block and historical document identities are preserved, while the new product doctrine is layered alongside them.
+
+Repair commits before this closure update:
+
+```text
+DOCS_INDEX_GUARDRAIL_REPAIR = 5313d3e3f96073518e25a707816790a5c497baec
+ROADMAP_GUARDRAIL_REPAIR = 9d6a79ba1c73cfa6efe895828b811d47ca445fb4
+REPAIR_TREE_BEFORE_CLOSURE_UPDATE = cd314acc3784035f1fd88e54fd1ae6b241218814
+```
+
+## Scope qualification
+
+The operation remains documentation-only.
+
+Allowed changed paths are exactly:
+
+```text
+README.md
+docs/HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_0_1_0.md
+docs/HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_CLOSURE_0_1_0.md
+docs/README.md
+docs/ROADMAP.md
+```
+
+Therefore:
+
+```text
+SOURCE_CODE_MUTATION = NO
+SCHEMA_MUTATION = NO
+TEST_MUTATION = NO
+CI_POLICY_MUTATION = NO
+WORKFLOW_MUTATION = NO
+PRODUCTION_MUTATION = NO
+HIVE_KEY_OR_WRITE_EFFECT = NO
+ASTRA_CODE_PORT = NO
+```
+
+## Publication/requalification gate
+
+The repaired candidate may advance only by non-force fast-forward from the failed initial documentation commit if remote `main` remains on that exact ancestor.
+
+After publication, canonical CI must run on the repaired exact SHA. The operation is not scientifically or operationally allowed to reinterpret a red CI as success.
+
+```text
+FINAL_CANONICAL_CI = REQUIRED_POST_PUBLICATION
+RELEASE_COHERENCE_ORACLE = MUST_PASS_UNCHANGED
+```
+
+## Issue-routing consequence
+
+Roadmap Issue #160, operator-journey Issue #199, and release-gate Issue #200 receive routing-only comments. If an earlier comment names the initial published SHA, the repaired canonical SHA supersedes it after successful requalification.
 
 ## Hard stop
 
@@ -114,3 +165,5 @@ ASTRA_CODE_PORT = NOT_AUTHORIZED
 PRODUCTION_TRANSITION = WITHHELD
 LIVE_HIVE_EFFECT = NOT_AUTHORIZED
 ```
+
+After repaired canonical CI passes and exact `main` is bound, stop before Step 2.
