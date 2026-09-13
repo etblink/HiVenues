@@ -60,6 +60,22 @@ test('S7.1 public foundation expresses editorial hierarchy without host-specific
   assert.doesNotMatch(css, /northline|signal-room|northstar/i);
 });
 
+test('S7.2-S7.4 shared composition gives media, activity facts and actions intentional responsive hierarchy', () => {
+  const css = renderV3PublicStylesheet();
+
+  assert.match(css, /\.v3-hero\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,24rem\),1fr\)\)/);
+  assert.match(css, /\.v3-hero__media,\.v3-activity-media\{overflow:hidden;border:1px solid var\(--v3-border\);border-radius:1\.1rem;background:var\(--v3-surface\)\}/);
+  assert.match(css, /\.v3-activity-description\{max-width:58ch/);
+  assert.match(css, /\.v3-activity-time\{max-width:var\(--v3-reading-width\);margin:2rem 0;padding:1\.1rem 0;border-top:1px solid var\(--v3-border\);border-bottom:1px solid var\(--v3-border\)\}/);
+  assert.match(css, /\.v3-activity-presence\{max-width:var\(--v3-reading-width\);padding:1\.5rem 0;border-top:1px solid var\(--v3-border\)\}/);
+  assert.match(css, /\.v3-activity-actions\{display:flex;flex-wrap:wrap;gap:\.75rem;margin-top:2rem\}/);
+  assert.match(css, /\.v3-visit-facts\{max-width:var\(--v3-reading-width\);display:grid;grid-template-columns:repeat\(auto-fit/);
+  assert.match(css, /\.v3-activity-actions \.v3-action\{flex:1 1 100%\}/);
+
+  assert.doesNotMatch(css, /object-fit:/);
+  assert.doesNotMatch(css, /northline|signal-room|northstar/i);
+});
+
 test('S7 presentation layer remains self-contained, accessible and host-neutral', () => {
   const css = renderV3PublicStylesheet();
 
