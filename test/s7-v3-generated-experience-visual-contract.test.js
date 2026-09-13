@@ -46,6 +46,20 @@ test('S7 visual contract keeps one shared venue-first renderer across frozen ref
   }
 });
 
+test('S7.1 public foundation expresses editorial hierarchy without host-specific styling', () => {
+  const css = renderV3PublicStylesheet();
+
+  assert.match(css, /--v3-site-width:72rem/);
+  assert.match(css, /--v3-reading-width:46rem/);
+  assert.match(css, /--v3-space-section:clamp\(/);
+  assert.match(css, /font-family:ui-serif,Georgia,Cambria/);
+  assert.match(css, /\.v3-site-header\{width:min\(var\(--v3-site-width\)/);
+  assert.match(css, /\.v3-component\{margin:var\(--v3-space-section\) 0;padding:0;background:transparent\}/);
+  assert.match(css, /\.v3-activity-card\{padding:1\.5rem 0;border-bottom:1px solid var\(--v3-border\)\}/);
+  assert.match(css, /text-transform:uppercase/);
+  assert.doesNotMatch(css, /northline|signal-room|northstar/i);
+});
+
 test('S7 presentation layer remains self-contained, accessible and host-neutral', () => {
   const css = renderV3PublicStylesheet();
 
