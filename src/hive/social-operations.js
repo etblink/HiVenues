@@ -189,7 +189,6 @@ function contentOperationArray(operation, config, payload) {
   ];
 }
 
-
 function buildPost({ account: accountValue, payload, config }) {
   const account = requireHiveAccount(accountValue);
   const title = requireOptionalTitle(payload?.title);
@@ -399,7 +398,7 @@ function createPermlink(value, { now = Date.now, random = randomBytes } = {}) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 180)
-    .replace(/-+$/g, '') || 'hive-bar';
+    .replace(/-+$/g, '') || 'hivenues';
   const timestamp = new Date(now()).toISOString().replace(/[-:.TZ]/g, '').toLowerCase();
   const suffix = random(5).toString('hex');
   return `${slug}-${timestamp}-${suffix}`;
