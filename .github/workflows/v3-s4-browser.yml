@@ -7,10 +7,15 @@ on:
       - 'test/support/v3-authoring-studio-fixture.js'
       - 'test/support/v3-reference-fixtures.js'
       - 'test/venue-v3-cross-host-studio.test.js'
+      - 'test/v3-s9-review-target.test.js'
+      - 'scripts/support/v3-s9-review-target.js'
+      - 'scripts/open-v3-s9-review-target.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
       - 'scripts/capture-v3-s7-generated-experience-visual.js'
       - 'scripts/capture-v3-s8-social-surface-visual.js'
+      - 'scripts/capture-v3-s9-measured-baseline.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
+      - 'docs/PM4_S9_MEASURED_QUALITY_RELEASE_PROTOCOL_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   push:
     branches:
@@ -20,10 +25,15 @@ on:
       - 'test/support/v3-authoring-studio-fixture.js'
       - 'test/support/v3-reference-fixtures.js'
       - 'test/venue-v3-cross-host-studio.test.js'
+      - 'test/v3-s9-review-target.test.js'
+      - 'scripts/support/v3-s9-review-target.js'
+      - 'scripts/open-v3-s9-review-target.js'
       - 'scripts/capture-v3-cross-host-journeys-visual.js'
       - 'scripts/capture-v3-s7-generated-experience-visual.js'
       - 'scripts/capture-v3-s8-social-surface-visual.js'
+      - 'scripts/capture-v3-s9-measured-baseline.js'
       - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
+      - 'docs/PM4_S9_MEASURED_QUALITY_RELEASE_PROTOCOL_0_1_0.md'
       - '.github/workflows/v3-s4-browser.yml'
   workflow_dispatch:
 
@@ -38,7 +48,7 @@ jobs:
   browser-journeys:
     name: R1/R2/R3 Studio + real-renderer journeys (Ubuntu / pinned Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Check out exact candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -58,6 +68,8 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Build exact presentation assets
         run: npm run build
+      - name: Verify S9 local review target
+        run: node --test --test-concurrency=1 test/v3-s9-review-target.test.js
       - name: Run S4 cross-host complete operator journeys
         env:
           V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
@@ -70,14 +82,18 @@ jobs:
         env:
           V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
         run: node scripts/capture-v3-s8-social-surface-visual.js
-      - name: Publish S4/S7/S8 review evidence
+      - name: Run S9 untouched measured baseline
+        env:
+          V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
+        run: node scripts/capture-v3-s9-measured-baseline.js
+      - name: Publish S4/S7/S8/S9 review evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: v3-s4-cross-host-review-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/v3-s4-cross-host-review
           if-no-files-found: error
           retention-days: 90
-      - name: Publish S4/S7/S8 metrics
+      - name: Publish S4/S7/S8/S9 metrics
         shell: bash
         run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
@@ -85,6 +101,7 @@ jobs:
           const manifest = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/manifest.json', 'utf8'));
           const s7 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s7-generated-experience/manifest.json', 'utf8'));
           const s8 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s8-social-surface/manifest.json', 'utf8'));
+          const s9 = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/s9-measured-baseline/manifest.json', 'utf8'));
           console.log('## V3 S4 cross-host operator journeys');
           console.log('');
           console.log(`- References completed: ${manifest.summary.referenceCount}`);
@@ -116,4 +133,18 @@ jobs:
           console.log(`- External browser requests: ${s8.summary.externalRequests}`);
           console.log(`- Hive RPC attempts/writes: ${s8.summary.hiveRpcAttempts}/${s8.summary.hiveWrites}`);
           console.log(`- Provider writes: ${s8.summary.providerWrites}`);
+          console.log('');
+          console.log('## V3 S9 untouched measured baseline');
+          console.log('');
+          console.log(`- Deep references: ${s9.summary.referenceCount}`);
+          console.log(`- Viewport-only screenshots: ${s9.summary.viewportOnlyScreenshotCount} (mobile ${s9.summary.mobileScreenshotCount}; tablet ${s9.summary.tabletScreenshotCount}; desktop ${s9.summary.desktopScreenshotCount})`);
+          console.log(`- Home/detail screenshots: ${s9.summary.homeScreenshotCount}/${s9.summary.activityScreenshotCount}`);
+          console.log(`- Accessibility violations: ${s9.summary.accessibilityViolationCount} (serious/critical ${s9.summary.seriousOrCriticalAccessibilityCount})`);
+          console.log(`- Horizontal/image/incomplete-image findings: ${s9.summary.horizontalOverflowCount}/${s9.summary.imageOverflowCount}/${s9.summary.incompleteImageCount}`);
+          console.log(`- Pages with action targets below 44px convention: ${s9.summary.below44pxActionTargetPageCount}`);
+          console.log(`- Missing description/canonical/OG-title pages: ${s9.summary.missingDescriptionCount}/${s9.summary.missingCanonicalCount}/${s9.summary.missingOpenGraphTitleCount}`);
+          console.log(`- JSON-LD blocks: ${s9.summary.jsonLdBlockCount}`);
+          console.log(`- External browser requests: ${s9.summary.externalRequests}`);
+          console.log(`- Screenshot bytes: ${s9.summary.screenshotBytes}`);
+          console.log(`- Astra credits spent: ${s9.astraCreditsSpent}`);
           NODE
