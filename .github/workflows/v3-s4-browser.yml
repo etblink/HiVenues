@@ -1,0 +1,84 @@
+name: V3 S4 Cross-Host Browser Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'src/venue/v3/**'
+      - 'test/support/v3-authoring-studio-fixture.js'
+      - 'test/support/v3-reference-fixtures.js'
+      - 'test/venue-v3-cross-host-studio.test.js'
+      - 'scripts/capture-v3-cross-host-journeys-visual.js'
+      - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
+      - '.github/workflows/v3-s4-browser.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/venue/v3/**'
+      - 'test/support/v3-authoring-studio-fixture.js'
+      - 'test/support/v3-reference-fixtures.js'
+      - 'test/venue-v3-cross-host-studio.test.js'
+      - 'scripts/capture-v3-cross-host-journeys-visual.js'
+      - 'docs/V3_CROSS_HOST_COMPLETE_OPERATOR_JOURNEYS_CONTRACT_0_1_0.md'
+      - '.github/workflows/v3-s4-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-s4-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-journeys:
+    name: R1/R2/R3 Studio + real-renderer journeys (Ubuntu / pinned Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Build exact presentation assets
+        run: npm run build
+      - name: Run S4 cross-host complete operator journeys
+        env:
+          V3_S4_REVIEW_ROOT: artifacts/v3-s4-cross-host-review
+        run: node scripts/capture-v3-cross-host-journeys-visual.js
+      - name: Publish S4 review evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: v3-s4-cross-host-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/v3-s4-cross-host-review
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish S4 metrics
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/v3-s4-cross-host-review/manifest.json', 'utf8'));
+          console.log('## V3 S4 cross-host operator journeys');
+          console.log('');
+          console.log(`- References completed: ${manifest.summary.referenceCount}`);
+          console.log(`- Keyboard completions: ${manifest.summary.keyboardCompletionCount}`);
+          console.log(`- Review screenshots: ${manifest.summary.screenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal-overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
+          console.log(`- External browser requests: ${manifest.summary.externalRequests}`);
+          console.log(`- Hive/provider writes: ${manifest.summary.hiveWrites}/${manifest.summary.providerWrites}`);
+          console.log(`- Payment/signing/deployment effects: ${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
+          NODE
