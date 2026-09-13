@@ -251,7 +251,7 @@ function createSocialRouter({ config }) {
         ...preflight,
         message: transactionId
           ? 'Keychain approved this action. Waiting for Hive to confirm it.'
-          : 'Keychain approved this action, but Hive-Bar couldn’t get a transaction ID. Don’t try again yet; confirmation is still pending.',
+          : 'Keychain approved this action, but HiVenues couldn’t get a transaction ID. Don’t try again yet; confirmation is still pending.',
       });
     } catch (error) {
       next(error);
