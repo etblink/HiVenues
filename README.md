@@ -1,6 +1,6 @@
 # HiVenues
 
-HiVenues is a **Hive-native social/business frontend platform for host identities**: physical places, creators, performers, groups, brands, and event-centered communities. A host supplies its brand, context, vocabulary, content model, audience relationship, and goals; Hive supplies portable identity, community, publishing, social interaction, durable public content, rewards, and economic primitives.
+HiVenues is a multi-venue community and social platform powered by Hive, governed by a broader **Hive-native host-identity product doctrine** spanning physical places, creators, performers, groups, brands, and event-centered communities. A host supplies its brand, context, vocabulary, content model, audience relationship, and goals; Hive supplies portable identity, community, publishing, social interaction, durable public content, rewards, and economic primitives.
 
 The product goal is to translate those Hive primitives into the language and experience of the host rather than expose a generic blockchain application.
 
