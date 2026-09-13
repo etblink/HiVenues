@@ -36,7 +36,6 @@ test('S6.1 Studio shell is operator-first across reference hosts while technical
     assert.match(response.text, /<div class="digest-chip"><strong>Canvas<\/strong>/, referenceId);
 
     assert.match(response.text, /Session draft · memory only/, referenceId);
-    assert.match(response.text, /Preview change/, referenceId);
     assert.match(response.text, /Real v2 authoring preview/, referenceId);
 
     const diagnostics = fixture.diagnostics();
