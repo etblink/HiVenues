@@ -1,5 +1,6 @@
 'use strict';
 
+const express = require('express');
 const {
   SAFE_V3_STUDIO_ERROR: CORE_SAFE_V3_STUDIO_ERROR,
   createV3AuthoringStudioApp: createCoreV3AuthoringStudioApp,
@@ -8,12 +9,32 @@ const {
   V3_PERSISTED_SOURCE_ABSENT,
 } = require('./source-file');
 
-// S4 authority remains delegated byte-for-byte to studio-app-core.js.
-// Historical audit anchors: createV3ActivityAuthoringSession,
+// S4 transaction and persistence authority remains delegated byte-for-byte to
+// studio-app-core.js. Historical audit anchors: createV3ActivityAuthoringSession,
 // atomicSaveV3DeploymentAgnosticVenueSourceFile.
 
 const SAFE_V3_STUDIO_ERROR =
   'The requested Studio action was rejected. Review the current selection and state, then try an available action again.';
+
+const SUCCESS_COUNTER_BY_PATH = new Map([
+  ['/v3-studio/text', 'proposals'],
+  ['/v3-studio/lifecycle', 'proposals'],
+  ['/v3-studio/access', 'proposals'],
+  ['/v3-studio/temporal', 'proposals'],
+  ['/v3-studio/presence', 'proposals'],
+  ['/v3-studio/action-add', 'proposals'],
+  ['/v3-studio/action-set', 'proposals'],
+  ['/v3-studio/action-move', 'proposals'],
+  ['/v3-studio/action-remove', 'proposals'],
+  ['/v3-studio/media-add', 'proposals'],
+  ['/v3-studio/media-move', 'proposals'],
+  ['/v3-studio/media-remove', 'proposals'],
+  ['/v3-studio/apply', 'applies'],
+  ['/v3-studio/discard', 'discards'],
+  ['/v3-studio/undo', 'undos'],
+  ['/v3-studio/redo', 'redos'],
+  ['/v3-studio/save', 'saveSuccesses'],
+]);
 
 const S6_V3_STYLES = `
 .studio-context{margin:.2rem 0 0;color:#57534e;font-size:.86rem;line-height:1.4}
@@ -28,6 +49,15 @@ main[data-s6-studio-state="saved"] .state-stage{background:#dcfce7;color:#166534
 
 function convergenceError(label) {
   return new Error(`S6 v3 Studio convergence anchor drifted: ${label}`);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function replaceExactlyOnce(html, search, replacement, label) {
@@ -106,7 +136,7 @@ function convergeV3StudioSurface(html, fixture) {
   output = replaceExactlyOnce(
     output,
     '<main class="shell v3-studio"',
-    `<main class="shell v3-studio" data-s6-product-convergence="true" data-s6-studio-state="${state.id}"`,
+    `<!-- S4 provenance label: HiVenues v3 Studio -->\n<main class="shell v3-studio" data-s6-product-convergence="true" data-s6-studio-state="${state.id}"`,
     'Studio root',
   );
   output = replaceExactlyOnce(
@@ -152,11 +182,57 @@ function convergeV3StudioSurface(html, fixture) {
 
 function createV3AuthoringStudioApp(sourceInput, options = {}) {
   const fixture = createCoreV3AuthoringStudioApp(sourceInput, options);
-  const originalSend = fixture.app.response.send;
-  fixture.app.response.send = function sendWithS6V3Convergence(body) {
-    return originalSend.call(this, convergeV3StudioSurface(body, fixture));
-  };
-  return fixture;
+  let pendingSafeError = false;
+  const app = express();
+  app.disable('x-powered-by');
+
+  app.use((request, response, next) => {
+    if (request.method === 'POST') pendingSafeError = false;
+    const before = fixture.diagnostics();
+    const originalRedirect = response.redirect.bind(response);
+    const originalSend = response.send.bind(response);
+
+    response.redirect = (...args) => {
+      if (request.method === 'POST') {
+        const counter = SUCCESS_COUNTER_BY_PATH.get(request.path);
+        if (counter) {
+          const after = fixture.diagnostics();
+          pendingSafeError = after[counter] === before[counter];
+        }
+      }
+      return originalRedirect(...args);
+    };
+
+    response.send = (body) => {
+      let output = body;
+      if (
+        request.method === 'GET'
+        && request.path === '/v3-studio'
+        && typeof output === 'string'
+      ) {
+        if (pendingSafeError) {
+          output = replaceExactlyOnce(
+            output,
+            '<div class="layout">',
+            `<p class="error" role="alert">${escapeHtml(SAFE_V3_STUDIO_ERROR)}</p>\n<div class="layout">`,
+            'safe rejection alert insertion',
+          );
+          pendingSafeError = false;
+        }
+        output = convergeV3StudioSurface(output, fixture);
+      }
+      return originalSend(output);
+    };
+
+    next();
+  });
+
+  app.use(fixture.app);
+
+  return Object.freeze({
+    ...fixture,
+    app,
+  });
 }
 
 module.exports = {
