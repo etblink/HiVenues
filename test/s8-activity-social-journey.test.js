@@ -67,6 +67,7 @@ function authorized(builder, fixture) {
 
 test('S8.3 bound Activity discussion resolves locally and an ordinary verified user can prepare a reply without broadcast', async () => {
   const source = activitySourceWithBoundDiscussion();
+  assert.equal(source.capabilities.community.state, 'disabled');
   const activity = source.resources.activities.find((candidate) => candidate.id === 'live-session-one');
   const document = new JSDOM(renderV3ActivityDetail(source, activity.slug)).window.document;
   const discussionLink = document.querySelector('[data-social-role="PRIMARY_DISCUSSION"]');
