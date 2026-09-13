@@ -68,7 +68,7 @@ CI_RUN_ID = 34733826848
 CI_RESULT = FAILURE
 ```
 
-The failure occurred in `check:release-coherence` on both Ubuntu and Windows. Dependency audits and changed-path classification passed.
+The failure occurred in `check:release-coherence` on the deterministic verification lanes. Dependency audits and changed-path classification passed.
 
 Exact oracle failure:
 
@@ -79,25 +79,21 @@ historical docs index identity must remain preserved until separately migrated
 
 This was a real qualification finding. It was not waived.
 
-## Root cause
+## Root cause and first bounded repair
 
-The first documentation rewrite changed the machine-guarded historical living-document identities and removed/replaced parts of the exact `HV6_CURRENT_ROUTING` compatibility contract.
+The first documentation rewrite changed machine-guarded historical living-document identities and replaced parts of the exact `HV6_CURRENT_ROUTING` compatibility contract.
 
 The repository's accepted `scripts/release-coherence/current-routing.js` deliberately requires:
 
 - `# Hive-Venues Documentation Index`;
 - `# Hive-Venues Living Roadmap`;
 - the exact accepted `HV6_CURRENT_ROUTING` fact block;
-- the unresolved successor-maintenance routing to `THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR`;
+- unresolved successor-maintenance routing to `THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR`;
 - accepted HV-7/HV-8, portable-workspace, deployment-agnostic-source, CID, and identity-minimization facts.
 
 Changing those machine-guarded contracts would require a separately governed release-coherence migration and would exceed this documentation/routing operation.
 
-## Bounded repair
-
-No release-coherence code, test, workflow, schema, runtime, or application file was weakened or edited.
-
-Instead, the documentation was repaired to distinguish two valid layers:
+No release-coherence code, test, workflow, schema, runtime, or application file was weakened or edited. Instead, documentation was repaired to distinguish two valid layers:
 
 ```text
 SUCCESSOR_MAINTENANCE_ROUTING = MACHINE_GUARDED_COMPATIBILITY_LANE
@@ -106,19 +102,64 @@ PRODUCT_MATURATION_ROUTING = CURRENT_HOST_NATIVE_DOCTRINE_LANE
 
 The exact successor compatibility block and historical document identities are preserved, while the new product doctrine is layered alongside them.
 
-Repair commits before this closure update:
+First repair commits:
 
 ```text
 DOCS_INDEX_GUARDRAIL_REPAIR = 5313d3e3f96073518e25a707816790a5c497baec
 ROADMAP_GUARDRAIL_REPAIR = 9d6a79ba1c73cfa6efe895828b811d47ca445fb4
-REPAIR_TREE_BEFORE_CLOSURE_UPDATE = cd314acc3784035f1fd88e54fd1ae6b241218814
+FIRST_REPAIR_RECORD = 5fd474e2d689fb8c8c21256de0841bdf595d4d27
+FIRST_REPAIR_RECORD_TREE = 9e50d6ebce3ee9b891b1d10608a23cbfd7945398
 ```
+
+## Prepublication requalification — PR #208 / CI #759
+
+A draft qualification-only PR was opened from the repaired branch to `main` solely to run the repository's own PR CI before any second canonical ref movement.
+
+```text
+QUALIFICATION_PR = 208
+QUALIFICATION_BASE = ec921d2cbb2c173fedcf2f62a84bfb4cb8be6ace
+QUALIFICATION_HEAD_INITIAL = 5fd474e2d689fb8c8c21256de0841bdf595d4d27
+CI_RUN = 759
+CI_RUN_ID = 34735231943
+```
+
+The first PR-qualification attempt established that the release-coherence repair itself succeeded:
+
+```text
+CHECK_RELEASE_COHERENCE = PASS
+HIVENUES_V1_RELEASE_GATE = PASS
+FUNCTIONAL_V1_BASELINE = PASS
+DEPENDENCY_AUDIT_UBUNTU = PASS
+DEPENDENCY_AUDIT_WINDOWS = PASS
+DETERMINISTIC_TESTS_UBUNTU = 1077_PASS__1_FAIL__1078_TOTAL
+```
+
+The sole Ubuntu deterministic failure was the existing product-identity continuity assertion in `test/hv6-current-routing.test.js`:
+
+```text
+EXPECTED_README_PHRASE = multi-venue community and social platform powered by Hive
+```
+
+The broader doctrine wording had truthfully expanded product scope, but had accidentally removed that exact established product description. The test therefore correctly prevented the reconciliation from silently discarding accepted product identity language.
+
+This finding was not waived and the test was not changed.
+
+## Second bounded repair — established product wording continuity
+
+The root README was repaired by layering the broadened doctrine onto the established product description rather than replacing it:
+
+```text
+README_CONTINUITY_REPAIR = 5b8d799709a5992163ca26c5fb3bf9d5ce82ab68
+ESTABLISHED_DESCRIPTION = PRESERVED
+BROADER_HOST_IDENTITY_DOCTRINE = PRESERVED
+TEST_ORACLE_WEAKENED = NO
+```
+
+The resulting product statement begins with the accepted continuity phrase while immediately clarifying the broader host-identity doctrine. This is a semantic reconciliation, not a retreat to physical-venue-only scope.
 
 ## Scope qualification
 
-The operation remains documentation-only.
-
-Allowed changed paths are exactly:
+The operation remains documentation-only. Allowed changed paths are exactly:
 
 ```text
 README.md
@@ -141,16 +182,20 @@ HIVE_KEY_OR_WRITE_EFFECT = NO
 ASTRA_CODE_PORT = NO
 ```
 
-## Publication/requalification gate
+## Final qualification and publication gate
 
-The repaired candidate may advance only by non-force fast-forward from the failed initial documentation commit if remote `main` remains on that exact ancestor.
+The current repaired branch must pass the complete PR CI on its exact final head before publication. A passing earlier SHA is not transferable to a later documentation SHA.
 
-After publication, canonical CI must run on the repaired exact SHA. The operation is not scientifically or operationally allowed to reinterpret a red CI as success.
+Only after exact-head PR CI is green may the branch advance by **non-force fast-forward** if remote `main` still equals the exact qualification base/ancestor. After that ref movement, canonical `main` CI must also pass on the exact published SHA.
 
 ```text
+PREPUBLICATION_EXACT_HEAD_CI = REQUIRED
 FINAL_CANONICAL_CI = REQUIRED_POST_PUBLICATION
 RELEASE_COHERENCE_ORACLE = MUST_PASS_UNCHANGED
+RED_CI_WAIVER = FORBIDDEN
 ```
+
+The final exact candidate commit/tree are Git identities of this closure update's branch head and are bound in the publication handoff rather than self-referentially embedded here.
 
 ## Issue-routing consequence
 
