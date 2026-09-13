@@ -9,6 +9,7 @@ const test = require('node:test');
 
 const root = path.join(__dirname, '..');
 const workflow = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
+const v3Workflow = fs.readFileSync(path.join(root, '.github/workflows/v3-s4-browser.yml'), 'utf8');
 // Run the entry point named by CI, not a test-only implementation of its policy.
 const entry = workflow.match(/^        run: node (scripts\/classify-qualification-scope\.js)$/m)?.[1];
 assert.ok(entry, 'scope job must invoke the shared executable');
@@ -108,13 +109,25 @@ test('all retained legacy visual trigger families qualify isolated changes', asy
   }
 });
 
-test('v3-owned browser inputs and classifier maintenance do not replay legacy visual evidence', (t) => {
+test('only inputs already owned by the dedicated v3 workflow bypass legacy replay', (t) => {
+  assert.match(v3Workflow, /'src\/venue\/v3\/\*\*'/);
+  for (const owned of [
+    'test/support/v3-authoring-studio-fixture.js',
+    'test/support/v3-reference-fixtures.js',
+    'test/venue-v3-cross-host-studio.test.js',
+    'scripts/capture-v3-cross-host-journeys-visual.js',
+    'scripts/capture-v3-s7-generated-experience-visual.js',
+    '.github/workflows/v3-s4-browser.yml',
+  ]) assert.ok(v3Workflow.includes(`'${owned}'`), `${owned} must be owned by the dedicated v3 workflow`);
+
   const f = fixture(t);
   for (const file of [
     'src/venue/v3/renderer/index.js',
-    'scripts/capture-v3-s8-social-visual.js',
-    'test/support/v3-social-visual-fixture.js',
-    'test/venue-v3-social-surface.test.js',
+    'test/support/v3-authoring-studio-fixture.js',
+    'test/support/v3-reference-fixtures.js',
+    'test/venue-v3-cross-host-studio.test.js',
+    'scripts/capture-v3-cross-host-journeys-visual.js',
+    'scripts/capture-v3-s7-generated-experience-visual.js',
     '.github/workflows/v3-s4-browser.yml',
     'scripts/classify-qualification-scope.js',
     'test/qualification-scope-classifier.test.js',
@@ -125,11 +138,23 @@ test('v3-owned browser inputs and classifier maintenance do not replay legacy vi
   }
 });
 
+test('new v3 visual evidence is not excluded until the dedicated workflow owns it', (t) => {
+  const f = fixture(t);
+  for (const file of [
+    'scripts/capture-v3-s8-social-visual.js',
+    'test/support/v3-social-visual-fixture.js',
+  ]) {
+    const base = f.git('rev-parse', 'HEAD');
+    f.commit(file);
+    selected(f.run({ PR_BASE_SHA: base }), true);
+  }
+});
+
 test('documentation, unrelated paths, exact-name near misses and empty diffs retain false selection', (t) => {
   const f = fixture(t);
   for (const file of ['docs/ordinary.md', 'scripts/ordinary.js', '.github/workflows/other.yml',
     'src/venue/read-only-venue-canvas-surfaceXjs', 'src/venue/read-only-venue-canvas-surface.js.bak',
-    'scripts/capture-new-visualXjs', 'test/support/helper.js']) {
+    'scripts/capture-new-visualXjs', 'test/support/helper.js', 'test/venue-v3-social-surface.test.js']) {
     const base = f.git('rev-parse', 'HEAD');
     f.commit(file);
     selected(f.run({ PR_BASE_SHA: base }), false);
