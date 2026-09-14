@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-studio-body">
+  <div class="cc-studio-shell">
+    <header class="cc-studio-topbar">
+      <div class="cc-studio-brand">
+        <a class="cc-studio-brand__mark" href="/candidate-c" aria-label="HiVenues home">H</a>
+        <div>
+          <strong><%= graph.identity.displayName %></strong>
+          <small>HiVenues Studio · draft</small>
+        </div>
+      </div>
+      <div class="cc-studio-actions">
+        <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved to draft</span>
+        <div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Draft r<%= revision %></div>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
+        <a class="cc-button cc-button--ink" href="/candidate-c/studio/<%= graph.identity.slug %>/release">Review release</a>
+      </div>
+    </header>
+
+    <div class="cc-studio-workspace">
+      <nav class="cc-studio-rail" aria-label="Studio">
+        <div class="cc-studio-rail__group">
+          <span class="cc-studio-rail__label">Page</span>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>First impression</button>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=page.order" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Section order</button>
+        </div>
+        <div class="cc-studio-rail__group">
+          <span class="cc-studio-rail__label">Activities</span>
+          <% activities.forEach((activity) => { %>
+            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= activity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= activity.title %></button>
+          <% }) %>
+        </div>
+        <div class="cc-studio-rail__group">
+          <span class="cc-studio-rail__label">Site</span>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/direction">Direction</a>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice:applaud_hive" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= media[0].id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Media</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History</a>
+        </div>
+      </nav>
+
+      <section class="cc-studio-stage" aria-label="Rendered site canvas">
+        <div class="cc-studio-stage__toolbar">
+          <span>Real rendered canvas · <%= family.label %></span>
+          <span><%= graph.identity.presence || graph.facts.presence.mode %></span>
+        </div>
+        <div class="cc-stage-device">
+          <% if (family.id === 'poster') { %>
+            <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <% } %>
+        </div>
+      </section>
+
+      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, selectedResource, compositionRegistry, mechanicRegistry }) %>
+    </div>
+  </div>
+  <script src="/htmx/htmx.min.js" defer></script>
+  <script src="/js/candidate-c-studio.js" defer></script>
+</body>
+</html>

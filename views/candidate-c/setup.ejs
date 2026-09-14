@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Draft r<%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Guided creation · four moments</p>
+    <h1>Shape the place before you tune the controls.</h1>
+    <p class="cc-task__dek">This is art direction over the same canonical draft the Studio edits. There is no basic-mode copy of your site and nothing becomes public from this screen.</p>
+
+    <div class="cc-setup-grid">
+      <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/setup">
+        <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <div class="cc-field">
+          <label for="cc-purpose">1 · Purpose</label>
+          <textarea id="cc-purpose" name="purpose" required><%= graph.intent.purpose %></textarea>
+          <small>What are you making, and what should people be able to do here?</small>
+        </div>
+        <div class="cc-field">
+          <label for="cc-material">2 · Presence & material</label>
+          <textarea id="cc-material" name="presenceMaterial" required><%= graph.intent.presenceMaterial %></textarea>
+          <small>Where does it happen, and what real material or atmosphere should lead?</small>
+        </div>
+        <fieldset class="cc-field" style="border:0;padding:0">
+          <legend>3 · Direction</legend>
+          <div class="cc-choice-grid">
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="poster" <%= graph.intent.direction === 'poster' ? 'checked' : '' %>>
+              <strong>Poster room</strong>
+              <span>Dense, tactile, event-led, nocturnal.</span>
+            </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="editorial" <%= graph.intent.direction === 'editorial' ? 'checked' : '' %>>
+              <strong>Editorial field notes</strong>
+              <span>Open, publication-like, media-led, quiet.</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="cc-field">
+          <label for="cc-participation">4 · Participation</label>
+          <textarea id="cc-participation" name="participation" required><%= graph.intent.participation %></textarea>
+          <small>Describe the useful next steps in ordinary language; mechanics remain truthful underneath.</small>
+        </div>
+        <button class="cc-button cc-button--ink" type="submit">Shape this draft</button>
+      </form>
+
+      <section class="cc-direction-preview" aria-label="Current generated first draft">
+        <% if (family.id === 'poster') { %>
+          <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+        <% } else { %>
+          <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+        <% } %>
+      </section>
+    </div>
+  </main>
+  <script src="/htmx/htmx.min.js" defer></script>
+</body>
+</html>

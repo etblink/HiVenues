@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body" style="--cc-accent:<%= graph.presentation.accent %>">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
+      <span class="cc-draft-status">Disconnected simulation</span>
+    </nav>
+    <p class="cc-kicker">Metaphor at the experience layer</p>
+    <h1><%= term %></h1>
+    <p class="cc-task__dek">The host can name participation in its own voice. Before any consequential action, HiVenues names the actual mechanic and authority boundary plainly.</p>
+
+    <section class="cc-consequence-card">
+      <p class="cc-studio-inspector__eyebrow">Truth at the consequence boundary</p>
+      <h2><%= mechanic.id %></h2>
+      <div class="cc-consequence-truth"><%= disclosure %></div>
+      <dl>
+        <dt><strong>Consequence class</strong></dt><dd><%= mechanic.consequenceClass %></dd>
+        <dt><strong>Moves value</strong></dt><dd><%= mechanic.movesValue ? 'Yes' : 'No' %></dd>
+        <dt><strong>Public</strong></dt><dd><%= mechanic.public ? 'Yes' : 'No' %></dd>
+        <dt><strong>Binding state</strong></dt><dd><%= graph.bindings.hive.state %></dd>
+      </dl>
+      <p><strong>No action button appears in Phase 2A</strong> because no live Hive write or signature is authorized. The consequence review is the product behavior being proved here.</p>
+    </section>
+  </main>
+</body>
+</html>

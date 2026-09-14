@@ -1,0 +1,13 @@
+<%
+  const palette = media.palette;
+  const fx = media.focal.x;
+  const fy = media.focal.y;
+%>
+<div
+  class="cc-art cc-art--<%= graph.presentation.compositionFamily %>"
+  role="img"
+  aria-label="<%= media.alt %>"
+  style="--cc-art-1:<%= palette[0] %>;--cc-art-2:<%= palette[1] %>;--cc-art-3:<%= palette[2] %>;--cc-art-4:<%= palette[3] || palette[0] %>;--cc-fx:<%= fx %>%;--cc-fy:<%= fy %>%">
+  <span class="cc-art__mark" aria-hidden="true"></span>
+  <span class="cc-art__route" aria-hidden="true"></span>
+</div>

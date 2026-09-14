@@ -1,0 +1,93 @@
+'use strict';
+
+const { disclosureFor, formatActivityTime, mechanicRegistry } = require('./model');
+
+const compositionRegistry = Object.freeze({
+  poster: Object.freeze({
+    id: 'poster',
+    label: 'Poster room',
+    publicTemplate: 'candidate-c/compositions/poster',
+    activityTemplate: 'candidate-c/compositions/poster-activity',
+    studioClass: 'cc-family-poster',
+    description: 'Tactile venue grammar with oversized type, stacked show information, close-room rhythm, and warm dark surfaces.',
+  }),
+  editorial: Object.freeze({
+    id: 'editorial',
+    label: 'Editorial field notes',
+    publicTemplate: 'candidate-c/compositions/editorial',
+    activityTemplate: 'candidate-c/compositions/editorial-activity',
+    studioClass: 'cc-family-editorial',
+    description: 'Open editorial grammar with asymmetrical columns, quiet annotation, media-led pacing, and publication-like whitespace.',
+  }),
+});
+
+function mediaFor(graph, mediaId) {
+  return graph.media.find((item) => item.id === mediaId) || graph.media[0];
+}
+
+function buildViewModel(snapshot) {
+  const graph = snapshot.draft;
+  const family = compositionRegistry[graph.presentation.compositionFamily];
+  const activities = graph.activities.map((activity) => ({
+    ...activity,
+    humanTime: formatActivityTime(activity, graph.identity.timezone),
+    media: mediaFor(graph, activity.mediaId),
+    actions: activity.publicActions.map((action) => ({
+      mechanic: action.mechanic,
+      term: graph.voice.terms[action.mechanic] || action.mechanic,
+      disclosure: disclosureFor(action.mechanic, graph),
+      definition: mechanicRegistry[action.mechanic],
+    })),
+  }));
+  return {
+    graph,
+    family,
+    activities,
+    primaryActivity: activities[0] || null,
+    media: graph.media,
+    release: snapshot.releases.find((item) => item.id === snapshot.liveReleaseId) || null,
+    revision: snapshot.revision,
+    releases: snapshot.releases,
+    liveReleaseId: snapshot.liveReleaseId,
+    manualPaths: snapshot.manualPaths || [],
+    draftDigest: snapshot.draftDigest,
+  };
+}
+
+function escapeIcs(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+}
+
+function utcStamp(value) {
+  return new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function renderIcs(graph, activity) {
+  const location = activity.presence.mode === 'online'
+    ? activity.presence.platformLabel
+    : activity.presence.address;
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//HiVenues//Candidate C Phase 2A//EN',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${escapeIcs(activity.id)}@hivenues.local`,
+    `DTSTAMP:${utcStamp(activity.startsAt)}`,
+    `DTSTART:${utcStamp(activity.startsAt)}`,
+    `DTEND:${utcStamp(activity.endsAt)}`,
+    `SUMMARY:${escapeIcs(activity.title)}`,
+    `DESCRIPTION:${escapeIcs(activity.description)}`,
+    `LOCATION:${escapeIcs(location)}`,
+    `URL:/candidate-c/${escapeIcs(graph.identity.slug)}/activities/${escapeIcs(activity.slug)}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+    '',
+  ].join('\r\n');
+}
+
+module.exports = { buildViewModel, compositionRegistry, renderIcs };

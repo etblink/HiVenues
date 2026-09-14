@@ -1,0 +1,40 @@
+/* Candidate C contrast corrections kept separate so the Phase 2A visual grammar remains legible. */
+.cc-editorial-index,
+.cc-canvas-editorial__note span {
+  color: #655682;
+}
+
+.cc-editorial-footer {
+  color: #655e70;
+}
+
+.cc-studio-stage__toolbar {
+  color: #5a544c;
+}
+
+.cc-studio-inspector__eyebrow,
+.cc-studio-rail__label {
+  color: #675f56;
+}
+
+.cc-media-note {
+  opacity: .82;
+}
+
+/* Keep the horizontally scrollable mobile Studio rail inside the viewport.
+   Its long unbroken flex row must scroll itself rather than widen the document. */
+@media (max-width: 760px) {
+  .cc-studio-workspace,
+  .cc-studio-stage,
+  .cc-stage-device,
+  .cc-studio-canvas {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .cc-studio-rail {
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
+  }
+}
