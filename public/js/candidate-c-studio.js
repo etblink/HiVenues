@@ -85,7 +85,9 @@
   document.body.addEventListener('htmx:afterRequest', (event) => {
     if (!event.detail.elt.closest('.cc-inspector-form')) return;
     const state = document.querySelector('#cc-save-state');
-    if (state) state.textContent = event.detail.successful ? 'Saved to draft' : 'Not saved';
+    if (!state) return;
+    const stale = event.detail.xhr?.status === 409;
+    state.textContent = !stale && event.detail.successful ? 'Saved to draft' : 'Not saved';
   });
 
   window.addEventListener('pageshow', (event) => {
