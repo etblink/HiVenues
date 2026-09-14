@@ -8,6 +8,7 @@
       'restore focus after server-rendered inspector swaps',
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
+      'reconcile BFCache restoration with current server truth',
     ]),
   });
 
@@ -75,6 +76,13 @@
     if (!event.detail.elt.closest('.cc-inspector-form')) return;
     const state = document.querySelector('#cc-save-state');
     if (state) state.textContent = event.detail.successful ? 'Saved to draft' : 'Not saved';
+  });
+
+  window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    // BFCache can restore an old revision token and rendered draft. Durable state is
+    // server-owned, so a persisted Studio history entry is reconstructed from the server.
+    window.location.reload();
   });
 
   window.CandidateCStudio = inventory;
