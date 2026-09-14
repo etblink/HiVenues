@@ -95,6 +95,7 @@ function activityList({ id, kicker, heading, intro, resourceIds }) {
 function polishMigratedPhysicalSource(sourceInput) {
   const source = clone(sourceInput);
   source.venue.displayName = 'Northline Hall';
+  source.venue.business.address = 'Riverside District, Reno, NV';
   for (const page of source.site.pages) {
     if (page.slug === '') {
       page.seo.title = 'Northline Hall · Live music in the Riverside District';
@@ -160,7 +161,7 @@ function nativeCreatorSource() {
         {
           id: 'live-session-one',
           slug: 'live-session-one',
-          title: 'Live Session One',
+          title: 'Open Room: Songs in Progress',
           description: 'A live studio session with new songs, works in progress, and time for audience questions.',
           temporal: {
             kind: 'OCCURRENCE',
