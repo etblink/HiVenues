@@ -20,3 +20,21 @@
 .cc-media-note {
   opacity: .82;
 }
+
+/* Keep the horizontally scrollable mobile Studio rail inside the viewport.
+   Its long unbroken flex row must scroll itself rather than widen the document. */
+@media (max-width: 760px) {
+  .cc-studio-workspace,
+  .cc-studio-stage,
+  .cc-stage-device,
+  .cc-studio-canvas {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .cc-studio-rail {
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
+  }
+}
