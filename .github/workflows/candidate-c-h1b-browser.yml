@@ -7,6 +7,7 @@ on:
       - 'test/support/candidate-c-h1b-client.js'
       - 'test/candidate-c-h1b-interaction.test.js'
       - 'scripts/candidate-c-h1b-browser-v2.js'
+      - 'scripts/candidate-c-h1b-normalize-manifest.js'
       - '.github/workflows/candidate-c-h1b-browser.yml'
   workflow_dispatch:
 
@@ -45,6 +46,12 @@ jobs:
         env:
           CANDIDATE_C_H1B_REVIEW_ROOT: artifacts/candidate-c-h1b-review
         run: node scripts/candidate-c-h1b-browser-v2.js
+      - name: Normalize exact evidence provenance
+        if: success()
+        env:
+          CANDIDATE_C_H1B_REVIEW_ROOT: artifacts/candidate-c-h1b-review
+          CANDIDATE_C_H1B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-h1b-normalize-manifest.js
       - name: Publish Phase 1B review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -62,6 +69,7 @@ jobs:
           const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-h1b-review/manifest.json', 'utf8'));
           console.log('## Candidate C Phase 1B interaction hardening');
           console.log('');
+          console.log(`- Exact candidate: ${m.candidate}`);
           console.log(`- Screenshots: ${m.summary.screenshotCount}`);
           console.log(`- Blocking accessibility findings: ${m.summary.blockingAccessibilityFindings}`);
           console.log(`- Horizontal overflow findings: ${m.summary.horizontalOverflowFindings}`);
