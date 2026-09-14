@@ -168,4 +168,22 @@ test('S9.4 RB5 emits route-derived metadata, structured data, robots, and sitema
   assert.match(robotsResponse.headers['content-type'], /text\/plain/);
   assert.equal(sitemapResponse.status, 200);
   assert.match(sitemapResponse.headers['content-type'], /(?:application|text)\/xml/);
+
+  const review = createReferenceV3AuthoringStudioFixture('nativeRelease');
+  const reviewHome = await request(review.app).get('/v3-preview/').set('Host', 'review.example');
+  const reviewActivity = await request(review.app)
+    .get('/v3-preview/activities/afterglow-release')
+    .set('Host', 'review.example');
+  const reviewRobots = await request(review.app).get('/robots.txt').set('Host', 'review.example');
+  const reviewSitemap = await request(review.app).get('/sitemap.xml').set('Host', 'review.example');
+
+  assert.equal(reviewHome.status, 200);
+  assert.match(reviewHome.text, /<link rel="canonical" href="http:\/\/review\.example\/">/);
+  assert.match(reviewHome.text, /<meta property="og:url" content="http:\/\/review\.example\/">/);
+  assert.equal(reviewActivity.status, 200);
+  assert.match(reviewActivity.text, /<link rel="canonical" href="http:\/\/review\.example\/activities\/afterglow-release">/);
+  assert.equal(reviewRobots.status, 200);
+  assert.match(reviewRobots.text, /Sitemap: http:\/\/review\.example\/sitemap\.xml/);
+  assert.equal(reviewSitemap.status, 200);
+  assert.match(reviewSitemap.text, /<loc>http:\/\/review\.example\/activities\/afterglow-release<\/loc>/);
 });
