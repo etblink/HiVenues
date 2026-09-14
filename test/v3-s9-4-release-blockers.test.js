@@ -106,13 +106,13 @@ test('S9.4 RB2/RB4 renders human time and puts essentials plus the primary actio
   const activity = selectedActivity(physical);
   const html = renderV3Route(physical, activityPath(activity), { canonicalOrigin: 'https://release.example' });
 
-  assert.match(html, /June 19, 2026/);
-  assert.match(html, /UTC−05:00/);
-  assert.doesNotMatch(html, />2026-06-19T19:30:00-05:00</);
+  assert.match(html, /September 18, 2026/);
+  assert.match(html, /UTC−07:00/);
+  assert.doesNotMatch(html, />2026-09-18T20:00:00-07:00</);
   assert.match(html, />Scheduled</);
-  assert.match(html, /data-action-role="TICKETS"/);
+  assert.match(html, />Tickets<\/a>/);
   assert.ok(html.indexOf('v3-activity-essentials') < html.indexOf('v3-activity-gallery'));
-  assert.ok(html.indexOf('data-action-role="TICKETS"') < html.indexOf('v3-activity-gallery'));
+  assert.ok(html.indexOf('>Tickets</a>') < html.indexOf('v3-activity-gallery'));
 });
 
 test('S9.4 RB3 references read as credible fictional hosts and R3 has a meaningful release action', () => {
