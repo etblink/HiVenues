@@ -1,4 +1,3 @@
-<span id="cc-save-state" class="cc-save-state" aria-live="polite" hx-swap-oob="outerHTML">Saved to draft</span>
 <div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>" hx-swap-oob="outerHTML">Draft r<%= revision %></div>
 <% if (family.id === 'poster') { %>
   <%- include('../compositions/poster-canvas', { graph, media, primaryActivity, oob: true }) %>
