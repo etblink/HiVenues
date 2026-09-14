@@ -17,7 +17,7 @@ const northline = validateHostGraph({
     presence: {
       mode: 'physical',
       label: 'Downtown Las Vegas · doors open 7 PM on show nights',
-      address: '416 Fremont Street, Las Vegas, NV',
+      address: '416 Northline Avenue, Las Vegas, NV',
     },
     contact: 'hello@northline.example',
   },
@@ -32,7 +32,7 @@ const northline = validateHostGraph({
       presence: {
         mode: 'physical',
         venueName: 'Northline Hall',
-        address: '416 Fremont Street, Las Vegas, NV',
+        address: '416 Northline Avenue, Las Vegas, NV',
       },
       lifecycle: 'scheduled',
       mediaId: 'media-northline-stage-001',
