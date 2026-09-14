@@ -155,8 +155,8 @@ async function main() {
     await gotoOk(desktop, direction.headers().location);
     assert.equal(await desktop.locator('.cc-studio-canvas--poster').count(), 1);
     assert.equal(await desktop.locator('.cc-studio-canvas--hospitality').count(), 1);
-    assert.match(await desktop.locator('main').textContent(), /Poster room/);
-    assert.match(await desktop.locator('main').textContent(), /Hospitality table/);
+    assert.match(await desktop.locator('.cc-task').textContent(), /Poster room/);
+    assert.match(await desktop.locator('.cc-task').textContent(), /Hospitality table/);
     await capture(desktop, '05-direction-poster-to-hospitality', 'direction-poster-to-hospitality');
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
