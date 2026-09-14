@@ -121,7 +121,7 @@ test('release detail renders release moment with no fake end time or physical lo
   const times = [...document.querySelectorAll('time')];
   assert.equal(times.length, 1);
   assert.equal(times[0].getAttribute('datetime'), activity.temporal.releaseAt);
-  assert.match(document.body.textContent, /Release/);
+  assert.match(document.body.textContent, /Available/);
   assert.equal(document.querySelectorAll('address,.v3-activity-presence').length, 0);
   assert.doesNotMatch(document.body.textContent, /Join online|Location/);
 });
@@ -173,7 +173,8 @@ test('renderer escapes hostile source text without mutating canonical source', (
   const before = deriveV3DeploymentAgnosticVenueSourceDigest(validated);
   const html = renderV3ActivityDetail(validated, validated.resources.activities[0].slug);
   const document = documentFrom(html);
-  assert.equal(document.querySelectorAll('script').length, 0);
+  assert.equal(document.querySelectorAll('script:not([type="application/ld+json"])').length, 0);
+  assert.equal(document.querySelectorAll('script[type="application/ld+json"]').length, 1);
   assert.equal(document.querySelectorAll('img[onerror]').length, 0);
   assert.equal(document.querySelector('h1').textContent, source.resources.activities[0].title);
   assert.match(document.querySelector('.v3-activity-description').textContent, /<img src=x onerror=alert\(1\)>/);
