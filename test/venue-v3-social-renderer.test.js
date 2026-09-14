@@ -55,7 +55,7 @@ test('S8.2 unbound Activity remains complete without social chrome', () => {
   const source = clone(nativeCreatorSource());
   const document = documentFrom(source);
   assert.equal(document.querySelector('.v3-activity-discussion'), null);
-  assert.equal(document.querySelector('h1').textContent, 'Live Session One');
+  assert.equal(document.querySelector('h1').textContent, source.resources.activities[0].title);
   assert.match(document.body.textContent, /Join online/);
 });
 
