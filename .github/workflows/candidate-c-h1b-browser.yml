@@ -6,7 +6,7 @@ on:
       - 'test/support/candidate-c-h1b-spike.js'
       - 'test/support/candidate-c-h1b-client.js'
       - 'test/candidate-c-h1b-interaction.test.js'
-      - 'scripts/candidate-c-h1b-browser.js'
+      - 'scripts/candidate-c-h1b-browser-v2.js'
       - '.github/workflows/candidate-c-h1b-browser.yml'
   workflow_dispatch:
 
@@ -44,7 +44,7 @@ jobs:
       - name: Run Phase 1B browser qualification
         env:
           CANDIDATE_C_H1B_REVIEW_ROOT: artifacts/candidate-c-h1b-review
-        run: node scripts/candidate-c-h1b-browser.js
+        run: node scripts/candidate-c-h1b-browser-v2.js
       - name: Publish Phase 1B review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
