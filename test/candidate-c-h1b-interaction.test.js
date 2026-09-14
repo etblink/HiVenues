@@ -138,7 +138,7 @@ test('HTMX edit and reorder responses carry server revisions, dependent fragment
   const reorder = await request(fixture.app).post('/studio/reorder').set('HX-Request', 'true').type('form').send({ sectionId: 'journal', beforeId: 'hero', expectedRevision: 2 });
   assert.equal(reorder.status, 200);
   assert.match(reorder.text, /id="section-order"/);
-  assert.match(reorder.text, /id="studio-canvas"[^>]*hx-swap-oob="outerHTML"/);
+  assert.match(reorder.text, /hx-swap-oob="outerHTML"[^>]*id="studio-canvas"/);
   assert.match(reorder.text, /data-revision="3"/);
 
   const stale = await request(fixture.app).post('/studio/reorder').set('HX-Request', 'true').type('form').send({ sectionId: 'hero', beforeId: 'journal', expectedRevision: 2 });
