@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-poster" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-poster-nav">
+    <a class="cc-wordmark" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <nav aria-label="Primary">
+      <a href="#what-is-on">What’s on</a>
+      <a href="#visit">Visit</a>
+      <a href="#story">The room</a>
+    </nav>
+  </header>
+
+  <main>
+    <% graph.presentation.arrangement.forEach((section) => { %>
+      <% if (section === 'hero') { %>
+        <section class="cc-poster-hero" aria-labelledby="cc-poster-title">
+          <div class="cc-poster-hero__copy">
+            <p class="cc-kicker"><%= graph.identity.archetype %></p>
+            <h1 id="cc-poster-title"><%= graph.facts.tagline %></h1>
+            <p class="cc-poster-hero__summary"><%= graph.facts.summary %></p>
+            <% if (primaryActivity) { %>
+              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See the next night</a>
+            <% } %>
+          </div>
+          <div class="cc-poster-hero__art">
+            <%- include('../_art', { media: media[0], graph }) %>
+            <p class="cc-media-note"><%= media[0].provenance %></p>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'activity' && primaryActivity) { %>
+        <section class="cc-poster-night" id="what-is-on" aria-labelledby="cc-next-night">
+          <div class="cc-poster-night__date" aria-hidden="true">
+            <span><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { month: 'short', timeZone: graph.identity.timezone }).toUpperCase() %></span>
+            <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { day: '2-digit', timeZone: graph.identity.timezone }) %></strong>
+          </div>
+          <div class="cc-poster-night__body">
+            <p class="cc-kicker">Next at Northline</p>
+            <h2 id="cc-next-night"><%= primaryActivity.title %></h2>
+            <p class="cc-time"><%= primaryActivity.humanTime %></p>
+            <p><%= primaryActivity.description %></p>
+          </div>
+          <div class="cc-poster-night__actions">
+            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Details & RSVP</a>
+            <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'story') { %>
+        <section class="cc-poster-story" id="story">
+          <p class="cc-kicker">From behind the bar</p>
+          <p class="cc-poster-story__line">This is not a feed wearing a venue logo. It is the room’s own front door online.</p>
+          <p class="cc-poster-story__small">Participation can travel underneath it, while the experience stays unmistakably <%= graph.identity.displayName %>.</p>
+        </section>
+      <% } %>
+
+      <% if (section === 'details') { %>
+        <section class="cc-poster-visit" id="visit" aria-labelledby="cc-visit-title">
+          <div>
+            <p class="cc-kicker">Find the room</p>
+            <h2 id="cc-visit-title"><%= graph.facts.presence.label %></h2>
+          </div>
+          <div class="cc-poster-visit__facts">
+            <% if (graph.facts.presence.address) { %><p><strong>Address</strong><br><%= graph.facts.presence.address %></p><% } %>
+            <p><strong>Contact</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'offer' && graph.offers[0]) { %>
+        <section class="cc-poster-offer">
+          <p class="cc-kicker">Make the room yours</p>
+          <h2><%= graph.offers[0].title %></h2>
+          <p><%= graph.offers[0].summary %></p>
+          <a class="cc-link cc-link--light" href="mailto:<%= graph.facts.contact %>">Ask about a night</a>
+        </section>
+      <% } %>
+    <% }) %>
+  </main>
+
+  <footer class="cc-poster-footer">
+    <p><%= graph.identity.displayName %></p>
+    <p>Built with HiVenues · the host comes first.</p>
+  </footer>
+</body>
+</html>

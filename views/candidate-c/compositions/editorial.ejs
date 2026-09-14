@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-editorial" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-editorial-nav">
+    <a class="cc-editorial-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <nav aria-label="Primary">
+      <a href="#current">Current</a>
+      <a href="#notes">Notes</a>
+      <a href="#about">About</a>
+    </nav>
+  </header>
+
+  <main class="cc-editorial-page">
+    <% graph.presentation.arrangement.forEach((section) => { %>
+      <% if (section === 'story') { %>
+        <section class="cc-editorial-deck" id="notes">
+          <p class="cc-editorial-index">01 / FIELD NOTE</p>
+          <p>Research moves through streets, screens, transit diagrams, and conversations. This page keeps the work together without pretending it happens in one place.</p>
+        </section>
+      <% } %>
+
+      <% if (section === 'hero') { %>
+        <section class="cc-editorial-hero" aria-labelledby="cc-editorial-title">
+          <div class="cc-editorial-hero__copy">
+            <p class="cc-kicker"><%= graph.identity.archetype %></p>
+            <h1 id="cc-editorial-title"><%= graph.facts.tagline %></h1>
+            <p class="cc-editorial-hero__summary"><%= graph.facts.summary %></p>
+          </div>
+          <div class="cc-editorial-hero__media">
+            <%- include('../_art', { media: media[0], graph }) %>
+            <div class="cc-editorial-caption">
+              <span>Working image</span>
+              <span><%= media[0].provenance %></span>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'activity' && primaryActivity) { %>
+        <section class="cc-editorial-session" id="current" aria-labelledby="cc-current-title">
+          <div class="cc-editorial-session__meta">
+            <p class="cc-editorial-index">02 / LIVE</p>
+            <p class="cc-time"><%= primaryActivity.humanTime %></p>
+          </div>
+          <div class="cc-editorial-session__body">
+            <h2 id="cc-current-title"><%= primaryActivity.title %></h2>
+            <p><%= primaryActivity.description %></p>
+            <div class="cc-editorial-session__actions">
+              <a class="cc-button cc-button--ink" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Open the session note</a>
+              <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'offer' && graph.offers[0]) { %>
+        <section class="cc-editorial-offer">
+          <p class="cc-editorial-index">03 / DISPATCHES</p>
+          <div>
+            <h2><%= graph.offers[0].title %></h2>
+            <p><%= graph.offers[0].summary %></p>
+            <a class="cc-link" href="mailto:<%= graph.facts.contact %>">Ask for the next dispatch</a>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'details') { %>
+        <section class="cc-editorial-about" id="about">
+          <p class="cc-editorial-index">04 / WHERE</p>
+          <div>
+            <h2><%= graph.facts.presence.label %></h2>
+            <p>There is no venue address to invent. The presence model is explicitly <strong><%= graph.facts.presence.mode %></strong>.</p>
+            <a class="cc-link" href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a>
+          </div>
+        </section>
+      <% } %>
+    <% }) %>
+  </main>
+
+  <footer class="cc-editorial-footer">
+    <span><%= graph.identity.displayName %></span>
+    <span>HiVenues / host-first publishing</span>
+  </footer>
+</body>
+</html>

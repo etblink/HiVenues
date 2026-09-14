@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { loadHomeReadModel } = require('../home/read-model');
+const { createCandidateCRouter } = require('../candidate-c/router');
 const { createOnboardingRouter } = require('./onboarding');
 
 const router = express.Router();
@@ -42,6 +43,7 @@ router.get('/pay', (req, res) => {
   });
 });
 
+router.use('/candidate-c', createCandidateCRouter());
 router.use(createOnboardingRouter());
 
 module.exports = router;
