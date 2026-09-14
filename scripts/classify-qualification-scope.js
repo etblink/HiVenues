@@ -94,10 +94,30 @@ const dedicatedCandidateCPatterns = [
   .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   .join('[\\s\\S]*') + '$'));
 
+function isFullCommitSha(value) {
+  return /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value || '') && !/^0+$/.test(value);
+}
+
 function requiresLegacyVisual(path) {
   if (dedicatedV3Patterns.some((pattern) => pattern.test(path))) return false;
   if (dedicatedCandidateCPatterns.some((pattern) => pattern.test(path))) return false;
   return visualPatterns.some((pattern) => pattern.test(path));
+}
+
+function selectComparisonBase({ eventName, prBaseSha, pushBeforeSha, eventPayload = {} }) {
+  if (eventName === 'pull_request') {
+    if (eventPayload.action === 'synchronize' && isFullCommitSha(eventPayload.before)) {
+      return eventPayload.before;
+    }
+    return prBaseSha;
+  }
+  return pushBeforeSha;
+}
+
+function readEventPayload() {
+  const filename = process.env.GITHUB_EVENT_PATH;
+  if (!filename) return {};
+  return JSON.parse(fs.readFileSync(filename, 'utf8'));
 }
 
 function git(args) {
@@ -118,14 +138,20 @@ function main() {
 
   let visual = EVENT_NAME === 'workflow_dispatch';
   if (!visual) {
-    let base = EVENT_NAME === 'pull_request' ? PR_BASE_SHA : PUSH_BEFORE_SHA;
-    if (!base || /^0+$/.test(base)) base = git(['rev-parse', '--verify', 'HEAD^']).trim();
-    if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(base)) throw new Error('Base must be a full Git commit SHA');
+    let base = selectComparisonBase({
+      eventName: EVENT_NAME,
+      prBaseSha: PR_BASE_SHA,
+      pushBeforeSha: PUSH_BEFORE_SHA,
+      eventPayload: readEventPayload(),
+    });
+    if (!isFullCommitSha(base)) base = git(['rev-parse', '--verify', 'HEAD^']).trim();
+    if (!isFullCommitSha(base)) throw new Error('Base must be a full Git commit SHA');
     // Resolve a commit, reject missing objects, and separate revisions from paths.
     const commit = git(['rev-parse', '--verify', base + '^{commit}']).trim();
     // Include both sides of renames; deleting a legacy visual path must still qualify.
     const changed = git(['diff', '--no-renames', '--name-only', '-z', commit, 'HEAD', '--'])
       .split('\0').filter(Boolean);
+    console.log('Qualification comparison base: ' + commit);
     console.log('Changed paths: ' + JSON.stringify(changed));
     visual = changed.some(requiresLegacyVisual);
   } else {
@@ -146,4 +172,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { requiresLegacyVisual };
+module.exports = { requiresLegacyVisual, selectComparisonBase };
