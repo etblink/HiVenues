@@ -5,6 +5,11 @@ const {
   createV3AuthoringStudioApp,
 } = require('../../src/venue/v3/studio-app');
 const {
+  renderV3RobotsText,
+  renderV3Route,
+  renderV3SitemapXml,
+} = require('../../src/venue/v3/renderer');
+const {
   createV3DeploymentAgnosticVenueSource,
 } = require('../../src/venue/v3/source');
 const {
@@ -59,6 +64,14 @@ function managedSvg(referenceId) {
 </svg>`;
 }
 
+function requestOrigin(request) {
+  return `${request.protocol}://${request.get('host')}`;
+}
+
+function currentPreviewSource(base) {
+  return base.proposal()?.previewSource || base.session().draftSource;
+}
+
 function createReferenceV3AuthoringStudioFixture(referenceId, options = {}) {
   const factory = REFERENCES[referenceId];
   if (!factory) throw new TypeError(`Unknown v3 S4 Studio reference: ${referenceId}`);
@@ -74,6 +87,27 @@ function createReferenceV3AuthoringStudioFixture(referenceId, options = {}) {
   });
   app.get('/fixtures/v2-renderer/:asset', (_request, response) => {
     response.type('image/svg+xml').send(managedSvg(referenceId));
+  });
+  app.get('/robots.txt', (request, response) => {
+    response.type('text/plain').send(renderV3RobotsText(currentPreviewSource(base), {
+      canonicalOrigin: requestOrigin(request),
+    }));
+  });
+  app.get('/sitemap.xml', (request, response) => {
+    response.type('application/xml').send(renderV3SitemapXml(currentPreviewSource(base), {
+      canonicalOrigin: requestOrigin(request),
+    }));
+  });
+  app.use('/v3-preview', (request, response) => {
+    try {
+      response.set('Cache-Control', 'no-store');
+      response.type('html').send(renderV3Route(currentPreviewSource(base), request.path || '/', {
+        legacyEventRoutes: reference.legacyEventRoutes,
+        canonicalOrigin: requestOrigin(request),
+      }));
+    } catch (error) {
+      response.status(404).type('text').send(error.message);
+    }
   });
   app.use(base.app);
   return Object.freeze({ ...base, app, source, referenceId });
