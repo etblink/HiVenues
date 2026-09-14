@@ -122,13 +122,6 @@ function polishMigratedPhysicalSource(sourceInput) {
       }
     }
   }
-  const activity = source.resources.activities.find((candidate) => candidate.publicActions.length > 0)
-    || source.resources.activities[0];
-  if (activity) {
-    activity.title = 'Friday Night Set — Harbor Lights Quartet';
-    activity.description = 'An all-ages evening set with standing room and a full-room live sound mix.';
-    if (activity.access) activity.access.note = 'All ages. Doors open before the first set.';
-  }
   return createV3DeploymentAgnosticVenueSource(source);
 }
 
