@@ -7,7 +7,7 @@
   const selectedMedia = media.find((item) => item.id === selectedMediaId) || null;
 %>
 <aside id="candidate-inspector" class="cc-studio-inspector" data-open="<%= selected ? 'true' : 'false' %>" aria-label="Contextual editor">
-  <button type="button" class="cc-link" data-close-inspector aria-label="Close editor">Close</button>
+  <% if (selected) { %><button type="button" class="cc-link" data-close-inspector aria-label="Close editor">Close</button><% } %>
   <% if (!selected) { %>
     <p class="cc-studio-inspector__eyebrow">Context</p>
     <h2>Choose something on the canvas.</h2>
