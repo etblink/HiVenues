@@ -34,6 +34,18 @@ function htmxClassicAssetFilename() {
   return path.join(path.dirname(require.resolve('htmx.org')), 'htmx.min.js');
 }
 
+function normalizeStudioFragment(body) {
+  if (typeof body !== 'string') return body;
+  // The initial core spike emitted one speculative OOB target that was not
+  // actually present in the Studio DOM. Strict HTMX qualification correctly
+  // reported htmx:oobErrorNoTarget. The transport keeps only real fan-out
+  // targets rather than adding hidden DOM bookkeeping just to satisfy the swap.
+  return body.replace(
+    /<div id="activity-preview-title" hx-swap-oob="outerHTML">[\s\S]*?<\/div>/g,
+    '',
+  );
+}
+
 function createCandidateCH1Transport(options = {}) {
   const fixture = createCandidateCH1Spike(options);
   const app = express();
@@ -54,7 +66,7 @@ function createCandidateCH1Transport(options = {}) {
     if (!request.path.startsWith('/studio')) return next();
     const send = response.send.bind(response);
     response.send = (body) => {
-      let output = body;
+      let output = normalizeStudioFragment(body);
       if (typeof output === 'string' && output.includes('</head>') && !output.includes('/candidate-c/studio-island.js')) {
         output = output.replace('</head>', '<script src="/candidate-c/studio-island.js" defer></script></head>');
       }
@@ -72,6 +84,7 @@ function createCandidateCH1Transport(options = {}) {
       htmxAsset: htmxClassicAssetFilename(),
       durableClientState: false,
       clientIslandResponsibilities: Object.freeze(['409-swap-policy', 'focus-restoration']),
+      fragmentPolicy: 'real-targets-only',
     }),
   });
 }
@@ -80,4 +93,5 @@ module.exports = {
   STUDIO_ISLAND,
   createCandidateCH1Transport,
   htmxClassicAssetFilename,
+  normalizeStudioFragment,
 };
