@@ -1,4 +1,5 @@
 'use strict';
+/* global document, window */
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -8,6 +9,7 @@ const { createCandidateCH1Transport } = require('../test/support/candidate-c-h1-
 
 const OUTPUT_ROOT = process.env.CANDIDATE_C_H1_REVIEW_ROOT
   || path.join('artifacts', 'candidate-c-h1-review');
+const EXPECTED_CONFLICT_CONSOLE = 'Failed to load resource: the server responded with a status of 409 (Conflict)';
 
 function externalZero(diagnostics) {
   assert.deepEqual(diagnostics.external, {
@@ -64,6 +66,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const externalRequests = [];
   const consoleErrors = [];
+  const expectedConflictConsoleDiagnostics = [];
+  let expectedConflictConsoleAllowance = 0;
   const accessibilityFindings = [];
   const geometryFindings = [];
   const screenshots = [];
@@ -77,7 +81,14 @@ async function main() {
       }
     });
     page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text());
+      if (message.type() !== 'error') return;
+      const text = message.text();
+      if (text === EXPECTED_CONFLICT_CONSOLE && expectedConflictConsoleAllowance > 0) {
+        expectedConflictConsoleAllowance -= 1;
+        expectedConflictConsoleDiagnostics.push(text);
+        return;
+      }
+      consoleErrors.push(text);
     });
     page.on('pageerror', (error) => consoleErrors.push(error.message));
   }
@@ -135,12 +146,16 @@ async function main() {
 
     await tabB.locator('#activity-inspector input[name="title"]').fill('Stale overwrite attempt');
     const staleResponsePromise = tabB.waitForResponse((response) => response.url().endsWith('/studio/activity-title'));
+    expectedConflictConsoleAllowance += 1;
     await tabB.locator('#activity-inspector button[type="submit"]').first().click();
     const staleResponse = await staleResponsePromise;
     assert.equal(staleResponse.status(), 409);
     await tabB.locator('#conflict').waitFor({ state: 'visible' });
+    await tabB.waitForTimeout(50);
     assert.match(await tabB.locator('#conflict').textContent(), /newer draft/i);
     assert.equal(await tabB.locator('#conflict').evaluate((element) => element === document.activeElement), true);
+    assert.equal(expectedConflictConsoleDiagnostics.length, 1, 'the deliberate HTTP 409 must be recorded as an expected browser diagnostic');
+    assert.equal(expectedConflictConsoleAllowance, 0, 'the deliberate HTTP 409 diagnostic allowance must be consumed exactly once');
     screenshots.push(await screenshot(tabB, '04-studio-stale-conflict'));
 
     await tabA.reload({ waitUntil: 'networkidle' });
@@ -188,12 +203,12 @@ async function main() {
 
     externalZero(fixture.diagnostics());
     assert.equal(externalRequests.length, 0, `unexpected external browser requests: ${externalRequests.join(', ')}`);
-    assert.equal(consoleErrors.length, 0, `browser console/page errors: ${consoleErrors.join(' | ')}`);
+    assert.equal(consoleErrors.length, 0, `unexpected browser console/page errors: ${consoleErrors.join(' | ')}`);
     assert.equal(accessibilityFindings.some((entry) => entry.blockingCount > 0), false, JSON.stringify(accessibilityFindings, null, 2));
     assert.equal(geometryFindings.some((entry) => entry.overflow), false, JSON.stringify(geometryFindings, null, 2));
 
     const manifest = {
-      version: 2,
+      version: 3,
       candidate: process.env.GITHUB_SHA || null,
       architecture: {
         durableStateOwner: 'server',
@@ -206,12 +221,16 @@ async function main() {
         horizontalOverflowFindings: geometryFindings.filter((entry) => entry.overflow).length,
         externalRequests: externalRequests.length,
         consoleErrors: consoleErrors.length,
+        expectedConflictConsoleDiagnostics: expectedConflictConsoleDiagnostics.length,
         hiveRpcAttempts: fixture.diagnostics().external.hiveRpcAttempts,
         hiveWrites: fixture.diagnostics().external.hiveWrites,
         providerWrites: fixture.diagnostics().external.providerWrites,
         payments: fixture.diagnostics().external.payments,
         signingAttempts: fixture.diagnostics().external.signingAttempts,
         deployments: fixture.diagnostics().external.deployments,
+      },
+      expectedDiagnostics: {
+        staleRevisionHttp409: expectedConflictConsoleDiagnostics,
       },
       accessibility: accessibilityFindings,
       geometry: geometryFindings,
