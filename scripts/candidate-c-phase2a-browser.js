@@ -186,10 +186,12 @@ async function main() {
     await gotoOk(staleTab, '/candidate-c/studio/northline-hall');
     const staleRevision = await staleTab.locator('#draft-status').getAttribute('data-revision');
     assert.equal(staleRevision, '2');
+    await staleTab.getByRole('button', { name: 'Edit first impression' }).click();
+    await staleTab.locator('#candidate-inspector[data-open="true"]').waitFor();
+    assert.equal(await staleTab.locator('input[name="expectedRevision"]').first().inputValue(), '2');
+    await staleTab.locator('#cc-tagline').fill('Stale browser overwrite.');
     const serverEdit = store.editTagline('northline-hall', 'Server-newer headline.', 2);
     assert.equal(serverEdit.ok, true);
-    await staleTab.getByRole('button', { name: 'Edit first impression' }).click();
-    await staleTab.locator('#cc-tagline').fill('Stale browser overwrite.');
     const staleResponsePromise = staleTab.waitForResponse((response) => response.url().endsWith('/candidate-c/studio/northline-hall/tagline') && response.request().method() === 'POST');
     await staleTab.getByRole('button', { name: 'Save headline' }).click();
     const staleResponse = await staleResponsePromise;
