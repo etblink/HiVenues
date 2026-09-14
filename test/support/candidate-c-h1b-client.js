@@ -4,6 +4,13 @@
 (() => {
   const state = { draggedSectionId: null, focalDraft: null };
 
+  function panelIdFor(resourceId) {
+    if (resourceId?.startsWith('activity:')) return 'panel-activity';
+    if (resourceId === 'host:tagline') return 'panel-tagline';
+    if (resourceId?.startsWith('media:')) return 'panel-media';
+    return '';
+  }
+
   function select(resourceId, panelId) {
     document.body.dataset.selectedResource = resourceId || '';
     document.querySelectorAll('[data-context-panel]').forEach((panel) => {
@@ -83,10 +90,16 @@
   });
 
   document.body.addEventListener('htmx:afterSwap', (event) => {
-    const focusName = event.detail.target?.querySelector?.('[data-restore-focus]')?.dataset.restoreFocus;
-    if (focusName) document.querySelector(`[name="${focusName}"]`)?.focus({ preventScroll: true });
     const selected = document.body.dataset.selectedResource;
-    if (selected) document.querySelector(`[data-selected-id="${selected}"]`)?.setAttribute('aria-current', 'true');
+    if (selected) {
+      document.querySelector(`[data-selected-id="${selected}"]`)?.setAttribute('aria-current', 'true');
+      const panel = document.querySelector(`#${panelIdFor(selected)}`);
+      if (panel) panel.hidden = false;
+      const sheet = document.querySelector('#context-sheet');
+      if (sheet) sheet.dataset.open = panel ? 'true' : 'false';
+    }
+    const conflict = document.querySelector('#conflict-message');
+    if (conflict) conflict.focus({ preventScroll: true });
   });
 
   window.CandidateCInteractionIsland = {
