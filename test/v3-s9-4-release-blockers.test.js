@@ -140,7 +140,9 @@ test('S9.4 RB3 references read as credible fictional hosts and use credible loca
     const home = fixture.source.site.pages.find((page) => page.id === fixture.source.site.homePageId);
     const hero = home.components.find((component) => component.kind === 'venue-hero');
     assert.ok(hero.content.media, `${referenceId}: managed hero media`);
-    const image = await request(fixture.app).get(hero.content.media.src);
+    const asset = fixture.source.media.assets.find((candidate) => candidate.id === hero.content.media.assetId);
+    assert.ok(asset, `${referenceId}: managed hero asset`);
+    const image = await request(fixture.app).get(asset.src);
     assert.equal(image.status, 200, `${referenceId}: managed hero media route`);
     assert.match(image.headers['content-type'], /image\/svg\+xml/);
     assert.doesNotMatch(image.text, /<text\b/i, `${referenceId}: no visible placeholder label in artwork`);
