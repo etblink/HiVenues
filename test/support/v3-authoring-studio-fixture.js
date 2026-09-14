@@ -22,6 +22,12 @@ const REFERENCES = Object.freeze({
   nativeRelease: () => ({ source: nativeReleaseSource(), legacyEventRoutes: {} }),
 });
 
+const REFERENCE_MEDIA_LABELS = Object.freeze({
+  migratedPhysical: Object.freeze({ title: 'Northline Hall', subtitle: 'Live room artwork' }),
+  nativeCreator: Object.freeze({ title: 'Signal Room', subtitle: 'Session artwork' }),
+  nativeRelease: Object.freeze({ title: 'Northstar', subtitle: 'Release artwork' }),
+});
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -40,14 +46,16 @@ function withJourneyAssets(source, referenceId) {
   return createV3DeploymentAgnosticVenueSource(candidate);
 }
 
-function syntheticSvg(label) {
-  const safe = String(label).replace(/[<>&'"]/g, '');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="${safe}">
+function managedSvg(referenceId) {
+  const copy = REFERENCE_MEDIA_LABELS[referenceId] || { title: 'HiVenues host', subtitle: 'Managed artwork' };
+  const title = String(copy.title).replace(/[<>&'"]/g, '');
+  const subtitle = String(copy.subtitle).replace(/[<>&'"]/g, '');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="${title} — ${subtitle}">
   <rect width="1600" height="1000" fill="#e7e5e4"/>
   <circle cx="1290" cy="180" r="340" fill="#292524" opacity=".08"/>
   <circle cx="260" cy="860" r="420" fill="#292524" opacity=".06"/>
-  <text x="100" y="170" fill="#292524" font-family="system-ui,sans-serif" font-size="54" font-weight="700">${safe}</text>
-  <text x="102" y="235" fill="#57534e" font-family="system-ui,sans-serif" font-size="28">Synthetic S4 managed media</text>
+  <text x="100" y="170" fill="#292524" font-family="system-ui,sans-serif" font-size="54" font-weight="700">${title}</text>
+  <text x="102" y="235" fill="#57534e" font-family="system-ui,sans-serif" font-size="28">${subtitle}</text>
 </svg>`;
 }
 
@@ -61,11 +69,11 @@ function createReferenceV3AuthoringStudioFixture(referenceId, options = {}) {
     legacyEventRoutes: reference.legacyEventRoutes,
   });
   const app = express();
-  app.get('/fixtures/v3-s4/:asset', (request, response) => {
-    response.type('image/svg+xml').send(syntheticSvg(request.params.asset));
+  app.get('/fixtures/v3-s4/:asset', (_request, response) => {
+    response.type('image/svg+xml').send(managedSvg(referenceId));
   });
-  app.get('/fixtures/v2-renderer/:asset', (request, response) => {
-    response.type('image/svg+xml').send(syntheticSvg(request.params.asset));
+  app.get('/fixtures/v2-renderer/:asset', (_request, response) => {
+    response.type('image/svg+xml').send(managedSvg(referenceId));
   });
   app.use(base.app);
   return Object.freeze({ ...base, app, source, referenceId });
