@@ -44,8 +44,22 @@ jobs:
       - name: Run actual HTMX / browser qualification
         env:
           CANDIDATE_C_H1_REVIEW_ROOT: artifacts/candidate-c-h1-review
-          CANDIDATE_C_H1_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/candidate-c-h1-browser-transport.js
+      - name: Bind exact qualification provenance
+        env:
+          CANDIDATE_C_H1_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'artifacts/candidate-c-h1-review/manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          manifest.provenance = {
+            qualifiedHeadSha: process.env.CANDIDATE_C_H1_HEAD_SHA,
+            workflowSha: process.env.GITHUB_SHA,
+          };
+          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
       - name: Publish H1 review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
