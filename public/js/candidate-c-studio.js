@@ -68,12 +68,18 @@
   });
 
   document.body.addEventListener('htmx:beforeSwap', (event) => {
-    if (event.detail.xhr?.status !== 409) return;
     if (event.detail.target?.id !== 'candidate-inspector') return;
-    // HTMX does not swap non-2xx responses by default. A stale write remains an
-    // HTTP 409, but its server-rendered conflict panel is still useful UI.
-    event.detail.shouldSwap = true;
-    event.detail.isError = false;
+    const state = document.querySelector('#cc-save-state');
+    const status = event.detail.xhr?.status;
+    if (status === 409) {
+      // HTMX does not swap non-2xx responses by default. A stale write remains an
+      // HTTP 409, but its server-rendered conflict panel is still useful UI.
+      if (state) state.textContent = 'Not saved';
+      event.detail.shouldSwap = true;
+      event.detail.isError = false;
+      return;
+    }
+    if (status >= 200 && status < 300 && state) state.textContent = 'Saved to draft';
   });
 
   document.body.addEventListener('htmx:afterSwap', (event) => {
@@ -87,7 +93,7 @@
     const state = document.querySelector('#cc-save-state');
     if (!state) return;
     const stale = event.detail.xhr?.status === 409;
-    state.textContent = !stale && event.detail.successful ? 'Saved to draft' : 'Not saved';
+    if (stale) state.textContent = 'Not saved';
   });
 
   const historyMarker = `candidate-c:return:${window.location.pathname}`;
