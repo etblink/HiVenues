@@ -32,9 +32,35 @@
   color: #6b5546;
 }
 
-/* Keep the horizontally scrollable mobile Studio rail inside the viewport.
-   Its long unbroken flex row must scroll itself rather than widen the document. */
+/* Keep the horizontally scrollable mobile Studio rail and compact header inside
+   the viewport. Mobile keeps the host and release action; duplicate draft labels
+   move out of the crowded topbar rather than widening the document. */
 @media (max-width: 760px) {
+  .cc-studio-topbar {
+    align-items: center;
+    gap: .5rem;
+    padding: .65rem .75rem;
+  }
+
+  .cc-studio-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cc-studio-brand > div {
+    min-width: 0;
+  }
+
+  .cc-studio-brand small,
+  .cc-studio-actions .cc-draft-status {
+    display: none;
+  }
+
+  .cc-studio-actions {
+    flex: 0 0 auto;
+    gap: .35rem;
+  }
+
   .cc-studio-workspace,
   .cc-studio-stage,
   .cc-stage-device,
