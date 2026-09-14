@@ -36,6 +36,7 @@
       <div class="cc-consequence-truth">Create one immutable website release from draft r<%= revision %> and make that release the visitor-facing version in this HiVenues reference. No Hive, signing, payment, media-provider, deployment, or DNS action will be triggered.</div>
       <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/release" style="margin-top:1rem">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
         <button class="cc-button cc-button--ink" type="submit">Publish website release</button>
       </form>
     </section>
@@ -52,6 +53,7 @@
             </div>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/releases/<%= item.id %>/restore">
               <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
               <button class="cc-button" type="submit">Restore to new draft</button>
             </form>
           </article>

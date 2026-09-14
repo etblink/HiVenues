@@ -16,6 +16,7 @@
     <div class="cc-setup-grid">
       <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/setup">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
         <div class="cc-field">
           <label for="cc-purpose">1 · Purpose</label>
           <textarea id="cc-purpose" name="purpose" required><%= graph.intent.purpose %></textarea>

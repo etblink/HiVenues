@@ -19,6 +19,7 @@
     <h2>What should visitors feel first?</h2>
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/tagline" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/tagline" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <label for="cc-tagline">Headline</label>
       <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
       <p class="cc-inspector-help">This is authored host copy. Saving creates one durable draft revision.</p>
@@ -31,6 +32,7 @@
     <h2>Edit this happening</h2>
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <input type="hidden" name="activityId" value="<%= selectedActivity.id %>">
       <label for="cc-activity-title">Title</label>
       <input id="cc-activity-title" name="title" maxlength="120" value="<%= selectedActivity.title %>" required>
@@ -46,6 +48,7 @@
     <h2>Name the gesture in this host’s world.</h2>
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <input type="hidden" name="mechanicId" value="<%= selectedMechanic %>">
       <label for="cc-voice-term">Visitor-facing term</label>
       <input id="cc-voice-term" name="term" value="<%= graph.voice.terms[selectedMechanic] %>" required>
@@ -63,6 +66,7 @@
     <h2>Choose the visual focus.</h2>
     <form class="cc-inspector-form" data-focal-form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/media" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/media" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <input type="hidden" name="mediaId" value="<%= selectedMedia.id %>">
       <div data-focal-preview style="--cc-fx:<%= selectedMedia.focal.x %>%;--cc-fy:<%= selectedMedia.focal.y %>%">
         <%- include('../_art', { media: selectedMedia, graph }) %>
@@ -88,6 +92,7 @@
           <% if (index > 0) { %>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
               <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
               <input type="hidden" name="sectionId" value="<%= section %>">
               <input type="hidden" name="delta" value="-1">
               <button class="cc-button" type="submit" aria-label="Move <%= section %> earlier">Up</button>
@@ -96,6 +101,7 @@
           <% if (index < graph.presentation.arrangement.length - 1) { %>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
               <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
               <input type="hidden" name="sectionId" value="<%= section %>">
               <input type="hidden" name="delta" value="1">
               <button class="cc-button" type="submit" aria-label="Move <%= section %> later">Down</button>
@@ -109,6 +115,7 @@
   <% if (selected) { %>
     <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <button class="cc-link" type="submit">Undo last acknowledged edit</button>
     </form>
   <% } %>

@@ -13,6 +13,10 @@ function currentRevision(req) {
   return Number(req.body.expectedRevision);
 }
 
+function currentDigest(req) {
+  return typeof req.body.expectedDraftDigest === 'string' ? req.body.expectedDraftDigest : '';
+}
+
 function renderConflict(req, res, actualRevision) {
   res.status(409);
   if (isHtmx(req)) {
@@ -30,11 +34,15 @@ function candidateLocals(snapshot, selectedResource = '') {
   };
 }
 
-function mutationResponse(req, res, store, slug, result, selectedResource) {
-  if (!result.ok) {
-    if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-    return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
+function mutationFailure(req, res, result) {
+  if (['STALE_REVISION', 'STALE_DIGEST', 'INVALID_REVISION', 'INVALID_DRAFT_DIGEST'].includes(result.reason)) {
+    return renderConflict(req, res, result.actualRevision);
   }
+  return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
+}
+
+function mutationResponse(req, res, store, slug, result, selectedResource) {
+  if (!result.ok) return mutationFailure(req, res, result);
   if (isHtmx(req)) {
     return res.render('candidate-c/fragments/studio-update', candidateLocals(result.snapshot, selectedResource));
   }
@@ -44,7 +52,7 @@ function mutationResponse(req, res, store, slug, result, selectedResource) {
 function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   const router = express.Router();
   router.use((req, res, next) => {
-    res.set('X-HiVenues-Candidate-C', 'phase-2a');
+    res.set('X-HiVenues-Candidate-C', 'phase-2b');
     next();
   });
 
@@ -66,11 +74,8 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/setup', (req, res) => {
-    const result = store.completeSetup(req.params.slug, req.body, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.completeSetup(req.params.slug, req.body, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
@@ -110,7 +115,7 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/tagline', (req, res) => {
-    const result = store.editTagline(req.params.slug, req.body.tagline, currentRevision(req));
+    const result = store.editTagline(req.params.slug, req.body.tagline, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, 'facts.tagline');
   });
 
@@ -118,36 +123,33 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
     const result = store.editActivity(req.params.slug, req.body.activityId, {
       title: req.body.title,
       description: req.body.description,
-    }, currentRevision(req));
+    }, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `activity:${req.body.activityId}`);
   });
 
   router.post('/studio/:slug/voice', (req, res) => {
-    const result = store.editVoiceTerm(req.params.slug, req.body.mechanicId, req.body.term, currentRevision(req));
+    const result = store.editVoiceTerm(req.params.slug, req.body.mechanicId, req.body.term, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `voice:${req.body.mechanicId}`);
   });
 
   router.post('/studio/:slug/media', (req, res) => {
-    const result = store.setFocal(req.params.slug, req.body.mediaId, req.body.x, req.body.y, currentRevision(req));
+    const result = store.setFocal(req.params.slug, req.body.mediaId, req.body.x, req.body.y, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `media:${req.body.mediaId}`);
   });
 
   router.post('/studio/:slug/move', (req, res) => {
-    const result = store.moveSection(req.params.slug, req.body.sectionId, req.body.delta, currentRevision(req));
+    const result = store.moveSection(req.params.slug, req.body.sectionId, req.body.delta, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, 'page.order');
   });
 
   router.post('/studio/:slug/undo', (req, res) => {
-    const result = store.undo(req.params.slug, currentRevision(req));
+    const result = store.undo(req.params.slug, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, '');
   });
 
   router.post('/studio/:slug/direction/propose', (req, res) => {
-    const result = store.proposeDirection(req.params.slug, req.body.familyId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.proposeDirection(req.params.slug, req.body.familyId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/direction/${encodeURIComponent(result.proposal.id)}`);
   });
 
@@ -168,11 +170,8 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
-    const result = store.applyDirection(req.params.slug, req.params.proposalId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.applyDirection(req.params.slug, req.params.proposalId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
@@ -186,20 +185,14 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/release', (req, res) => {
-    const result = store.createRelease(req.params.slug, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.createRelease(req.params.slug, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}`);
   });
 
   router.post('/studio/:slug/releases/:releaseId/restore', (req, res) => {
-    const result = store.restoreRelease(req.params.slug, req.params.releaseId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.restoreRelease(req.params.slug, req.params.releaseId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 

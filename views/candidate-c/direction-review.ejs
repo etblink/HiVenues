@@ -46,6 +46,7 @@
       <p><strong>Proposed change:</strong> presentation.compositionFamily: <code><%= proposal.currentFamily %></code> → <code><%= proposal.familyId %></code></p>
       <form method="post" action="/candidate-c/studio/<%= current.graph.identity.slug %>/direction/<%= proposal.id %>/apply">
         <input type="hidden" name="expectedRevision" value="<%= current.revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= current.draftDigest %>">
         <button class="cc-button cc-button--ink" type="submit">Apply direction to draft</button>
       </form>
     </section>

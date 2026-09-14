@@ -22,6 +22,7 @@
           <% if (option.id !== family.id) { %>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/direction/propose">
               <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
               <input type="hidden" name="familyId" value="<%= option.id %>">
               <button class="cc-button cc-button--ink" type="submit">Review this direction</button>
             </form>
