@@ -11,7 +11,7 @@
     </nav>
     <p class="cc-kicker">Review release</p>
     <h1>Publish the website snapshot—nothing else.</h1>
-    <p class="cc-task__dek">This release is bound to the exact draft revision shown here. It updates only Candidate C’s application-local website snapshot. It does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, deploy production, or touch DNS.</p>
+    <p class="cc-task__dek">This release is bound to the exact draft revision shown here. It updates only this HiVenues website snapshot. It does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, deploy production, or touch DNS.</p>
 
     <div class="cc-review-grid">
       <section class="cc-review-card">
@@ -33,7 +33,7 @@
 
     <section class="cc-consequence-card" style="margin-top:1.2rem">
       <h2>Website consequence</h2>
-      <div class="cc-consequence-truth">Create one immutable/reconstructible Candidate C website Release from draft r<%= revision %> and mark that Release as the local live snapshot. External-effect counters remain zero.</div>
+      <div class="cc-consequence-truth">Create one immutable website release from draft r<%= revision %> and make that release the visitor-facing version in this HiVenues reference. No Hive, signing, payment, media-provider, deployment, or DNS action will be triggered.</div>
       <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/release" style="margin-top:1rem">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
         <button class="cc-button cc-button--ink" type="submit">Publish website release</button>
