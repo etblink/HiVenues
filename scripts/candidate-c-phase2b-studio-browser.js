@@ -122,7 +122,7 @@ async function main() {
     assert.equal((await lookResponse).status(), 200);
     await waitRevision(desktop, 3);
     assert.equal(store.snapshot('harbor-and-hearth').draft.presentation.accent, '#244653');
-    assert.equal(await desktop.locator('#candidate-canvas').evaluate((node) => getComputedStyle(node).borderTopColor), 'rgb(36, 70, 83)');
+    assert.equal(await desktop.locator('#candidate-canvas').evaluate((node) => window.getComputedStyle(node).borderTopColor), 'rgb(36, 70, 83)');
     await capture(desktop, '03-studio-d-look', 'studio-d-look');
 
     await desktop.getByRole('button', { name: 'Voice' }).click();
