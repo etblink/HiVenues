@@ -49,6 +49,7 @@ function buildViewModel(snapshot) {
     revision: snapshot.revision,
     releases: snapshot.releases,
     liveReleaseId: snapshot.liveReleaseId,
+    manualPaths: snapshot.manualPaths || [],
     draftDigest: snapshot.draftDigest,
   };
 }
