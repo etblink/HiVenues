@@ -103,10 +103,12 @@ async function main() {
 
     const activityUrl = desktop.url();
     await desktop.getByRole('link', { name: 'Raise a glass' }).click();
+    await desktop.waitForFunction(() => document.querySelector('#action-receipt')?.textContent?.includes('public Hive vote'));
     assert.equal(desktop.url(), activityUrl, 'HTMX should keep consequence review in the Activity page');
     assert.match(await desktop.locator('#action-receipt').textContent(), /public Hive vote/);
     await desktop.getByRole('button', { name: 'Simulate Hive vote' }).click();
     await desktop.waitForFunction(() => document.querySelector('#applause-count')?.textContent === '108');
+    await desktop.waitForFunction(() => document.querySelector('#action-receipt')?.textContent?.includes('Simulation only'));
     assert.equal(desktop.url(), activityUrl, 'HTMX should keep simulation receipt in the Activity page');
     assert.equal(await desktop.locator('#pitcher').textContent(), '77%');
     assert.match(await desktop.locator('#action-receipt').textContent(), /Simulation only/);
