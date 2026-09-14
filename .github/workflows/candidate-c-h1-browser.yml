@@ -1,0 +1,90 @@
+name: Candidate C H1 Browser Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'test/support/candidate-c-h1-spike.js'
+      - 'test/support/candidate-c-h1-transport.js'
+      - 'test/candidate-c-h1-htmx-spike.test.js'
+      - 'scripts/candidate-c-h1-browser-transport.js'
+      - '.github/workflows/candidate-c-h1-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-h1-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: H1 HTMX spike browser evidence (Ubuntu / pinned Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run isolated H1 HTTP contract
+        run: node --test --test-concurrency=1 test/candidate-c-h1-htmx-spike.test.js
+      - name: Run actual HTMX / browser qualification
+        env:
+          CANDIDATE_C_H1_REVIEW_ROOT: artifacts/candidate-c-h1-review
+        run: node scripts/candidate-c-h1-browser-transport.js
+      - name: Bind exact qualification provenance
+        env:
+          CANDIDATE_C_H1_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'artifacts/candidate-c-h1-review/manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          manifest.provenance = {
+            qualifiedHeadSha: process.env.CANDIDATE_C_H1_HEAD_SHA,
+            workflowSha: process.env.GITHUB_SHA,
+          };
+          fs.writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+      - name: Publish H1 review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-h1-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-h1-review
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Publish H1 metrics
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/candidate-c-h1-review/manifest.json', 'utf8'));
+          console.log('## Candidate C H1 / HTMX architecture spike');
+          console.log('');
+          console.log(`- Qualified head: ${manifest.provenance.qualifiedHeadSha}`);
+          console.log(`- Screenshots: ${manifest.summary.screenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
+          console.log(`- External browser requests: ${manifest.summary.externalRequests}`);
+          console.log(`- Unexpected console/page errors: ${manifest.summary.consoleErrors}`);
+          console.log(`- Expected stale-conflict diagnostics: ${manifest.summary.expectedConflictConsoleDiagnostics}`);
+          console.log(`- Hive RPC attempts/writes: ${manifest.summary.hiveRpcAttempts}/${manifest.summary.hiveWrites}`);
+          console.log(`- Provider writes: ${manifest.summary.providerWrites}`);
+          console.log(`- Payment/signing/deployment effects: ${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
+          NODE
