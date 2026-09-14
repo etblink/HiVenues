@@ -176,12 +176,12 @@ function disclosureFor(mechanicId, graph) {
   if (!mechanic) throw new Error(`Unknown mechanic: ${mechanicId}`);
   if (mechanicId === 'applaud_hive') {
     if (graph.bindings.hive.state === 'disconnected') {
-      return 'This would cast a public Hive vote if a Hive identity were connected. Nothing will be signed or broadcast in this Candidate C phase.';
+      return 'This would cast a public Hive vote if a Hive identity were connected. This reference is disconnected, so nothing will be signed or broadcast.';
     }
-    return 'This action represents a public Hive vote. Candidate C Phase 2A keeps the consequence disconnected and will not request a signature or broadcast.';
+    return 'This action represents a public Hive vote. Signing is disabled in this reference, so no signature will be requested and nothing will be broadcast.';
   }
   if (mechanicId === 'follow_account') {
-    return 'This mechanic means following a Hive account. It does not join or subscribe to a Hive community, and Phase 2A will not broadcast it.';
+    return 'This mechanic means following a Hive account. It does not join or subscribe to a Hive community. Signing is disabled in this reference, so nothing will be broadcast.';
   }
   return mechanic.meaning;
 }
