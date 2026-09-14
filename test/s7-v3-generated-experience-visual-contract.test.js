@@ -67,9 +67,10 @@ test('S7.2-S7.4 shared composition gives media, activity facts and actions inten
   assert.match(css, /\.v3-hero\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(min\(100%,24rem\),1fr\)\)/);
   assert.match(css, /\.v3-hero__media,\.v3-activity-media\{overflow:hidden;border:1px solid var\(--v3-border\);border-radius:1\.1rem;background:var\(--v3-surface\)\}/);
   assert.match(css, /\.v3-activity-description\{max-width:58ch/);
-  assert.match(css, /\.v3-activity-time\{max-width:var\(--v3-reading-width\);margin:2rem 0;padding:1\.1rem 0;border-top:1px solid var\(--v3-border\);border-bottom:1px solid var\(--v3-border\)\}/);
-  assert.match(css, /\.v3-activity-presence\{max-width:var\(--v3-reading-width\);padding:1\.5rem 0;border-top:1px solid var\(--v3-border\)\}/);
-  assert.match(css, /\.v3-activity-actions\{display:flex;flex-wrap:wrap;gap:\.75rem;margin-top:2rem\}/);
+  assert.match(css, /\.v3-activity-essentials\{max-width:var\(--v3-reading-width\);margin:2rem 0 2\.75rem;padding:1\.4rem 0;border-top:1px solid var\(--v3-border\);border-bottom:1px solid var\(--v3-border\)\}/);
+  assert.match(css, /\.v3-activity-time\{margin:0 0 1\.1rem\}/);
+  assert.match(css, /\.v3-activity-presence\{padding:1rem 0;border-top:1px solid var\(--v3-border\)\}/);
+  assert.match(css, /\.v3-activity-actions\{display:flex;flex-wrap:wrap;gap:\.75rem;margin-top:1\.25rem\}/);
   assert.match(css, /\.v3-visit-facts\{max-width:var\(--v3-reading-width\);display:grid;grid-template-columns:repeat\(auto-fit/);
   assert.match(css, /\.v3-activity-actions \.v3-action\{flex:1 1 100%\}/);
 
@@ -101,12 +102,13 @@ test('S7 presentation layer remains self-contained, accessible and host-neutral'
   assert.doesNotMatch(css, /northline|signal-room|northstar/i);
 });
 
-test('S7 public rendering does not introduce scripts or remote presentation dependencies', () => {
+test('S7 public rendering stays executable-script-free while permitting non-executable JSON-LD metadata', () => {
   for (const [referenceId, factory] of Object.entries(REFERENCE_FACTORIES)) {
     const source = factory();
     const document = documentFrom(renderV3Page(source));
 
-    assert.equal(document.querySelectorAll('script').length, 0, referenceId);
+    assert.equal(document.querySelectorAll('script:not([type="application/ld+json"])').length, 0, referenceId);
+    assert.equal(document.querySelectorAll('script[type="application/ld+json"]').length, 1, referenceId);
     assert.equal(document.querySelectorAll('link[rel="stylesheet"][href^="http"]').length, 0, referenceId);
     assert.equal(document.querySelectorAll('iframe').length, 0, referenceId);
   }
