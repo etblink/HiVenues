@@ -6,7 +6,6 @@ on:
       - 'test/support/candidate-c-h1-spike.js'
       - 'test/support/candidate-c-h1-transport.js'
       - 'test/candidate-c-h1-htmx-spike.test.js'
-      - 'scripts/candidate-c-h1-browser.js'
       - 'scripts/candidate-c-h1-browser-transport.js'
       - '.github/workflows/candidate-c-h1-browser.yml'
   workflow_dispatch:
@@ -67,7 +66,8 @@ jobs:
           console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
           console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
           console.log(`- External browser requests: ${manifest.summary.externalRequests}`);
-          console.log(`- Console/page errors: ${manifest.summary.consoleErrors}`);
+          console.log(`- Unexpected console/page errors: ${manifest.summary.consoleErrors}`);
+          console.log(`- Expected stale-conflict diagnostics: ${manifest.summary.expectedConflictConsoleDiagnostics}`);
           console.log(`- Hive RPC attempts/writes: ${manifest.summary.hiveRpcAttempts}/${manifest.summary.hiveWrites}`);
           console.log(`- Provider writes: ${manifest.summary.providerWrites}`);
           console.log(`- Payment/signing/deployment effects: ${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
