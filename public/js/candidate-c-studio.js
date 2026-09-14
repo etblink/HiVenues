@@ -93,20 +93,20 @@
   const historyMarker = `candidate-c:return:${window.location.pathname}`;
 
   window.addEventListener('pagehide', () => {
-    sessionStorage.setItem(historyMarker, '1');
+    window.sessionStorage.setItem(historyMarker, '1');
   });
 
   window.addEventListener('pageshow', async (event) => {
-    const returning = event.persisted || sessionStorage.getItem(historyMarker) === '1';
+    const returning = event.persisted || window.sessionStorage.getItem(historyMarker) === '1';
     if (!returning) return;
-    sessionStorage.removeItem(historyMarker);
+    window.sessionStorage.removeItem(historyMarker);
     const rendered = document.querySelector('#draft-status')?.dataset.revision;
     if (!rendered) return;
     try {
       const response = await fetch(window.location.href, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Studio reconcile returned ${response.status}`);
       const html = await response.text();
-      const parsed = new DOMParser().parseFromString(html, 'text/html');
+      const parsed = new window.DOMParser().parseFromString(html, 'text/html');
       const serverRevision = parsed.querySelector('#draft-status')?.dataset.revision;
       if (!serverRevision || serverRevision !== rendered) window.location.reload();
     } catch {
