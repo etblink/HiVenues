@@ -35,8 +35,13 @@
     if (cancelFocal) {
       state.focalDraft = null;
       const preview = document.querySelector('#focal-preview');
+      const form = document.querySelector('#focal-form');
       if (preview) preview.style.setProperty('--fx', `${preview.dataset.serverX}%`);
       if (preview) preview.style.setProperty('--fy', `${preview.dataset.serverY}%`);
+      if (form && preview) {
+        form.elements.x.value = preview.dataset.serverX;
+        form.elements.y.value = preview.dataset.serverY;
+      }
     }
   });
 
@@ -94,7 +99,10 @@
     if (selected) {
       document.querySelector(`[data-selected-id="${selected}"]`)?.setAttribute('aria-current', 'true');
       const panel = document.querySelector(`#${panelIdFor(selected)}`);
-      if (panel) panel.hidden = false;
+      if (panel) {
+        panel.hidden = false;
+        if (event.detail.target?.id === panel.id) panel.querySelector('h2')?.focus({ preventScroll: true });
+      }
       const sheet = document.querySelector('#context-sheet');
       if (sheet) sheet.dataset.open = panel ? 'true' : 'false';
     }
