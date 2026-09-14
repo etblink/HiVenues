@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Draft r<%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Site · Direction</p>
+    <h1>Change the art direction, not the facts.</h1>
+    <p class="cc-task__dek">A Direction change is a reviewed proposal. It starts from the current draft, preserves manually edited host and Activity copy by default, and never deletes durable content because the next composition uses a different structure.</p>
+
+    <div class="cc-review-grid">
+      <% Object.values(compositionRegistry).forEach((option) => { %>
+        <section class="cc-review-card">
+          <p class="cc-kicker"><%= option.id === family.id ? 'Current direction' : 'Alternative' %></p>
+          <h2><%= option.label %></h2>
+          <p><%= option.description %></p>
+          <% if (option.id !== family.id) { %>
+            <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/direction/propose">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="familyId" value="<%= option.id %>">
+              <button class="cc-button cc-button--ink" type="submit">Review this direction</button>
+            </form>
+          <% } else { %>
+            <span class="cc-draft-status">In use</span>
+          <% } %>
+        </section>
+      <% }) %>
+    </div>
+
+    <section class="cc-review-card" style="margin-top:1.2rem">
+      <h2>Protected manual work</h2>
+      <% if (manualPaths && manualPaths.length) { %>
+        <ul class="cc-preserved-list"><% manualPaths.forEach((path) => { %><li><code><%= path %></code></li><% }) %></ul>
+      <% } else { %>
+        <p>No granular edits have been marked protected yet. Direction still cannot delete Host, Activity, Offer or Media identity.</p>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>
