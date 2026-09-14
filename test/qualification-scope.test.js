@@ -2,7 +2,10 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { requiresLegacyVisual } = require('../scripts/classify-qualification-scope');
+const {
+  requiresLegacyVisual,
+  selectComparisonBase,
+} = require('../scripts/classify-qualification-scope');
 
 test('Candidate C-owned paths use Candidate C qualification instead of legacy visual replay', () => {
   const candidatePaths = [
@@ -60,4 +63,46 @@ test('mixed Candidate C and shared changes still require the legacy gate', () =>
   ];
 
   assert.equal(changed.some(requiresLegacyVisual), true);
+});
+
+test('pull-request synchronize compares only the newly pushed delta', () => {
+  const previousHead = '1'.repeat(40);
+  assert.equal(selectComparisonBase({
+    eventName: 'pull_request',
+    prBaseSha: '2'.repeat(40),
+    pushBeforeSha: '',
+    eventPayload: { action: 'synchronize', before: previousHead },
+  }), previousHead);
+});
+
+test('initial or reopened pull-request qualification still compares the full PR to base', () => {
+  const base = '2'.repeat(40);
+  for (const action of ['opened', 'reopened']) {
+    assert.equal(selectComparisonBase({
+      eventName: 'pull_request',
+      prBaseSha: base,
+      pushBeforeSha: '',
+      eventPayload: { action, before: '1'.repeat(40) },
+    }), base);
+  }
+});
+
+test('push qualification continues to compare against the push before SHA', () => {
+  const before = '3'.repeat(40);
+  assert.equal(selectComparisonBase({
+    eventName: 'push',
+    prBaseSha: '',
+    pushBeforeSha: before,
+    eventPayload: {},
+  }), before);
+});
+
+test('invalid synchronize before SHA fails back to PR base selection', () => {
+  const base = '4'.repeat(40);
+  assert.equal(selectComparisonBase({
+    eventName: 'pull_request',
+    prBaseSha: base,
+    pushBeforeSha: '',
+    eventPayload: { action: 'synchronize', before: 'not-a-sha' },
+  }), base);
 });
