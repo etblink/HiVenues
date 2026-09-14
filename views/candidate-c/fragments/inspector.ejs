@@ -1,0 +1,115 @@
+<%
+  const selected = selectedResource || '';
+  const selectedActivityId = selected.startsWith('activity:') ? selected.slice('activity:'.length) : '';
+  const selectedActivity = activities.find((item) => item.id === selectedActivityId) || null;
+  const selectedMechanic = selected.startsWith('voice:') ? selected.slice('voice:'.length) : '';
+  const selectedMediaId = selected.startsWith('media:') ? selected.slice('media:'.length) : '';
+  const selectedMedia = media.find((item) => item.id === selectedMediaId) || null;
+%>
+<aside id="candidate-inspector" class="cc-studio-inspector" data-open="<%= selected ? 'true' : 'false' %>" aria-label="Contextual editor">
+  <button type="button" class="cc-link" data-close-inspector aria-label="Close editor">Close</button>
+  <% if (!selected) { %>
+    <p class="cc-studio-inspector__eyebrow">Context</p>
+    <h2>Choose something on the canvas.</h2>
+    <p class="cc-inspector-help">Edit the thing you can see. Deeper Direction, Voice and History controls stay available without competing with the canvas.</p>
+  <% } %>
+
+  <% if (selected === 'facts.tagline') { %>
+    <p class="cc-studio-inspector__eyebrow">Page · first impression</p>
+    <h2>What should visitors feel first?</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/tagline" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/tagline" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <label for="cc-tagline">Headline</label>
+      <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
+      <p class="cc-inspector-help">This is authored host copy. Saving creates one durable draft revision.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save headline</button></div>
+    </form>
+  <% } %>
+
+  <% if (selectedActivity) { %>
+    <p class="cc-studio-inspector__eyebrow">Activities · canonical object</p>
+    <h2>Edit this happening</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="activityId" value="<%= selectedActivity.id %>">
+      <label for="cc-activity-title">Title</label>
+      <input id="cc-activity-title" name="title" maxlength="120" value="<%= selectedActivity.title %>" required>
+      <label for="cc-activity-description">Description</label>
+      <textarea id="cc-activity-description" name="description" maxlength="1200" required><%= selectedActivity.description %></textarea>
+      <p class="cc-inspector-help">Activity identity is <code><%= selectedActivity.id %></code>. Placement and composition may change without re-minting it.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save activity</button></div>
+    </form>
+  <% } %>
+
+  <% if (selectedMechanic && graph.voice.terms[selectedMechanic]) { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Voice</p>
+    <h2>Name the gesture in this host’s world.</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="mechanicId" value="<%= selectedMechanic %>">
+      <label for="cc-voice-term">Visitor-facing term</label>
+      <input id="cc-voice-term" name="term" value="<%= graph.voice.terms[selectedMechanic] %>" required>
+      <div class="cc-consequence-truth">
+        <strong>Underlying mechanic: <%= selectedMechanic %></strong><br>
+        <%= mechanicRegistry[selectedMechanic].meaning %>
+      </div>
+      <p class="cc-inspector-help">Changing the words does not change the consequence. A future mechanic remap is a reviewed semantic proposal, not a copy edit.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save wording</button></div>
+    </form>
+  <% } %>
+
+  <% if (selectedMedia) { %>
+    <p class="cc-studio-inspector__eyebrow">Page · Media</p>
+    <h2>Choose the visual focus.</h2>
+    <form class="cc-inspector-form" data-focal-form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/media" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/media" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="mediaId" value="<%= selectedMedia.id %>">
+      <div data-focal-preview style="--cc-fx:<%= selectedMedia.focal.x %>%;--cc-fy:<%= selectedMedia.focal.y %>%">
+        <%- include('../_art', { media: selectedMedia, graph }) %>
+      </div>
+      <label for="cc-focal-x">Horizontal focus</label>
+      <input id="cc-focal-x" data-focal-axis type="range" name="x" min="0" max="100" value="<%= selectedMedia.focal.x %>">
+      <label for="cc-focal-y">Vertical focus</label>
+      <input id="cc-focal-y" data-focal-axis type="range" name="y" min="0" max="100" value="<%= selectedMedia.focal.y %>">
+      <output data-focal-output><%= selectedMedia.focal.x %>% / <%= selectedMedia.focal.y %>%</output>
+      <p class="cc-inspector-help"><%= selectedMedia.provenance %> Moving the controls is transient; Save writes one server revision.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save focal point</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'page.order') { %>
+    <p class="cc-studio-inspector__eyebrow">Page · structure</p>
+    <h2>Section order</h2>
+    <p class="cc-inspector-help">These controls are the keyboard/non-drag path. Durable order lives on the server; the renderer remains free to interpret it structurally.</p>
+    <% graph.presentation.arrangement.forEach((section, index) => { %>
+      <div class="cc-release-row">
+        <div><strong><%= index + 1 %>. <%= section %></strong></div>
+        <div class="cc-inspector-actions">
+          <% if (index > 0) { %>
+            <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="sectionId" value="<%= section %>">
+              <input type="hidden" name="delta" value="-1">
+              <button class="cc-button" type="submit" aria-label="Move <%= section %> earlier">Up</button>
+            </form>
+          <% } %>
+          <% if (index < graph.presentation.arrangement.length - 1) { %>
+            <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="sectionId" value="<%= section %>">
+              <input type="hidden" name="delta" value="1">
+              <button class="cc-button" type="submit" aria-label="Move <%= section %> later">Down</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (selected) { %>
+    <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <button class="cc-link" type="submit">Undo last acknowledged edit</button>
+    </form>
+  <% } %>
+</aside>
