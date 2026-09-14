@@ -15,7 +15,9 @@ const {
 } = require('../../src/venue/v3/migrate-v2');
 const {
   renderV3PublicStylesheet,
+  renderV3RobotsText,
   renderV3Route,
+  renderV3SitemapXml,
 } = require('../../src/venue/v3/renderer');
 const {
   musicSource,
@@ -23,6 +25,10 @@ const {
 
 const ROOT = path.join(__dirname, '..', '..');
 const PUBLIC_ROOT = path.join(ROOT, 'public');
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 function baseDesign(overrides = {}) {
   return {
@@ -86,10 +92,50 @@ function activityList({ id, kicker, heading, intro, resourceIds }) {
   };
 }
 
+function polishMigratedPhysicalSource(sourceInput) {
+  const source = clone(sourceInput);
+  source.venue.displayName = 'Northline Hall';
+  for (const page of source.site.pages) {
+    if (page.slug === '') {
+      page.seo.title = 'Northline Hall · Live music in the Riverside District';
+      page.seo.description = 'Independent live music, touring artists, and upcoming shows at Northline Hall.';
+    }
+    for (const component of page.components) {
+      const content = component.content || {};
+      if (component.kind === 'venue-hero') {
+        if (Object.hasOwn(content, 'eyebrow')) content.eyebrow = 'Independent live music';
+        if (Object.hasOwn(content, 'heading')) content.heading = 'Close to the stage. Built for the music.';
+        if (Object.hasOwn(content, 'body')) content.body = 'Touring artists, local favorites, and late sets in the Riverside District.';
+        if (Object.hasOwn(content, 'note')) content.note = 'Doors and set times vary by show.';
+        if (content.media && Object.hasOwn(content.media, 'alt')) content.media.alt = 'Northline Hall stage before a show';
+      }
+      if (component.kind === 'activity-list') {
+        if (Object.hasOwn(content, 'kicker')) content.kicker = 'On stage';
+        if (Object.hasOwn(content, 'heading')) content.heading = 'Upcoming shows';
+        if (Object.hasOwn(content, 'intro')) content.intro = 'Find your next night at Northline Hall.';
+      }
+      if (component.kind === 'editorial-intro') {
+        if (Object.hasOwn(content, 'kicker')) content.kicker = 'Northline Hall';
+        if (Object.hasOwn(content, 'heading')) content.heading = 'A neighborhood room for live music';
+        if (Object.hasOwn(content, 'body')) content.body = 'A focused room, a welcoming floor, and a calendar that moves between local voices and touring acts.';
+        if (Object.hasOwn(content, 'note')) content.note = null;
+      }
+    }
+  }
+  const activity = source.resources.activities.find((candidate) => candidate.publicActions.length > 0)
+    || source.resources.activities[0];
+  if (activity) {
+    activity.title = 'Friday Night Set — Harbor Lights Quartet';
+    activity.description = 'An all-ages evening set with standing room and a full-room live sound mix.';
+    if (activity.access) activity.access.note = 'All ages. Doors open before the first set.';
+  }
+  return createV3DeploymentAgnosticVenueSource(source);
+}
+
 function migratedPhysicalReference() {
   const v2 = musicSource();
   return {
-    source: migrateV2DeploymentAgnosticVenueSourceToV3(v2),
+    source: polishMigratedPhysicalSource(migrateV2DeploymentAgnosticVenueSourceToV3(v2)),
     legacyEventRoutes: buildV2ToV3LegacyEventRouteMap(v2),
     v2,
   };
@@ -108,7 +154,7 @@ function nativeCreatorSource() {
     },
     venue: {
       id: 'signal-room-creator',
-      displayName: 'Signal Room Creator Example',
+      displayName: 'Signal Room',
       business: null,
       language: {
         operatorNoun: 'creator',
@@ -122,7 +168,7 @@ function nativeCreatorSource() {
           id: 'live-session-one',
           slug: 'live-session-one',
           title: 'Live Session One',
-          description: 'A synthetic online creator session used to prove locationless occurrence semantics.',
+          description: 'A live studio session with new songs, works in progress, and time for audience questions.',
           temporal: {
             kind: 'OCCURRENCE',
             startAt: '2026-10-05T19:00:00-07:00',
@@ -170,21 +216,21 @@ function nativeCreatorSource() {
           slug: '',
           title: 'Home',
           seo: {
-            title: 'Signal Room Creator Example',
-            description: 'Synthetic locationless creator reference for HiVenues v3.',
+            title: 'Signal Room · Live sessions',
+            description: 'Live studio sessions, new songs, and conversations from Signal Room.',
           },
           components: [
             narrativeHero({
               eyebrow: 'Independent creator',
-              heading: 'A host without a fabricated storefront',
-              body: 'This reference exists to prove that HiVenues can represent online host activity without inventing physical venue facts.',
-              note: 'Synthetic reference only.',
+              heading: 'Songs in progress. Conversation in real time.',
+              body: 'Signal Room is a home for intimate livestreams, first listens, and the stories behind the work.',
+              note: 'Join from wherever you are.',
             }),
             activityList({
               id: 'home-activities',
               kicker: 'Upcoming',
               heading: 'Live sessions',
-              intro: 'The activity remains a HiVenues domain object even when its destination is online.',
+              intro: 'Drop into the next session for music, conversation, and a closer look at what is taking shape.',
               resourceIds: ['live-session-one'],
             }),
           ],
@@ -211,7 +257,7 @@ function nativeReleaseSource() {
     },
     venue: {
       id: 'northstar-release-host',
-      displayName: 'Northstar Release Host Example',
+      displayName: 'Northstar',
       business: null,
       language: {
         operatorNoun: 'artist',
@@ -224,8 +270,8 @@ function nativeReleaseSource() {
         {
           id: 'afterglow-release',
           slug: 'afterglow-release',
-          title: 'Afterglow Release',
-          description: 'A synthetic release/premiere proving that an activity can have a release moment with no fake attendance location.',
+          title: 'Afterglow',
+          description: 'Northstar’s new release arrives with a warm, late-night pulse and a quieter final turn.',
           temporal: {
             kind: 'RELEASE',
             releaseAt: '2026-11-14T09:00:00-08:00',
@@ -237,7 +283,14 @@ function nativeReleaseSource() {
             capacity: 'UNSPECIFIED',
           },
           managedMedia: [],
-          publicActions: [],
+          publicActions: [
+            {
+              id: 'listen-afterglow',
+              role: 'LISTEN',
+              label: 'Listen to Afterglow',
+              href: 'https://northstar.example/releases/afterglow',
+            },
+          ],
           seriesRef: null,
         },
       ],
@@ -263,21 +316,21 @@ function nativeReleaseSource() {
           slug: '',
           title: 'Home',
           seo: {
-            title: 'Northstar Release Host Example',
-            description: 'Synthetic release/premiere reference for HiVenues v3.',
+            title: 'Northstar · Afterglow',
+            description: 'Afterglow, the new release from Northstar, arrives November 14.',
           },
           components: [
             narrativeHero({
               eyebrow: 'New release',
-              heading: 'A release is an activity without a fake room',
-              body: 'This reference pressures release-time semantics independently of physical occurrence assumptions.',
-              note: 'Synthetic reference only.',
+              heading: 'Afterglow arrives November 14',
+              body: 'A new release from Northstar, built for the hour when the city gets quieter and the details come forward.',
+              note: 'Listen from release morning.',
             }),
             activityList({
               id: 'home-releases',
               kicker: 'Release',
-              heading: 'Premieres and releases',
-              intro: 'A release moment uses the same activity family as other host activity without pretending to be a concert.',
+              heading: 'New from Northstar',
+              intro: 'Open the release for timing and the first listening link.',
               resourceIds: ['afterglow-release'],
             }),
           ],
@@ -289,6 +342,10 @@ function nativeReleaseSource() {
     },
     capabilities: disabledCapabilities(),
   });
+}
+
+function requestOrigin(request) {
+  return `${request.protocol}://${request.get('host')}`;
 }
 
 function createV3PreviewFixture(sourceInput, options = {}) {
@@ -303,10 +360,19 @@ function createV3PreviewFixture(sourceInput, options = {}) {
   app.get('/__hivenues-v3/styles.css', (_request, response) => {
     response.type('text/css').send(renderV3PublicStylesheet());
   });
+  app.get('/robots.txt', (request, response) => {
+    response.type('text/plain').send(renderV3RobotsText(source, { canonicalOrigin: requestOrigin(request) }));
+  });
+  app.get('/sitemap.xml', (request, response) => {
+    response.type('application/xml').send(renderV3SitemapXml(source, { canonicalOrigin: requestOrigin(request) }));
+  });
   app.use(express.static(PUBLIC_ROOT, { fallthrough: true, index: false }));
   app.use((request, response) => {
     try {
-      response.type('html').send(renderV3Route(source, request.path, { legacyEventRoutes }));
+      response.type('html').send(renderV3Route(source, request.path, {
+        legacyEventRoutes,
+        canonicalOrigin: requestOrigin(request),
+      }));
     } catch (error) {
       response.status(404).type('text').send(error.message);
     }
