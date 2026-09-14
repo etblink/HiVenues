@@ -21,6 +21,17 @@
   opacity: .82;
 }
 
+/* Harbor's warm secondary labels keep their material palette while clearing AA
+   against the darker media mat and the two menu/paper surfaces. */
+.cc-hospitality-caption {
+  color: #5b483b;
+}
+
+.cc-hospitality-activity__facts dt,
+.cc-canvas-hospitality__menu small {
+  color: #6b5546;
+}
+
 /* Keep the horizontally scrollable mobile Studio rail inside the viewport.
    Its long unbroken flex row must scroll itself rather than widen the document. */
 @media (max-width: 760px) {
