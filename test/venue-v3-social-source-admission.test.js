@@ -41,7 +41,7 @@ test('S8.1 canonical v3 source admits one normalized Hive social root without re
 
   assert.equal(parsed.capabilities.community.state, 'disabled');
   assert.equal(parsed.resources.activities[0].id, 'live-session-one');
-  assert.equal(parsed.resources.activities[0].title, 'Live Session One');
+  assert.equal(parsed.resources.activities[0].title, input.resources.activities[0].title);
   assert.deepEqual(parsed.activityBindings.hiveSocial, [
     {
       version: 1,
