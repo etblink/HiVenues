@@ -8,6 +8,7 @@
       'restore focus after server-rendered inspector swaps',
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
+      'render server-owned stale-revision conflicts without treating them as successful saves',
       'reconcile BFCache restoration with current server truth',
     ]),
   });
@@ -64,6 +65,15 @@
     if (!event.detail.elt.closest('.cc-inspector-form')) return;
     const state = document.querySelector('#cc-save-state');
     if (state) state.textContent = 'Saving…';
+  });
+
+  document.body.addEventListener('htmx:beforeSwap', (event) => {
+    if (event.detail.xhr?.status !== 409) return;
+    if (event.detail.target?.id !== 'candidate-inspector') return;
+    // HTMX does not swap non-2xx responses by default. A stale write remains an
+    // HTTP 409, but its server-rendered conflict panel is still useful UI.
+    event.detail.shouldSwap = true;
+    event.detail.isError = false;
   });
 
   document.body.addEventListener('htmx:afterSwap', (event) => {
