@@ -85,6 +85,12 @@
     }
   });
 
+  document.body.addEventListener('htmx:configRequest', (event) => {
+    if (!Object.hasOwn(event.detail.parameters, 'expectedRevision')) return;
+    const revision = document.querySelector('#draft-status')?.dataset.revision;
+    if (revision) event.detail.parameters.expectedRevision = revision;
+  });
+
   document.body.addEventListener('htmx:beforeSwap', (event) => {
     if (event.detail.xhr.status === 409) {
       event.detail.shouldSwap = true;
