@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph: current.graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= current.graph.identity.slug %>/direction">Cancel proposal</a>
+      <span class="cc-draft-status">Based on draft r<%= proposal.baseRevision %></span>
+    </nav>
+    <p class="cc-kicker">Direction · reviewed proposal</p>
+    <h1>Same place. Different composition.</h1>
+    <p class="cc-task__dek">Only the structural Direction is proposed here. The protected copy below remains exactly as authored unless you later edit it explicitly.</p>
+
+    <div class="cc-review-grid">
+      <section class="cc-review-card">
+        <p class="cc-kicker">Current · <%= current.family.label %></p>
+        <div class="cc-direction-preview">
+          <% if (current.family.id === 'poster') { %>
+            <%- include('compositions/poster-canvas', { graph: current.graph, media: current.media, primaryActivity: current.primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/editorial-canvas', { graph: current.graph, media: current.media, primaryActivity: current.primaryActivity, oob: false }) %>
+          <% } %>
+        </div>
+      </section>
+      <section class="cc-review-card">
+        <p class="cc-kicker">Proposed · <%= proposed.family.label %></p>
+        <div class="cc-direction-preview">
+          <% if (proposed.family.id === 'poster') { %>
+            <%- include('compositions/poster-canvas', { graph: proposed.graph, media: proposed.media, primaryActivity: proposed.primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/editorial-canvas', { graph: proposed.graph, media: proposed.media, primaryActivity: proposed.primaryActivity, oob: false }) %>
+          <% } %>
+        </div>
+      </section>
+    </div>
+
+    <section class="cc-review-card" style="margin-top:1.2rem">
+      <h2>Preserved by exact edit provenance</h2>
+      <% if (proposal.preservedPaths.length) { %>
+        <ul class="cc-preserved-list"><% proposal.preservedPaths.forEach((path) => { %><li><code><%= path %></code></li><% }) %></ul>
+      <% } else { %>
+        <p>No manual paths are currently marked; domain identities and canonical content remain non-destructive regardless.</p>
+      <% } %>
+      <p><strong>Proposed change:</strong> presentation.compositionFamily: <code><%= proposal.currentFamily %></code> → <code><%= proposal.familyId %></code></p>
+      <form method="post" action="/candidate-c/studio/<%= current.graph.identity.slug %>/direction/<%= proposal.id %>/apply">
+        <input type="hidden" name="expectedRevision" value="<%= current.revision %>">
+        <button class="cc-button cc-button--ink" type="submit">Apply direction to draft</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
