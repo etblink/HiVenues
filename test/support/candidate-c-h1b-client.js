@@ -116,8 +116,12 @@
     if (conflict) conflict.focus({ preventScroll: true });
   });
 
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) window.location.reload();
+  });
+
   window.CandidateCInteractionIsland = {
     durableStateMirror: false,
-    responsibilities: ['selection', 'drag-intent', 'focal-preview', '409-swap-policy', 'focus-restoration'],
+    responsibilities: ['selection', 'drag-intent', 'focal-preview', 'revision-token-source', '409-swap-policy', 'focus-restoration', 'bfcache-refresh'],
   };
 })();
