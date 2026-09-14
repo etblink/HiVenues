@@ -9,7 +9,7 @@
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
       'render server-owned stale-revision conflicts without treating them as successful saves',
-      'reconcile history restoration with current server truth',
+      'reconcile BFCache history restoration with current server truth',
     ]),
   });
 
@@ -96,16 +96,10 @@
     if (stale) state.textContent = 'Not saved';
   });
 
-  const historyMarker = `candidate-c:return:${window.location.pathname}`;
-
-  window.addEventListener('pagehide', () => {
-    window.sessionStorage.setItem(historyMarker, '1');
-  });
-
   window.addEventListener('pageshow', async (event) => {
-    const returning = event.persisted || window.sessionStorage.getItem(historyMarker) === '1';
-    if (!returning) return;
-    window.sessionStorage.removeItem(historyMarker);
+    // A non-BFCache history return performs a normal request and already receives
+    // current server truth. Only a persisted document can contain stale markup.
+    if (!event.persisted) return;
     const rendered = document.querySelector('#draft-status')?.dataset.revision;
     if (!rendered) return;
     try {
