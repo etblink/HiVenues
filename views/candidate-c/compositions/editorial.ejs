@@ -18,7 +18,7 @@
       <% if (section === 'story') { %>
         <section class="cc-editorial-deck" id="notes">
           <p class="cc-editorial-index">01 / FIELD NOTE</p>
-          <p>Research moves through streets, screens, transit diagrams, and conversations. This page keeps the work together without pretending it happens in one place.</p>
+          <p>Research moves through streets, screens, transit diagrams, and conversations. I collect the fragments here: sketches, sessions, routes, and notes before they harden into finished work.</p>
         </section>
       <% } %>
 
@@ -33,7 +33,7 @@
             <%- include('../_art', { media: media[0], graph }) %>
             <div class="cc-editorial-caption">
               <span>Working image</span>
-              <span><%= media[0].provenance %></span>
+              <span>Abstract city-grid study · non-photographic</span>
             </div>
           </div>
         </section>
@@ -72,7 +72,7 @@
           <p class="cc-editorial-index">04 / WHERE</p>
           <div>
             <h2><%= graph.facts.presence.label %></h2>
-            <p>There is no venue address to invent. The presence model is explicitly <strong><%= graph.facts.presence.mode %></strong>.</p>
+            <p>Sessions open wherever I am working. Notes, references, and recordings return here after the room closes.</p>
             <a class="cc-link" href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a>
           </div>
         </section>
@@ -82,7 +82,7 @@
 
   <footer class="cc-editorial-footer">
     <span><%= graph.identity.displayName %></span>
-    <span>HiVenues / host-first publishing</span>
+    <span>Field notes · live sessions · dispatches</span>
   </footer>
 </body>
 </html>
