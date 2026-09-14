@@ -1,5 +1,5 @@
 'use strict';
-/* global document, window, htmx */
+/* global document, window, htmx, performance */
 
 (() => {
   const state = { draggedSectionId: null, focalDraft: null };
@@ -117,7 +117,8 @@
   });
 
   window.addEventListener('pageshow', (event) => {
-    if (event.persisted) window.location.reload();
+    const navigation = performance.getEntriesByType('navigation')[0];
+    if (event.persisted || navigation?.type === 'back_forward') window.location.reload();
   });
 
   window.CandidateCInteractionIsland = {
