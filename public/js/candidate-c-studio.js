@@ -9,7 +9,7 @@
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
       'render server-owned stale-revision conflicts without treating them as successful saves',
-      'reconcile BFCache restoration with current server truth',
+      'reconcile history restoration with current server truth',
     ]),
   });
 
@@ -90,11 +90,28 @@
     state.textContent = !stale && event.detail.successful ? 'Saved to draft' : 'Not saved';
   });
 
-  window.addEventListener('pageshow', (event) => {
-    if (!event.persisted) return;
-    // BFCache can restore an old revision token and rendered draft. Durable state is
-    // server-owned, so a persisted Studio history entry is reconstructed from the server.
-    window.location.reload();
+  const historyMarker = `candidate-c:return:${window.location.pathname}`;
+
+  window.addEventListener('pagehide', () => {
+    sessionStorage.setItem(historyMarker, '1');
+  });
+
+  window.addEventListener('pageshow', async (event) => {
+    const returning = event.persisted || sessionStorage.getItem(historyMarker) === '1';
+    if (!returning) return;
+    sessionStorage.removeItem(historyMarker);
+    const rendered = document.querySelector('#draft-status')?.dataset.revision;
+    if (!rendered) return;
+    try {
+      const response = await fetch(window.location.href, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Studio reconcile returned ${response.status}`);
+      const html = await response.text();
+      const parsed = new DOMParser().parseFromString(html, 'text/html');
+      const serverRevision = parsed.querySelector('#draft-status')?.dataset.revision;
+      if (!serverRevision || serverRevision !== rendered) window.location.reload();
+    } catch {
+      window.location.reload();
+    }
   });
 
   window.CandidateCStudio = inventory;
