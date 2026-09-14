@@ -80,7 +80,8 @@ function readClientInventory() {
         'focus restoration after server-rendered swaps',
         'transient focal-point preview',
         'transient save-state messaging',
-        'BFCache restoration reconciliation by server reload',
+        'server-rendered stale-conflict presentation',
+        'history restoration revalidation against the server revision',
       ],
     }],
     totalFiles: 1,
@@ -119,11 +120,8 @@ async function main() {
     page.on('console', (message) => {
       if (message.type() !== 'error') return;
       const text = message.text();
-      if (/409|Response Status Error Code 409/i.test(text)) {
-        expectedConflictDiagnostics.push(text);
-      } else {
-        consoleErrors.push({ type: 'console', text });
-      }
+      if (/409|Response Status Error Code 409/i.test(text)) expectedConflictDiagnostics.push(text);
+      else consoleErrors.push({ type: 'console', text });
     });
   }
 
@@ -185,8 +183,7 @@ async function main() {
     const staleTab = await browser.newPage({ viewport: { width: 1200, height: 900 } });
     observe(staleTab);
     await gotoOk(staleTab, '/candidate-c/studio/northline-hall');
-    const staleRevision = await staleTab.locator('#draft-status').getAttribute('data-revision');
-    assert.equal(staleRevision, '2');
+    assert.equal(await staleTab.locator('#draft-status').getAttribute('data-revision'), '2');
     await staleTab.getByRole('button', { name: 'Edit first impression' }).click();
     await staleTab.locator('#candidate-inspector[data-open="true"]').waitFor();
     assert.equal(await staleTab.locator('input[name="expectedRevision"]').first().inputValue(), '2');
@@ -250,6 +247,12 @@ async function main() {
     });
     await historyPage.close();
 
+    // The history probe deliberately writes diagnostic copy. Put the synthetic host back
+    // into its authored voice before taking operator-facing visual evidence.
+    const visualReset = store.editTagline('nova-ashby', 'Cities that do not exist yet.', externalMutation.snapshot.revision);
+    assert.equal(visualReset.ok, true);
+    history[0].visualEvidenceRevision = visualReset.snapshot.revision;
+
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     observe(mobile);
 
@@ -266,6 +269,10 @@ async function main() {
     await audit(mobile, 'studio-r2-mobile-canvas');
     await mobile.getByRole('button', { name: 'Edit first impression' }).click();
     await mobile.locator('#candidate-inspector[data-open="true"]').waitFor();
+    await mobile.waitForFunction(() => {
+      const node = document.querySelector('#candidate-inspector[data-open="true"]');
+      return Boolean(node && node.getBoundingClientRect().bottom <= window.innerHeight + 2);
+    });
     assert.equal(await mobile.locator('#candidate-inspector').evaluate((node) => node.getBoundingClientRect().bottom <= window.innerHeight + 2), true);
     screenshots.push(await screenshot(mobile, '12-studio-r2-mobile-context-sheet'));
     await audit(mobile, 'studio-r2-mobile-context-sheet');
