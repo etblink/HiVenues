@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - 'test/support/candidate-c-h1-spike.js'
+      - 'test/support/candidate-c-h1-transport.js'
       - 'test/candidate-c-h1-htmx-spike.test.js'
       - 'scripts/candidate-c-h1-browser.js'
+      - 'scripts/candidate-c-h1-browser-transport.js'
       - '.github/workflows/candidate-c-h1-browser.yml'
   workflow_dispatch:
 
@@ -43,7 +45,7 @@ jobs:
       - name: Run actual HTMX / browser qualification
         env:
           CANDIDATE_C_H1_REVIEW_ROOT: artifacts/candidate-c-h1-review
-        run: node scripts/candidate-c-h1-browser.js
+        run: node scripts/candidate-c-h1-browser-transport.js
       - name: Publish H1 review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
