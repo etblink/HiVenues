@@ -1,0 +1,75 @@
+name: Candidate C H1B Interaction Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'test/support/candidate-c-h1b-spike.js'
+      - 'test/support/candidate-c-h1b-client.js'
+      - 'test/candidate-c-h1b-interaction.test.js'
+      - 'scripts/candidate-c-h1b-browser.js'
+      - '.github/workflows/candidate-c-h1b-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-h1b-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: H1B rich-interaction evidence (Ubuntu / pinned Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run Phase 1B deterministic contract
+        run: node --test --test-concurrency=1 test/candidate-c-h1b-interaction.test.js
+      - name: Run Phase 1B browser qualification
+        env:
+          CANDIDATE_C_H1B_REVIEW_ROOT: artifacts/candidate-c-h1b-review
+        run: node scripts/candidate-c-h1b-browser.js
+      - name: Publish Phase 1B review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-h1b-review-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-h1b-review
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Publish Phase 1B metrics
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-h1b-review/manifest.json', 'utf8'));
+          console.log('## Candidate C Phase 1B interaction hardening');
+          console.log('');
+          console.log(`- Screenshots: ${m.summary.screenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${m.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${m.summary.horizontalOverflowFindings}`);
+          console.log(`- External requests: ${m.summary.externalRequests}`);
+          console.log(`- Unexpected console/page errors: ${m.summary.unexpectedConsoleErrors}`);
+          console.log(`- Expected stale-conflict diagnostics: ${m.summary.expectedConflictDiagnostics}`);
+          console.log(`- Custom client files/lines: ${m.summary.customClientFiles}/${m.summary.customClientLines}`);
+          console.log(`- Hive RPC attempts/writes: ${m.summary.hiveRpcAttempts}/${m.summary.hiveWrites}`);
+          console.log(`- Provider writes: ${m.summary.providerWrites}`);
+          console.log(`- Payment/signing/deployment effects: ${m.summary.payments}/${m.summary.signingAttempts}/${m.summary.deployments}`);
+          NODE
