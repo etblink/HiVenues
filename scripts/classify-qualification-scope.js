@@ -5,8 +5,8 @@ const fs = require('node:fs');
 
 // The single executable selection policy. '*' retains Bash case semantics,
 // including nested directories. The legacy/current visual suite remains available
-// for its own product surfaces and manual dispatch. Only paths already owned by
-// the dedicated v3-s4-browser workflow are excluded from the legacy replay.
+// for its own product surfaces and manual dispatch. Paths owned by dedicated
+// qualification workflows are excluded from that legacy replay.
 const visualPatterns = [
   'docs/HV8_REFERENCE_DEPLOYMENT_SUCCESSOR_CONVERGENCE_CANDIDATE_QUALIFICATION_TRIGGER_0_1_0.md',
   'views/*',
@@ -81,8 +81,22 @@ const dedicatedV3Patterns = [
   .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   .join('[\\s\\S]*') + '$'));
 
+const dedicatedCandidateCPatterns = [
+  'src/candidate-c/*',
+  'views/candidate-c/*',
+  'public/css/candidate-c*',
+  'public/js/candidate-c*',
+  'public/candidate-c/*',
+  'test/candidate-c-*',
+  'scripts/candidate-c-*',
+  '.github/workflows/candidate-c-*',
+].map((pattern) => new RegExp('^' + pattern.split('*')
+  .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  .join('[\\s\\S]*') + '$'));
+
 function requiresLegacyVisual(path) {
   if (dedicatedV3Patterns.some((pattern) => pattern.test(path))) return false;
+  if (dedicatedCandidateCPatterns.some((pattern) => pattern.test(path))) return false;
   return visualPatterns.some((pattern) => pattern.test(path));
 }
 
@@ -123,9 +137,13 @@ function main() {
   console.log('Legacy/current UI/UX visual evidence required: ' + visual);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error('Qualification scope classification failed: ' + error.message);
-  process.exitCode = 1;
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error('Qualification scope classification failed: ' + error.message);
+    process.exitCode = 1;
+  }
 }
+
+module.exports = { requiresLegacyVisual };
