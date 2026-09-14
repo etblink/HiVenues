@@ -46,10 +46,25 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function heroMediaUsage(assetId, alt) {
+  return {
+    assetId,
+    alt,
+    decorative: false,
+    treatment: {
+      focalPoint: { x: 0.5, y: 0.5 },
+      fit: 'cover',
+      aspectRecipeId: 'aspect-landscape-wide',
+    },
+  };
+}
+
 function withJourneyAssets(source, referenceId) {
   const candidate = clone(source);
+  const assetIds = [];
   for (const suffix of ['a', 'b']) {
     const id = `s4-${referenceId.toLowerCase()}-promo-${suffix}`;
+    assetIds.push(id);
     candidate.media.assets.push({
       id,
       src: `/fixtures/v3-s4/${id}.svg`,
@@ -57,6 +72,18 @@ function withJourneyAssets(source, referenceId) {
       height: 1000,
     });
   }
+
+  if (referenceId !== 'migratedPhysical') {
+    const home = candidate.site.pages.find((page) => page.id === candidate.site.homePageId);
+    const hero = home?.components.find((component) => component.kind === 'venue-hero');
+    if (hero && hero.content.media === null) {
+      hero.content.media = heroMediaUsage(
+        assetIds[0],
+        REFERENCE_MEDIA_SCENES[referenceId]?.ariaLabel || 'Managed host artwork',
+      );
+    }
+  }
+
   return createV3DeploymentAgnosticVenueSource(candidate);
 }
 
