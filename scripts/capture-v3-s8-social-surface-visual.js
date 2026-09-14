@@ -101,14 +101,16 @@ async function geometry(page, label) {
       scrollWidth: root.scrollWidth,
       mainCount: globalThis.document.querySelectorAll('main').length,
       iframeCount: globalThis.document.querySelectorAll('iframe').length,
-      scriptCount: globalThis.document.querySelectorAll('script').length,
+      executableScriptCount: globalThis.document.querySelectorAll('script:not([type="application/ld+json"])').length,
+      jsonLdCount: globalThis.document.querySelectorAll('script[type="application/ld+json"]').length,
       minimumActionTargetHeight: actionTargets.length ? Math.min(...actionTargets) : null,
     };
   });
   assert.ok(result.scrollWidth - result.clientWidth <= 1, `${label}: horizontal overflow ${JSON.stringify(result)}`);
   assert.equal(result.mainCount, 1, `${label}: expected one public main landmark`);
   assert.equal(result.iframeCount, 0, `${label}: Activity evidence must not contain Studio iframe`);
-  assert.equal(result.scriptCount, 0, `${label}: generated Activity page must remain script-free`);
+  assert.equal(result.executableScriptCount, 0, `${label}: generated Activity page must remain executable-script-free`);
+  assert.ok(result.jsonLdCount >= 1, `${label}: generated Activity page should expose structured metadata`);
   assert.ok(
     result.minimumActionTargetHeight === null || result.minimumActionTargetHeight >= 43.5,
     `${label}: public action below 44px convention ${JSON.stringify(result)}`,
