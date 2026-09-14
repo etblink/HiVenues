@@ -81,7 +81,8 @@ async function geometry(page, label) {
       scrollWidth: root.scrollWidth,
       mainCount: globalThis.document.querySelectorAll('main').length,
       iframeCount: globalThis.document.querySelectorAll('iframe').length,
-      scriptCount: globalThis.document.querySelectorAll('script').length,
+      executableScriptCount: globalThis.document.querySelectorAll('script:not([type="application/ld+json"])').length,
+      jsonLdBlockCount: globalThis.document.querySelectorAll('script[type="application/ld+json"]').length,
       minimumActionTargetHeight: actionTargets.length ? Math.min(...actionTargets) : null,
       imageCount: images.length,
       imageOverflowCount: images.filter((image) => image.left < -1 || image.right > root.clientWidth + 1).length,
@@ -91,7 +92,8 @@ async function geometry(page, label) {
   assert.ok(result.scrollWidth - result.clientWidth <= 1, `${label}: generated experience horizontal overflow ${JSON.stringify(result)}`);
   assert.equal(result.mainCount, 1, `${label}: expected one generated main landmark`);
   assert.equal(result.iframeCount, 0, `${label}: visitor-only evidence must not contain Studio iframe`);
-  assert.equal(result.scriptCount, 0, `${label}: generated visitor page must remain script-free`);
+  assert.equal(result.executableScriptCount, 0, `${label}: generated visitor page must remain executable-script-free`);
+  assert.equal(result.jsonLdBlockCount, 1, `${label}: generated visitor page must carry one structured-data block`);
   assert.ok(result.minimumActionTargetHeight === null || result.minimumActionTargetHeight >= 43.5, `${label}: public action below 44px convention ${JSON.stringify(result)}`);
   assert.equal(result.imageOverflowCount, 0, `${label}: media overflows viewport`);
   assert.equal(result.incompleteImageCount, 0, `${label}: incomplete generated media`);
@@ -136,8 +138,8 @@ async function visitorContract(page, fixture, activity, routeKind, label) {
     assert.equal(result.mainActivityId, activity.id, `${label}: activity identity`);
     assert.equal(result.heading, activity.title, `${label}: activity title`);
     const expectedTemporalLabel = activity.temporal.kind === 'RELEASE'
-      ? 'Release'
-      : activity.temporal.kind === 'WINDOW' ? 'Window' : 'When';
+      ? 'Available'
+      : activity.temporal.kind === 'WINDOW' ? 'Available window' : 'When';
     assert.equal(result.temporalLabel, expectedTemporalLabel, `${label}: temporal presentation`);
 
     if (activity.presence.kind === 'NONE') {
