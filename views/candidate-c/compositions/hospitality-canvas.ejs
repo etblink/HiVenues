@@ -1,4 +1,4 @@
-<main id="candidate-canvas" class="cc-studio-canvas cc-studio-canvas--hospitality" data-composition="hospitality" <%= oob ? 'hx-swap-oob="outerHTML"' : '' %>>
+<main id="candidate-canvas" class="cc-studio-canvas cc-studio-canvas--hospitality" data-composition="hospitality" style="--cc-accent:<%= graph.presentation.accent %>;border-top:5px solid <%= graph.presentation.accent %>" <%= oob ? 'hx-swap-oob="outerHTML"' : '' %>>
   <div class="cc-canvas-hospitality__mast">
     <span><%= graph.identity.displayName %></span>
     <span>DINNER · <%= graph.facts.presence.label.split('·')[0].trim() %></span>

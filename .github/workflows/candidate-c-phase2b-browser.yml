@@ -9,7 +9,9 @@ on:
       - 'public/candidate-c/**'
       - 'public/js/candidate-c-studio.js'
       - 'test/candidate-c-phase2b-product.test.js'
+      - 'test/candidate-c-phase2b-studio.test.js'
       - 'scripts/candidate-c-phase2b-browser.js'
+      - 'scripts/candidate-c-phase2b-studio-browser.js'
       - '.github/workflows/candidate-c-phase2b-browser.yml'
   workflow_dispatch:
 
@@ -22,7 +24,7 @@ concurrency:
 
 jobs:
   browser:
-    name: Phase 2B Media/R3 browser evidence
+    name: Phase 2B product + Studio browser evidence
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -42,19 +44,26 @@ jobs:
         run: npm ci --ignore-scripts --no-fund
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
-      - name: Run Phase 2B Media/R3 deterministic contract
-        run: node --test --test-concurrency=1 test/candidate-c-phase2b-product.test.js
-      - name: Run Phase 2B Chromium qualification
+      - name: Run Phase 2B deterministic contracts
+        run: node --test --test-concurrency=1 test/candidate-c-phase2b-product.test.js test/candidate-c-phase2b-studio.test.js
+      - name: Run Phase 2B Media/R3 Chromium qualification
         env:
           CANDIDATE_C_PHASE2B_REVIEW_ROOT: artifacts/candidate-c-phase2b-review
           CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/candidate-c-phase2b-browser.js
+      - name: Run Phase 2B Studio D Chromium qualification
+        env:
+          CANDIDATE_C_PHASE2B_STUDIO_REVIEW_ROOT: artifacts/candidate-c-phase2b-studio-review
+          CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-phase2b-studio-browser.js
       - name: Publish Phase 2B browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: candidate-c-phase2b-review-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/candidate-c-phase2b-review
+          path: |
+            artifacts/candidate-c-phase2b-review
+            artifacts/candidate-c-phase2b-studio-review
           if-no-files-found: warn
           retention-days: 90
       - name: Summarize Phase 2B evidence
@@ -63,20 +72,21 @@ jobs:
         run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('node:fs');
-          const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-review/manifest.json', 'utf8'));
-          console.log('## Candidate C Phase 2B Media/R3 browser evidence');
+          const product = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-review/manifest.json', 'utf8'));
+          const studio = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-studio-review/manifest.json', 'utf8'));
+          console.log('## Candidate C Phase 2B browser evidence');
           console.log('');
-          console.log(`- Exact candidate: ${m.candidate}`);
-          console.log(`- Screenshots: ${m.summary.screenshotCount}`);
-          console.log(`- Blocking accessibility findings: ${m.summary.blockingAccessibilityFindings}`);
-          console.log(`- Horizontal overflow findings: ${m.summary.horizontalOverflowFindings}`);
-          console.log(`- Incomplete image findings: ${m.summary.incompleteImageFindings}`);
-          console.log(`- External requests: ${m.summary.externalRequests}`);
-          console.log(`- Unexpected console/page errors: ${m.summary.unexpectedConsoleErrors}`);
-          console.log(`- Admitted Media: ${m.mediaProof.id} · ${m.mediaProof.naturalWidth}×${m.mediaProof.naturalHeight}`);
-          console.log(`- Hive RPC attempts/writes: ${m.summary.hiveRpcAttempts}/${m.summary.hiveWrites}`);
-          console.log(`- Provider writes: ${m.summary.providerWrites}`);
-          console.log(`- Payment/signing/deployment effects: ${m.summary.payments}/${m.summary.signingAttempts}/${m.summary.deployments}`);
+          console.log(`- Exact candidate: ${product.candidate}`);
+          console.log(`- Media/R3 screenshots: ${product.summary.screenshotCount}`);
+          console.log(`- Studio D screenshots: ${studio.summary.screenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${product.summary.blockingAccessibilityFindings + studio.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${product.summary.horizontalOverflowFindings + studio.summary.horizontalOverflowFindings}`);
+          console.log(`- External requests: ${product.summary.externalRequests + studio.summary.externalRequests}`);
+          console.log(`- Unexpected console/page errors: ${product.summary.unexpectedConsoleErrors + studio.summary.unexpectedConsoleErrors}`);
+          console.log(`- D proof: ${studio.proof.offer} · ${studio.proof.voice} · ${studio.proof.contact}`);
+          console.log(`- Hive RPC attempts/writes: ${studio.summary.hiveRpcAttempts}/${studio.summary.hiveWrites}`);
+          console.log(`- Provider writes: ${studio.summary.providerWrites}`);
+          console.log(`- Payment/signing/deployment effects: ${studio.summary.payments}/${studio.summary.signingAttempts}/${studio.summary.deployments}`);
           console.log('');
           console.log('Automated qualification does not imply Project Lead visual acceptance or Phase 2B H1 adjudication.');
           NODE

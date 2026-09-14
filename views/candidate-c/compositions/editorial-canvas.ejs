@@ -1,4 +1,4 @@
-<main id="candidate-canvas" class="cc-studio-canvas cc-studio-canvas--editorial" data-composition="editorial" <%= oob ? 'hx-swap-oob="outerHTML"' : '' %>>
+<main id="candidate-canvas" class="cc-studio-canvas cc-studio-canvas--editorial" data-composition="editorial" style="--cc-accent:<%= graph.presentation.accent %>;border-top:5px solid <%= graph.presentation.accent %>" <%= oob ? 'hx-swap-oob="outerHTML"' : '' %>>
   <div class="cc-canvas-editorial__note">
     <span>FIELD NOTE</span>
     <p><%= graph.facts.summary %></p>

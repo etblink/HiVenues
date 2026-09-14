@@ -1,4 +1,4 @@
-<div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>" hx-swap-oob="outerHTML">Draft r<%= revision %></div>
+<div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>" hx-swap-oob="outerHTML">Version <%= revision %></div>
 <% if (family.id === 'poster') { %>
   <%- include('../compositions/poster-canvas', { graph, media, primaryActivity, oob: true }) %>
 <% } else if (family.id === 'editorial') { %>
@@ -6,4 +6,4 @@
 <% } else { %>
   <%- include('../compositions/hospitality-canvas', { graph, media, primaryActivity, oob: true }) %>
 <% } %>
-<%- include('inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry }) %>
+<%- include('inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>

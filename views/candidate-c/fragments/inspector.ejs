@@ -2,6 +2,8 @@
   const selected = selectedResource || '';
   const selectedActivityId = selected.startsWith('activity:') ? selected.slice('activity:'.length) : '';
   const selectedActivity = activities.find((item) => item.id === selectedActivityId) || null;
+  const selectedOfferId = selected.startsWith('offer:') ? selected.slice('offer:'.length) : '';
+  const selectedOffer = graph.offers.find((item) => item.id === selectedOfferId) || null;
   const selectedMechanic = selected.startsWith('voice:') ? selected.slice('voice:'.length) : '';
   const selectedMediaId = selected.startsWith('media:') ? selected.slice('media:'.length) : '';
   const selectedMedia = media.find((item) => item.id === selectedMediaId) || null;
@@ -10,8 +12,8 @@
   <% if (selected) { %><button type="button" class="cc-link" data-close-inspector aria-label="Close editor">Close</button><% } %>
   <% if (!selected) { %>
     <p class="cc-studio-inspector__eyebrow">Context</p>
-    <h2>Choose something on the canvas.</h2>
-    <p class="cc-inspector-help">Edit the thing you can see. Deeper Direction, Voice and History controls stay available without competing with the canvas.</p>
+    <h2>Choose something to shape.</h2>
+    <p class="cc-inspector-help">Edit what visitors see, then use Direction, Look, Voice, Connect, Media and History when you need more depth.</p>
   <% } %>
 
   <% if (selected === 'facts.tagline') { %>
@@ -22,13 +24,13 @@
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <label for="cc-tagline">Headline</label>
       <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
-      <p class="cc-inspector-help">This is authored host copy. Saving creates one durable draft revision.</p>
+      <p class="cc-inspector-help">Saving updates your working version. Your live site stays unchanged until you release it.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save headline</button></div>
     </form>
   <% } %>
 
   <% if (selectedActivity) { %>
-    <p class="cc-studio-inspector__eyebrow">Activities · canonical object</p>
+    <p class="cc-studio-inspector__eyebrow">Activities</p>
     <h2>Edit this happening</h2>
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/activity" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
@@ -38,26 +40,94 @@
       <input id="cc-activity-title" name="title" maxlength="120" value="<%= selectedActivity.title %>" required>
       <label for="cc-activity-description">Description</label>
       <textarea id="cc-activity-description" name="description" maxlength="1200" required><%= selectedActivity.description %></textarea>
-      <p class="cc-inspector-help">Activity identity is <code><%= selectedActivity.id %></code>. Placement and composition may change without re-minting it.</p>
+      <p class="cc-inspector-help">This remains the same activity even when you change the site’s visual direction.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save activity</button></div>
     </form>
   <% } %>
 
+  <% if (selectedOffer) { %>
+    <p class="cc-studio-inspector__eyebrow">Offers</p>
+    <h2>Edit <%= selectedOffer.title %></h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/offer" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/offer" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="offerId" value="<%= selectedOffer.id %>">
+      <label for="cc-offer-title">Name</label>
+      <input id="cc-offer-title" name="title" value="<%= selectedOffer.title %>" required>
+      <label for="cc-offer-summary">Description</label>
+      <textarea id="cc-offer-summary" name="summary" required><%= selectedOffer.summary %></textarea>
+      <label for="cc-offer-category">Category <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-offer-category" name="category" value="<%= selectedOffer.category || '' %>">
+      <label for="cc-offer-price">Price or short detail <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-offer-price" name="price" value="<%= selectedOffer.price || '' %>">
+      <p class="cc-inspector-help">The same offer can be presented differently by each visual direction without becoming a different item.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save offer</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'look') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Look</p>
+    <h2>Set the accent.</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/look" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/look" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-look-accent">Accent</label>
+      <select id="cc-look-accent" name="accent" required>
+        <% lookAccents.forEach((accent) => { %>
+          <option value="<%= accent.value %>" <%= graph.presentation.accent.toLowerCase() === accent.value ? 'selected' : '' %>><%= accent.label %></option>
+        <% }) %>
+      </select>
+      <div aria-hidden="true" style="height:18px;border-radius:999px;background:<%= graph.presentation.accent %>"></div>
+      <p class="cc-inspector-help">A bounded palette keeps contrast and composition behavior predictable. Direction still controls the larger layout.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save look</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'voice') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Voice</p>
+    <h2>Use the host’s language.</h2>
+    <p class="cc-inspector-help">Choose a visitor gesture to rename. The words can fit the host; what the action actually does stays explicit.</p>
+    <div class="cc-release-list">
+      <% Object.entries(graph.voice.terms).forEach(([mechanicId, term]) => { %>
+        <div class="cc-release-row">
+          <div><strong><%= term %></strong><br><small><%= mechanicRegistry[mechanicId] ? mechanicRegistry[mechanicId].consequenceClass : mechanicId %></small></div>
+          <button type="button" class="cc-button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice:<%= mechanicId %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit</button>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
   <% if (selectedMechanic && graph.voice.terms[selectedMechanic]) { %>
     <p class="cc-studio-inspector__eyebrow">Site · Voice</p>
-    <h2>Name the gesture in this host’s world.</h2>
+    <h2>Rename this visitor gesture.</h2>
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/voice" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <input type="hidden" name="mechanicId" value="<%= selectedMechanic %>">
-      <label for="cc-voice-term">Visitor-facing term</label>
+      <label for="cc-voice-term">Visitor-facing words</label>
       <input id="cc-voice-term" name="term" value="<%= graph.voice.terms[selectedMechanic] %>" required>
       <div class="cc-consequence-truth">
-        <strong>Underlying mechanic: <%= selectedMechanic %></strong><br>
+        <strong>What this action does</strong><br>
         <%= mechanicRegistry[selectedMechanic].meaning %>
       </div>
-      <p class="cc-inspector-help">Changing the words does not change the consequence. A future mechanic remap is a reviewed semantic proposal, not a copy edit.</p>
+      <p class="cc-inspector-help">Renaming an action never changes its consequence.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save wording</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'connect') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Connect</p>
+    <h2>Where should visitors reach you?</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/connect" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/connect" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-contact">Contact email</label>
+      <input id="cc-contact" type="email" name="contact" value="<%= graph.facts.contact %>" required>
+      <div class="cc-consequence-truth">
+        <strong>Optional connections stay separate.</strong><br>
+        Hive: <%= graph.bindings.hive.state %> · Media: <%= graph.bindings.media.state %>. Changing the visitor contact does not connect an account, provider, payment, or signing flow.
+      </div>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save contact</button></div>
     </form>
   <% } %>
 
@@ -76,7 +146,7 @@
       <label for="cc-focal-y">Vertical focus</label>
       <input id="cc-focal-y" data-focal-axis type="range" name="y" min="0" max="100" value="<%= selectedMedia.focal.y %>">
       <output data-focal-output><%= selectedMedia.focal.x %>% / <%= selectedMedia.focal.y %>%</output>
-      <p class="cc-inspector-help"><%= selectedMedia.provenance %> Moving the controls is transient; Save writes one server revision.</p>
+      <p class="cc-inspector-help"><%= selectedMedia.provenance %> Moving the controls previews the crop; Save records the new focus.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save focal point</button></div>
     </form>
   <% } %>
@@ -84,7 +154,7 @@
   <% if (selected === 'page.order') { %>
     <p class="cc-studio-inspector__eyebrow">Page · structure</p>
     <h2>Section order</h2>
-    <p class="cc-inspector-help">These controls are the keyboard/non-drag path. Durable order lives on the server; the renderer remains free to interpret it structurally.</p>
+    <p class="cc-inspector-help">Use Up and Down when the page needs a different reading order. Each visual direction can interpret that order in its own way.</p>
     <% graph.presentation.arrangement.forEach((section, index) => { %>
       <div class="cc-release-row">
         <div><strong><%= index + 1 %>. <%= section %></strong></div>
@@ -116,7 +186,7 @@
     <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-      <button class="cc-link" type="submit">Undo last acknowledged edit</button>
+      <button class="cc-link" type="submit">Undo last edit</button>
     </form>
   <% } %>
 </aside>
