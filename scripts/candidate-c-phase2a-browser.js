@@ -177,6 +177,7 @@ async function main() {
     transactions.push({ name: 'ordinary-tagline-edit', targetedRegions: 1, oobRegions, totalUpdatedRegions: 1 + oobRegions });
     assert.equal(oobRegions, 2);
     await desktop.waitForFunction(() => document.querySelector('#draft-status')?.dataset.revision === '2');
+    await desktop.getByText('Saved to draft', { exact: true }).waitFor();
     assert.match(await desktop.locator('#candidate-canvas').textContent(), /Good nights\. Great company\./);
     screenshots.push(await screenshot(desktop, '05-studio-r1-contextual-edit'));
 
@@ -195,13 +196,19 @@ async function main() {
     const staleResponse = await staleResponsePromise;
     assert.equal(staleResponse.status(), 409);
     await staleTab.getByText('A newer draft exists.').waitFor();
+    await staleTab.getByText('Not saved', { exact: true }).waitFor();
     assert.equal(store.snapshot('northline-hall').draft.facts.tagline, 'Server-newer headline.');
     screenshots.push(await screenshot(staleTab, '06-studio-stale-conflict'));
     await staleTab.close();
 
+    // The stale-write probe deliberately creates diagnostic server copy. Restore the
+    // authored operator-facing draft before Direction and release visual evidence.
+    const northlineVisualReset = store.editTagline('northline-hall', 'Good nights. Great company.', 3);
+    assert.equal(northlineVisualReset.ok, true);
+
     await gotoOk(desktop, '/candidate-c/studio/northline-hall/direction');
     const directionResponse = await desktop.request.post(`${origin}/candidate-c/studio/northline-hall/direction/propose`, {
-      form: { expectedRevision: '3', familyId: 'editorial' },
+      form: { expectedRevision: '4', familyId: 'editorial' },
       maxRedirects: 0,
     });
     assert.equal(directionResponse.status(), 303);
@@ -247,8 +254,8 @@ async function main() {
     });
     await historyPage.close();
 
-    // The history probe deliberately writes diagnostic copy. Put the synthetic host back
-    // into its authored voice before taking operator-facing visual evidence.
+    // The history probe also writes diagnostic copy. Put Nova back into its authored
+    // voice before taking operator-facing mobile visual evidence.
     const visualReset = store.editTagline('nova-ashby', 'Cities that do not exist yet.', externalMutation.snapshot.revision);
     assert.equal(visualReset.ok, true);
     history[0].visualEvidenceRevision = visualReset.snapshot.revision;
@@ -318,11 +325,11 @@ async function main() {
       deployments: diagnostics.external.deployments,
     };
 
-    assert.equal(summary.blockingAccessibilityFindings, 0);
-    assert.equal(summary.horizontalOverflowFindings, 0);
-    assert.equal(summary.incompleteImageFindings, 0);
-    assert.equal(summary.externalRequests, 0);
-    assert.equal(summary.unexpectedConsoleErrors, 0);
+    assert.equal(summary.blockingAccessibilityFindings, 0, JSON.stringify(accessibility.filter((item) => item.blockingCount > 0)));
+    assert.equal(summary.horizontalOverflowFindings, 0, JSON.stringify(geometry.filter((item) => item.overflow)));
+    assert.equal(summary.incompleteImageFindings, 0, JSON.stringify(geometry.filter((item) => item.incompleteImages > 0)));
+    assert.equal(summary.externalRequests, 0, JSON.stringify(externalRequests));
+    assert.equal(summary.unexpectedConsoleErrors, 0, JSON.stringify(consoleErrors));
 
     const manifest = {
       phase: 'CANDIDATE_C_2A_FIRST_PRODUCTION_PATH_SLICE',
