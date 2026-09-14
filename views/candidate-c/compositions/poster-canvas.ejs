@@ -1,7 +1,7 @@
 <main id="candidate-canvas" class="cc-studio-canvas cc-studio-canvas--poster" data-composition="poster" <%= oob ? 'hx-swap-oob="outerHTML"' : '' %>>
   <div class="cc-canvas-poster__mast">
     <p class="cc-kicker"><%= graph.identity.archetype %></p>
-    <h1><%= graph.facts.tagline %></h1>
+    <h1<% if (graph.facts.tagline.length > 18) { %> style="font-size:clamp(2.8rem,4.8vw,5.3rem)"<% } %>><%= graph.facts.tagline %></h1>
     <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit first impression</button>
   </div>
   <div class="cc-canvas-poster__art">
