@@ -40,6 +40,11 @@
               <strong>Editorial field notes</strong>
               <span>Open, publication-like, media-led, quiet.</span>
             </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="hospitality" <%= graph.intent.direction === 'hospitality' ? 'checked' : '' %>>
+              <strong>Hospitality table</strong>
+              <span>Image-led, menu-forward, warm, service-aware.</span>
+            </label>
           </div>
         </fieldset>
         <div class="cc-field">
@@ -53,8 +58,10 @@
       <section class="cc-direction-preview" aria-label="Current generated first draft">
         <% if (family.id === 'poster') { %>
           <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
-        <% } else { %>
+        <% } else if (family.id === 'editorial') { %>
           <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+        <% } else { %>
+          <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
         <% } %>
       </section>
     </div>

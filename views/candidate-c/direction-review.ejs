@@ -19,8 +19,10 @@
         <div class="cc-direction-preview">
           <% if (current.family.id === 'poster') { %>
             <%- include('compositions/poster-canvas', { graph: current.graph, media: current.media, primaryActivity: current.primaryActivity, oob: false }) %>
-          <% } else { %>
+          <% } else if (current.family.id === 'editorial') { %>
             <%- include('compositions/editorial-canvas', { graph: current.graph, media: current.media, primaryActivity: current.primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/hospitality-canvas', { graph: current.graph, media: current.media, primaryActivity: current.primaryActivity, oob: false }) %>
           <% } %>
         </div>
       </section>
@@ -29,8 +31,10 @@
         <div class="cc-direction-preview">
           <% if (proposed.family.id === 'poster') { %>
             <%- include('compositions/poster-canvas', { graph: proposed.graph, media: proposed.media, primaryActivity: proposed.primaryActivity, oob: false }) %>
-          <% } else { %>
+          <% } else if (proposed.family.id === 'editorial') { %>
             <%- include('compositions/editorial-canvas', { graph: proposed.graph, media: proposed.media, primaryActivity: proposed.primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/hospitality-canvas', { graph: proposed.graph, media: proposed.media, primaryActivity: proposed.primaryActivity, oob: false }) %>
           <% } %>
         </div>
       </section>

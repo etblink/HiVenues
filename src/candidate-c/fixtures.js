@@ -170,8 +170,119 @@ const nova = validateHostGraph({
   },
 });
 
+const harbor = validateHostGraph({
+  schemaVersion: 1,
+  identity: {
+    hostId: 'host-harbor-hearth-001',
+    slug: 'harbor-and-hearth',
+    displayName: 'Harbor & Hearth',
+    archetype: 'waterfront neighborhood kitchen',
+    timezone: 'America/Los_Angeles',
+  },
+  facts: {
+    tagline: 'Dinner follows the tide.',
+    summary: 'A small waterfront kitchen for wood fire, cold water, bright vegetables, and long tables after sunset.',
+    presence: {
+      mode: 'physical',
+      label: 'Ballard waterfront · dinner Thursday–Sunday from 5 PM',
+      address: '1708 Dock Street, Seattle, WA',
+    },
+    contact: 'table@harborandhearth.example',
+  },
+  activities: [
+    {
+      id: 'activity-harbor-supper-001',
+      slug: 'sunday-harvest-table',
+      title: 'Sunday Table — Harvest Supper',
+      description: 'One shared table, a five-course late-summer menu, and a final plate served as the harbor turns blue.',
+      startsAt: '2026-09-20T18:00:00-07:00',
+      endsAt: '2026-09-20T21:00:00-07:00',
+      presence: {
+        mode: 'physical',
+        venueName: 'Harbor & Hearth',
+        address: '1708 Dock Street, Seattle, WA',
+      },
+      lifecycle: 'scheduled',
+      mediaId: 'media-harbor-table-001',
+      publicActions: [
+        { mechanic: 'rsvp_local' },
+        { mechanic: 'calendar_ics' },
+        { mechanic: 'applaud_hive' },
+      ],
+    },
+  ],
+  offers: [
+    {
+      id: 'offer-harbor-carrots-001',
+      category: 'From the field',
+      title: 'Coal-roasted carrots',
+      summary: 'Cultured cream, hazelnut, preserved lemon, and soft herbs.',
+      price: '$16',
+    },
+    {
+      id: 'offer-harbor-rockfish-001',
+      category: 'From the water',
+      title: 'Line-caught rockfish',
+      summary: 'Charred tomato broth, fennel, mussels, and grilled bread.',
+      price: '$32',
+    },
+    {
+      id: 'offer-harbor-cake-001',
+      category: 'Something sweet',
+      title: 'Olive-oil cake',
+      summary: 'Blackberry, bay leaf cream, and sea salt.',
+      price: '$12',
+    },
+  ],
+  media: [
+    {
+      id: 'media-harbor-table-001',
+      kind: 'image',
+      alt: 'Illustrated warm dining table with ceramic plates, candlelight, herbs, and a deep blue harbor window.',
+      provenance: 'HiVenues synthetic house artwork admitted locally for Candidate C; not documentary photography.',
+      focal: { x: 53, y: 62 },
+      palette: ['#f2e9da', '#a65337', '#244653', '#647a55'],
+      asset: {
+        version: 1,
+        storage: 'repo-local',
+        path: '/candidate-c/media/harbor-hearth-table.svg',
+        mime: 'image/svg+xml',
+        bytes: 4110,
+        width: 1600,
+        height: 1200,
+        sha256: '85828539d64d5d815be0f59ec1f7d19c1d9f9b05bb3b1db4d1e7ca1977c9f5b4',
+      },
+    },
+  ],
+  voice: {
+    terms: {
+      rsvp_local: 'Save a seat',
+      calendar_ics: 'Add dinner to my calendar',
+      applaud_hive: 'Send compliments',
+      voting_capacity: 'Your cellar key',
+      follow_account: 'Stay for the next table',
+    },
+    tone: 'quietly generous, ingredient-led, warm, precise',
+  },
+  presentation: {
+    compositionFamily: 'hospitality',
+    arrangement: ['hero', 'offer', 'story', 'activity', 'details'],
+    accent: '#a65337',
+  },
+  bindings: {
+    hive: { state: 'disconnected', account: null, communityId: null },
+    media: { state: 'local', provider: null },
+  },
+  intent: {
+    purpose: 'Turn a neighborhood dinner service into an inviting front door with menu, table and supper information close at hand.',
+    presenceMaterial: 'Linen, ceramic, ember, salt air, shared tables, deep harbor blue.',
+    direction: 'hospitality',
+    participation: 'Read the menu, plan a visit, save a supper seat, and keep in touch without platform vocabulary.',
+  },
+});
+
 function seedCandidateCHosts() {
-  return [northline, nova].map((host) => structuredClone(host));
+  return [northline, nova, harbor].map((host) => structuredClone(host));
 }
 
 module.exports = { seedCandidateCHosts };

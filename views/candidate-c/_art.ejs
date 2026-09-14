@@ -2,12 +2,25 @@
   const palette = media.palette;
   const fx = media.focal.x;
   const fy = media.focal.y;
+  const admitted = media.asset && media.kind !== 'bootstrap-art';
 %>
-<div
-  class="cc-art cc-art--<%= graph.presentation.compositionFamily %>"
-  role="img"
-  aria-label="<%= media.alt %>"
-  style="--cc-art-1:<%= palette[0] %>;--cc-art-2:<%= palette[1] %>;--cc-art-3:<%= palette[2] %>;--cc-art-4:<%= palette[3] || palette[0] %>;--cc-fx:<%= fx %>%;--cc-fy:<%= fy %>%">
-  <span class="cc-art__mark" aria-hidden="true"></span>
-  <span class="cc-art__route" aria-hidden="true"></span>
-</div>
+<% if (admitted && media.kind === 'image') { %>
+  <div class="cc-admitted-media cc-admitted-media--<%= graph.presentation.compositionFamily %>" style="--cc-fx:<%= fx %>%;--cc-fy:<%= fy %>%">
+    <img src="<%= media.asset.path %>" alt="<%= media.alt %>" width="<%= media.asset.width %>" height="<%= media.asset.height %>">
+  </div>
+<% } else if (admitted && media.kind === 'video') { %>
+  <div class="cc-admitted-media cc-admitted-media--<%= graph.presentation.compositionFamily %>" style="--cc-fx:<%= fx %>%;--cc-fy:<%= fy %>%">
+    <video controls preload="metadata" aria-label="<%= media.alt %>" width="<%= media.asset.width %>" height="<%= media.asset.height %>">
+      <source src="<%= media.asset.path %>" type="<%= media.asset.mime %>">
+    </video>
+  </div>
+<% } else { %>
+  <div
+    class="cc-art cc-art--<%= graph.presentation.compositionFamily %>"
+    role="img"
+    aria-label="<%= media.alt %>"
+    style="--cc-art-1:<%= palette[0] %>;--cc-art-2:<%= palette[1] %>;--cc-art-3:<%= palette[2] %>;--cc-art-4:<%= palette[3] || palette[0] %>;--cc-fx:<%= fx %>%;--cc-fy:<%= fy %>%">
+    <span class="cc-art__mark" aria-hidden="true"></span>
+    <span class="cc-art__route" aria-hidden="true"></span>
+  </div>
+<% } %>

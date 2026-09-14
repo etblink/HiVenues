@@ -56,6 +56,17 @@ const mechanicRegistry = Object.freeze({
   }),
 });
 
+const admittedAssetSchema = z.object({
+  version: z.literal(1),
+  storage: z.literal('repo-local'),
+  path: z.string().regex(/^\/candidate-c\/media\/[A-Za-z0-9._/-]+$/),
+  mime: z.enum(['image/svg+xml', 'image/jpeg', 'image/png', 'image/webp', 'video/mp4']),
+  bytes: z.number().int().positive(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 const mediaSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(['bootstrap-art', 'image', 'video']),
@@ -63,6 +74,14 @@ const mediaSchema = z.object({
   provenance: z.string().min(1),
   focal: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
   palette: z.array(z.string().min(1)).min(2).max(5),
+  asset: admittedAssetSchema.optional(),
+}).superRefine((media, ctx) => {
+  if (media.kind === 'bootstrap-art' && media.asset) {
+    ctx.addIssue({ code: 'custom', path: ['asset'], message: 'Bootstrap art must not masquerade as an admitted asset.' });
+  }
+  if (media.kind !== 'bootstrap-art' && !media.asset) {
+    ctx.addIssue({ code: 'custom', path: ['asset'], message: 'Admitted image/video media requires an asset descriptor.' });
+  }
 });
 
 const activitySchema = z.object({
@@ -80,6 +99,14 @@ const activitySchema = z.object({
   lifecycle: z.enum(['scheduled', 'cancelled', 'completed']),
   mediaId: z.string().min(1),
   publicActions: z.array(z.object({ mechanic: z.string().min(1) })),
+});
+
+const offerSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  category: z.string().min(1).optional(),
+  price: z.string().min(1).optional(),
 });
 
 const hostGraphSchema = z.object({
@@ -102,14 +129,14 @@ const hostGraphSchema = z.object({
     contact: z.string().min(1),
   }),
   activities: z.array(activitySchema),
-  offers: z.array(z.object({ id: z.string().min(1), title: z.string().min(1), summary: z.string().min(1) })),
+  offers: z.array(offerSchema),
   media: z.array(mediaSchema),
   voice: z.object({
     terms: z.record(z.string(), z.string().min(1)),
     tone: z.string().min(1),
   }),
   presentation: z.object({
-    compositionFamily: z.enum(['poster', 'editorial']),
+    compositionFamily: z.enum(['poster', 'editorial', 'hospitality']),
     arrangement: z.array(z.string().min(1)),
     accent: z.string().min(1),
   }),
@@ -124,14 +151,22 @@ const hostGraphSchema = z.object({
   intent: z.object({
     purpose: z.string(),
     presenceMaterial: z.string(),
-    direction: z.enum(['poster', 'editorial']),
+    direction: z.enum(['poster', 'editorial', 'hospitality']),
     participation: z.string(),
   }),
 });
 
 function validateHostGraph(graph) {
   const parsed = hostGraphSchema.parse(graph);
+  const mediaIds = new Set();
+  for (const media of parsed.media) {
+    if (mediaIds.has(media.id)) throw new Error(`Duplicate Candidate C media id: ${media.id}`);
+    mediaIds.add(media.id);
+  }
   for (const activity of parsed.activities) {
+    if (!mediaIds.has(activity.mediaId)) {
+      throw new Error(`Candidate C activity references missing media: ${activity.mediaId}`);
+    }
     for (const action of activity.publicActions) {
       if (!mechanicRegistry[action.mechanic]) {
         throw new Error(`Unknown Candidate C mechanic: ${action.mechanic}`);

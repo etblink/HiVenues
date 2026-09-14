@@ -51,13 +51,15 @@
         <div class="cc-stage-device">
           <% if (family.id === 'poster') { %>
             <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } else { %>
+          <% } else if (family.id === 'editorial') { %>
             <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <% } else { %>
+            <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
           <% } %>
         </div>
       </section>
 
-      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, selectedResource, compositionRegistry, mechanicRegistry }) %>
+      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry }) %>
     </div>
   </div>
   <script src="/htmx/htmx.min.js" defer></script>

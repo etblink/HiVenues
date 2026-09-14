@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 const { clone, stableDigest, validateHostGraph } = require('./model');
 const { seedCandidateCHosts } = require('./fixtures');
 
+const compositionFamilies = new Set(['poster', 'editorial', 'hospitality']);
+
 function conflict(actualRevision) {
   return { ok: false, reason: 'STALE_REVISION', actualRevision };
 }
@@ -166,7 +168,7 @@ class CandidateCStore {
         assertObject(proposal, `Invalid proposal for ${record.slug}.`);
         if (typeof proposal.id !== 'string' || !proposal.id || proposals.has(proposal.id)) throw stateError(`Invalid proposal id for ${record.slug}.`);
         if (!Number.isInteger(proposal.baseRevision) || proposal.baseRevision < 1 || proposal.baseRevision > record.revision) throw stateError(`Invalid proposal revision for ${record.slug}.`);
-        if (!['poster', 'editorial'].includes(proposal.familyId) || !['poster', 'editorial'].includes(proposal.currentFamily)) throw stateError(`Invalid proposal family for ${record.slug}.`);
+        if (!compositionFamilies.has(proposal.familyId) || !compositionFamilies.has(proposal.currentFamily)) throw stateError(`Invalid proposal family for ${record.slug}.`);
         if (!Array.isArray(proposal.preservedPaths)) throw stateError(`Invalid proposal provenance for ${record.slug}.`);
         proposals.set(proposal.id, clone(proposal));
       }
@@ -265,8 +267,9 @@ class CandidateCStore {
       draft.intent.purpose = String(input.purpose || '').trim();
       draft.intent.presenceMaterial = String(input.presenceMaterial || '').trim();
       draft.intent.participation = String(input.participation || '').trim();
-      draft.intent.direction = input.direction === 'editorial' ? 'editorial' : 'poster';
-      draft.presentation.compositionFamily = draft.intent.direction;
+      const direction = compositionFamilies.has(input.direction) ? input.direction : 'poster';
+      draft.intent.direction = direction;
+      draft.presentation.compositionFamily = direction;
     }, [], expectedDigest);
   }
 
@@ -319,7 +322,7 @@ class CandidateCStore {
     if (!workspace) return { ok: false, reason: 'NOT_FOUND' };
     const stale = expectedStateConflict(workspace, expectedRevision, expectedDigest);
     if (stale) return stale;
-    const nextFamily = familyId === 'editorial' ? 'editorial' : 'poster';
+    const nextFamily = compositionFamilies.has(familyId) ? familyId : 'poster';
     const proposal = {
       id: crypto.randomUUID(),
       baseRevision: workspace.revision,
