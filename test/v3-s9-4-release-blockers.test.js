@@ -82,7 +82,7 @@ test('S9.4 RB2 Studio edits local date/time plus explicit UTC offset while prese
   assert.match(studio.text, /type="datetime-local"/);
   assert.match(studio.text, /UTC offset/);
   assert.doesNotMatch(studio.text, />live-session-one<\/option>/);
-  assert.match(studio.text, />Live Session One<\/option>/);
+  assert.match(studio.text, />Open Room: Songs in Progress<\/option>/);
   assert.doesNotMatch(studio.text, /<span>[^<]*s4-nativecreator-promo/);
 
   const preview = await request(fixture.app)
@@ -115,7 +115,7 @@ test('S9.4 RB2/RB4 renders human time and puts essentials plus the primary actio
   assert.ok(html.indexOf('>Tickets</a>') < html.indexOf('v3-activity-gallery'));
 });
 
-test('S9.4 RB3 references read as credible fictional hosts and R3 has a meaningful release action', () => {
+test('S9.4 RB3 references read as credible fictional hosts and use credible local managed art', async () => {
   const references = [
     migratedPhysicalReference().source,
     nativeCreatorSource(),
@@ -130,6 +130,20 @@ test('S9.4 RB3 references read as credible fictional hosts and R3 has a meaningf
     assert.doesNotMatch(home, forbidden);
     assert.doesNotMatch(detail, forbidden);
     assert.doesNotMatch(source.venue.displayName, / Example$/);
+  }
+
+  assert.doesNotMatch(migratedPhysicalReference().source.venue.business.address, /example/i);
+  assert.equal(nativeCreatorSource().resources.activities[0].title, 'Open Room: Songs in Progress');
+
+  for (const referenceId of ['nativeCreator', 'nativeRelease']) {
+    const fixture = createReferenceV3AuthoringStudioFixture(referenceId);
+    const home = fixture.source.site.pages.find((page) => page.id === fixture.source.site.homePageId);
+    const hero = home.components.find((component) => component.kind === 'venue-hero');
+    assert.ok(hero.content.media, `${referenceId}: managed hero media`);
+    const image = await request(fixture.app).get(hero.content.media.src);
+    assert.equal(image.status, 200, `${referenceId}: managed hero media route`);
+    assert.match(image.headers['content-type'], /image\/svg\+xml/);
+    assert.doesNotMatch(image.text, /<text\b/i, `${referenceId}: no visible placeholder label in artwork`);
   }
 
   const release = nativeReleaseSource();
