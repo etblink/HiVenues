@@ -156,7 +156,7 @@ test('S2 R1 physical-host journey creates, edits, reorders, undo/redoes and save
 
   const detail = renderV3Route(redone.draftSource, `/activities/${createdSlug}`, { legacyEventRoutes });
   assert.match(detail, /Edited physical-host S2 qualification activity/);
-  assert.match(detail, /LIVE/);
+  assert.match(detail, /Live now/);
   assert.match(detail, /Limited capacity at the host/);
 
   const legacyPath = Object.keys(legacyEventRoutes)[0];
