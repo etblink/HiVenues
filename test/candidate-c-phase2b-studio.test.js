@@ -45,6 +45,7 @@ test('Workstream D Studio exposes Offers, Look, Voice and Connect without intern
   assert.match(studio.text, />Connect</);
   assert.match(studio.text, /Version 1/);
   assert.match(studio.text, /Site preview/);
+  assert.match(studio.text, /id="candidate-canvas-slot"/);
   assert.doesNotMatch(studio.text, /Real rendered canvas|Draft r1|canonical object|server revision/i);
 
   const voice = await request(app).get('/candidate-c/studio/harbor-and-hearth/inspect?resource=voice').expect(200);
@@ -72,7 +73,8 @@ test('Offer and Look edits use revision plus digest, update the canonical graph 
       price: '$17',
     })
     .expect(200)
-    .expect(/Coal-roasted carrots · ember glaze/);
+    .expect(/Coal-roasted carrots · ember glaze/)
+    .expect(/id="candidate-canvas-slot" hx-swap-oob="innerHTML"/);
 
   const afterOffer = store.snapshot('harbor-and-hearth');
   assert.equal(afterOffer.revision, 2);
@@ -87,6 +89,7 @@ test('Offer and Look edits use revision plus digest, update the canonical graph 
     .type('form')
     .send({ ...tokens(store, 'harbor-and-hearth'), accent: '#244653' })
     .expect(200)
+    .expect(/id="candidate-canvas-slot" hx-swap-oob="innerHTML"/)
     .expect(/border-top:5px solid #244653/);
   assert.equal(store.snapshot('harbor-and-hearth').draft.presentation.accent, '#244653');
 
