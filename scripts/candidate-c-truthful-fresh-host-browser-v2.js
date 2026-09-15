@@ -82,12 +82,33 @@ async function main() {
     assert.doesNotMatch(publicText, /What.s on|NEXT|CURRENT \/|Sunday|Friday Gathering/i);
     assert.equal(await page.locator('a[href="tel:7753247827"]').count(), 1);
     assert.equal(await page.locator('a[href^="mailto:"]').count(), 0);
-    const geometry = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth,
-      incompleteImages: Array.from(document.images).filter((image) => !image.complete || image.naturalWidth === 0).length,
-    }));
-    assert.equal(geometry.scrollWidth > geometry.clientWidth + 1, false);
+    const geometry = await page.evaluate(() => {
+      const clientWidth = document.documentElement.clientWidth;
+      const offenders = Array.from(document.querySelectorAll('body *')).map((node) => {
+        const rect = node.getBoundingClientRect();
+        return {
+          tag: node.tagName.toLowerCase(),
+          id: node.id || '',
+          className: typeof node.className === 'string' ? node.className : '',
+          left: Math.round(rect.left * 10) / 10,
+          right: Math.round(rect.right * 10) / 10,
+          width: Math.round(rect.width * 10) / 10,
+        };
+      }).filter((item) => item.left < -1 || item.right > clientWidth + 1)
+        .sort((a, b) => Math.max(b.right - clientWidth, -b.left) - Math.max(a.right - clientWidth, -a.left))
+        .slice(0, 12);
+      return {
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth,
+        incompleteImages: Array.from(document.images).filter((image) => !image.complete || image.naturalWidth === 0).length,
+        offenders,
+      };
+    });
+    assert.equal(
+      geometry.scrollWidth > geometry.clientWidth + 1,
+      false,
+      `horizontal overflow ${geometry.scrollWidth}/${geometry.clientWidth}: ${JSON.stringify(geometry.offenders)}`
+    );
     assert.equal(geometry.incompleteImages, 0);
     await page.screenshot({ path: path.join(PROOF_ROOT, '02-zero-activity-public.png'), fullPage: true });
 
