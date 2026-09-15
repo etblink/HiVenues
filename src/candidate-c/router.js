@@ -1,9 +1,10 @@
 'use strict';
 
 const express = require('express');
-const { disclosureFor, mechanicRegistry } = require('./model');
+const { activityLifecycles, disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, compositionRegistry, renderIcs } = require('./present');
 const { CandidateCStore } = require('./store');
+const { describePath, unpublishedDraftPaths, verifyUrgentOperation } = require('./urgent');
 
 const LOOK_ACCENTS = Object.freeze([
   Object.freeze({ id: 'ember', label: 'Ember', value: '#ef9f55' }),
@@ -39,7 +40,52 @@ function candidateLocals(snapshot, selectedResource = '') {
     compositionRegistry,
     mechanicRegistry,
     lookAccents: LOOK_ACCENTS,
+    activityLifecycles,
     selectedResource,
+  };
+}
+
+function urgentReviewLocals(snapshot, operation) {
+  const view = candidateLocals(snapshot);
+  const base = snapshot.releases.find((item) => item.id === operation.baseReleaseId) || null;
+  const live = view.release;
+  // Review renders from a fresh re-derivation against the immutable base Release,
+  // verified equal to the persisted closure — never from persisted metadata alone.
+  const verified = base ? verifyUrgentOperation(base, operation) : { ok: false, reason: 'NO_BASE' };
+  const derived = verified.ok ? verified.derived : null;
+  const baseIsLive = Boolean(derived && live && base.id === live.id && base.digest === operation.baseDigest);
+  const liveActivity = derived ? derived.activity : null;
+  const unpublished = live ? unpublishedDraftPaths(live.snapshot, snapshot.draft) : [];
+  const changed = derived ? derived.closure.changed : [];
+  const retained = derived ? derived.closure.retained : [];
+  const carryPaths = new Set(changed);
+  const afterActivity = derived ? derived.snapshot.activities.find((item) => item.id === operation.change.activityId) : null;
+  const valueFor = (activity, path) => {
+    if (!activity) return '—';
+    if (path.endsWith('.lifecycle')) return activityLifecycles[activity.lifecycle].label;
+    if (path.endsWith('.statusNote')) return activity.statusNote || '—';
+    return '—';
+  };
+  return {
+    ...view,
+    operation,
+    baseRelease: base,
+    baseIsLive,
+    provenanceVerified: verified.ok,
+    provenanceFailure: verified.ok ? null : verified.reason,
+    liveActivity,
+    urgentSnapshot: derived ? derived.snapshot : null,
+    closureProof: derived ? derived.proof : null,
+    changedRows: changed.map((path) => ({
+      path,
+      ...describePath(path, base ? base.snapshot : null),
+      before: valueFor(liveActivity, path),
+      after: valueFor(afterActivity, path),
+    })),
+    retainedRows: retained.map((path) => ({ path, ...describePath(path, base ? base.snapshot : null) })),
+    unpublishedRows: unpublished.filter((path) => !carryPaths.has(path)).map((path) => ({ path, ...describePath(path, snapshot.draft) })),
+    draftAlsoEditsTarget: unpublished.some((path) => carryPaths.has(path)),
+    describePath,
   };
 }
 
@@ -122,9 +168,12 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   router.get('/studio/:slug', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
+    const releasedNotice = typeof req.query.released === 'string' ? req.query.released : '';
     return res.render('candidate-c/studio', {
       pageTitle: `${snapshot.draft.identity.displayName} Studio — HiVenues`,
       ...candidateLocals(snapshot),
+      releasedNotice: snapshot.releases.some((item) => item.id === releasedNotice) ? releasedNotice : '',
+      releasedUrgent: req.query.urgent === '1',
     });
   });
 
@@ -145,6 +194,84 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
       description: req.body.description,
     }, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `activity:${req.body.activityId}`);
+  });
+
+  router.post('/studio/:slug/activity-status', (req, res) => {
+    const result = store.editActivityStatus(
+      req.params.slug,
+      req.body.activityId,
+      req.body.lifecycle,
+      req.body.statusNote,
+      currentRevision(req),
+      currentDigest(req)
+    );
+    return mutationResponse(req, res, store, req.params.slug, result, `activity:${req.body.activityId}`);
+  });
+
+  // Workstream E — urgent operation from the live Release.
+  router.get('/studio/:slug/urgent', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    const view = candidateLocals(snapshot);
+    if (!view.release) return res.sendStatus(409);
+    const liveActivities = view.release.snapshot.activities;
+    const requested = String(req.query.activity || '');
+    const activity = liveActivities.find((item) => item.id === requested) || liveActivities[0] || null;
+    const draftActivity = requested ? snapshot.draft.activities.find((item) => item.id === requested) : null;
+    return res.render('candidate-c/urgent-compose', {
+      pageTitle: `Urgent update — ${snapshot.draft.identity.displayName}`,
+      ...view,
+      liveActivities,
+      activity,
+      notLiveYet: Boolean(requested && !activity && draftActivity),
+      noChange: req.query.nochange === '1',
+    });
+  });
+
+  router.post('/studio/:slug/urgent', (req, res) => {
+    const result = store.proposeUrgent(req.params.slug, {
+      kind: 'activity-status',
+      activityId: req.body.activityId,
+      lifecycle: req.body.lifecycle,
+      statusNote: req.body.statusNote,
+    });
+    if (!result.ok && result.reason === 'URGENT_NO_CHANGE') {
+      return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/urgent?activity=${encodeURIComponent(String(req.body.activityId || ''))}&nochange=1`);
+    }
+    if (!result.ok) return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
+    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/urgent/${encodeURIComponent(result.operation.id)}`);
+  });
+
+  router.get('/studio/:slug/urgent/:operationId', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    const operation = store.urgentOperation(req.params.slug, req.params.operationId);
+    if (!snapshot || !operation) return res.sendStatus(404);
+    return res.render('candidate-c/urgent-review', {
+      pageTitle: `Review urgent update — ${snapshot.draft.identity.displayName}`,
+      ...urgentReviewLocals(snapshot, operation),
+      failure: null,
+    });
+  });
+
+  router.post('/studio/:slug/urgent/:operationId/publish', (req, res) => {
+    const result = store.executeUrgent(
+      req.params.slug,
+      req.params.operationId,
+      req.body.expectedLiveReleaseId,
+      currentRevision(req),
+      currentDigest(req)
+    );
+    if (result.ok) {
+      return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}&urgent=1`);
+    }
+    if (result.reason === 'NOT_FOUND' || result.reason === 'URGENT_NOT_FOUND') return res.sendStatus(404);
+    const snapshot = store.snapshot(req.params.slug);
+    const operation = store.urgentOperation(req.params.slug, req.params.operationId);
+    return res.status(409).render('candidate-c/urgent-review', {
+      pageTitle: `Review urgent update — ${snapshot.draft.identity.displayName}`,
+      ...urgentReviewLocals(snapshot, operation),
+      failure: result,
+    });
   });
 
   router.post('/studio/:slug/offer', (req, res) => {
@@ -205,7 +332,7 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
 
   router.post('/studio/:slug/undo', (req, res) => {
     const result = store.undo(req.params.slug, currentRevision(req), currentDigest(req));
-    return mutationResponse(req, res, store, req.params.slug, result, '');
+    return mutationResponse(req, res, store, req.params.slug, result, String(req.body.resource || ''));
   });
 
   router.post('/studio/:slug/direction/propose', (req, res) => {
@@ -272,6 +399,13 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
     if (!activity) return res.sendStatus(404);
+    if (activity.lifecycle !== 'scheduled') {
+      res.status(409);
+      if (isHtmx(req)) {
+        return res.render('candidate-c/fragments/rsvp-closed', { activity, status: activityLifecycles[activity.lifecycle] });
+      }
+      return res.send('This activity is no longer taking RSVPs.');
+    }
     const result = store.recordRsvp(req.params.slug, activity.id, req.body.name);
     if (!result.ok) return res.status(400).send(result.reason);
     if (isHtmx(req)) {

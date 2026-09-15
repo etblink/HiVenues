@@ -47,6 +47,7 @@
           </div>
           <div class="cc-editorial-session__body">
             <h2 id="cc-current-title"><%= primaryActivity.title %></h2>
+            <%- include('../_status', { activity: primaryActivity }) %>
             <p><%= primaryActivity.description %></p>
             <div class="cc-editorial-session__actions">
               <a class="cc-button cc-button--ink" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Open the session note</a>

@@ -13,6 +13,7 @@
       <div>
         <p class="cc-kicker">One night at <%= graph.identity.displayName %></p>
         <h1><%= activity.title %></h1>
+        <%- include('../_status', { activity }) %>
         <p class="cc-time"><%= activity.humanTime %></p>
         <p class="cc-poster-activity__description"><%= activity.description %></p>
       </div>
@@ -25,6 +26,7 @@
         <h2 id="cc-come-through"><%= activity.presence.venueName %></h2>
         <p><%= activity.presence.address %></p>
       </div>
+      <% if (activity.open) { %>
       <form class="cc-rsvp" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">
         <label for="cc-rsvp-name">Name</label>
         <div class="cc-rsvp__row">
@@ -33,6 +35,11 @@
         </div>
         <div id="cc-rsvp-result" aria-live="polite"></div>
       </form>
+      <% } else { %>
+      <div class="cc-rsvp cc-rsvp--closed" data-rsvp-closed>
+        <p><strong><%= activity.lifecycle === 'cancelled' ? 'Cancelled' : 'Already happened' %>.</strong> RSVPs are closed for this one.</p>
+      </div>
+      <% } %>
       <div class="cc-action-dock__links">
         <a class="cc-link cc-link--light" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
         <a class="cc-link cc-link--light" href="/candidate-c/<%= graph.identity.slug %>/consequence/applaud_hive"><%= graph.voice.terms.applaud_hive %></a>

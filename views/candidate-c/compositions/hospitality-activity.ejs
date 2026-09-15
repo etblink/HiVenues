@@ -14,6 +14,7 @@
       <div class="cc-hospitality-activity__copy">
         <p class="cc-kicker">A seat at the table</p>
         <h1><%= activity.title %></h1>
+        <%- include('../_status', { activity }) %>
         <p class="cc-time"><%= activity.humanTime %></p>
         <p class="cc-hospitality-activity__description"><%= activity.description %></p>
         <dl class="cc-hospitality-activity__facts">
@@ -33,6 +34,7 @@
         <h2 id="cc-hospitality-rsvp-title">Tell us who to expect.</h2>
         <p>This reference records the RSVP locally. It does not create a blockchain transaction, payment, or provider reservation.</p>
       </div>
+      <% if (activity.open) { %>
       <form class="cc-rsvp" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">
         <label for="cc-rsvp-name">Name</label>
         <div class="cc-rsvp__row">
@@ -45,6 +47,14 @@
           <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/consequence/applaud_hive"><%= graph.voice.terms.applaud_hive %></a>
         </div>
       </form>
+      <% } else { %>
+      <div class="cc-rsvp cc-rsvp--closed" data-rsvp-closed>
+        <p><strong><%= activity.lifecycle === 'cancelled' ? 'Cancelled' : 'Already happened' %>.</strong> RSVPs are closed for this one.</p>
+      </div>
+      <div class="cc-hospitality-rsvp__links">
+        <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+      </div>
+      <% } %>
     </section>
   </main>
   <script src="/htmx/htmx.min.js" defer></script>

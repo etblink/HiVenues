@@ -43,6 +43,33 @@
       <p class="cc-inspector-help">This remains the same activity even when you change the site’s visual direction.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save activity</button></div>
     </form>
+
+    <form class="cc-inspector-form cc-inspector-form--status" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/activity-status" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/activity-status" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="activityId" value="<%= selectedActivity.id %>">
+      <label for="cc-activity-lifecycle">Status</label>
+      <select id="cc-activity-lifecycle" name="lifecycle" required>
+        <% Object.values(activityLifecycles).forEach((option) => { %>
+          <option value="<%= option.id %>" <%= selectedActivity.lifecycle === option.id ? 'selected' : '' %>><%= option.label %></option>
+        <% }) %>
+      </select>
+      <label for="cc-activity-status-note">Short note for visitors <span aria-hidden="true">·</span> optional</label>
+      <textarea id="cc-activity-status-note" name="statusNote" maxlength="240" rows="2" style="min-height:64px"><%= selectedActivity.statusNote || '' %></textarea>
+      <p class="cc-inspector-help">Saving changes your working version only. Visitors see it after the next release.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save status</button></div>
+    </form>
+
+    <div class="cc-live-note" data-live-activity-status>
+      <p class="cc-studio-inspector__eyebrow">On the live site</p>
+      <% if (selectedActivity.live) { %>
+        <p><strong><%= activityLifecycles[selectedActivity.live.lifecycle].label %></strong><% if (selectedActivity.live.statusNote) { %> · <%= selectedActivity.live.statusNote %><% } %></p>
+        <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/urgent?activity=<%= selectedActivity.id %>">Change the live status now</a>
+        <p class="cc-inspector-help">For cancellations and last-minute changes. Publishes only this status, straight from the live site, without releasing your other edits.</p>
+      <% } else { %>
+        <p>Not on the live site yet. Release your working version to publish it.</p>
+      <% } %>
+    </div>
   <% } %>
 
   <% if (selectedOffer) { %>
@@ -186,6 +213,7 @@
     <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/undo" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="resource" value="<%= selected %>">
       <button class="cc-link" type="submit">Undo last edit</button>
     </form>
   <% } %>

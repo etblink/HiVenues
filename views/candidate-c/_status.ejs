@@ -1,0 +1,6 @@
+<% if (activity && activity.lifecycle !== 'scheduled') { %>
+  <p class="cc-status cc-status--<%= activity.lifecycle %>" role="status" data-activity-status="<%= activity.lifecycle %>">
+    <strong><%= activity.lifecycle === 'cancelled' ? 'Cancelled' : 'Already happened' %></strong>
+    <% if (activity.statusNote) { %><span><%= activity.statusNote %></span><% } %>
+  </p>
+<% } %>

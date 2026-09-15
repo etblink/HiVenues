@@ -57,6 +57,26 @@ class FileCandidateCStore {
     return this.readStore().proposal(slug, proposalId);
   }
 
+  urgentOperation(slug, operationId) {
+    return this.readStore().urgentOperation(slug, operationId);
+  }
+
+  editActivityStatus(slug, activityId, lifecycle, statusNote, expectedRevision, expectedDigest) {
+    return this.draftMutation(slug, expectedRevision, expectedDigest, (store) => (
+      store.editActivityStatus(slug, activityId, lifecycle, statusNote, expectedRevision, expectedDigest)
+    ));
+  }
+
+  proposeUrgent(slug, change) {
+    return this.mutate((store) => store.proposeUrgent(slug, change));
+  }
+
+  executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest) {
+    return this.draftMutation(slug, expectedRevision, expectedDigest, (store) => (
+      store.executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest)
+    ));
+  }
+
   completeSetup(slug, input, expectedRevision, expectedDigest) {
     return this.draftMutation(slug, expectedRevision, expectedDigest, (store) => (
       store.completeSetup(slug, input, expectedRevision, expectedDigest)

@@ -1,6 +1,6 @@
 'use strict';
 
-const { disclosureFor, formatActivityTime, mechanicRegistry } = require('./model');
+const { activityLifecycles, disclosureFor, formatActivityTime, mechanicRegistry } = require('./model');
 
 const compositionRegistry = Object.freeze({
   poster: Object.freeze({
@@ -36,9 +36,13 @@ function mediaFor(graph, mediaId) {
 function buildViewModel(snapshot) {
   const graph = snapshot.draft;
   const family = compositionRegistry[graph.presentation.compositionFamily];
+  const liveRelease = snapshot.releases.find((item) => item.id === snapshot.liveReleaseId) || null;
   const activities = graph.activities.map((activity) => ({
     ...activity,
     humanTime: formatActivityTime(activity, graph.identity.timezone),
+    status: activityLifecycles[activity.lifecycle],
+    open: activity.lifecycle === 'scheduled',
+    live: liveRelease ? liveRelease.snapshot.activities.find((item) => item.id === activity.id) || null : null,
     media: mediaFor(graph, activity.mediaId),
     actions: activity.publicActions.map((action) => ({
       mechanic: action.mechanic,
@@ -53,7 +57,8 @@ function buildViewModel(snapshot) {
     activities,
     primaryActivity: activities[0] || null,
     media: graph.media,
-    release: snapshot.releases.find((item) => item.id === snapshot.liveReleaseId) || null,
+    release: liveRelease,
+    lifecycles: activityLifecycles,
     revision: snapshot.revision,
     releases: snapshot.releases,
     liveReleaseId: snapshot.liveReleaseId,
@@ -88,8 +93,9 @@ function renderIcs(graph, activity) {
     `DTSTAMP:${utcStamp(activity.startsAt)}`,
     `DTSTART:${utcStamp(activity.startsAt)}`,
     `DTEND:${utcStamp(activity.endsAt)}`,
-    `SUMMARY:${escapeIcs(activity.title)}`,
-    `DESCRIPTION:${escapeIcs(activity.description)}`,
+    `SUMMARY:${escapeIcs(activity.lifecycle === 'cancelled' ? `Cancelled: ${activity.title}` : activity.title)}`,
+    `DESCRIPTION:${escapeIcs(activity.statusNote ? `${activity.statusNote}\n\n${activity.description}` : activity.description)}`,
+    `STATUS:${activity.lifecycle === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
     `LOCATION:${escapeIcs(location)}`,
     `URL:/candidate-c/${escapeIcs(graph.identity.slug)}/activities/${escapeIcs(activity.slug)}`,
     'END:VEVENT',

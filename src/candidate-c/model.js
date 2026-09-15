@@ -56,6 +56,12 @@ const mechanicRegistry = Object.freeze({
   }),
 });
 
+const activityLifecycles = Object.freeze({
+  scheduled: Object.freeze({ id: 'scheduled', label: 'Happening as planned', publicLabel: '' }),
+  cancelled: Object.freeze({ id: 'cancelled', label: 'Cancelled', publicLabel: 'Cancelled' }),
+  completed: Object.freeze({ id: 'completed', label: 'Already happened', publicLabel: 'This has already happened' }),
+});
+
 const admittedAssetSchema = z.object({
   version: z.literal(1),
   storage: z.literal('repo-local'),
@@ -97,6 +103,7 @@ const activitySchema = z.object({
     z.object({ mode: z.literal('hybrid'), venueName: z.string().min(1), address: z.string().min(1), platformLabel: z.string().min(1) }),
   ]),
   lifecycle: z.enum(['scheduled', 'cancelled', 'completed']),
+  statusNote: z.string().max(240).optional(),
   mediaId: z.string().min(1),
   publicActions: z.array(z.object({ mechanic: z.string().min(1) })),
 });
@@ -222,6 +229,7 @@ function disclosureFor(mechanicId, graph) {
 }
 
 module.exports = {
+  activityLifecycles,
   clone,
   disclosureFor,
   formatActivityTime,

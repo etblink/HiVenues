@@ -21,6 +21,14 @@
       </div>
     </header>
 
+    <% if (typeof releasedNotice === 'string' && releasedNotice) { %>
+      <div class="cc-studio-notice" role="status" data-released-notice>
+        <strong><%= releasedUrgent ? 'Live site updated.' : 'Website released.' %></strong>
+        <%= releasedUrgent ? 'The urgent status change is live. Your other working edits are still here, unpublished.' : 'Your working version is now what visitors see.' %>
+        <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open the live site</a>
+      </div>
+    <% } %>
+
     <div class="cc-studio-workspace">
       <nav class="cc-studio-rail" aria-label="Studio">
         <div class="cc-studio-rail__group">

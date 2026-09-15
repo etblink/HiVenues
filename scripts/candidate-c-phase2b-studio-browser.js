@@ -156,6 +156,9 @@ async function main() {
     await capture(desktop, '05-studio-d-connect', 'studio-d-connect');
 
     await desktop.getByRole('button', { name: 'Look' }).click();
+    // Wait for the Look panel (and its revision/digest tokens) to be rendered before
+    // the out-of-band edit, otherwise the panel can load fresh tokens and save cleanly.
+    await desktop.locator('#cc-look-accent').waitFor();
     const stale = store.snapshot('harbor-and-hearth');
     assert.equal(store.editTagline('harbor-and-hearth', 'Dinner follows the tide — tonight.', stale.revision, stale.draftDigest).ok, true);
     const staleResponse = desktop.waitForResponse((response) => response.url().endsWith('/candidate-c/studio/harbor-and-hearth/look') && response.request().method() === 'POST');
