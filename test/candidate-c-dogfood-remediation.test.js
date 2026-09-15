@@ -247,7 +247,7 @@ test('dogfood remediation: media alt and caption stay bounded data and render es
   assert.equal(store.snapshot(slug).draftDigest, after.draftDigest, 'oversized alt mutated the draft');
 });
 
-test('dogfood remediation: Studio exposes complete draft preview, mobile review and ordinary empty-state authoring paths', async (t) => {
+test('dogfood remediation: Studio exposes canvas-first draft authoring, dedicated review and ordinary empty-state paths', async (t) => {
   const { store, app } = tempRuntime(t);
   const built = buildCandidateCHostFromInput(freshHostInput(), { randomUUID: () => '44444444-4444-4444-8444-444444444444' });
   assert.equal(built.ok, true);
@@ -255,14 +255,17 @@ test('dogfood remediation: Studio exposes complete draft preview, mobile review 
   const slug = built.graph.identity.slug;
 
   const studio = await request(app).get(`/candidate-c/studio/${slug}`).expect(200);
-  assert.match(studio.text, /Site preview · Poster room/);
-  assert.match(studio.text, /Content & visit/);
+  assert.match(studio.text, /Poster room/);
+  assert.match(studio.text, /Working place/);
+  assert.match(studio.text, /Shape your place/);
+  assert.match(studio.text, /Story & visit details/);
   assert.match(studio.text, /\+ Add activity/);
-  assert.match(studio.text, /\+ Add offering/);
-  assert.match(studio.text, /Import media/);
-  assert.match(studio.text, /Complete visitor page/);
-  assert.match(studio.text, /Mobile · 390px/);
-  assert.match(studio.text, new RegExp(`/candidate-c/studio/${slug}/preview\\?r=`));
+  assert.match(studio.text, /\+ Add offer/);
+  assert.match(studio.text, /Media library/);
+  assert.match(studio.text, /data-open="false" aria-label="Contextual editor"/);
+  assert.match(studio.text, new RegExp(`/candidate-c/studio/${slug}/preview`));
+  assert.doesNotMatch(studio.text, /cc-complete-preview/);
+  assert.doesNotMatch(studio.text, /cc-full-preview-frame/);
 
   const draftPreview = await request(app).get(`/candidate-c/studio/${slug}/preview`).expect(200);
   assert.match(draftPreview.text, /A truthful zero-event host/);

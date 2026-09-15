@@ -5,9 +5,12 @@ on:
     paths:
       - 'src/candidate-c/**'
       - 'views/candidate-c/**'
+      - 'public/css/candidate-c*.css'
+      - 'public/js/candidate-c-studio.js'
       - 'scripts/candidate-c-dogfood.js'
-      - 'scripts/candidate-c-pre-dogfood-browser.js'
-      - 'scripts/candidate-c-truthful-fresh-host-browser.js'
+      - 'scripts/candidate-c-guided-creator-operator.js'
+      - 'scripts/candidate-c-pre-dogfood-browser-v2.js'
+      - 'scripts/candidate-c-truthful-fresh-host-browser-v2.js'
       - 'test/candidate-c-pre-dogfood.test.js'
       - 'test/candidate-c-composition-reuse.test.js'
       - 'test/candidate-c-fresh-host-truthfulness.test.js'
@@ -50,12 +53,12 @@ jobs:
         env:
           CANDIDATE_C_PRE_DOGFOOD_REVIEW_ROOT: artifacts/candidate-c-pre-dogfood-review
           CANDIDATE_C_PRE_DOGFOOD_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-pre-dogfood-browser.js
+        run: node scripts/candidate-c-pre-dogfood-browser-v2.js
       - name: Run Chromium truthful zero-activity fresh-host qualification
         env:
           CANDIDATE_C_PRE_DOGFOOD_REVIEW_ROOT: artifacts/candidate-c-pre-dogfood-review
           CANDIDATE_C_PRE_DOGFOOD_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-truthful-fresh-host-browser.js
+        run: node scripts/candidate-c-truthful-fresh-host-browser-v2.js
       - name: Publish pre-dogfood evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

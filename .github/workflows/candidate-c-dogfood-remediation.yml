@@ -7,8 +7,9 @@ on:
       - 'views/candidate-c/**'
       - 'public/css/candidate-c*.css'
       - 'public/js/candidate-c-studio.js'
-      - 'scripts/candidate-c-dogfood-remediation-browser.js'
-      - 'scripts/candidate-c-dogfood-remediation-lifecycle-browser.js'
+      - 'scripts/candidate-c-guided-creator-operator.js'
+      - 'scripts/candidate-c-dogfood-remediation-browser-v2.js'
+      - 'scripts/candidate-c-dogfood-remediation-lifecycle-browser-v2.js'
       - 'test/candidate-c-dogfood-remediation.test.js'
       - '.github/workflows/candidate-c-dogfood-remediation.yml'
   workflow_dispatch:
@@ -63,12 +64,12 @@ jobs:
           CANDIDATE_C_DOGFOOD_REMEDIATION_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           FOURTH_STREET_EXTERIOR_IMAGE: .qualification-source/fourth-street-bar-exterior.jpg
           FOURTH_STREET_LOGO_IMAGE: .qualification-source/fourth-street-bar-logo.jpg
-        run: node scripts/candidate-c-dogfood-remediation-browser.js
+        run: node scripts/candidate-c-dogfood-remediation-browser-v2.js
       - name: Run Chromium synthetic add-Release-urgent lifecycle qualification
         env:
           CANDIDATE_C_DOGFOOD_LIFECYCLE_ROOT: artifacts/candidate-c-dogfood-remediation-lifecycle
           CANDIDATE_C_DOGFOOD_REMEDIATION_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-dogfood-remediation-lifecycle-browser.js
+        run: node scripts/candidate-c-dogfood-remediation-lifecycle-browser-v2.js
       - name: Publish dogfood remediation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

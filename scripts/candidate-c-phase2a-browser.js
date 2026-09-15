@@ -177,7 +177,7 @@ async function main() {
     transactions.push({ name: 'ordinary-tagline-edit', targetedRegions: 1, oobRegions, totalUpdatedRegions: 1 + oobRegions });
     assert.equal(oobRegions, 2);
     await desktop.waitForFunction(() => document.querySelector('#draft-status')?.dataset.revision === '2');
-    await desktop.getByText('Saved to draft', { exact: true }).waitFor();
+    await desktop.locator('#cc-save-state').getByText('Saved', { exact: true }).waitFor();
     assert.match(await desktop.locator('#candidate-canvas').textContent(), /Good nights\. Great company\./);
     screenshots.push(await screenshot(desktop, '05-studio-r1-contextual-edit'));
 

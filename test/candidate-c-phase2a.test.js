@@ -220,11 +220,15 @@ test('Studio is server-rendered, current-revision aware and uses one transient-o
   assert.match(studio.text, /data-revision="1"/);
   assert.match(studio.text, /src="\/htmx\/htmx\.min\.js"/);
   assert.match(studio.text, /src="\/js\/candidate-c-studio\.js"/);
-  assert.match(studio.text, /Site preview · Poster room/);
-  assert.match(studio.text, /Review release/);
+  assert.match(studio.text, /class="cc-studio-commandbar" aria-label="Shape your place"/);
+  assert.match(studio.text, /class="cc-studio-stage" aria-label="Your place"/);
+  assert.match(studio.text, /id="candidate-inspector"[^>]*data-open="false"/);
+  assert.match(studio.text, /href="\/candidate-c\/studio\/northline-hall\/preview"/);
+  assert.match(studio.text, /href="\/candidate-c\/studio\/northline-hall\/release"/);
   assert.match(studio.text, /Page/);
   assert.match(studio.text, /Activities/);
   assert.match(studio.text, /Site/);
+  assert.doesNotMatch(studio.text, /id="cc-full-preview-frame"|Complete visitor page|Site preview · Poster room/);
 
   const inspector = await request(app)
     .get('/candidate-c/studio/northline-hall/inspect?resource=facts.tagline')

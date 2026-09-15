@@ -32,6 +32,185 @@
   color: #6b5546;
 }
 
+/* #272 convergence loads after this file. These selectors are intentionally
+   more specific than the convergence selectors so accessibility remains a
+   product invariant instead of depending on stylesheet order. */
+.cc-creator-body .cc-creator-kicker {
+  color: #5f6369;
+}
+
+.cc-creator-body .cc-creator-field small,
+.cc-creator-body .cc-creator-choice span {
+  color: #60646a;
+}
+
+.cc-first-draft-reveal .cc-first-draft-reveal__eyebrow {
+  color: #5f6369;
+}
+
+.cc-studio-body .cc-studio-stage__identity strong {
+  color: #30343a;
+}
+
+.cc-studio-body .cc-studio-stage__identity span,
+.cc-studio-body .cc-studio-stage__meta {
+  color: #50565c;
+}
+
+/* The #272 contextual editor is a dark panel. The older light-inspector brown
+   above remains for legacy/task contexts, but must not leak into this sheet. */
+.cc-studio-body .cc-studio-inspector__eyebrow {
+  color: #b8c1cb;
+}
+
+.cc-studio-body .cc-studio-inspector .cc-inspector-help {
+  color: #aeb7c1;
+}
+
+/* Closing context used to tween the entire dark sheet through partial opacity
+   while it remained visible for its slide transition. That briefly blended the
+   sheet with the light canvas and pushed otherwise-valid text below contrast
+   thresholds. Keep the slide, but change opacity discretely so no readable
+   intermediate frame can enter a low-contrast state. */
+.cc-studio-body .cc-studio-inspector {
+  transition:
+    transform 180ms ease,
+    visibility 0s linear 180ms;
+}
+
+.cc-studio-body .cc-studio-inspector[data-open='true'] {
+  transition-delay: 0s;
+}
+
+/* Close and Undo are contextual-sheet utilities, not browser-default buttons.
+   Keep them deliberately quieter than the primary Save action while preserving
+   a 44px target, explicit contrast and a visible interaction state. */
+.cc-studio-body .cc-studio-inspector button.cc-link {
+  appearance: none;
+  min-height: 44px;
+  padding: .62rem .78rem;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .055);
+  color: #dce3ea;
+  cursor: pointer;
+  font-size: .78rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.cc-studio-body .cc-studio-inspector button.cc-link:hover,
+.cc-studio-body .cc-studio-inspector button.cc-link:focus-visible {
+  background: rgba(255, 255, 255, .11);
+  border-color: rgba(255, 255, 255, .32);
+  color: #fff;
+}
+
+.cc-studio-body .cc-studio-inspector > button.cc-link[data-close-inspector] {
+  margin: 0 0 .55rem;
+}
+
+.cc-studio-body .cc-studio-inspector form > button.cc-link[type='submit'] {
+  color: #bfc8d2;
+}
+
+/* Established Studio cards intentionally use light paper. Inside the new dark
+   contextual sheet they must establish their own ink rather than inherit the
+   sheet's light foreground. */
+.cc-studio-body .cc-studio-inspector .cc-consequence-truth,
+.cc-studio-body .cc-studio-inspector .cc-release-row,
+.cc-studio-body .cc-studio-inspector .cc-live-note {
+  color: #2f3338;
+}
+
+.cc-studio-body .cc-studio-inspector .cc-release-row small,
+.cc-studio-body .cc-studio-inspector .cc-consequence-truth small,
+.cc-studio-body .cc-studio-inspector .cc-live-note small,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-inspector-help,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-studio-inspector__eyebrow {
+  color: #555b62;
+}
+
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-button,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-link {
+  color: #2f3338;
+}
+
+/* Poster: the #272 activity band and offer surface invert the older palette.
+   Keep copy and links on the correct side of that inversion. */
+.cc-public.cc-poster .cc-poster-night__body p,
+.cc-public.cc-poster .cc-poster-night .cc-link {
+  color: #351b12;
+}
+
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(53, 27, 18, 0.45);
+}
+
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled,
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled strong,
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled span {
+  color: #4a1b0f;
+}
+
+.cc-public.cc-poster .cc-poster-offer .cc-link--light {
+  color: #351b12;
+}
+
+/* Editorial's index/footer are intentionally quiet, but still AA at their
+   small display sizes. */
+.cc-public.cc-editorial .cc-editorial-index,
+.cc-public.cc-editorial .cc-editorial-footer {
+  color: #5b5e64;
+}
+
+/* Hospitality: the media-led hero, compact service nav and dark Activity card
+   introduced new background pairings. Preserve the family character without
+   allowing inherited warm-brown labels to disappear into those surfaces. */
+.cc-public.cc-hospitality .cc-hospitality-nav > p,
+.cc-public.cc-hospitality .cc-hospitality-footer {
+  color: #57524c;
+}
+
+.cc-public.cc-hospitality .cc-hospitality-hero .cc-kicker {
+  color: #664531;
+}
+
+/* Sparse and synthetic hosts may contain a perfectly ordinary word wider than
+   the former 9ch editorial measure. Let the headline use its actual copy column
+   instead of fracturing words or creating horizontal page overflow. */
+.cc-public.cc-hospitality .cc-hospitality-hero h1 {
+  max-width: 100%;
+}
+
+/* At desktop widths the media remains the larger visual field, but the copy
+   column must not collapse below a usable text measure. The former 1.55/.45
+   real-media split left fewer than 300px after padding at common laptop widths,
+   so ordinary truthful words expanded the document itself. */
+@media (min-width: 981px) {
+  .cc-public.cc-hospitality .cc-hospitality-hero,
+  .cc-public.cc-hospitality.cc-public--real-media .cc-hospitality-hero {
+    grid-template-columns: minmax(0, 3fr) minmax(420px, 2fr);
+  }
+
+  .cc-public.cc-hospitality .cc-hospitality-hero__copy {
+    padding-left: clamp(28px, 3vw, 52px);
+    padding-right: clamp(28px, 3vw, 52px);
+  }
+}
+
+.cc-public.cc-hospitality .cc-hospitality-dish__category {
+  color: #685649;
+}
+
+.cc-public.cc-hospitality .cc-hospitality-table .cc-kicker,
+.cc-public.cc-hospitality .cc-hospitality-table__date,
+.cc-public.cc-hospitality .cc-hospitality-table__date strong,
+.cc-public.cc-hospitality .cc-hospitality-table > div:nth-child(2) > p:last-child {
+  color: #f3ede3;
+}
+
 /* Keep the horizontally scrollable mobile Studio rail and compact header inside
    the viewport. Mobile keeps the host and release action; duplicate draft labels
    move out of the crowded topbar rather than widening the document. */

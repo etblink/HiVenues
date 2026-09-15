@@ -36,15 +36,17 @@ function assertExternalZero(store) {
   });
 }
 
-test('Workstream D Studio exposes Offers, Look, Voice and Connect without internal operator jargon', async () => {
+test('Workstream D Studio exposes Offers, Look, Voice and Participation without internal operator jargon', async () => {
   const { app, store } = appFixture();
   const studio = await request(app).get('/candidate-c/studio/harbor-and-hearth').expect(200);
   assert.match(studio.text, />Offers</);
   assert.match(studio.text, />Look</);
   assert.match(studio.text, />Voice</);
-  assert.match(studio.text, />Connect</);
-  assert.match(studio.text, /Version 1/);
-  assert.match(studio.text, /Site preview/);
+  assert.match(studio.text, />Participation</);
+  assert.match(studio.text, /resource=connect/);
+  assert.match(studio.text, /id="draft-status"[^>]*data-revision="1"/);
+  assert.match(studio.text, /class="cc-studio-commandbar" aria-label="Shape your place"/);
+  assert.match(studio.text, /class="cc-studio-stage" aria-label="Your place"/);
   assert.match(studio.text, /id="candidate-canvas-slot"/);
   assert.doesNotMatch(studio.text, /Real rendered canvas|Draft r1|canonical object|server revision/i);
 
