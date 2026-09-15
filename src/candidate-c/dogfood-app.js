@@ -134,6 +134,19 @@ function createDogfoodApp({
     app.use(requireSameOrigin);
   }
 
+  // Durable test workspaces may deliberately place local media outside the
+  // repository public tree. Serve only that store-owned root, behind the same
+  // ingress/session gate as the rest of the product, so normal and recoverable
+  // error pages render the exact persisted assets they reference.
+  if (typeof store.mediaRoot === 'string' && store.mediaRoot) {
+    app.use('/candidate-c/media/local', express.static(path.resolve(store.mediaRoot), {
+      dotfiles: 'deny',
+      fallthrough: true,
+      index: false,
+      redirect: false,
+    }));
+  }
+
   // Test-only provenance surface so an independent beta operator can bind the
   // served runtime to the exact source without repository access.
   app.get('/__dogfood/build', (req, res) => {
