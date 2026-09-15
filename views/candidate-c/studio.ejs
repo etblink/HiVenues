@@ -34,6 +34,7 @@
         <div class="cc-studio-rail__group">
           <span class="cc-studio-rail__label">Page</span>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>First impression</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/content">Content & visit</a>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=page.order" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Section order</button>
         </div>
         <div class="cc-studio-rail__group">
@@ -41,42 +42,64 @@
           <% activities.forEach((activity) => { %>
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= activity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= activity.title %></button>
           <% }) %>
+          <a class="cc-studio-rail__add" href="/candidate-c/studio/<%= graph.identity.slug %>/activity/new">+ Add activity</a>
         </div>
-        <% if (graph.offers.length) { %>
-          <div class="cc-studio-rail__group">
-            <span class="cc-studio-rail__label">Offers</span>
-            <% graph.offers.forEach((offer) => { %>
-              <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
-            <% }) %>
-          </div>
-        <% } %>
+        <div class="cc-studio-rail__group">
+          <span class="cc-studio-rail__label">Offers</span>
+          <% graph.offers.forEach((offer) => { %>
+            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
+          <% }) %>
+          <a class="cc-studio-rail__add" href="/candidate-c/studio/<%= graph.identity.slug %>/offer/new">+ Add offering</a>
+        </div>
         <div class="cc-studio-rail__group">
           <span class="cc-studio-rail__label">Site</span>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/direction">Direction</a>
-          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=look" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Look</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/brand">Look</a>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
-          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Connect</button>
-          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= media[0].id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Media</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/content#contact">Connect</a>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Import media</a>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Image focus</button>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History</a>
         </div>
       </nav>
 
       <section class="cc-studio-stage" aria-label="Rendered site canvas">
         <div class="cc-studio-stage__toolbar">
-          <span>Site preview · <%= family.label %></span>
+          <span>Edit canvas · <%= family.label %></span>
           <span><%= graph.facts.presence.mode %></span>
         </div>
         <div class="cc-stage-device">
           <div id="candidate-canvas-slot">
             <% if (family.id === 'poster') { %>
-              <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } else if (family.id === 'editorial') { %>
-              <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } else { %>
-              <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } %>
           </div>
         </div>
+
+        <section class="cc-complete-preview" aria-labelledby="cc-complete-preview-title">
+          <div class="cc-complete-preview__head">
+            <div>
+              <p class="cc-kicker">Complete visitor page</p>
+              <h2 id="cc-complete-preview-title">Everything in the draft, not just the edit canvas.</h2>
+              <p>This is the full visitor-facing draft page. Story, visit details, summary, Activities and Offers appear here exactly through the same public composition template used by Preview.</p>
+            </div>
+            <div class="cc-preview-size-toggle" role="group" aria-label="Preview width">
+              <button class="cc-button cc-button--ink" type="button" data-preview-width="desktop" aria-pressed="true">Desktop</button>
+              <button class="cc-button" type="button" data-preview-width="mobile" aria-pressed="false">Mobile · 390px</button>
+            </div>
+          </div>
+          <div class="cc-full-preview-shell" data-preview-shell data-mode="desktop">
+            <iframe
+              data-full-preview
+              title="Complete visitor-facing draft preview"
+              src="/candidate-c/studio/<%= graph.identity.slug %>/preview"
+              loading="eager"></iframe>
+          </div>
+        </section>
       </section>
 
       <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>
