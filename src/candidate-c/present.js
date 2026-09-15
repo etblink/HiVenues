@@ -37,9 +37,9 @@ function contactFor(value) {
   const label = String(value || '').trim();
   if (/^https?:\/\//i.test(label)) return { label, href: label, kind: 'web' };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(label)) return { label, href: `mailto:${label}`, kind: 'email' };
-  if (/^\+?[0-9][0-9().\-\s]{5,}[0-9]$/.test(label)) {
-    const tel = label.replace(/(?!^)\D/g, '');
-    return { label, href: `tel:${tel}`, kind: 'phone' };
+  if (/^[+0-9().\-\s]+$/.test(label)) {
+    const tel = label.replace(/[^\d+]/g, '');
+    if (/^\+?\d{7,15}$/.test(tel)) return { label, href: `tel:${tel}`, kind: 'phone' };
   }
   return { label, href: null, kind: 'text' };
 }
