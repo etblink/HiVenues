@@ -3,7 +3,11 @@
 <head>
   <%- include('../_head', { graph, pageTitle }) %>
 </head>
-<body class="cc-public cc-hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+<%
+  const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
+  const sparseHost = !primaryActivity && graph.offers.length === 0;
+%>
+<body class="cc-public cc-hospitality <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-hospitality-nav">
     <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <p><%= graph.facts.presence.label %></p>
