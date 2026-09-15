@@ -10,7 +10,7 @@
   </div>
   <% if (primaryActivity) { %>
     <article class="cc-canvas-poster__activity">
-      <p class="cc-kicker">Next night · <%= primaryActivity.humanTime %></p>
+      <p class="cc-kicker">Next activity · <%= primaryActivity.humanTime %></p>
       <h2><%= primaryActivity.title %></h2>
       <%- include('../_status', { activity: primaryActivity }) %>
       <p><%= primaryActivity.description %></p>
