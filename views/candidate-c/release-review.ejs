@@ -7,33 +7,40 @@
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status">Draft r<%= revision %></span>
+      <span class="cc-draft-status">Version <%= revision %></span>
     </nav>
     <p class="cc-kicker">Review release</p>
-    <h1>Publish the website snapshot—nothing else.</h1>
-    <p class="cc-task__dek">This release is bound to the exact draft revision shown here. It updates only this HiVenues website snapshot. It does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, deploy production, or touch DNS.</p>
+    <h1>Choose what becomes the live website.</h1>
+    <p class="cc-task__dek">Version <%= revision %> is your current working version. Releasing it creates one immutable website version and makes that version visitor-facing here. It does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, deploy production, or touch DNS.</p>
 
     <div class="cc-review-grid">
       <section class="cc-review-card">
-        <p class="cc-kicker">Draft candidate</p>
-        <h2>r<%= revision %> · <%= family.label %></h2>
+        <p class="cc-kicker">Working version</p>
+        <h2>Version <%= revision %> · <%= family.label %></h2>
         <p><strong><%= graph.facts.tagline %></strong></p>
-        <p>Digest <code><%= draftDigest.slice(0, 18) %>…</code></p>
         <p><%= activities.length %> Activity · <%= graph.offers.length %> Offer · <%= graph.media.length %> Media asset</p>
+        <details>
+          <summary>Technical details</summary>
+          <p>Content digest <code><%= draftDigest %></code></p>
+        </details>
       </section>
       <section class="cc-review-card">
         <p class="cc-kicker">Currently live</p>
-        <h2><%= release ? `r${release.draftRevision}` : 'No release' %></h2>
+        <h2><%= release ? `Version ${release.draftRevision}` : 'No release' %></h2>
         <% if (release) { %>
           <p><%= release.snapshot.facts.tagline %></p>
-          <p>Release <code><%= release.id %></code></p>
+          <details>
+            <summary>Technical details</summary>
+            <p>Release <code><%= release.id %></code></p>
+            <p>Content digest <code><%= release.digest %></code></p>
+          </details>
         <% } %>
       </section>
     </div>
 
     <section class="cc-consequence-card" style="margin-top:1.2rem">
       <h2>Website consequence</h2>
-      <div class="cc-consequence-truth">Create one immutable website release from draft r<%= revision %> and make that release the visitor-facing version in this HiVenues reference. No Hive, signing, payment, media-provider, deployment, or DNS action will be triggered.</div>
+      <div class="cc-consequence-truth">Create one immutable website release from working version <%= revision %> and make it the visitor-facing version in this HiVenues reference. No Hive, signing, payment, media-provider, deployment, or DNS action will be triggered.</div>
       <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/release" style="margin-top:1rem">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
         <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
@@ -43,18 +50,22 @@
 
     <section style="margin-top:3rem">
       <p class="cc-kicker">History</p>
-      <h2>Earlier website snapshots</h2>
+      <h2>Earlier website versions</h2>
       <div class="cc-release-list">
         <% releases.slice().reverse().forEach((item) => { %>
           <article class="cc-release-row">
             <div>
-              <strong>Draft r<%= item.draftRevision %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong><br>
-              <code><%= item.id %> · <%= item.digest.slice(0, 16) %>…</code>
+              <strong>Version <%= item.draftRevision %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong>
+              <details>
+                <summary>Technical details</summary>
+                <p>Release <code><%= item.id %></code></p>
+                <p>Content digest <code><%= item.digest %></code></p>
+              </details>
             </div>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/releases/<%= item.id %>/restore">
               <input type="hidden" name="expectedRevision" value="<%= revision %>">
               <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-              <button class="cc-button" type="submit">Restore to new draft</button>
+              <button class="cc-button" type="submit">Use as working version</button>
             </form>
           </article>
         <% }) %>
