@@ -29,8 +29,14 @@ const compositionRegistry = Object.freeze({
   }),
 });
 
+function isLogoMedia(graph, media) {
+  return media?.id === `media-${graph.identity.slug}-logo`;
+}
+
 function mediaFor(graph, mediaId) {
-  return graph.media.find((item) => item.id === mediaId) || graph.media[0];
+  return graph.media.find((item) => item.id === mediaId)
+    || graph.media.find((item) => !isLogoMedia(graph, item))
+    || graph.media[0];
 }
 
 function contactFor(value) {
@@ -48,6 +54,8 @@ function buildViewModel(snapshot) {
   const graph = snapshot.draft;
   const family = compositionRegistry[graph.presentation.compositionFamily];
   const liveRelease = snapshot.releases.find((item) => item.id === snapshot.liveReleaseId) || null;
+  const logoMedia = graph.media.find((item) => isLogoMedia(graph, item)) || null;
+  const heroMedia = graph.media.find((item) => !isLogoMedia(graph, item)) || graph.media[0];
   const activities = graph.activities.map((activity) => ({
     ...activity,
     humanTime: formatActivityTime(activity, graph.identity.timezone),
@@ -68,6 +76,8 @@ function buildViewModel(snapshot) {
     activities,
     primaryActivity: activities[0] || null,
     media: graph.media,
+    heroMedia,
+    logoMedia,
     contact: contactFor(graph.facts.contact),
     release: liveRelease,
     lifecycles: activityLifecycles,
@@ -116,4 +126,4 @@ function renderIcs(graph, activity) {
   ].join('\r\n');
 }
 
-module.exports = { buildViewModel, compositionRegistry, contactFor, renderIcs };
+module.exports = { buildViewModel, compositionRegistry, contactFor, mediaFor, renderIcs };
