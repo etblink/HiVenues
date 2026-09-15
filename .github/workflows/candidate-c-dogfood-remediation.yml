@@ -8,6 +8,7 @@ on:
       - 'public/css/candidate-c*.css'
       - 'public/js/candidate-c-studio.js'
       - 'scripts/candidate-c-dogfood-remediation-browser.js'
+      - 'scripts/candidate-c-dogfood-remediation-lifecycle-browser.js'
       - 'test/candidate-c-dogfood-remediation.test.js'
       - '.github/workflows/candidate-c-dogfood-remediation.yml'
   workflow_dispatch:
@@ -63,12 +64,19 @@ jobs:
           FOURTH_STREET_EXTERIOR_IMAGE: .qualification-source/fourth-street-bar-exterior.jpg
           FOURTH_STREET_LOGO_IMAGE: .qualification-source/fourth-street-bar-logo.jpg
         run: node scripts/candidate-c-dogfood-remediation-browser.js
+      - name: Run Chromium synthetic add-Release-urgent lifecycle qualification
+        env:
+          CANDIDATE_C_DOGFOOD_LIFECYCLE_ROOT: artifacts/candidate-c-dogfood-remediation-lifecycle
+          CANDIDATE_C_DOGFOOD_REMEDIATION_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-dogfood-remediation-lifecycle-browser.js
       - name: Publish dogfood remediation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: candidate-c-dogfood-remediation-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/candidate-c-dogfood-remediation
+          path: |
+            artifacts/candidate-c-dogfood-remediation
+            artifacts/candidate-c-dogfood-remediation-lifecycle
           if-no-files-found: warn
           retention-days: 90
       - name: Summarize dogfood remediation evidence
@@ -78,11 +86,12 @@ jobs:
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('node:fs');
           const manifest = JSON.parse(fs.readFileSync('artifacts/candidate-c-dogfood-remediation/manifest.json', 'utf8'));
+          const lifecycle = JSON.parse(fs.readFileSync('artifacts/candidate-c-dogfood-remediation-lifecycle/manifest.json', 'utf8'));
           console.log('## Candidate C dogfood remediation qualification');
           console.log('');
           console.log(`- Exact candidate: ${manifest.candidate}`);
           console.log(`- Archived source: ${manifest.source.repository}@${manifest.source.commit}`);
-          console.log(`- Screenshots: ${manifest.summary.screenshotCount}`);
+          console.log(`- Fourth Street screenshots: ${manifest.summary.screenshotCount}`);
           console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
           console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
           console.log(`- Incomplete images: ${manifest.summary.incompleteImageFindings}`);
@@ -95,4 +104,20 @@ jobs:
           console.log(`- Restart persistence: ${manifest.proof.restartPersisted}`);
           console.log(`- Hive RPC/writes: ${manifest.proof.external.hiveRpcAttempts}/${manifest.proof.external.hiveWrites}`);
           console.log(`- Provider/payment/signing/deployment effects: ${manifest.proof.external.providerWrites}/${manifest.proof.external.payments}/${manifest.proof.external.signingAttempts}/${manifest.proof.external.deployments}`);
+          console.log('');
+          console.log('### Synthetic lifecycle closure');
+          console.log(`- Synthetic fixture declared: ${lifecycle.fixture.synthetic}`);
+          console.log(`- Screenshots: ${lifecycle.summary.screenshotCount}`);
+          console.log(`- Started with Activities: ${lifecycle.proof.initialActivityCount}`);
+          console.log(`- Added Activity: ${lifecycle.proof.createdActivityTitle}`);
+          console.log(`- Full Release: ${lifecycle.proof.fullReleaseId}`);
+          console.log(`- Urgent Release: ${lifecycle.proof.urgentReleaseId}`);
+          console.log(`- Unpublished draft paths at review: ${lifecycle.proof.unpublishedDraftPathsAtReview.join(', ')}`);
+          console.log(`- Unpublished draft preserved: ${lifecycle.proof.unpublishedDraftPreservedAfterUrgent}`);
+          console.log(`- Unpublished draft absent from live: ${lifecycle.proof.unpublishedDraftAbsentFromLive}`);
+          console.log(`- Restart persistence: ${lifecycle.proof.restartPersisted}`);
+          console.log(`- Lifecycle external requests: ${lifecycle.summary.externalRequests}`);
+          console.log(`- Lifecycle blocking accessibility findings: ${lifecycle.summary.blockingAccessibilityFindings}`);
+          console.log(`- Lifecycle horizontal overflow findings: ${lifecycle.summary.horizontalOverflowFindings}`);
+          console.log(`- Lifecycle external effects: ${JSON.stringify(lifecycle.proof.external)}`);
           NODE

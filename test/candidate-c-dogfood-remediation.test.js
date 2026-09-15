@@ -8,6 +8,7 @@ const test = require('node:test');
 const request = require('supertest');
 const { buildCandidateCHostFromInput } = require('../src/candidate-c/admission');
 const { createDogfoodApp } = require('../src/candidate-c/dogfood-app');
+const { MAX_IMAGE_BYTES } = require('../src/candidate-c/local-media');
 const { ProvisioningFileCandidateCStore } = require('../src/candidate-c/provisioning-file-store');
 
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=', 'base64');
@@ -67,6 +68,7 @@ test('dogfood remediation: visitor-visible content stays draft-only until an exp
 
   const draft = store.snapshot(slug);
   assert.equal(draft.draft.identity.slug, beforeDraft.draft.identity.slug, 'public rename must not mutate stable host URL identity');
+  assert.equal(draft.draft.identity.hostId, beforeDraft.draft.identity.hostId, 'public rename must not mutate stable host identity');
   assert.equal(draft.draft.identity.displayName, 'Harbor & Hearth Reno');
   assert.equal(draft.draft.facts.summary, 'Edited visitor summary.');
   assert.equal(draft.draft.facts.contact, '(775) 324-7827');
@@ -172,6 +174,77 @@ test('dogfood remediation: local image import derives bytes, keeps hero/logo rol
   assert.deepEqual(restarted.diagnostics().external, {
     hiveRpcAttempts: 0, hiveWrites: 0, providerWrites: 0, payments: 0, signingAttempts: 0, deployments: 0,
   });
+});
+
+test('dogfood remediation: malformed, oversized and non-image media fail closed with no file or draft mutation', async (t) => {
+  const { mediaRoot, store, app } = tempRuntime(t);
+  const slug = 'harbor-and-hearth';
+  const before = store.snapshot(slug);
+  const malformedPng = Buffer.alloc(24);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(malformedPng);
+  const oversized = Buffer.alloc(MAX_IMAGE_BYTES + 1, 0x41);
+  const cases = [
+    { filename: 'plain.txt', contentType: 'text/plain', body: Buffer.from('this is not an image') },
+    { filename: 'broken.png', contentType: 'image/png', body: malformedPng },
+    { filename: 'too-large.png', contentType: 'image/png', body: oversized },
+  ];
+
+  for (const item of cases) {
+    await request(app).post(`/candidate-c/studio/${slug}/media-import`)
+      .field('expectedRevision', String(before.revision))
+      .field('expectedDraftDigest', before.draftDigest)
+      .field('role', 'hero')
+      .field('alt', 'Rejected qualification image')
+      .field('caption', 'Must never persist')
+      .attach('image', item.body, { filename: item.filename, contentType: item.contentType })
+      .expect(400);
+    const after = store.snapshot(slug);
+    assert.equal(after.revision, before.revision, `${item.filename}: rejected media changed revision`);
+    assert.equal(after.draftDigest, before.draftDigest, `${item.filename}: rejected media changed draft digest`);
+    assert.equal(fs.existsSync(path.join(mediaRoot, slug)), false, `${item.filename}: rejected media created local files`);
+  }
+
+  assert.deepEqual(store.diagnostics().external, {
+    hiveRpcAttempts: 0, hiveWrites: 0, providerWrites: 0, payments: 0, signingAttempts: 0, deployments: 0,
+  });
+});
+
+test('dogfood remediation: media alt and caption stay bounded data and render escaped in operator review', async (t) => {
+  const { store, app } = tempRuntime(t);
+  const slug = 'harbor-and-hearth';
+  const before = store.snapshot(slug);
+  const alt = 'Owner photo <script>alert("alt")</script>';
+  const caption = 'Patio <img src=x onerror="alert(1)">';
+
+  await request(app).post(`/candidate-c/studio/${slug}/media-import`)
+    .field('expectedRevision', String(before.revision))
+    .field('expectedDraftDigest', before.draftDigest)
+    .field('role', 'hero')
+    .field('alt', alt)
+    .field('caption', caption)
+    .attach('image', PNG_1X1, { filename: 'escaped.png', contentType: 'image/png' })
+    .expect(303);
+
+  const after = store.snapshot(slug);
+  const hero = after.draft.media.find((item) => item.id === before.draft.media[0].id);
+  assert.equal(hero.alt, alt);
+  assert.equal(hero.provenance, caption);
+
+  const library = await request(app).get(`/candidate-c/studio/${slug}/media-library`).expect(200);
+  assert.doesNotMatch(library.text, /<script>alert\("alt"\)<\/script>/);
+  assert.doesNotMatch(library.text, /<img src=x onerror="alert\(1\)">/);
+  assert.match(library.text, /&lt;script&gt;alert\(&#34;alt&#34;\)&lt;\/script&gt;/);
+  assert.match(library.text, /Patio &lt;img src=x onerror=&#34;alert\(1\)&#34;&gt;/);
+
+  await request(app).post(`/candidate-c/studio/${slug}/media-import`)
+    .field('expectedRevision', String(after.revision))
+    .field('expectedDraftDigest', after.draftDigest)
+    .field('role', 'hero')
+    .field('alt', 'x'.repeat(301))
+    .field('caption', 'bounded')
+    .attach('image', PNG_1X1, { filename: 'too-long-alt.png', contentType: 'image/png' })
+    .expect(400);
+  assert.equal(store.snapshot(slug).draftDigest, after.draftDigest, 'oversized alt mutated the draft');
 });
 
 test('dogfood remediation: Studio exposes complete draft preview, mobile review and ordinary empty-state authoring paths', async (t) => {
