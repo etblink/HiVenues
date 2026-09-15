@@ -7,11 +7,11 @@
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status">Draft r<%= revision %></span>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
     <p class="cc-kicker">Site · Direction</p>
     <h1>Change the art direction, not the facts.</h1>
-    <p class="cc-task__dek">A Direction change is a reviewed proposal. It starts from the current draft, preserves manually edited host and Activity copy by default, and never deletes durable content because the next composition uses a different structure.</p>
+    <p class="cc-task__dek">A Direction change is reviewed before it is applied. Your authored name, story, Activities, Offers, Media and visitor details stay with the host while the composition changes around them.</p>
 
     <div class="cc-review-grid">
       <% Object.values(compositionRegistry).forEach((option) => { %>
@@ -34,11 +34,15 @@
     </div>
 
     <section class="cc-review-card" style="margin-top:1.2rem">
-      <h2>Protected manual work</h2>
+      <h2>Your authored work stays with the host</h2>
       <% if (manualPaths && manualPaths.length) { %>
-        <ul class="cc-preserved-list"><% manualPaths.forEach((path) => { %><li><code><%= path %></code></li><% }) %></ul>
+        <p><strong><%= manualPaths.length %> authored field<%= manualPaths.length === 1 ? '' : 's' %></strong> have been edited in Studio and remain protected through Direction changes.</p>
+        <details>
+          <summary>Technical details</summary>
+          <ul class="cc-preserved-list"><% manualPaths.forEach((path) => { %><li><code><%= path %></code></li><% }) %></ul>
+        </details>
       <% } else { %>
-        <p>No granular edits have been marked protected yet. Direction still cannot delete Host, Activity, Offer or Media identity.</p>
+        <p>Your Host, Activity, Offer and Media identity remain intact when Direction changes, even before granular edits are recorded.</p>
       <% } %>
     </section>
   </main>

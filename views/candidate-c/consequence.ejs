@@ -7,23 +7,27 @@
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
-      <span class="cc-draft-status">Disconnected simulation</span>
+      <span class="cc-draft-status">Connection unavailable in this test</span>
     </nav>
-    <p class="cc-kicker">Metaphor at the experience layer</p>
+    <p class="cc-kicker">What this visitor action means</p>
     <h1><%= term %></h1>
-    <p class="cc-task__dek">The host can name participation in its own voice. Before any consequential action, HiVenues names the actual mechanic and authority boundary plainly.</p>
+    <p class="cc-task__dek">The host can name participation in its own voice. HiVenues still explains what would actually happen before any consequential action.</p>
 
     <section class="cc-consequence-card">
-      <p class="cc-studio-inspector__eyebrow">Truth at the consequence boundary</p>
-      <h2><%= mechanic.id %></h2>
+      <h2>What this action does</h2>
+      <p><%= mechanic.meaning %></p>
       <div class="cc-consequence-truth"><%= disclosure %></div>
-      <dl>
-        <dt><strong>Consequence class</strong></dt><dd><%= mechanic.consequenceClass %></dd>
-        <dt><strong>Moves value</strong></dt><dd><%= mechanic.movesValue ? 'Yes' : 'No' %></dd>
-        <dt><strong>Public</strong></dt><dd><%= mechanic.public ? 'Yes' : 'No' %></dd>
-        <dt><strong>Binding state</strong></dt><dd><%= graph.bindings.hive.state %></dd>
-      </dl>
-      <p><strong>No action button appears in Phase 2A</strong> because no live Hive write or signature is authorized. The consequence review is the product behavior being proved here.</p>
+      <p><strong>No live action is available here</strong> because the required Hive connection/signing authority is not enabled in this isolated test. Nothing will be signed or broadcast.</p>
+      <details>
+        <summary>Technical details</summary>
+        <dl>
+          <dt><strong>Mechanic</strong></dt><dd><code><%= mechanic.id %></code></dd>
+          <dt><strong>Consequence class</strong></dt><dd><%= mechanic.consequenceClass %></dd>
+          <dt><strong>Moves value</strong></dt><dd><%= mechanic.movesValue ? 'Yes' : 'No' %></dd>
+          <dt><strong>Public</strong></dt><dd><%= mechanic.public ? 'Yes' : 'No' %></dd>
+          <dt><strong>Connection state</strong></dt><dd><%= graph.bindings.hive.state %></dd>
+        </dl>
+      </details>
     </section>
   </main>
 </body>

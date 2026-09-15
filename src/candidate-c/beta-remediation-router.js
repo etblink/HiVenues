@@ -2,7 +2,28 @@
 
 const express = require('express');
 const { localDateTimeToOffsetIso } = require('./admission');
-const { buildViewModel } = require('./present');
+const { activityLifecycles, mechanicRegistry } = require('./model');
+const { buildViewModel, compositionRegistry } = require('./present');
+
+const LOOK_ACCENTS = Object.freeze([
+  Object.freeze({ id: 'ember', label: 'Ember', value: '#ef9f55' }),
+  Object.freeze({ id: 'violet', label: 'Field violet', value: '#6e59c8' }),
+  Object.freeze({ id: 'clay', label: 'Warm clay', value: '#a65337' }),
+  Object.freeze({ id: 'harbor', label: 'Harbor blue', value: '#244653' }),
+  Object.freeze({ id: 'moss', label: 'Garden moss', value: '#647a55' }),
+  Object.freeze({ id: 'gold', label: 'Bar Gold', value: '#f4a460' }),
+]);
+
+function candidateLocals(snapshot, selectedResource = '') {
+  return {
+    ...buildViewModel(snapshot),
+    compositionRegistry,
+    mechanicRegistry,
+    lookAccents: LOOK_ACCENTS,
+    activityLifecycles,
+    selectedResource,
+  };
+}
 
 function localInputValue(value, timezone) {
   const date = new Date(value);
@@ -54,6 +75,33 @@ function renderSchedule(res, snapshot, activity, { status = 200, values, errors 
 function createBetaRemediationRouter({ store } = {}) {
   if (!store) throw new TypeError('Beta remediation router requires a store.');
   const router = express.Router();
+
+  // Preserve the fast Look inspector while giving it the same complete palette
+  // as the deeper Look settings page.
+  router.get('/studio/:slug/inspect', (req, res, next) => {
+    if (String(req.query.resource || '') !== 'look') return next();
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    return res.render('candidate-c/fragments/inspector', candidateLocals(snapshot, 'look'));
+  });
+
+  router.post('/studio/:slug/look', (req, res) => {
+    const accent = String(req.body.accent || '').toLowerCase();
+    if (!LOOK_ACCENTS.some((item) => item.value === accent)) return res.status(400).send('Choose one of the available accents.');
+    const result = draftMutation(store, req.params.slug, req.body, 'edit-look', (draft) => {
+      draft.presentation.accent = accent;
+    }, ['presentation.accent']);
+    if (!result.ok) {
+      if (['STALE_REVISION', 'STALE_DIGEST', 'INVALID_REVISION', 'INVALID_DRAFT_DIGEST'].includes(result.reason)) {
+        return res.status(409).send('A newer working version exists. Reload before saving this change.');
+      }
+      return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send('The accent could not be saved.');
+    }
+    if (req.get('HX-Request') === 'true') {
+      return res.render('candidate-c/fragments/studio-update', candidateLocals(result.snapshot, 'look'));
+    }
+    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+  });
 
   router.get('/studio/:slug/activity/:activityId/schedule', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
@@ -116,7 +164,21 @@ function createBetaRemediationRouter({ store } = {}) {
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}?scheduled=${encodeURIComponent(req.params.activityId)}`);
   });
 
+  // History restore gets a review step: selecting an older version prepares the
+  // working copy only; it never changes the live site until a later Release.
+  router.get('/studio/:slug/releases/:releaseId/restore', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    const selectedRelease = snapshot.releases.find((item) => item.id === req.params.releaseId);
+    if (!selectedRelease) return res.sendStatus(404);
+    return res.render('candidate-c/restore-review', {
+      pageTitle: `Review restore — ${snapshot.draft.identity.displayName}`,
+      ...buildViewModel(snapshot),
+      selectedRelease,
+    });
+  });
+
   return router;
 }
 
-module.exports = { createBetaRemediationRouter, localInputValue };
+module.exports = { LOOK_ACCENTS, createBetaRemediationRouter, localInputValue };
