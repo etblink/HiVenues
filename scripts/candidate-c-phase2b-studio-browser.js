@@ -127,7 +127,7 @@ async function main() {
     await capture(desktop, '03-studio-d-look', 'studio-d-look');
 
     await desktop.getByRole('button', { name: 'Voice' }).click();
-    await desktop.locator('#candidate-inspector[data-open="true"]').waitFor();
+    await desktop.locator('#candidate-inspector').getByText('Save a seat', { exact: true }).waitFor();
     assert.match(await desktop.locator('#candidate-inspector').textContent(), /Save a seat/);
     await desktop.locator('#candidate-inspector').getByRole('button', { name: 'Edit' }).first().click();
     await desktop.locator('#cc-voice-term').fill('Keep me a seat');
@@ -171,7 +171,7 @@ async function main() {
     observe(mobile);
     await gotoOk(mobile, '/candidate-c/studio/harbor-and-hearth');
     await mobile.getByRole('button', { name: 'Connect' }).click();
-    await mobile.locator('#candidate-inspector[data-open="true"]').waitFor();
+    await mobile.locator('#cc-contact').waitFor();
     await capture(mobile, '07-studio-d-mobile-connect', 'studio-d-mobile-connect');
 
     const diagnostics = store.diagnostics();
