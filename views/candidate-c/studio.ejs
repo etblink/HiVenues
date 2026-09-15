@@ -31,6 +31,23 @@
       </div>
     <% } %>
 
+    <section class="cc-first-draft-reveal" data-first-draft-reveal hidden aria-labelledby="cc-first-draft-title">
+      <div class="cc-first-draft-reveal__card" role="dialog" aria-modal="true" aria-labelledby="cc-first-draft-title">
+        <p class="cc-first-draft-reveal__eyebrow">Your first working version</p>
+        <h1 id="cc-first-draft-title">Here is your place.</h1>
+        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is now one working host in HiVenues. This is the same place you will keep shaping below—not an exported template or a second website definition.</p>
+        <div class="cc-first-draft-reveal__facts" aria-label="First draft state">
+          <span><%= family.label %></span>
+          <span>Working version</span>
+          <span>Nothing is live yet</span>
+        </div>
+        <div class="cc-first-draft-reveal__actions">
+          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Open Studio</button>
+          <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">See visitor view</a>
+        </div>
+      </div>
+    </section>
+
     <div class="cc-studio-workspace">
       <nav class="cc-studio-commandbar" aria-label="Shape your place">
         <details>
