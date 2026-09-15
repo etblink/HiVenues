@@ -59,42 +59,42 @@
 
 /* Poster: the #272 activity band and offer surface invert the older palette.
    Keep copy and links on the correct side of that inversion. */
-.cc-poster .cc-poster-night__body p,
-.cc-poster .cc-poster-night .cc-link {
+.cc-public.cc-poster .cc-poster-night__body p,
+.cc-public.cc-poster .cc-poster-night .cc-link {
   color: #351b12;
 }
 
-.cc-poster .cc-poster-offer .cc-link--light {
+.cc-public.cc-poster .cc-poster-offer .cc-link--light {
   color: #351b12;
 }
 
 /* Editorial's index/footer are intentionally quiet, but still AA at their
    small display sizes. */
-.cc-editorial .cc-editorial-index,
-.cc-editorial .cc-editorial-footer {
+.cc-public.cc-editorial .cc-editorial-index,
+.cc-public.cc-editorial .cc-editorial-footer {
   color: #5b5e64;
 }
 
 /* Hospitality: the media-led hero, compact service nav and dark Activity card
    introduced new background pairings. Preserve the family character without
    allowing inherited warm-brown labels to disappear into those surfaces. */
-.cc-hospitality .cc-hospitality-nav > p,
-.cc-hospitality .cc-hospitality-footer {
+.cc-public.cc-hospitality .cc-hospitality-nav > p,
+.cc-public.cc-hospitality .cc-hospitality-footer {
   color: #57524c;
 }
 
-.cc-hospitality .cc-hospitality-hero .cc-kicker {
+.cc-public.cc-hospitality .cc-hospitality-hero .cc-kicker {
   color: #664531;
 }
 
-.cc-hospitality .cc-hospitality-dish__category {
+.cc-public.cc-hospitality .cc-hospitality-dish__category {
   color: #685649;
 }
 
-.cc-hospitality .cc-hospitality-table .cc-kicker,
-.cc-hospitality .cc-hospitality-table__date,
-.cc-hospitality .cc-hospitality-table__date strong,
-.cc-hospitality .cc-hospitality-table > div:nth-child(2) > p:last-child {
+.cc-public.cc-hospitality .cc-hospitality-table .cc-kicker,
+.cc-public.cc-hospitality .cc-hospitality-table__date,
+.cc-public.cc-hospitality .cc-hospitality-table__date strong,
+.cc-public.cc-hospitality .cc-hospitality-table > div:nth-child(2) > p:last-child {
   color: #f3ede3;
 }
 
