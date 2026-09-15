@@ -85,7 +85,9 @@
   document.body.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target?.id !== 'candidate-inspector') return;
     openInspector();
-    focusInspector(event.detail.target);
+    // The inspector swaps with outerHTML, so event.detail.target is the detached
+    // previous panel. Focus must land in the live panel the server just rendered.
+    focusInspector(inspector());
   });
 
   document.body.addEventListener('htmx:afterRequest', (event) => {

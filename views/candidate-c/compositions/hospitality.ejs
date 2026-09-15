@@ -75,11 +75,12 @@
           <div>
             <p class="cc-kicker">Sunday supper</p>
             <h2 id="cc-table-title"><%= primaryActivity.title %></h2>
+            <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-hospitality-table__actions">
-            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= graph.voice.terms.rsvp_local %></a>
+            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'About this table' %></a>
             <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>

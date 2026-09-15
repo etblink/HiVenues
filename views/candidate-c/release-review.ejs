@@ -26,7 +26,7 @@
       </section>
       <section class="cc-review-card">
         <p class="cc-kicker">Currently live</p>
-        <h2><%= release ? `Version ${release.draftRevision}` : 'No release' %></h2>
+        <h2><%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No release' %></h2>
         <% if (release) { %>
           <p><%= release.snapshot.facts.tagline %></p>
           <details>
@@ -48,6 +48,13 @@
       </form>
     </section>
 
+    <section class="cc-review-card cc-review-card--urgent-entry" style="margin-top:1.2rem" aria-labelledby="cc-urgent-entry">
+      <p class="cc-kicker">Need to change the live site right now?</p>
+      <h2 id="cc-urgent-entry">Urgent update</h2>
+      <p>Cancel or update one activity’s status straight from the live site, without releasing the rest of your working version.</p>
+      <a class="cc-button" href="/candidate-c/studio/<%= graph.identity.slug %>/urgent">Start an urgent update</a>
+    </section>
+
     <section style="margin-top:3rem">
       <p class="cc-kicker">History</p>
       <h2>Earlier website versions</h2>
@@ -55,11 +62,16 @@
         <% releases.slice().reverse().forEach((item) => { %>
           <article class="cc-release-row">
             <div>
-              <strong>Version <%= item.draftRevision %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong>
+              <strong>Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong>
+              <% if (item.kind === 'urgent') { %><br><small>Urgent status change published from the live site, not from the working version.</small><% } %>
               <details>
                 <summary>Technical details</summary>
                 <p>Release <code><%= item.id %></code></p>
                 <p>Content digest <code><%= item.digest %></code></p>
+                <% if (item.kind === 'urgent') { %>
+                  <p>Based on live release <code><%= item.baseReleaseId %></code></p>
+                  <p>Changed <code><%= item.changedPaths.join(', ') %></code></p>
+                <% } %>
               </details>
             </div>
             <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/releases/<%= item.id %>/restore">

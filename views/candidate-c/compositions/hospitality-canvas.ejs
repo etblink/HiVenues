@@ -28,6 +28,7 @@
     <article class="cc-canvas-hospitality__activity">
       <span class="cc-kicker">Sunday table · <%= primaryActivity.humanTime %></span>
       <h2><%= primaryActivity.title %></h2>
+      <%- include('../_status', { activity: primaryActivity }) %>
       <p><%= primaryActivity.description %></p>
       <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= primaryActivity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit supper</button>
     </article>

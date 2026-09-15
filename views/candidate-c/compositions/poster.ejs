@@ -41,11 +41,12 @@
           <div class="cc-poster-night__body">
             <p class="cc-kicker">Next at Northline</p>
             <h2 id="cc-next-night"><%= primaryActivity.title %></h2>
+            <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-poster-night__actions">
-            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Details & RSVP</a>
+            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? 'Details & RSVP' : 'Details' %></a>
             <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>

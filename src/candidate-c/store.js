@@ -3,8 +3,11 @@
 const crypto = require('node:crypto');
 const { clone, stableDigest, validateHostGraph } = require('./model');
 const { seedCandidateCHosts } = require('./fixtures');
+const { deriveUrgentClosure, diffGraphPaths, normalizeChange, verifyUrgentOperation, verifyUrgentRelease } = require('./urgent');
 
 const compositionFamilies = new Set(['poster', 'editorial', 'hospitality']);
+const releaseKinds = new Set(['full', 'urgent']);
+const urgentStates = new Set(['review', 'released']);
 
 function conflict(actualRevision) {
   return { ok: false, reason: 'STALE_REVISION', actualRevision };
@@ -17,6 +20,34 @@ function digestConflict(workspace) {
     actualRevision: workspace.revision,
     actualDigest: stableDigest(workspace.draft),
   };
+}
+
+function prepareUrgentDraftCarry(draft, releaseSnapshot, change, changedPaths) {
+  const target = draft.activities.find((item) => item.id === change.activityId);
+  const source = releaseSnapshot.activities.find((item) => item.id === change.activityId);
+  if (!target || !source) return { ok: false, reason: 'URGENT_CARRY_TARGET_MISSING' };
+
+  const next = clone(draft);
+  const nextTarget = next.activities.find((item) => item.id === change.activityId);
+  const base = `activities.${change.activityId}`;
+  for (const path of changedPaths) {
+    if (path === `${base}.lifecycle`) {
+      nextTarget.lifecycle = source.lifecycle;
+      continue;
+    }
+    if (path === `${base}.statusNote`) {
+      if (Object.hasOwn(source, 'statusNote')) nextTarget.statusNote = source.statusNote;
+      else delete nextTarget.statusNote;
+      continue;
+    }
+    return { ok: false, reason: 'URGENT_CARRY_UNSUPPORTED_PATH', path };
+  }
+
+  const snapshot = validateHostGraph(next);
+  const actualChanged = diffGraphPaths(draft, snapshot);
+  const unexpected = actualChanged.filter((path) => !changedPaths.includes(path));
+  if (unexpected.length) return { ok: false, reason: 'URGENT_CARRY_SCOPE_MISMATCH', unexpected };
+  return { ok: true, snapshot, actualChanged };
 }
 
 function expectedStateConflict(workspace, expectedRevision, expectedDigest) {
@@ -60,6 +91,7 @@ class CandidateCStore {
       const validated = validateHostGraph(graph);
       const seedRelease = {
         id: `release-seed-${stableDigest(validated).slice(0, 10)}`,
+        kind: 'full',
         draftRevision: 1,
         digest: stableDigest(validated),
         createdAt: new Date(this.now()).toISOString(),
@@ -73,6 +105,7 @@ class CandidateCStore {
         releases: [seedRelease],
         liveReleaseId: seedRelease.id,
         proposals: new Map(),
+        urgent: new Map(),
         rsvps: new Map(),
       });
     }
@@ -95,6 +128,7 @@ class CandidateCStore {
         releases: clone(workspace.releases),
         liveReleaseId: workspace.liveReleaseId,
         proposals: Array.from(workspace.proposals.values()).map((item) => clone(item)),
+        urgent: Array.from(workspace.urgent.values()).map((item) => clone(item)),
         rsvps: Array.from(workspace.rsvps.values()).map((item) => clone(item)),
       })),
     };
@@ -154,7 +188,18 @@ class CandidateCStore {
           throw stateError(`Release provenance mismatch for ${record.slug}/${release.id}.`);
         }
         if (typeof release.createdAt !== 'string' || !release.createdAt) throw stateError(`Invalid release timestamp for ${record.slug}.`);
-        return { ...clone(release), snapshot: clone(snapshot) };
+        const kind = release.kind === undefined ? 'full' : release.kind;
+        if (!releaseKinds.has(kind)) throw stateError(`Invalid release kind for ${record.slug}/${release.id}.`);
+        if (kind === 'urgent') {
+          if (typeof release.baseReleaseId !== 'string' || !releaseIds.has(release.baseReleaseId) || release.baseReleaseId === release.id) {
+            throw stateError(`Urgent release base provenance is invalid for ${record.slug}/${release.id}.`);
+          }
+          if (typeof release.operationId !== 'string' || !release.operationId) throw stateError(`Urgent release operation provenance is missing for ${record.slug}/${release.id}.`);
+          if (!Array.isArray(release.changedPaths) || release.changedPaths.some((item) => typeof item !== 'string')) {
+            throw stateError(`Urgent release changed paths are invalid for ${record.slug}/${release.id}.`);
+          }
+        }
+        return { ...clone(release), kind, snapshot: clone(snapshot) };
       });
       if (typeof record.liveReleaseId !== 'string' || !releaseIds.has(record.liveReleaseId)) {
         throw stateError(`Live release pointer is invalid for ${record.slug}.`);
@@ -162,6 +207,36 @@ class CandidateCStore {
 
       if (!Array.isArray(record.proposals) || !Array.isArray(record.rsvps)) {
         throw stateError(`Candidate C proposal/RSVP state is invalid for ${record.slug}.`);
+      }
+      const urgentRecords = record.urgent === undefined ? [] : record.urgent;
+      if (!Array.isArray(urgentRecords)) throw stateError(`Candidate C urgent operation state is invalid for ${record.slug}.`);
+      const urgent = new Map();
+      for (const operation of urgentRecords) {
+        assertObject(operation, `Invalid urgent operation for ${record.slug}.`);
+        if (typeof operation.id !== 'string' || !operation.id || urgent.has(operation.id)) throw stateError(`Invalid urgent operation id for ${record.slug}.`);
+        if (!urgentStates.has(operation.state)) throw stateError(`Invalid urgent operation state for ${record.slug}/${operation.id}.`);
+        if (typeof operation.baseReleaseId !== 'string' || !releaseIds.has(operation.baseReleaseId)) throw stateError(`Urgent operation base release is unknown for ${record.slug}/${operation.id}.`);
+        if (typeof operation.baseDigest !== 'string' || releases.find((item) => item.id === operation.baseReleaseId).digest !== operation.baseDigest) {
+          throw stateError(`Urgent operation base digest mismatch for ${record.slug}/${operation.id}.`);
+        }
+        if (!normalizeChange(operation.change).ok) throw stateError(`Urgent operation change is invalid for ${record.slug}/${operation.id}.`);
+        if (typeof operation.createdAt !== 'string' || !operation.createdAt) throw stateError(`Urgent operation timestamp is invalid for ${record.slug}/${operation.id}.`);
+        // Closure/proof are derived data: re-derive from the immutable base Release and
+        // require exact equality. Shape-only checks are not enough (E-PROVENANCE-1A).
+        const baseRelease = releases.find((item) => item.id === operation.baseReleaseId);
+        const verified = verifyUrgentOperation(baseRelease, operation);
+        if (!verified.ok) {
+          throw stateError(`Urgent operation provenance does not re-derive for ${record.slug}/${operation.id}: ${verified.reason}${verified.mismatches ? ` (${verified.mismatches.join(', ')})` : ''}.`);
+        }
+        if (operation.state === 'released') {
+          const release = releases.find((item) => item.id === operation.releaseId);
+          if (!release || release.kind !== 'urgent' || release.operationId !== operation.id || release.baseReleaseId !== operation.baseReleaseId) {
+            throw stateError(`Released urgent operation provenance mismatch for ${record.slug}/${operation.id}.`);
+          }
+          const releaseCheck = verifyUrgentRelease(baseRelease, release, verified.derived);
+          if (!releaseCheck.ok) throw stateError(`Urgent release provenance does not match its base diff for ${record.slug}/${release.id}: ${releaseCheck.reason}.`);
+        }
+        urgent.set(operation.id, clone(operation));
       }
       const proposals = new Map();
       for (const proposal of record.proposals) {
@@ -181,6 +256,14 @@ class CandidateCStore {
       }
       rsvpCount += rsvps.size;
 
+      for (const release of releases) {
+        if (release.kind !== 'urgent') continue;
+        const operation = urgent.get(release.operationId);
+        if (!operation || operation.state !== 'released' || operation.releaseId !== release.id) {
+          throw stateError(`Urgent release ${record.slug}/${release.id} is not coupled to a released urgent operation.`);
+        }
+      }
+
       workspaces.set(record.slug, {
         revision: record.revision,
         draft: clone(draft),
@@ -189,6 +272,7 @@ class CandidateCStore {
         releases,
         liveReleaseId: record.liveReleaseId,
         proposals,
+        urgent,
         rsvps,
       });
     }
@@ -378,6 +462,7 @@ class CandidateCStore {
     const snapshot = clone(workspace.draft);
     const release = {
       id: `release-${workspace.releases.length + 1}-${stableDigest(snapshot).slice(0, 10)}`,
+      kind: 'full',
       draftRevision: workspace.revision,
       digest: stableDigest(snapshot),
       createdAt: new Date(this.now()).toISOString(),
@@ -403,6 +488,118 @@ class CandidateCStore {
       draft: clone(workspace.draft),
     });
     return { ok: true, snapshot: this.snapshot(slug) };
+  }
+
+  editActivityStatus(slug, activityId, lifecycle, statusNote, expectedRevision, expectedDigest) {
+    const normalized = normalizeChange({ kind: 'activity-status', activityId, lifecycle, statusNote });
+    if (!normalized.ok) return normalized;
+    return this.commit(slug, expectedRevision, 'edit-activity-status', (draft) => {
+      const activity = draft.activities.find((item) => item.id === normalized.change.activityId);
+      if (!activity) throw new Error('Activity not found');
+      activity.lifecycle = normalized.change.lifecycle;
+      if (normalized.change.statusNote) activity.statusNote = normalized.change.statusNote;
+      else delete activity.statusNote;
+    }, [`activities.${activityId}.lifecycle`, `activities.${activityId}.statusNote`], expectedDigest);
+  }
+
+  liveRelease(workspace) {
+    return workspace.releases.find((item) => item.id === workspace.liveReleaseId) || null;
+  }
+
+  /**
+   * Workstream E: prepare an urgent operation from the live Release. The
+   * working draft is deliberately not an input. The operation records the
+   * exact live base (id + digest), the declared closure and its proof.
+   */
+  proposeUrgent(slug, change) {
+    const workspace = this.workspace(slug);
+    if (!workspace) return { ok: false, reason: 'NOT_FOUND' };
+    const live = this.liveRelease(workspace);
+    if (!live) return { ok: false, reason: 'NO_LIVE_RELEASE' };
+    const derived = deriveUrgentClosure(live.snapshot, change);
+    if (!derived.ok) return derived;
+    if (!derived.proof.closed) return { ok: false, reason: 'URGENT_CLOSURE_OPEN', proof: derived.proof };
+    const operation = {
+      id: crypto.randomUUID(),
+      state: 'review',
+      baseReleaseId: live.id,
+      baseDigest: live.digest,
+      change: derived.change,
+      closure: derived.closure,
+      proof: derived.proof,
+      createdAt: new Date(this.now()).toISOString(),
+    };
+    workspace.urgent.set(operation.id, operation);
+    return { ok: true, operation: clone(operation) };
+  }
+
+  urgentOperation(slug, operationId) {
+    const workspace = this.workspace(slug);
+    if (!workspace) return null;
+    const operation = workspace.urgent.get(operationId);
+    return operation ? clone(operation) : null;
+  }
+
+  /**
+   * Execute a reviewed urgent operation. Fails closed when the live Release
+   * moved since review, when the operation was already used, or when the
+   * working draft moved (the same status change is carried into the draft as
+   * a new revision so the next ordinary Release cannot silently regress it).
+   */
+  executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest) {
+    const workspace = this.workspace(slug);
+    if (!workspace) return { ok: false, reason: 'NOT_FOUND' };
+    const operation = workspace.urgent.get(operationId);
+    if (!operation) return { ok: false, reason: 'URGENT_NOT_FOUND' };
+    if (operation.state !== 'review') return { ok: false, reason: 'URGENT_ALREADY_RELEASED', releaseId: operation.releaseId };
+    const live = this.liveRelease(workspace);
+    if (!live || live.id !== operation.baseReleaseId || live.id !== String(expectedLiveReleaseId || '') || live.digest !== operation.baseDigest) {
+      return { ok: false, reason: 'STALE_LIVE_RELEASE', actualLiveReleaseId: live ? live.id : null, actualRevision: workspace.revision };
+    }
+    const stale = expectedStateConflict(workspace, expectedRevision, expectedDigest);
+    if (stale) return stale;
+
+    // Re-derive from the current live snapshot; persisted closure/proof are never the
+    // source of Release provenance and must equal the fresh derivation exactly.
+    const verified = verifyUrgentOperation(live, operation);
+    if (!verified.ok) {
+      return { ok: false, reason: verified.reason === 'URGENT_PROVENANCE_MISMATCH' ? 'URGENT_PROVENANCE_MISMATCH' : 'URGENT_CLOSURE_OPEN', detail: verified.mismatches || verified.reason };
+    }
+    const derived = verified.derived;
+    if (derived.closure.changed.length === 0) return { ok: false, reason: 'URGENT_NO_CHANGE' };
+
+    const snapshot = derived.snapshot;
+    const carry = workspace.draft.activities.some((item) => item.id === operation.change.activityId)
+      ? prepareUrgentDraftCarry(workspace.draft, snapshot, operation.change, derived.closure.changed)
+      : null;
+    if (carry && !carry.ok) return carry;
+
+    const release = {
+      id: `release-${workspace.releases.length + 1}-urgent-${stableDigest(snapshot).slice(0, 10)}`,
+      kind: 'urgent',
+      baseReleaseId: live.id,
+      operationId: operation.id,
+      changedPaths: [...derived.closure.changed],
+      draftRevision: live.draftRevision,
+      digest: stableDigest(snapshot),
+      createdAt: new Date(this.now()).toISOString(),
+      snapshot: clone(snapshot),
+    };
+    workspace.releases.push(release);
+    workspace.liveReleaseId = release.id;
+
+    let carried = false;
+    if (carry) {
+      const committed = this.commit(slug, workspace.revision, `urgent-carry:${release.id}`, (draft) => {
+        draft.activities = clone(carry.snapshot.activities);
+      }, [...derived.closure.changed], undefined);
+      carried = committed.ok === true;
+    }
+
+    operation.state = 'released';
+    operation.releaseId = release.id;
+    operation.releasedAt = release.createdAt;
+    return { ok: true, release: clone(release), operation: clone(operation), carried, snapshot: this.snapshot(slug) };
   }
 
   recordRsvp(slug, activityId, name) {

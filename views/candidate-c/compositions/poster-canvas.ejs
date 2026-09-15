@@ -12,6 +12,7 @@
     <article class="cc-canvas-poster__activity">
       <p class="cc-kicker">Next night · <%= primaryActivity.humanTime %></p>
       <h2><%= primaryActivity.title %></h2>
+      <%- include('../_status', { activity: primaryActivity }) %>
       <p><%= primaryActivity.description %></p>
       <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= primaryActivity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit activity</button>
     </article>
