@@ -5,7 +5,7 @@
 </head>
 <body class="cc-public cc-editorial" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-editorial-nav">
-    <a class="cc-editorial-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <a class="cc-editorial-name" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#current">Current</a><% } %>
       <a href="#notes">Story</a>
@@ -30,11 +30,8 @@
             <p class="cc-editorial-hero__summary"><%= graph.facts.summary %></p>
           </div>
           <div class="cc-editorial-hero__media">
-            <%- include('../_art', { media: media[0], graph }) %>
-            <div class="cc-editorial-caption">
-              <span>Working image</span>
-              <span><%= media[0].provenance %></span>
-            </div>
+            <%- include('../_art', { media: heroMedia, graph }) %>
+            <% if (heroMedia.kind !== 'bootstrap-art' && heroMedia.provenance) { %><p class="cc-media-note"><%= heroMedia.provenance %></p><% } %>
           </div>
         </section>
       <% } %>
