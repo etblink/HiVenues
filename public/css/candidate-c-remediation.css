@@ -5,6 +5,15 @@
 .cc-wordmark, .cc-editorial-name, .cc-hospitality-name { display: inline-flex; align-items: center; gap: .7rem; }
 .cc-poster .cc-public-logo { filter: none; }
 
+/* Media edit controls sit over arbitrary host imagery/art. Give them a fixed high-contrast surface. */
+.cc-canvas-poster__art .cc-edit-chip,
+.cc-canvas-editorial__art .cc-edit-chip,
+.cc-canvas-hospitality__media .cc-edit-chip {
+  background: #fff;
+  color: #1d1b18;
+  border-color: #1d1b18;
+}
+
 .cc-canvas-complete { grid-column: 1 / -1; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,.14); display: grid; gap: 1.4rem; }
 .cc-studio-canvas--poster .cc-canvas-complete { border-color: var(--cc-night-line); }
 .cc-canvas-complete__head { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 1rem; align-items: end; }
