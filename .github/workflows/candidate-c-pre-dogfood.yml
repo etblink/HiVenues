@@ -8,6 +8,7 @@ on:
       - 'scripts/candidate-c-dogfood.js'
       - 'scripts/candidate-c-pre-dogfood-browser.js'
       - 'test/candidate-c-pre-dogfood.test.js'
+      - 'test/candidate-c-composition-reuse.test.js'
       - 'package.json'
       - '.github/workflows/candidate-c-pre-dogfood.yml'
   workflow_dispatch:
@@ -40,7 +41,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
       - name: Run deterministic pre-dogfood contracts
-        run: node --test --test-concurrency=1 test/candidate-c-pre-dogfood.test.js
+        run: node --test --test-concurrency=1 test/candidate-c-pre-dogfood.test.js test/candidate-c-composition-reuse.test.js
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Run Chromium fresh-host + restart + urgent qualification
