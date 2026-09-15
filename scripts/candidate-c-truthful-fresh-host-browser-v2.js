@@ -1,5 +1,5 @@
 'use strict';
-/* global document */
+/* global document, window */
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -83,8 +83,11 @@ async function main() {
     assert.equal(await page.locator('a[href="tel:7753247827"]').count(), 1);
     assert.equal(await page.locator('a[href^="mailto:"]').count(), 0);
     const geometry = await page.evaluate(() => {
-      const clientWidth = document.documentElement.clientWidth;
-      const offenders = Array.from(document.querySelectorAll('body *')).map((node) => {
+      const root = document.documentElement;
+      const body = document.body;
+      const clientWidth = root.clientWidth;
+      const originalScrollWidth = root.scrollWidth;
+      const describe = (node) => {
         const rect = node.getBoundingClientRect();
         return {
           tag: node.tagName.toLowerCase(),
@@ -93,21 +96,53 @@ async function main() {
           left: Math.round(rect.left * 10) / 10,
           right: Math.round(rect.right * 10) / 10,
           width: Math.round(rect.width * 10) / 10,
+          scrollWidth: node.scrollWidth,
+          clientWidth: node.clientWidth,
         };
-      }).filter((item) => item.left < -1 || item.right > clientWidth + 1)
-        .sort((a, b) => Math.max(b.right - clientWidth, -b.left) - Math.max(a.right - clientWidth, -a.left))
-        .slice(0, 12);
+      };
+      const offenders = Array.from(document.querySelectorAll('body *')).map(describe)
+        .filter((item) => item.left < -1 || item.right > clientWidth + 1 || item.scrollWidth > item.clientWidth + 1)
+        .sort((a, b) => Math.max(b.right - clientWidth, b.scrollWidth - b.clientWidth, -b.left) - Math.max(a.right - clientWidth, a.scrollWidth - a.clientWidth, -a.left))
+        .slice(0, 18);
+      const isolation = Array.from(document.querySelectorAll('body > *, body > main > *')).map((node) => {
+        const cssText = node.style.cssText;
+        node.style.setProperty('display', 'none', 'important');
+        const without = root.scrollWidth;
+        node.style.cssText = cssText;
+        return { ...describe(node), without, reduction: originalScrollWidth - without };
+      }).filter((item) => item.reduction > 0).sort((a, b) => b.reduction - a.reduction);
+      const pseudo = [body, ...Array.from(document.querySelectorAll('body > *, body > main > *'))].flatMap((node) => ['::before', '::after'].map((which) => {
+        const style = getComputedStyle(node, which);
+        return {
+          owner: `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}${typeof node.className === 'string' && node.className ? `.${node.className.trim().split(/\s+/).join('.')}` : ''}`,
+          which,
+          content: style.content,
+          display: style.display,
+          position: style.position,
+          width: style.width,
+          left: style.left,
+          right: style.right,
+          transform: style.transform,
+          boxShadow: style.boxShadow,
+        };
+      })).filter((item) => item.content && item.content !== 'none' && item.content !== 'normal');
       return {
-        scrollWidth: document.documentElement.scrollWidth,
+        scrollWidth: originalScrollWidth,
+        bodyScrollWidth: body.scrollWidth,
         clientWidth,
+        innerWidth: window.innerWidth,
+        rootRect: describe(root),
+        bodyRect: describe(body),
         incompleteImages: Array.from(document.images).filter((image) => !image.complete || image.naturalWidth === 0).length,
         offenders,
+        isolation,
+        pseudo,
       };
     });
     assert.equal(
       geometry.scrollWidth > geometry.clientWidth + 1,
       false,
-      `horizontal overflow ${geometry.scrollWidth}/${geometry.clientWidth}: ${JSON.stringify(geometry.offenders)}`
+      `horizontal overflow ${geometry.scrollWidth}/${geometry.clientWidth}: ${JSON.stringify({ body: geometry.bodyRect, offenders: geometry.offenders, isolation: geometry.isolation, pseudo: geometry.pseudo })}`
     );
     assert.equal(geometry.incompleteImages, 0);
     await page.screenshot({ path: path.join(PROOF_ROOT, '02-zero-activity-public.png'), fullPage: true });
