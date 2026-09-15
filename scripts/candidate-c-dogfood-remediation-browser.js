@@ -128,7 +128,7 @@ async function main() {
     assert.equal(store.snapshot(SLUG).draft.activities.length, 0, 'Fourth Street qualification invented an Activity');
     await capture(page, '01-created-studio.png', 'created-studio', evidence);
 
-    await page.getByRole('link', { name: 'Content & visit' }).click();
+    await page.getByRole('link', { name: 'Content & visit', exact: true }).click();
     await page.locator('[name="summary"]').fill('A neighborhood bar in Reno with a real local atmosphere and a community that keeps the conversation going online.');
     await page.locator('[name="purpose"]').fill('Come by in Reno or browse the public conversation on Hive.');
     await page.locator('[name="presenceMaterial"]').fill('Candid photographs from the pool table, the bar, and the East 4th Street entrance.');
