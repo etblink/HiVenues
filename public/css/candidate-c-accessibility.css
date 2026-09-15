@@ -63,6 +63,19 @@
   color: #b8c1cb;
 }
 
+/* Some established Studio components intentionally use light paper cards.
+   Inside the new dark contextual sheet they must establish their own ink rather
+   than inherit the sheet's light foreground. */
+.cc-studio-body .cc-studio-inspector .cc-consequence-truth,
+.cc-studio-body .cc-studio-inspector .cc-release-row {
+  color: #2f3338;
+}
+
+.cc-studio-body .cc-studio-inspector .cc-release-row small,
+.cc-studio-body .cc-studio-inspector .cc-consequence-truth small {
+  color: #555b62;
+}
+
 /* Poster: the #272 activity band and offer surface invert the older palette.
    Keep copy and links on the correct side of that inversion. */
 .cc-public.cc-poster .cc-poster-night__body p,
