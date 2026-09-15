@@ -182,7 +182,7 @@ test('public-ingress default cookie is Secure when HTTPS is represented by the t
     .set('Host', 'dogfood.example')
     .set('X-Forwarded-Proto', 'https')
     .set('Origin', 'https://dogfood.example')
-    .type('form').send({ accessSecret }).expect(303);
+    .type('form').send({ accessSecret: secret }).expect(303);
   assert.match(response.headers['set-cookie'][0], /Secure/i);
 });
 
