@@ -133,11 +133,16 @@ class CandidateCHiveIntegrationService {
   }
 
   async verify({ challengeId, account: accountValue, publicKey, signature, slug, origin }) {
-    this.prune();
     const account = requireHiveAccount(accountValue);
     const id = String(challengeId || '');
     const challenge = this.challenges.get(id);
+
+    // Consume the selected challenge exactly once before validating it. Do not
+    // prune it first: an expired challenge is a distinct, user-actionable state
+    // from an unknown or replayed challenge and #276 requires that distinction.
     this.challenges.delete(id);
+    this.prune();
+
     if (!challenge) {
       throw new AuthenticationError('This Hive verification request is invalid or has already been used.', {
         code: 'AUTH_CHALLENGE_INVALID',
