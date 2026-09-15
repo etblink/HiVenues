@@ -53,6 +53,7 @@ function createDogfoodApp({ store, publicIngress = false, accessSecret = '', sec
   app.set('trust proxy', 'loopback');
   app.set('views', path.join(root, 'views'));
   app.set('view engine', 'ejs');
+  app.use(express.json({ limit: '12mb', type: 'application/json' }));
   app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
   // The access page may use Candidate C styling. Product media and routes remain gated.
