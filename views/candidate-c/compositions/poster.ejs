@@ -68,7 +68,7 @@
           </div>
           <div class="cc-poster-visit__facts">
             <% if (graph.facts.presence.address) { %><p><strong>Address</strong><br><%= graph.facts.presence.address %></p><% } %>
-            <p><strong>Contact</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+            <p><strong>Contact</strong><br><% if (contact.href) { %><a href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p>
           </div>
         </section>
       <% } %>
@@ -78,7 +78,7 @@
           <p class="cc-kicker">From <%= graph.identity.displayName %></p>
           <h2><%= graph.offers[0].title %></h2>
           <p><%= graph.offers[0].summary %></p>
-          <a class="cc-link cc-link--light" href="mailto:<%= graph.facts.contact %>">Ask about <%= graph.offers[0].title %></a>
+          <% if (contact.href) { %><a class="cc-link cc-link--light" href="<%= contact.href %>">Ask about <%= graph.offers[0].title %></a><% } %>
         </section>
       <% } %>
     <% }) %>
