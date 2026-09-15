@@ -68,15 +68,16 @@ async function main() {
   const store = new ProvisioningFileCandidateCStore({ statePath });
   // Initialize or validate the durable envelope before opening a listener.
   store.list();
+  const commit = gitValue(['rev-parse', 'HEAD']);
+  const tree = gitValue(['rev-parse', 'HEAD^{tree}']);
   const app = createDogfoodApp({
     store,
     publicIngress: options.publicIngress,
     accessSecret: process.env.CANDIDATE_C_DOGFOOD_ACCESS_SECRET || '',
+    provenance: { commit, tree },
   });
   const server = await startDogfoodServer(app, { port: options.port });
   const port = server.address().port;
-  const commit = gitValue(['rev-parse', 'HEAD']);
-  const tree = gitValue(['rev-parse', 'HEAD^{tree}']);
 
   console.log('Candidate C dogfood launcher');
   console.log(`Source commit: ${commit}`);
@@ -85,6 +86,7 @@ async function main() {
   console.log(`State:         ${statePath}`);
   console.log(`Places:        http://${DOGFOOD_HOST}:${port}/candidate-c`);
   console.log(`Create:        http://${DOGFOOD_HOST}:${port}/candidate-c/new`);
+  console.log(`Build proof:   http://${DOGFOOD_HOST}:${port}/__dogfood/build`);
   console.log(`Ingress gate:  ${options.publicIngress ? 'ENABLED (temporary dogfood only)' : 'disabled (loopback only)'}`);
   if (options.publicIngress) {
     console.log(`Tunnel target: http://${DOGFOOD_HOST}:${port}`);
