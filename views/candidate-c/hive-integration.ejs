@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="/css/candidate-c-hive.css">
 </head>
 <body class="cc-studio-body">
-  <main class="cc-hive-shell" data-hive-integration data-slug="<%= graph.identity.slug %>">
+  <main class="cc-hive-shell" data-hive-integration data-hive-base="/candidate-c/studio/<%= graph.identity.slug %>/hive">
     <header class="cc-hive-topbar">
       <div>
         <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">← Back to Studio</a>
@@ -104,6 +104,6 @@ This place is being shaped with HiVenues.</textarea>
   </main>
 
   <script src="/js/keychain-adapter.js" defer></script>
-  <script src="/js/candidate-c-hive.js" defer></script>
+  <script src="/js/hive-integration.js" defer></script>
 </body>
 </html>
