@@ -66,6 +66,7 @@ async function main() {
   const accessibility = [];
   const externalRequests = [];
   const consoleErrors = [];
+  const expectedConflictDiagnostics = [];
 
   function observe(page) {
     page.on('request', (request) => {
@@ -73,7 +74,12 @@ async function main() {
       if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:') && !url.startsWith('about:')) externalRequests.push(url);
     });
     page.on('pageerror', (error) => consoleErrors.push({ type: 'pageerror', text: error.message }));
-    page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push({ type: 'console', text: message.text() }); });
+    page.on('console', (message) => {
+      if (message.type() !== 'error') return;
+      const text = message.text();
+      if (/409|Response Status Error Code 409/i.test(text)) expectedConflictDiagnostics.push(text);
+      else consoleErrors.push({ type: 'console', text });
+    });
   }
 
   async function gotoOk(page, pathname) {
@@ -182,6 +188,7 @@ async function main() {
       incompleteImageFindings: geometry.reduce((sum, item) => sum + item.incompleteImages, 0),
       externalRequests: externalRequests.length,
       unexpectedConsoleErrors: consoleErrors.length,
+      expectedConflictDiagnostics: expectedConflictDiagnostics.length,
       hiveRpcAttempts: diagnostics.external.hiveRpcAttempts,
       hiveWrites: diagnostics.external.hiveWrites,
       providerWrites: diagnostics.external.providerWrites,
@@ -194,6 +201,7 @@ async function main() {
     assert.equal(summary.incompleteImageFindings, 0);
     assert.equal(summary.externalRequests, 0, JSON.stringify(externalRequests));
     assert.equal(summary.unexpectedConsoleErrors, 0, JSON.stringify(consoleErrors));
+    assert.equal(summary.expectedConflictDiagnostics, 1, JSON.stringify(expectedConflictDiagnostics));
     assert.deepEqual(diagnostics.external, { hiveRpcAttempts: 0, hiveWrites: 0, providerWrites: 0, payments: 0, signingAttempts: 0, deployments: 0 });
 
     const manifest = {
@@ -205,6 +213,7 @@ async function main() {
       accessibility,
       externalRequests,
       consoleErrors,
+      expectedConflictDiagnostics,
       diagnostics,
       summary,
       proof: {
