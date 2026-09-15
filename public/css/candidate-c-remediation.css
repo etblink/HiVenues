@@ -14,6 +14,14 @@
   border-color: #1d1b18;
 }
 
+/* Hospitality actions retain the host accent as an edge while mixing the fill with ink.
+   Across the bounded accent palette this keeps the cream action label above AA contrast. */
+.cc-button--hospitality {
+  background: color-mix(in srgb, var(--cc-accent, #a65337) 50%, #1b100c);
+  border-color: var(--cc-accent, #a65337);
+  color: #fff8ef;
+}
+
 /* Hospitality positioned its single media chip in the lower-right corner. Preserve focal editing and place the new replacement action on a separate hit target instead of stacking both controls. */
 .cc-canvas-hospitality__media > button.cc-edit-chip { bottom: 4.75rem; }
 
