@@ -137,6 +137,22 @@
   max-width: 100%;
 }
 
+/* At desktop widths the media remains the larger visual field, but the copy
+   column must not collapse below a usable text measure. The former 1.55/.45
+   real-media split left fewer than 300px after padding at common laptop widths,
+   so ordinary truthful words expanded the document itself. */
+@media (min-width: 981px) {
+  .cc-public.cc-hospitality .cc-hospitality-hero,
+  .cc-public.cc-hospitality.cc-public--real-media .cc-hospitality-hero {
+    grid-template-columns: minmax(0, 3fr) minmax(420px, 2fr);
+  }
+
+  .cc-public.cc-hospitality .cc-hospitality-hero__copy {
+    padding-left: clamp(28px, 3vw, 52px);
+    padding-right: clamp(28px, 3vw, 52px);
+  }
+}
+
 .cc-public.cc-hospitality .cc-hospitality-dish__category {
   color: #685649;
 }
