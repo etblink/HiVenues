@@ -89,7 +89,8 @@ test('Astra beta adversarial: cancelled Hospitality state cannot present as NEXT
   assert.equal(store.createRelease(slug, state.revision, state.draftDigest).ok, true);
 
   const home = await request(app).get(`/candidate-c/${slug}`).expect(200);
-  assert.match(home.text, />CANCELLED</);
+  assert.match(home.text, /data-activity-status="cancelled"/);
+  assert.match(home.text, /<strong>Cancelled<\/strong>/);
   assert.doesNotMatch(home.text, />NEXT</);
   const activity = store.publicSnapshot(slug).draft.activities[0];
   const detail = await request(app).get(`/candidate-c/${slug}/activities/${activity.slug}`).expect(200);
