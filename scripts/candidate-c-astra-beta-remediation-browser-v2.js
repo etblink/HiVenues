@@ -530,7 +530,8 @@ async function main() {
 
     await page.goto(`${origin}/candidate-c/${SLUG}`, { waitUntil: 'networkidle' });
     const cancelledBody = await page.locator('body').textContent();
-    assert.match(cancelledBody, /CANCELLED/);
+    assert.equal(await page.locator('[data-activity-status="cancelled"]').count(), 1);
+    assert.match(cancelledBody, /Cancelled/i);
     assert.doesNotMatch(cancelledBody, /\bNEXT\b/);
     assert.doesNotMatch(cancelledBody, new RegExp(UNPUBLISHED));
     await capture(page, '12-cancelled-urgent-public.png', 'cancelled-urgent-public', evidence);
