@@ -7,8 +7,11 @@ const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
 const { createDogfoodApp } = require('../src/candidate-c/dogfood-app');
+const { MAX_MULTIPART_BYTES } = require('../src/candidate-c/local-media');
 const { contactFor } = require('../src/candidate-c/present');
 const { ProvisioningFileCandidateCStore } = require('../src/candidate-c/provisioning-file-store');
+
+const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=', 'base64');
 
 function runtime(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-astra-adversarial-'));
@@ -124,4 +127,41 @@ test('Astra beta adversarial: urgent execution from a superseded live Release fa
   assert.equal(stale.reason, 'STALE_LIVE_RELEASE');
   assert.equal(store.publicSnapshot(slug).liveReleaseId, advancedLive);
   assert.equal(store.publicSnapshot(slug).draft.activities.find((item) => item.id === activity.id).lifecycle, 'scheduled');
+});
+
+test('Astra beta adversarial: active durable media root serves imported bytes before and after a safe oversized rejection', async (t) => {
+  const { store, app } = runtime(t);
+  const slug = 'harbor-and-hearth';
+  let state = store.snapshot(slug);
+
+  await request(app)
+    .post(`/candidate-c/studio/${slug}/media-import`)
+    .field('expectedRevision', String(state.revision))
+    .field('expectedDraftDigest', state.draftDigest)
+    .field('role', 'hero')
+    .field('alt', 'Synthetic durable media proof')
+    .attach('image', PNG_1X1, { filename: 'durable.png', contentType: 'image/png' })
+    .expect(303);
+
+  state = store.snapshot(slug);
+  const hero = state.draft.media.find((item) => item.id !== `media-${slug}-logo`);
+  assert(hero.asset?.path);
+  const served = await request(app).get(hero.asset.path).expect(200).expect('Content-Type', /image\/png/);
+  assert.equal(Buffer.compare(served.body, PNG_1X1), 0);
+
+  const beforeRejected = store.snapshot(slug);
+  await request(app)
+    .post(`/candidate-c/studio/${slug}/media-import`)
+    .field('expectedRevision', String(beforeRejected.revision))
+    .field('expectedDraftDigest', beforeRejected.draftDigest)
+    .field('role', 'hero')
+    .field('alt', 'Oversized durable media proof')
+    .attach('image', Buffer.alloc(MAX_MULTIPART_BYTES + 1024, 0x41), { filename: 'oversized.png', contentType: 'image/png' })
+    .expect(413)
+    .expect(/larger than the 8 MiB limit/i);
+
+  assert.equal(store.snapshot(slug).revision, beforeRejected.revision);
+  assert.equal(store.snapshot(slug).draftDigest, beforeRejected.draftDigest);
+  const servedAfter = await request(app).get(hero.asset.path).expect(200).expect('Content-Type', /image\/png/);
+  assert.equal(Buffer.compare(servedAfter.body, PNG_1X1), 0);
 });
