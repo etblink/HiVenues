@@ -112,7 +112,7 @@ test('ordinary HTMX edit is one server revision with coherent OOB canvas/status 
       description: 'This must not land.',
     })
     .expect(409)
-    .expect(/newer draft exists/i);
+    .expect(/newer version exists/i);
 
   assert.equal(store.snapshot('northline-hall').revision, 2);
   assert.equal(store.snapshot('northline-hall').draft.activities[0].title, 'Friday Night Assembly — Hand Edited');
@@ -220,7 +220,7 @@ test('Studio is server-rendered, current-revision aware and uses one transient-o
   assert.match(studio.text, /data-revision="1"/);
   assert.match(studio.text, /src="\/htmx\/htmx\.min\.js"/);
   assert.match(studio.text, /src="\/js\/candidate-c-studio\.js"/);
-  assert.match(studio.text, /Real rendered canvas/);
+  assert.match(studio.text, /Site preview · Poster room/);
   assert.match(studio.text, /Review release/);
   assert.match(studio.text, /Page/);
   assert.match(studio.text, /Activities/);
