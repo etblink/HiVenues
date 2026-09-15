@@ -5,7 +5,7 @@
 </head>
 <body class="cc-public cc-hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-hospitality-nav">
-    <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <p><%= graph.facts.presence.label %></p>
     <nav aria-label="Primary">
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
@@ -19,8 +19,8 @@
       <% if (section === 'hero') { %>
         <section class="cc-hospitality-hero" aria-labelledby="cc-hospitality-title">
           <div class="cc-hospitality-hero__media">
-            <%- include('../_art', { media: media[0], graph }) %>
-            <p class="cc-hospitality-caption"><%= media[0].provenance %><%= media[0].asset ? ` · ${media[0].asset.width}×${media[0].asset.height}` : '' %></p>
+            <%- include('../_art', { media: heroMedia, graph }) %>
+            <% if (heroMedia.kind !== 'bootstrap-art' && heroMedia.provenance) { %><p class="cc-hospitality-caption"><%= heroMedia.provenance %></p><% } %>
           </div>
           <div class="cc-hospitality-hero__copy">
             <p class="cc-kicker"><%= graph.identity.archetype %></p>
