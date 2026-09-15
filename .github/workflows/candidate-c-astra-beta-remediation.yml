@@ -8,6 +8,7 @@ on:
       - 'public/css/candidate-c*.css'
       - 'public/js/candidate-c-studio.js'
       - 'scripts/candidate-c-astra-beta-remediation-browser.js'
+      - 'scripts/candidate-c-astra-beta-remediation-browser-v2.js'
       - 'scripts/candidate-c-dogfood.js'
       - 'test/candidate-c-astra-beta-remediation*.test.js'
       - '.github/workflows/candidate-c-astra-beta-remediation.yml'
@@ -53,7 +54,7 @@ jobs:
       - name: Run synthetic product-wide remediation browser proof
         env:
           CANDIDATE_C_ASTRA_BETA_REMEDIATION_ROOT: artifacts/candidate-c-astra-beta-remediation
-        run: node scripts/candidate-c-astra-beta-remediation-browser.js
+        run: node scripts/candidate-c-astra-beta-remediation-browser-v2.js
       - name: Publish Astra beta remediation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -73,22 +74,27 @@ jobs:
           console.log('');
           console.log(`- Exact candidate: ${manifest.candidate}`);
           console.log(`- Exact tree: ${manifest.tree}`);
-          console.log(`- Synthetic fixture: ${manifest.fixture.slug}`);
+          console.log(`- Synthetic fixtures: ${manifest.fixture.slug}, ${manifest.fixture.secondarySlug}`);
           console.log(`- Screenshots: ${manifest.summary.screenshotCount}`);
           console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
           console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
           console.log(`- Incomplete images: ${manifest.summary.incompleteImageFindings}`);
           console.log(`- External product requests: ${manifest.summary.externalRequests}`);
           console.log(`- Unexpected console/page errors: ${manifest.summary.unexpectedConsoleErrors}`);
-          console.log(`- Existing Activity reschedule identity preserved: ${manifest.proof.reschedule.activityIdPreserved}`);
-          console.log(`- ICS captured: ${manifest.proof.reschedule.icsCaptured}`);
-          console.log(`- Cross-Direction parity families: ${manifest.proof.parity.families.join(', ')}`);
-          console.log(`- Oversized-media safe product failure: ${manifest.proof.safeOversizedMedia}`);
-          console.log(`- Quick/deep Contact parity: ${manifest.proof.quickDeepContact}`);
+          console.log(`- Existing Activity identity preserved: ${manifest.proof.reschedule.activityIdPreserved}`);
+          console.log(`- Scheduled + cancelled ICS captured: ${manifest.proof.reschedule.scheduledIcsCaptured}/${manifest.proof.reschedule.cancelledIcsCaptured}`);
+          console.log(`- Cross-Direction parity: ${manifest.proof.parity.families.join(', ')}`);
+          console.log(`- Oversized valid PNG safe failure: ${manifest.proof.safeOversizedValidPng}`);
+          console.log(`- Malformed media safe failure: ${manifest.proof.safeMalformedMedia}`);
+          console.log(`- Contact classes through Quick + deep: ${manifest.proof.contactClassesThroughQuickAndDeep.map((item) => item.kind).join(', ')}`);
           console.log(`- Quick/deep Look Bar Gold parity: ${manifest.proof.quickDeepLookBarGold}`);
+          console.log(`- Completed + cancelled lifecycle: ${manifest.proof.completedAndCancelledLifecycle}`);
           console.log(`- Restore preserved live site: ${manifest.proof.restoreDidNotChangeLive}`);
           console.log(`- Stale Release rejected: ${manifest.proof.staleReleaseRejected}`);
-          console.log(`- Restart persistence: ${manifest.proof.restartPersisted}`);
+          console.log(`- Stale urgent rejected: ${manifest.proof.staleUrgentRejected}`);
+          console.log(`- Urgent preserved unrelated draft: ${manifest.proof.urgentPreservedUnpublishedDraft}`);
+          console.log(`- Multi-host restart persistence: ${manifest.proof.restart.persisted}/${manifest.proof.restart.multiHost}`);
+          console.log(`- Persisted RSVP/media/logo/focal: ${manifest.proof.restart.rsvps}/${manifest.proof.restart.heroSha256}/${manifest.proof.restart.logoSha256}/${JSON.stringify(manifest.proof.restart.focal)}`);
           console.log(`- Native 390px public + Studio proof: ${manifest.proof.native390PublicAndStudio}`);
           console.log(`- External effects: ${JSON.stringify(manifest.proof.external)}`);
           NODE
