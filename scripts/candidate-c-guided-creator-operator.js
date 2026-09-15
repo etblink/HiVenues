@@ -51,7 +51,8 @@ async function fillParticipation(page, values) {
   const activity = values.activity;
   if (!activity) return;
   const optional = page.locator('details.cc-creator-optional');
-  if (!(await optional.getAttribute('open'))) await optional.locator('summary').click();
+  if (!(await optional.evaluate((node) => node.open))) await optional.locator('summary').click();
+  assert.equal(await optional.evaluate((node) => node.open), true, 'optional Activity fields did not open');
   await page.locator('[name="activityTitle"]').fill(activity.title);
   await page.locator('[name="activityDescription"]').fill(activity.description);
   await page.locator('[name="activityStartsLocal"]').fill(activity.startsLocal);
