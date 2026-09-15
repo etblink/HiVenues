@@ -37,7 +37,9 @@ test('Workstream F: Candidate C ships exactly one bounded custom client island a
   assert.ok(lines < 150, `island grew to ${lines} lines`);
   assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB/);
   assert.match(source, /durableStateMirror: false/);
-  // The only fetch is the pageshow reconcile against the current document URL.
+  // The Candidate C island itself remains presentation-only except for the
+  // pageshow reconcile. Hive wallet/network behavior lives in the shared
+  // platform Keychain integration modules, not a second Candidate C island.
   assert.equal((source.match(/fetch\(/g) || []).length, 1);
   assert.match(source, /fetch\(window\.location\.href/);
 
@@ -49,7 +51,13 @@ test('Workstream F: Candidate C ships exactly one bounded custom client island a
     assert.doesNotMatch(view, /<script(?![^>]*src=)[^>]*>/, `${path.relative(ROOT, file)} has an inline script`);
     assert.doesNotMatch(view, /\son[a-z]+=|hx-on/, `${path.relative(ROOT, file)} has an inline handler`);
     const scripts = view.match(/<script[^>]*src="([^"]+)"/g) || [];
-    for (const tag of scripts) assert.match(tag, /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js/, `${path.relative(ROOT, file)}: ${tag}`);
+    const hiveIntegrationView = path.basename(file) === 'hive-integration.ejs';
+    for (const tag of scripts) {
+      const allowed = hiveIntegrationView
+        ? /\/js\/(keychain-adapter|hive-integration)\.js/.test(tag)
+        : /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js/.test(tag);
+      assert.equal(allowed, true, `${path.relative(ROOT, file)}: ${tag}`);
+    }
   }
 });
 
