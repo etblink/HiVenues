@@ -8,4 +8,5 @@
     <%- include('../compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
   <% } %>
 </div>
+<iframe id="cc-full-preview-frame" hx-swap-oob="outerHTML" title="Complete visitor-facing draft preview" src="/candidate-c/studio/<%= graph.identity.slug %>/preview?r=<%= revision %>" loading="eager"></iframe>
 <%- include('inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>
