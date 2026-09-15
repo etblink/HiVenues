@@ -1,4 +1,4 @@
-# exact-blob-audited retry
+# non-workflow publication pass; browser workflow applied separately by connector
 name: Project Lead Apply Candidate C r3
 
 on:
@@ -23,13 +23,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Reconstruct and publish exact Project Lead r3 tree
+      - name: Reconstruct and publish non-workflow portion of Project Lead r3
         shell: bash
         run: |
           set -euo pipefail
 
           D_FREEZE=3083ef2f1e35ec1517157a3141c1c5df33da8aff
-          EXPECTED_TREE=954e988c3252f87e5fa17bb2598c6ac2ffadf829
+          EXPECTED_INTERMEDIATE_TREE=919009a6af62f414d40cb8d5d6532874a021481e
           EXPECTED_GZIP_SHA=949f0526577e0e8d020d8087fa99ba9d8c955d9505fb9711941be50eafbd2895
           EXPECTED_PATCH_SHA=aa86e7065614575bcc3ec54903b60fad77196fbfa1f3a82a97c6306f604eaa1b
 
@@ -54,15 +54,20 @@ jobs:
           git apply --check /tmp/r3.patch
           git apply /tmp/r3.patch
 
+          # GitHub's Actions token may not modify workflow files. Keep the D workflow
+          # byte-for-byte for this push; the connector will apply the audited r3
+          # workflow blob in a second commit with workflows:write permission.
+          git checkout "$D_FREEZE" -- .github/workflows/candidate-c-phase2b-browser.yml
+
           rm -rf project-lead-r3
           rm .github/workflows/project-lead-apply-r3.yml
           git add -A
 
           tree="$(git write-tree)"
-          echo "candidate_tree=$tree"
-          test "$tree" = "$EXPECTED_TREE"
+          echo "intermediate_candidate_tree=$tree"
+          test "$tree" = "$EXPECTED_INTERMEDIATE_TREE"
 
           git config user.name 'HiVenues Project Lead'
           git config user.email '30190328+etblink@users.noreply.github.com'
-          git commit -m 'Candidate C 2B: publish Project Lead r3 exact tree'
+          git commit -m 'Candidate C 2B: publish Project Lead r3 source tree except browser workflow'
           git push origin HEAD:candidate-c/phase2b-ef-fable
