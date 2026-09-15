@@ -112,7 +112,7 @@ async function main() {
         return { ...describe(node), without, reduction: originalScrollWidth - without };
       }).filter((item) => item.reduction > 0).sort((a, b) => b.reduction - a.reduction);
       const pseudo = [body, ...Array.from(document.querySelectorAll('body > *, body > main > *'))].flatMap((node) => ['::before', '::after'].map((which) => {
-        const style = getComputedStyle(node, which);
+        const style = window.getComputedStyle(node, which);
         return {
           owner: `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ''}${typeof node.className === 'string' && node.className ? `.${node.className.trim().split(/\s+/).join('.')}` : ''}`,
           which,
