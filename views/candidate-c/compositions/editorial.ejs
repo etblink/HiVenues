@@ -63,7 +63,7 @@
           <div>
             <h2><%= graph.offers[0].title %></h2>
             <p><%= graph.offers[0].summary %></p>
-            <a class="cc-link" href="mailto:<%= graph.facts.contact %>">Ask about <%= graph.offers[0].title %></a>
+            <% if (contact.href) { %><a class="cc-link" href="<%= contact.href %>">Ask about <%= graph.offers[0].title %></a><% } %>
           </div>
         </section>
       <% } %>
@@ -74,7 +74,7 @@
           <div>
             <h2><%= graph.facts.presence.label %></h2>
             <p><%= graph.intent.purpose %></p>
-            <a class="cc-link" href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a>
+            <% if (contact.href) { %><a class="cc-link" href="<%= contact.href %>"><%= contact.label %></a><% } else { %><p><%= contact.label %></p><% } %>
           </div>
         </section>
       <% } %>
