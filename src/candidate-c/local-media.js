@@ -7,6 +7,8 @@ const path = require('node:path');
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 12000;
 const MAX_IMAGE_PIXELS = 50_000_000;
+const MAX_MULTIPART_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
+const MULTIPART_FIELDS = new Set(['expectedRevision', 'expectedDraftDigest', 'role', 'alt', 'caption']);
 
 function mediaError(code, message) {
   const error = new Error(message);
@@ -69,12 +71,49 @@ function inspectImage(buffer) {
   };
 }
 
-function decodeImagePayload(payload) {
-  const encoded = String(payload || '');
-  if (!encoded || encoded.length > Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 32) throw mediaError('MEDIA_PAYLOAD_INVALID', 'Image payload is missing or too large.');
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw mediaError('MEDIA_PAYLOAD_INVALID', 'Image payload is not valid base64.');
-  const buffer = Buffer.from(encoded, 'base64');
-  return { buffer, inspection: inspectImage(buffer) };
+function parseMultipartForm(body, contentType) {
+  if (!Buffer.isBuffer(body) || body.length === 0 || body.length > MAX_MULTIPART_BYTES) {
+    throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form payload is missing or too large.');
+  }
+  const match = /^multipart\/form-data\s*;\s*boundary=(?:"([^"]+)"|([^;\s]+))/i.exec(String(contentType || ''));
+  const boundary = match ? (match[1] || match[2]) : '';
+  if (!/^[A-Za-z0-9'()+_,.\/:=?-]{1,70}$/.test(boundary)) {
+    throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form boundary is invalid.');
+  }
+
+  const marker = `--${boundary}`;
+  const raw = body.toString('latin1');
+  if (!raw.startsWith(marker) || !raw.includes(`${marker}--`)) throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form is incomplete.');
+  const chunks = raw.split(marker).slice(1, -1);
+  const fields = {};
+  let imageBuffer = null;
+
+  for (let chunk of chunks) {
+    if (chunk.startsWith('\r\n')) chunk = chunk.slice(2);
+    if (chunk.endsWith('\r\n')) chunk = chunk.slice(0, -2);
+    const headerEnd = chunk.indexOf('\r\n\r\n');
+    if (headerEnd < 0) throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form part is malformed.');
+    const headers = chunk.slice(0, headerEnd);
+    const value = Buffer.from(chunk.slice(headerEnd + 4), 'latin1');
+    const disposition = headers.split('\r\n').find((line) => /^content-disposition:/i.test(line)) || '';
+    const nameMatch = /\bname="([^"]+)"/i.exec(disposition);
+    if (!nameMatch) throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form part has no field name.');
+    const name = nameMatch[1];
+    const filenameMatch = /\bfilename="([^"]*)"/i.exec(disposition);
+
+    if (name === 'image') {
+      if (!filenameMatch || imageBuffer) throw mediaError('MEDIA_MULTIPART_INVALID', 'Provide exactly one image file.');
+      imageBuffer = value;
+      continue;
+    }
+    if (!MULTIPART_FIELDS.has(name) || filenameMatch || Object.hasOwn(fields, name) || value.length > 4096) {
+      throw mediaError('MEDIA_MULTIPART_INVALID', 'Media form contains unexpected or duplicate authority.');
+    }
+    fields[name] = value.toString('utf8');
+  }
+
+  if (!imageBuffer) throw mediaError('MEDIA_EMPTY', 'Choose a JPEG or PNG image.');
+  return { fields, imageBuffer, inspection: inspectImage(imageBuffer) };
 }
 
 function defaultLocalMediaRoot() {
@@ -109,9 +148,10 @@ function removeLocalImageIfNew(record) {
 
 module.exports = {
   MAX_IMAGE_BYTES,
-  decodeImagePayload,
+  MAX_MULTIPART_BYTES,
   defaultLocalMediaRoot,
   inspectImage,
+  parseMultipartForm,
   persistLocalImage,
   removeLocalImageIfNew,
 };
