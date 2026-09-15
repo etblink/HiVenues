@@ -129,7 +129,7 @@ async function main() {
     await desktop.getByRole('button', { name: 'Voice' }).click();
     await desktop.locator('#candidate-inspector').getByText('Save a seat', { exact: true }).waitFor();
     assert.match(await desktop.locator('#candidate-inspector').textContent(), /Save a seat/);
-    await desktop.locator('#candidate-inspector').getByRole('button', { name: 'Edit' }).first().click();
+    await desktop.locator('#candidate-inspector').getByRole('button', { name: 'Edit', exact: true }).first().click();
     await desktop.locator('#cc-voice-term').fill('Keep me a seat');
     const voiceResponse = desktop.waitForResponse((response) => response.url().endsWith('/candidate-c/studio/harbor-and-hearth/voice') && response.request().method() === 'POST');
     await desktop.getByRole('button', { name: 'Save wording' }).click();
