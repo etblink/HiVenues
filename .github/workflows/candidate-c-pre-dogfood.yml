@@ -1,0 +1,80 @@
+name: Candidate C Pre-Dogfood Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'src/candidate-c/**'
+      - 'views/candidate-c/**'
+      - 'scripts/candidate-c-dogfood.js'
+      - 'scripts/candidate-c-pre-dogfood-browser.js'
+      - 'test/candidate-c-pre-dogfood.test.js'
+      - 'package.json'
+      - '.github/workflows/candidate-c-pre-dogfood.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-pre-dogfood-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Fresh-host + secure launcher qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Run deterministic pre-dogfood contracts
+        run: node --test --test-concurrency=1 test/candidate-c-pre-dogfood.test.js
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run Chromium fresh-host + restart + urgent qualification
+        env:
+          CANDIDATE_C_PRE_DOGFOOD_REVIEW_ROOT: artifacts/candidate-c-pre-dogfood-review
+          CANDIDATE_C_PRE_DOGFOOD_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-pre-dogfood-browser.js
+      - name: Publish pre-dogfood evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-pre-dogfood-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-pre-dogfood-review
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Summarize pre-dogfood evidence
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('artifacts/candidate-c-pre-dogfood-review/manifest.json', 'utf8'));
+          console.log('## Candidate C pre-dogfood qualification');
+          console.log('');
+          console.log(`- Exact candidate: ${manifest.candidate}`);
+          console.log(`- Screenshots: ${manifest.summary.screenshotCount}`);
+          console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
+          console.log(`- Incomplete images: ${manifest.summary.incompleteImageFindings}`);
+          console.log(`- External requests: ${manifest.summary.externalRequests}`);
+          console.log(`- Unexpected console/page errors: ${manifest.summary.unexpectedConsoleErrors}`);
+          console.log(`- New host: ${manifest.proof.slug} · revision ${manifest.proof.revision}`);
+          console.log(`- Restart proof: ${manifest.proof.activityLifecycleAfterRestart} · live ${manifest.proof.liveReleaseKind} release ${manifest.proof.liveReleaseId}`);
+          console.log(`- Access secret persisted: ${manifest.proof.accessSecretPersisted}`);
+          console.log(`- Hive RPC attempts/writes: ${manifest.summary.hiveRpcAttempts}/${manifest.summary.hiveWrites}`);
+          console.log(`- Provider/payment/signing/deployment effects: ${manifest.summary.providerWrites}/${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
+          NODE
