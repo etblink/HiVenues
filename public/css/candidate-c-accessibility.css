@@ -82,6 +82,38 @@
   transition-delay: 0s;
 }
 
+/* Close and Undo are contextual-sheet utilities, not browser-default buttons.
+   Keep them deliberately quieter than the primary Save action while preserving
+   a 44px target, explicit contrast and a visible interaction state. */
+.cc-studio-body .cc-studio-inspector button.cc-link {
+  appearance: none;
+  min-height: 44px;
+  padding: .62rem .78rem;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .055);
+  color: #dce3ea;
+  cursor: pointer;
+  font-size: .78rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.cc-studio-body .cc-studio-inspector button.cc-link:hover,
+.cc-studio-body .cc-studio-inspector button.cc-link:focus-visible {
+  background: rgba(255, 255, 255, .11);
+  border-color: rgba(255, 255, 255, .32);
+  color: #fff;
+}
+
+.cc-studio-body .cc-studio-inspector > button.cc-link[data-close-inspector] {
+  margin: 0 0 .55rem;
+}
+
+.cc-studio-body .cc-studio-inspector form > button.cc-link[type='submit'] {
+  color: #bfc8d2;
+}
+
 /* Established Studio cards intentionally use light paper. Inside the new dark
    contextual sheet they must establish their own ink rather than inherit the
    sheet's light foreground. */
