@@ -67,6 +67,21 @@
   color: #aeb7c1;
 }
 
+/* Closing context used to tween the entire dark sheet through partial opacity
+   while it remained visible for its slide transition. That briefly blended the
+   sheet with the light canvas and pushed otherwise-valid text below contrast
+   thresholds. Keep the slide, but change opacity discretely so no readable
+   intermediate frame can enter a low-contrast state. */
+.cc-studio-body .cc-studio-inspector {
+  transition:
+    transform 180ms ease,
+    visibility 0s linear 180ms;
+}
+
+.cc-studio-body .cc-studio-inspector[data-open='true'] {
+  transition-delay: 0s;
+}
+
 /* Established Studio cards intentionally use light paper. Inside the new dark
    contextual sheet they must establish their own ink rather than inherit the
    sheet's light foreground. */
