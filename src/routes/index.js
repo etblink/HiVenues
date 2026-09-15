@@ -1,11 +1,17 @@
 'use strict';
 
+const path = require('node:path');
 const express = require('express');
 const { loadHomeReadModel } = require('../home/read-model');
+const { FileCandidateCStore } = require('../candidate-c/file-store');
 const { createCandidateCRouter } = require('../candidate-c/router');
 const { createOnboardingRouter } = require('./onboarding');
 
 const router = express.Router();
+const candidateCStatePath = process.env.CANDIDATE_C_STATE_PATH
+  ? path.resolve(process.env.CANDIDATE_C_STATE_PATH)
+  : path.resolve(process.cwd(), 'data', 'runtime', 'candidate-c-state.json');
+const candidateCStore = new FileCandidateCStore({ statePath: candidateCStatePath });
 
 router.get('/', async (req, res, next) => {
   try {
@@ -43,7 +49,7 @@ router.get('/pay', (req, res) => {
   });
 });
 
-router.use('/candidate-c', createCandidateCRouter());
+router.use('/candidate-c', createCandidateCRouter({ store: candidateCStore }));
 router.use(createOnboardingRouter());
 
 module.exports = router;

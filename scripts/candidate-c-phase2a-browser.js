@@ -195,7 +195,7 @@ async function main() {
     await staleTab.getByRole('button', { name: 'Save headline' }).click();
     const staleResponse = await staleResponsePromise;
     assert.equal(staleResponse.status(), 409);
-    await staleTab.getByText('A newer draft exists.').waitFor();
+    await staleTab.getByText('A newer version exists.').waitFor();
     await staleTab.getByText('Not saved', { exact: true }).waitFor();
     assert.equal(store.snapshot('northline-hall').draft.facts.tagline, 'Server-newer headline.');
     screenshots.push(await screenshot(staleTab, '06-studio-stale-conflict'));
@@ -222,7 +222,7 @@ async function main() {
     await audit(desktop, 'direction-review-desktop');
 
     await gotoOk(desktop, '/candidate-c/studio/northline-hall/release');
-    assert.match(await desktop.getByRole('heading', { level: 1 }).textContent(), /Publish the website snapshot/);
+    assert.match(await desktop.getByRole('heading', { level: 1 }).textContent(), /Choose what becomes the live website/);
     screenshots.push(await screenshot(desktop, '08-release-review-desktop'));
     await audit(desktop, 'release-review-desktop');
 

@@ -10,12 +10,12 @@
         <a class="cc-studio-brand__mark" href="/candidate-c" aria-label="HiVenues home">H</a>
         <div>
           <strong><%= graph.identity.displayName %></strong>
-          <small>HiVenues Studio · draft</small>
+          <small>HiVenues Studio</small>
         </div>
       </div>
       <div class="cc-studio-actions">
-        <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved to draft</span>
-        <div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Draft r<%= revision %></div>
+        <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span>
+        <div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Version <%= revision %></div>
         <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
         <a class="cc-button cc-button--ink" href="/candidate-c/studio/<%= graph.identity.slug %>/release">Review release</a>
       </div>
@@ -34,10 +34,20 @@
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= activity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= activity.title %></button>
           <% }) %>
         </div>
+        <% if (graph.offers.length) { %>
+          <div class="cc-studio-rail__group">
+            <span class="cc-studio-rail__label">Offers</span>
+            <% graph.offers.forEach((offer) => { %>
+              <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
+            <% }) %>
+          </div>
+        <% } %>
         <div class="cc-studio-rail__group">
           <span class="cc-studio-rail__label">Site</span>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/direction">Direction</a>
-          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice:applaud_hive" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=look" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Look</button>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Connect</button>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= media[0].id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Media</button>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History</a>
         </div>
@@ -45,19 +55,23 @@
 
       <section class="cc-studio-stage" aria-label="Rendered site canvas">
         <div class="cc-studio-stage__toolbar">
-          <span>Real rendered canvas · <%= family.label %></span>
-          <span><%= graph.identity.presence || graph.facts.presence.mode %></span>
+          <span>Site preview · <%= family.label %></span>
+          <span><%= graph.facts.presence.mode %></span>
         </div>
         <div class="cc-stage-device">
-          <% if (family.id === 'poster') { %>
-            <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } else { %>
-            <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } %>
+          <div id="candidate-canvas-slot">
+            <% if (family.id === 'poster') { %>
+              <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } else if (family.id === 'editorial') { %>
+              <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } else { %>
+              <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } %>
+          </div>
         </div>
       </section>
 
-      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, selectedResource, compositionRegistry, mechanicRegistry }) %>
+      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>
     </div>
   </div>
   <script src="/htmx/htmx.min.js" defer></script>

@@ -19,6 +19,14 @@ const compositionRegistry = Object.freeze({
     studioClass: 'cc-family-editorial',
     description: 'Open editorial grammar with asymmetrical columns, quiet annotation, media-led pacing, and publication-like whitespace.',
   }),
+  hospitality: Object.freeze({
+    id: 'hospitality',
+    label: 'Hospitality table',
+    publicTemplate: 'candidate-c/compositions/hospitality',
+    activityTemplate: 'candidate-c/compositions/hospitality-activity',
+    studioClass: 'cc-family-hospitality',
+    description: 'Image-led hospitality grammar with a compact service masthead, menu-first hierarchy, table invitations, and calm editorial warmth.',
+  }),
 });
 
 function mediaFor(graph, mediaId) {

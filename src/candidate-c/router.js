@@ -5,6 +5,14 @@ const { disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, compositionRegistry, renderIcs } = require('./present');
 const { CandidateCStore } = require('./store');
 
+const LOOK_ACCENTS = Object.freeze([
+  Object.freeze({ id: 'ember', label: 'Ember', value: '#ef9f55' }),
+  Object.freeze({ id: 'violet', label: 'Field violet', value: '#6e59c8' }),
+  Object.freeze({ id: 'clay', label: 'Warm clay', value: '#a65337' }),
+  Object.freeze({ id: 'harbor', label: 'Harbor blue', value: '#244653' }),
+  Object.freeze({ id: 'moss', label: 'Garden moss', value: '#647a55' }),
+]);
+
 function isHtmx(req) {
   return req.get('HX-Request') === 'true';
 }
@@ -13,12 +21,16 @@ function currentRevision(req) {
   return Number(req.body.expectedRevision);
 }
 
+function currentDigest(req) {
+  return typeof req.body.expectedDraftDigest === 'string' ? req.body.expectedDraftDigest : '';
+}
+
 function renderConflict(req, res, actualRevision) {
   res.status(409);
   if (isHtmx(req)) {
     return res.render('candidate-c/fragments/conflict', { actualRevision });
   }
-  return res.status(409).send('A newer Candidate C draft exists. Reload before saving this change.');
+  return res.status(409).send('A newer version exists. Reload before saving this change.');
 }
 
 function candidateLocals(snapshot, selectedResource = '') {
@@ -26,25 +38,41 @@ function candidateLocals(snapshot, selectedResource = '') {
     ...buildViewModel(snapshot),
     compositionRegistry,
     mechanicRegistry,
+    lookAccents: LOOK_ACCENTS,
     selectedResource,
   };
 }
 
-function mutationResponse(req, res, store, slug, result, selectedResource) {
-  if (!result.ok) {
-    if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-    return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
+function mutationFailure(req, res, result) {
+  if (['STALE_REVISION', 'STALE_DIGEST', 'INVALID_REVISION', 'INVALID_DRAFT_DIGEST'].includes(result.reason)) {
+    return renderConflict(req, res, result.actualRevision);
   }
+  return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
+}
+
+function mutationResponse(req, res, store, slug, result, selectedResource) {
+  if (!result.ok) return mutationFailure(req, res, result);
   if (isHtmx(req)) {
     return res.render('candidate-c/fragments/studio-update', candidateLocals(result.snapshot, selectedResource));
   }
   return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(slug)}`);
 }
 
+function canonicalDraftMutation(store, slug, req, label, mutator, manualPaths) {
+  const revision = currentRevision(req);
+  const digest = currentDigest(req);
+  if (typeof store.draftMutation === 'function') {
+    return store.draftMutation(slug, revision, digest, (innerStore) => (
+      innerStore.commit(slug, revision, label, mutator, manualPaths, digest)
+    ));
+  }
+  return store.commit(slug, revision, label, mutator, manualPaths, digest);
+}
+
 function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   const router = express.Router();
   router.use((req, res, next) => {
-    res.set('X-HiVenues-Candidate-C', 'phase-2a');
+    res.set('X-HiVenues-Candidate-C', 'phase-2b');
     next();
   });
 
@@ -66,11 +94,8 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/setup', (req, res) => {
-    const result = store.completeSetup(req.params.slug, req.body, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.completeSetup(req.params.slug, req.body, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
@@ -110,7 +135,7 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/tagline', (req, res) => {
-    const result = store.editTagline(req.params.slug, req.body.tagline, currentRevision(req));
+    const result = store.editTagline(req.params.slug, req.body.tagline, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, 'facts.tagline');
   });
 
@@ -118,36 +143,74 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
     const result = store.editActivity(req.params.slug, req.body.activityId, {
       title: req.body.title,
       description: req.body.description,
-    }, currentRevision(req));
+    }, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `activity:${req.body.activityId}`);
   });
 
+  router.post('/studio/:slug/offer', (req, res) => {
+    const offerId = String(req.body.offerId || '');
+    const title = String(req.body.title || '').trim();
+    const summary = String(req.body.summary || '').trim();
+    if (!offerId || !title || !summary) return res.status(400).send('Offer title and description are required.');
+    const category = String(req.body.category || '').trim();
+    const price = String(req.body.price || '').trim();
+    const result = canonicalDraftMutation(store, req.params.slug, req, 'edit-offer', (draft) => {
+      const offer = draft.offers.find((item) => item.id === offerId);
+      if (!offer) throw new Error('Offer not found');
+      offer.title = title;
+      offer.summary = summary;
+      if (category) offer.category = category; else delete offer.category;
+      if (price) offer.price = price; else delete offer.price;
+    }, [
+      `offers.${offerId}.title`,
+      `offers.${offerId}.summary`,
+      `offers.${offerId}.category`,
+      `offers.${offerId}.price`,
+    ]);
+    return mutationResponse(req, res, store, req.params.slug, result, `offer:${offerId}`);
+  });
+
+  router.post('/studio/:slug/look', (req, res) => {
+    const accent = String(req.body.accent || '').toLowerCase();
+    if (!LOOK_ACCENTS.some((item) => item.value === accent)) return res.status(400).send('INVALID_LOOK_ACCENT');
+    const result = canonicalDraftMutation(store, req.params.slug, req, 'edit-look', (draft) => {
+      draft.presentation.accent = accent;
+    }, ['presentation.accent']);
+    return mutationResponse(req, res, store, req.params.slug, result, 'look');
+  });
+
   router.post('/studio/:slug/voice', (req, res) => {
-    const result = store.editVoiceTerm(req.params.slug, req.body.mechanicId, req.body.term, currentRevision(req));
+    const result = store.editVoiceTerm(req.params.slug, req.body.mechanicId, req.body.term, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `voice:${req.body.mechanicId}`);
   });
 
+  router.post('/studio/:slug/connect', (req, res) => {
+    const contact = String(req.body.contact || '').trim();
+    if (!contact) return res.status(400).send('Contact is required.');
+    const result = canonicalDraftMutation(store, req.params.slug, req, 'edit-contact', (draft) => {
+      draft.facts.contact = contact;
+    }, ['facts.contact']);
+    return mutationResponse(req, res, store, req.params.slug, result, 'connect');
+  });
+
   router.post('/studio/:slug/media', (req, res) => {
-    const result = store.setFocal(req.params.slug, req.body.mediaId, req.body.x, req.body.y, currentRevision(req));
+    const result = store.setFocal(req.params.slug, req.body.mediaId, req.body.x, req.body.y, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, `media:${req.body.mediaId}`);
   });
 
   router.post('/studio/:slug/move', (req, res) => {
-    const result = store.moveSection(req.params.slug, req.body.sectionId, req.body.delta, currentRevision(req));
+    const result = store.moveSection(req.params.slug, req.body.sectionId, req.body.delta, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, 'page.order');
   });
 
   router.post('/studio/:slug/undo', (req, res) => {
-    const result = store.undo(req.params.slug, currentRevision(req));
+    const result = store.undo(req.params.slug, currentRevision(req), currentDigest(req));
     return mutationResponse(req, res, store, req.params.slug, result, '');
   });
 
   router.post('/studio/:slug/direction/propose', (req, res) => {
-    const result = store.proposeDirection(req.params.slug, req.body.familyId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.proposeDirection(req.params.slug, req.body.familyId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/direction/${encodeURIComponent(result.proposal.id)}`);
   });
 
@@ -168,11 +231,8 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
-    const result = store.applyDirection(req.params.slug, req.params.proposalId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.applyDirection(req.params.slug, req.params.proposalId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
@@ -186,20 +246,14 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
   });
 
   router.post('/studio/:slug/release', (req, res) => {
-    const result = store.createRelease(req.params.slug, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.createRelease(req.params.slug, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}`);
   });
 
   router.post('/studio/:slug/releases/:releaseId/restore', (req, res) => {
-    const result = store.restoreRelease(req.params.slug, req.params.releaseId, currentRevision(req));
-    if (!result.ok) {
-      if (result.reason === 'STALE_REVISION') return renderConflict(req, res, result.actualRevision);
-      return res.status(400).send(result.reason);
-    }
+    const result = store.restoreRelease(req.params.slug, req.params.releaseId, currentRevision(req), currentDigest(req));
+    if (!result.ok) return mutationFailure(req, res, result);
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
   });
 

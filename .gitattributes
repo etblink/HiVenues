@@ -3,4 +3,5 @@
 .github/workflows/*.yml text eol=lf
 .github/workflows/*.yaml text eol=lf
 ops/privex/** text eol=lf
+public/candidate-c/media/*.svg text eol=lf
 public/images/*.jpg binary

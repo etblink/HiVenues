@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav">
+    <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Primary">
+      <a href="#menu">Menu</a>
+      <a href="#table">The table</a>
+      <a href="#visit">Visit</a>
+    </nav>
+  </header>
+
+  <main>
+    <% graph.presentation.arrangement.forEach((section) => { %>
+      <% if (section === 'hero') { %>
+        <section class="cc-hospitality-hero" aria-labelledby="cc-hospitality-title">
+          <div class="cc-hospitality-hero__media">
+            <%- include('../_art', { media: media[0], graph }) %>
+            <p class="cc-hospitality-caption">House study · synthetic artwork · <%= media[0].asset ? `${media[0].asset.width}×${media[0].asset.height}` : 'bootstrap art' %></p>
+          </div>
+          <div class="cc-hospitality-hero__copy">
+            <p class="cc-kicker"><%= graph.identity.archetype %></p>
+            <h1 id="cc-hospitality-title"><%= graph.facts.tagline %></h1>
+            <p><%= graph.facts.summary %></p>
+            <div class="cc-hospitality-hero__actions">
+              <a class="cc-button cc-button--hospitality" href="#menu">See tonight’s menu</a>
+              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Join the Sunday table</a><% } %>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'offer' && graph.offers.length) { %>
+        <section class="cc-hospitality-menu" id="menu" aria-labelledby="cc-menu-title">
+          <header>
+            <p class="cc-kicker">From the kitchen</p>
+            <h2 id="cc-menu-title">A short menu, written for right now.</h2>
+            <p>Ingredients move with the boats, farms, and weather. These are the plates on the current table.</p>
+          </header>
+          <div class="cc-hospitality-menu__list">
+            <% graph.offers.forEach((offer) => { %>
+              <article class="cc-hospitality-dish">
+                <div>
+                  <% if (offer.category) { %><p class="cc-hospitality-dish__category"><%= offer.category %></p><% } %>
+                  <h3><%= offer.title %></h3>
+                  <p><%= offer.summary %></p>
+                </div>
+                <% if (offer.price) { %><strong><%= offer.price %></strong><% } %>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'story') { %>
+        <section class="cc-hospitality-story">
+          <p class="cc-hospitality-story__line">Fire for the vegetables. Salt for the fish. Enough time at the table to notice the harbor change color.</p>
+          <div>
+            <p class="cc-kicker">How we cook</p>
+            <p>Our menu stays compact so the room can follow the season closely. The plates are composed here; the welcome belongs to the neighborhood.</p>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'activity' && primaryActivity) { %>
+        <section class="cc-hospitality-table" id="table" aria-labelledby="cc-table-title">
+          <div class="cc-hospitality-table__date">
+            <span>ONE TABLE</span>
+            <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: graph.identity.timezone }) %></strong>
+          </div>
+          <div>
+            <p class="cc-kicker">Sunday supper</p>
+            <h2 id="cc-table-title"><%= primaryActivity.title %></h2>
+            <p class="cc-time"><%= primaryActivity.humanTime %></p>
+            <p><%= primaryActivity.description %></p>
+          </div>
+          <div class="cc-hospitality-table__actions">
+            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= graph.voice.terms.rsvp_local %></a>
+            <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'details') { %>
+        <section class="cc-hospitality-visit" id="visit" aria-labelledby="cc-hospitality-visit-title">
+          <div>
+            <p class="cc-kicker">Come by</p>
+            <h2 id="cc-hospitality-visit-title"><%= graph.facts.presence.label %></h2>
+          </div>
+          <div class="cc-hospitality-visit__details">
+            <% if (graph.facts.presence.address) { %><p><strong>Find us</strong><br><%= graph.facts.presence.address %></p><% } %>
+            <p><strong>Write</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+          </div>
+        </section>
+      <% } %>
+    <% }) %>
+  </main>
+
+  <footer class="cc-hospitality-footer">
+    <span><%= graph.identity.displayName %></span>
+    <span>Fire · water · season · table</span>
+  </footer>
+</body>
+</html>

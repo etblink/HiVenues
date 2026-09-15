@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-hospitality cc-activity-page" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-hospitality-nav--activity">
+    <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
+    <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to dinner</a>
+  </header>
+
+  <main class="cc-hospitality-activity">
+    <section class="cc-hospitality-activity__intro">
+      <div class="cc-hospitality-activity__copy">
+        <p class="cc-kicker">A seat at the table</p>
+        <h1><%= activity.title %></h1>
+        <p class="cc-time"><%= activity.humanTime %></p>
+        <p class="cc-hospitality-activity__description"><%= activity.description %></p>
+        <dl class="cc-hospitality-activity__facts">
+          <div><dt>Where</dt><dd><%= activity.presence.venueName %><br><%= activity.presence.address %></dd></div>
+          <div><dt>Table</dt><dd>Shared seating · supper paced as one menu</dd></div>
+        </dl>
+      </div>
+      <div class="cc-hospitality-activity__media">
+        <%- include('../_art', { media: activity.media, graph }) %>
+        <p class="cc-hospitality-caption"><%= activity.media.provenance %></p>
+      </div>
+    </section>
+
+    <section class="cc-hospitality-rsvp" aria-labelledby="cc-hospitality-rsvp-title">
+      <div>
+        <p class="cc-kicker">Sunday table</p>
+        <h2 id="cc-hospitality-rsvp-title">Tell us who to expect.</h2>
+        <p>This reference records the RSVP locally. It does not create a blockchain transaction, payment, or provider reservation.</p>
+      </div>
+      <form class="cc-rsvp" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">
+        <label for="cc-rsvp-name">Name</label>
+        <div class="cc-rsvp__row">
+          <input id="cc-rsvp-name" name="name" autocomplete="name" maxlength="80" placeholder="Your name">
+          <button class="cc-button cc-button--hospitality" type="submit"><%= graph.voice.terms.rsvp_local %></button>
+        </div>
+        <div id="cc-rsvp-result" aria-live="polite"></div>
+        <div class="cc-hospitality-rsvp__links">
+          <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+          <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/consequence/applaud_hive"><%= graph.voice.terms.applaud_hive %></a>
+        </div>
+      </form>
+    </section>
+  </main>
+  <script src="/htmx/htmx.min.js" defer></script>
+</body>
+</html>

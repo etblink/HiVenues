@@ -39,7 +39,7 @@ function fixture(t, initialize = true) {
     fs.writeFileSync(output, 'existing=retained\n');
     const result = spawnSync(process.execPath, [script, ...args], {
       cwd: repo, encoding: 'utf8',
-      env: { ...process.env, EVENT_NAME: 'pull_request', PR_BASE_SHA: '', PUSH_BEFORE_SHA: '', GITHUB_OUTPUT: output, ...env },
+      env: { ...process.env, EVENT_NAME: 'pull_request', PR_BASE_SHA: '', PUSH_BEFORE_SHA: '', GITHUB_EVENT_PATH: '', GITHUB_OUTPUT: output, ...env },
     });
     assert.ifError(result.error);
     return { ...result, output: fs.readFileSync(output, 'utf8') };
