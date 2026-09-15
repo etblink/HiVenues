@@ -4,12 +4,12 @@
   const inventory = Object.freeze({
     durableStateMirror: false,
     responsibilities: Object.freeze([
-      'open and close the mobile contextual inspector',
+      'open and close the contextual editor without allocating permanent canvas space',
       'restore focus after server-rendered inspector swaps',
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
       'render server-owned stale-revision conflicts without treating them as successful saves',
-      'refresh the complete server-rendered draft preview after an edit',
+      'coordinate compact Studio command menus without mirroring durable host state',
       'reconcile page restoration with current server truth',
     ]),
   });
@@ -18,16 +18,24 @@
     return document.querySelector('#candidate-inspector');
   }
 
+  function syncContextState() {
+    const panel = inspector();
+    const open = panel?.dataset.open === 'true';
+    document.body.classList.toggle('cc-context-open', open);
+  }
+
   function openInspector() {
     const panel = inspector();
     if (!panel) return;
     panel.dataset.open = 'true';
+    syncContextState();
   }
 
   function closeInspector() {
     const panel = inspector();
     if (!panel) return;
     panel.dataset.open = 'false';
+    syncContextState();
   }
 
   function focusInspector(panel = inspector()) {
@@ -37,6 +45,12 @@
       heading.setAttribute('tabindex', '-1');
       heading.focus({ preventScroll: true });
     }
+  }
+
+  function closeCommandMenus(except = null) {
+    document.querySelectorAll('.cc-studio-commandbar details[open]').forEach((item) => {
+      if (item !== except) item.removeAttribute('open');
+    });
   }
 
   function updateFocalPreview(input) {
@@ -52,10 +66,24 @@
     if (output) output.textContent = `${x.value}% / ${y.value}%`;
   }
 
+  document.querySelectorAll('.cc-studio-commandbar details').forEach((item) => {
+    item.addEventListener('toggle', () => {
+      if (item.open) closeCommandMenus(item);
+    });
+  });
+
   document.addEventListener('click', (event) => {
     const editTrigger = event.target.closest('.cc-edit-chip, [data-open-inspector]');
-    if (editTrigger) openInspector();
+    if (editTrigger) {
+      openInspector();
+      closeCommandMenus();
+    }
+
     if (event.target.closest('[data-close-inspector]')) closeInspector();
+
+    if (!event.target.closest('.cc-studio-commandbar') && !editTrigger) {
+      closeCommandMenus();
+    }
   });
 
   document.addEventListener('input', (event) => {
@@ -80,17 +108,21 @@
       event.detail.isError = false;
       return;
     }
-    if (status >= 200 && status < 300 && state) state.textContent = 'Saved to draft';
+    if (status >= 200 && status < 300 && state) state.textContent = 'Saved';
   });
 
   document.body.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target?.id !== 'candidate-inspector') return;
-    openInspector();
-    // The inspector swaps with outerHTML, so event.detail.target is the detached
-    // previous panel. Focus must land in the live panel the server just rendered.
-    focusInspector(inspector());
-    const preview = document.querySelector('#cc-full-preview-frame');
-    if (preview) preview.contentWindow.location.reload();
+    const panel = inspector();
+    if (!panel) return;
+    if (panel.dataset.open === 'true') {
+      openInspector();
+      // The inspector swaps with outerHTML, so event.detail.target is the detached
+      // previous panel. Focus must land in the live panel the server just rendered.
+      focusInspector(panel);
+    } else {
+      syncContextState();
+    }
   });
 
   document.body.addEventListener('htmx:afterRequest', (event) => {
@@ -119,5 +151,6 @@
     }
   });
 
+  syncContextState();
   window.CandidateCStudio = inventory;
 })();
