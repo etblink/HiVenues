@@ -7,9 +7,8 @@ on:
       - 'views/candidate-c/**'
       - 'public/css/candidate-c*.css'
       - 'public/js/candidate-c-studio.js'
-      - 'scripts/candidate-c-astra-beta-remediation-browser.js'
-      - 'scripts/candidate-c-astra-beta-remediation-browser-v2.js'
-      - 'scripts/candidate-c-astra-beta-remediation-browser-v3.js'
+      - 'scripts/candidate-c-guided-creator-operator.js'
+      - 'scripts/candidate-c-astra-beta-remediation-browser-v4.js'
       - 'scripts/candidate-c-dogfood.js'
       - 'test/candidate-c-astra-beta-remediation*.test.js'
       - '.github/workflows/candidate-c-astra-beta-remediation.yml'
@@ -55,7 +54,7 @@ jobs:
       - name: Run synthetic product-wide remediation browser proof
         env:
           CANDIDATE_C_ASTRA_BETA_REMEDIATION_ROOT: artifacts/candidate-c-astra-beta-remediation
-        run: node scripts/candidate-c-astra-beta-remediation-browser-v3.js
+        run: node scripts/candidate-c-astra-beta-remediation-browser-v4.js
       - name: Publish Astra beta remediation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
