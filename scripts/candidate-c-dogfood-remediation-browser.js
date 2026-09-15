@@ -175,7 +175,7 @@ async function main() {
     assert.match(await page.locator('body').textContent(), /1114 E\. 4th Street/);
     await capture(page, '04-complete-studio-desktop.png', 'complete-studio-desktop', evidence);
 
-    await page.locator('#cc-preview-mobile').check();
+    await page.locator('label[for="cc-preview-mobile"]').click();
     const mobileShell = page.locator('.cc-full-preview-shell');
     await page.waitForTimeout(250);
     const mobileBox = await mobileShell.boundingBox();
