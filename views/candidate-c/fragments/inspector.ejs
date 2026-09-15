@@ -44,6 +44,13 @@
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save activity</button></div>
     </form>
 
+    <div class="cc-live-note">
+      <p class="cc-studio-inspector__eyebrow">Schedule</p>
+      <p><strong><%= selectedActivity.humanTime %></strong><br><small><%= graph.identity.timezone %></small></p>
+      <a class="cc-button" href="/candidate-c/studio/<%= graph.identity.slug %>/activity/<%= selectedActivity.id %>/schedule">Edit start & end time</a>
+      <p class="cc-inspector-help">Schedule edits stay in the working version until the next website release.</p>
+    </div>
+
     <form class="cc-inspector-form cc-inspector-form--status" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/activity-status" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/activity-status" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
@@ -105,7 +112,7 @@
         <% }) %>
       </select>
       <div aria-hidden="true" style="height:18px;border-radius:999px;background:<%= graph.presentation.accent %>"></div>
-      <p class="cc-inspector-help">A bounded palette keeps contrast and composition behavior predictable. Direction still controls the larger layout.</p>
+      <p class="cc-inspector-help">The accent changes color emphasis while Direction controls the larger layout.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save look</button></div>
     </form>
   <% } %>
@@ -117,7 +124,7 @@
     <div class="cc-release-list">
       <% Object.entries(graph.voice.terms).forEach(([mechanicId, term]) => { %>
         <div class="cc-release-row">
-          <div><strong><%= term %></strong><br><small><%= mechanicRegistry[mechanicId] ? mechanicRegistry[mechanicId].consequenceClass : mechanicId %></small></div>
+          <div><strong><%= term %></strong><br><small><%= mechanicRegistry[mechanicId] ? mechanicRegistry[mechanicId].meaning : 'Visitor action' %></small></div>
           <button type="button" class="cc-button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice:<%= mechanicId %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit</button>
         </div>
       <% }) %>
@@ -148,11 +155,11 @@
     <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/connect" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/connect" hx-target="#candidate-inspector" hx-swap="outerHTML">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-      <label for="cc-contact">Contact email</label>
-      <input id="cc-contact" type="email" name="contact" value="<%= graph.facts.contact %>" required>
+      <label for="cc-contact">Contact</label>
+      <input id="cc-contact" type="text" name="contact" maxlength="240" value="<%= graph.facts.contact %>" placeholder="Email, phone number, https:// website, or short public contact text" required>
       <div class="cc-consequence-truth">
-        <strong>Optional connections stay separate.</strong><br>
-        Hive: <%= graph.bindings.hive.state %> · Media: <%= graph.bindings.media.state %>. Changing the visitor contact does not connect an account, provider, payment, or signing flow.
+        <strong>This changes only the public contact.</strong><br>
+        Email, phone and HTTPS contacts become the corresponding visitor link; other accepted text remains plain text. This does not connect Hive, a media provider, payment or signing.
       </div>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save contact</button></div>
     </form>

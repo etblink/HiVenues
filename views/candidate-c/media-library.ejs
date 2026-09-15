@@ -11,10 +11,10 @@
     </nav>
     <p class="cc-kicker">Site · Media</p>
     <h1>Use the host's real images.</h1>
-    <p class="cc-task__dek">Import JPEG or PNG files from this computer. HiVenues stores them only in the local dogfood media directory, derives dimensions/bytes/SHA-256 itself, and records them in the working draft. Nothing is uploaded to a provider or published outside this local test runtime.</p>
+    <p class="cc-task__dek">Import a JPEG or PNG from this computer. HiVenues keeps it only inside this isolated test workspace and adds it to the working version. Nothing is uploaded to an external media provider.</p>
 
-    <% if (typeof mediaError === 'string' && mediaError) { %><section class="cc-conflict" role="alert"><strong>Image not imported.</strong><p><%= mediaError %></p></section><% } %>
-    <% if (typeof imported === 'string' && imported) { %><div class="cc-studio-notice" role="status"><strong>Local image imported.</strong> <%= imported === 'logo' ? 'The official logo is now in the working draft.' : 'The primary site image is now in the working draft.' %></div><% } %>
+    <% if (typeof mediaError === 'string' && mediaError) { %><section class="cc-conflict" role="alert"><strong>Image not imported.</strong><p><%= mediaError %></p><a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Choose another image</a></section><% } %>
+    <% if (typeof imported === 'string' && imported) { %><div class="cc-studio-notice" role="status"><strong>Local image imported.</strong> <%= imported === 'logo' ? 'The official logo is now in the working version.' : 'The primary site image is now in the working version.' %></div><% } %>
 
     <div class="cc-review-grid cc-media-authoring-grid">
       <section class="cc-review-card">
@@ -22,7 +22,14 @@
         <div class="cc-media-authoring-preview"><%- include('_art', { media: heroMedia, graph }) %></div>
         <h2><%= heroMedia.kind === 'bootstrap-art' ? 'Generated placeholder' : 'Imported host image' %></h2>
         <p><%= heroMedia.alt %></p>
-        <% if (heroMedia.kind !== 'bootstrap-art') { %><p class="cc-inspector-help"><strong>Public caption:</strong> <%= heroMedia.provenance %><br><strong>Local asset:</strong> <%= heroMedia.asset.width %>×<%= heroMedia.asset.height %> · <%= heroMedia.asset.bytes %> bytes · SHA-256 <code><%= heroMedia.asset.sha256 %></code></p><% } %>
+        <% if (heroMedia.kind !== 'bootstrap-art') { %>
+          <% if (heroMedia.provenance) { %><p class="cc-inspector-help"><strong>Public caption:</strong> <%= heroMedia.provenance %></p><% } %>
+          <details>
+            <summary>Technical details</summary>
+            <p><%= heroMedia.asset.width %>×<%= heroMedia.asset.height %> · <%= heroMedia.asset.bytes %> bytes</p>
+            <p>SHA-256 <code><%= heroMedia.asset.sha256 %></code></p>
+          </details>
+        <% } %>
 
         <form class="cc-setup-form cc-media-import-form" action="/candidate-c/studio/<%= graph.identity.slug %>/media-import" method="post" enctype="multipart/form-data">
           <input type="hidden" name="expectedRevision" value="<%= revision %>">
@@ -30,8 +37,8 @@
           <input type="hidden" name="role" value="hero">
           <div class="cc-field"><label for="cc-hero-file">JPEG or PNG</label><input id="cc-hero-file" name="image" type="file" accept="image/jpeg,image/png" required></div>
           <div class="cc-field"><label for="cc-hero-alt">Alternative text</label><input id="cc-hero-alt" name="alt" maxlength="300" required value="<%= heroMedia.kind === 'bootstrap-art' ? '' : heroMedia.alt %>" placeholder="Describe the actual photograph for someone who cannot see it"></div>
-          <div class="cc-field"><label for="cc-hero-caption">Public caption <span aria-hidden="true">·</span> optional</label><input id="cc-hero-caption" name="caption" maxlength="300" value="<%= heroMedia.kind === 'bootstrap-art' ? '' : heroMedia.provenance %>" placeholder="Back patio at sunset · 4th Street Bar"></div>
-          <p class="cc-inspector-help">Maximum 8 MiB. HiVenues validates the actual bytes as JPEG/PNG rather than trusting the filename.</p>
+          <div class="cc-field"><label for="cc-hero-caption">Public caption <span aria-hidden="true">·</span> optional</label><input id="cc-hero-caption" name="caption" maxlength="300" value="<%= heroMedia.kind === 'bootstrap-art' ? '' : heroMedia.provenance %>" placeholder="Patio at sunset · supplied by the host"></div>
+          <p class="cc-inspector-help">Maximum 8 MiB. Use a real JPEG or PNG file.</p>
           <button class="cc-button cc-button--ink" type="submit"><%= heroMedia.kind === 'bootstrap-art' ? 'Replace placeholder with real image' : 'Replace primary image' %></button>
         </form>
       </section>
@@ -42,9 +49,12 @@
           <div class="cc-logo-authoring-preview"><img src="<%= logoMedia.asset.path %>" alt="<%= logoMedia.alt %>"></div>
           <h2>Imported official mark</h2>
           <p><%= logoMedia.alt %></p>
-          <p class="cc-inspector-help"><%= logoMedia.asset.width %>×<%= logoMedia.asset.height %> · SHA-256 <code><%= logoMedia.asset.sha256 %></code></p>
+          <details>
+            <summary>Technical details</summary>
+            <p><%= logoMedia.asset.width %>×<%= logoMedia.asset.height %> · SHA-256 <code><%= logoMedia.asset.sha256 %></code></p>
+          </details>
         <% } else { %>
-          <div class="cc-media-empty-state"><strong>No official logo supplied.</strong><p>Leave this empty rather than generating or pretending a placeholder is the venue's official mark.</p></div>
+          <div class="cc-media-empty-state"><strong>No official logo supplied.</strong><p>Leave this empty rather than pretending a generated placeholder is the host's official mark.</p></div>
         <% } %>
 
         <form class="cc-setup-form cc-media-import-form" action="/candidate-c/studio/<%= graph.identity.slug %>/media-import" method="post" enctype="multipart/form-data">
@@ -53,7 +63,7 @@
           <input type="hidden" name="role" value="logo">
           <div class="cc-field"><label for="cc-logo-file">Official logo JPEG or PNG</label><input id="cc-logo-file" name="image" type="file" accept="image/jpeg,image/png" required></div>
           <div class="cc-field"><label for="cc-logo-alt">Alternative text</label><input id="cc-logo-alt" name="alt" maxlength="300" required value="<%= logoMedia ? logoMedia.alt : `${graph.identity.displayName} logo` %>"></div>
-          <div class="cc-field"><label for="cc-logo-caption">Source note <span aria-hidden="true">·</span> optional</label><input id="cc-logo-caption" name="caption" maxlength="300" value="<%= logoMedia ? logoMedia.provenance : '' %>" placeholder="Official venue mark supplied by owner"></div>
+          <div class="cc-field"><label for="cc-logo-caption">Source note <span aria-hidden="true">·</span> optional</label><input id="cc-logo-caption" name="caption" maxlength="300" value="<%= logoMedia ? logoMedia.provenance : '' %>" placeholder="Official mark supplied by the host"></div>
           <button class="cc-button cc-button--ink" type="submit"><%= logoMedia ? 'Replace official logo' : 'Import official logo' %></button>
         </form>
       </section>
@@ -61,7 +71,7 @@
 
     <section class="cc-review-card" style="margin-top:1.2rem">
       <h2>Crop / focus</h2>
-      <p>The existing Studio image-focus controls remain available after import, so replacing the bytes does not discard the selected focal point.</p>
+      <p>The Studio image-focus controls remain available after import, so replacing the image does not discard your selected focal point.</p>
       <a class="cc-button" href="/candidate-c/studio/<%= graph.identity.slug %>">Return to Studio and adjust image focus</a>
     </section>
   </main>

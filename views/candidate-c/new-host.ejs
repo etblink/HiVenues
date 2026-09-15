@@ -12,27 +12,27 @@
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c">Back to places</a>
-      <span class="cc-draft-status">Local dogfood workspace</span>
+      <span class="cc-draft-status">Local test workspace</span>
     </nav>
 
     <p class="cc-kicker">Create a place</p>
     <h1>Start from real facts, not a template identity.</h1>
-    <p class="cc-task__dek">These fields create one canonical local workspace and its first immutable local Release. Fields marked as public copy appear on the visitor site and remain editable later in Studio. Nothing is sent to Hive, a media provider, a payment service, DNS, or a deployment target.</p>
+    <p class="cc-task__dek">These fields create one local workspace and its first website version. Fields marked as public copy appear on the visitor site and remain editable later in Studio. Nothing is sent to Hive, an external media provider, a payment service, DNS, or a deployment target.</p>
 
     <% if (errors.length) { %>
       <section class="cc-conflict" role="alert" aria-live="polite">
         <strong>Check the place facts before creating it.</strong>
-        <ul><% errors.forEach((error) => { %><li><%= error.path ? `${error.path}: ` : '' %><%= error.message %></li><% }) %></ul>
-        <% if (reason) { %><small>Reference: <%= reason %></small><% } %>
+        <ul><% errors.forEach((error) => { %><li><%= error.message %></li><% }) %></ul>
+        <% if (reason) { %><details><summary>Technical details</summary><small>Reference: <%= reason %></small></details><% } %>
       </section>
     <% } %>
 
     <form class="cc-setup-form" method="post" action="/candidate-c/new">
       <section>
         <p class="cc-kicker">1 · Identity</p>
-        <div class="cc-field"><label for="cc-display-name">Place or host name</label><input id="cc-display-name" name="displayName" maxlength="100" required value="<%= values.displayName %>"><small>HiVenues derives a stable URL from this name when the workspace is created. You can later change the public name without silently changing that URL.</small></div>
-        <div class="cc-field"><label for="cc-archetype">What kind of place is it?</label><input id="cc-archetype" name="archetype" maxlength="120" required value="<%= values.archetype %>" placeholder="Neighborhood bar, artist studio, community venue…"></div>
-        <div class="cc-field"><label for="cc-timezone">Local timezone</label><input id="cc-timezone" name="timezone" maxlength="100" required value="<%= values.timezone %>" placeholder="America/Los_Angeles"><small>Use the standard timezone name for the place; for Reno/Las Vegas this is <code>America/Los_Angeles</code>.</small></div>
+        <div class="cc-field"><label for="cc-display-name">Place or host name</label><input id="cc-display-name" name="displayName" maxlength="100" required value="<%= values.displayName %>"><small>HiVenues derives a stable URL when the workspace is created. You can later change the public name without silently changing that URL.</small></div>
+        <div class="cc-field"><label for="cc-archetype">What kind of place is it?</label><input id="cc-archetype" name="archetype" maxlength="120" required value="<%= values.archetype %>" placeholder="Neighborhood venue, artist studio, creator publication…"></div>
+        <div class="cc-field"><label for="cc-timezone">Local timezone</label><input id="cc-timezone" name="timezone" maxlength="100" required value="<%= values.timezone %>" placeholder="America/Los_Angeles"><small>Use the standard timezone name for the host, such as <code>America/Los_Angeles</code>.</small></div>
       </section>
 
       <section>
@@ -45,7 +45,7 @@
             <% }) %>
           </div>
         </fieldset>
-        <div class="cc-field"><label for="cc-presence-label">Public location / hours line</label><input id="cc-presence-label" name="presenceLabel" maxlength="240" required value="<%= values.presenceLabel %>" placeholder="Reno, Nevada · open daily, noon–2 a.m."><small>This is visitor-facing copy.</small></div>
+        <div class="cc-field"><label for="cc-presence-label">Public location / availability line</label><input id="cc-presence-label" name="presenceLabel" maxlength="240" required value="<%= values.presenceLabel %>" placeholder="Test City · open evenings"><small>This is visitor-facing copy.</small></div>
         <div class="cc-field"><label for="cc-address">Physical address</label><input id="cc-address" name="address" maxlength="300" value="<%= values.address %>"><small>Required for physical and hybrid places; leave blank only for online-only hosts.</small></div>
       </section>
 
@@ -53,13 +53,13 @@
         <p class="cc-kicker">3 · Public facts</p>
         <div class="cc-field"><label for="cc-tagline">Headline</label><input id="cc-tagline" name="tagline" maxlength="180" required value="<%= values.tagline %>"></div>
         <div class="cc-field"><label for="cc-summary">Public summary</label><textarea id="cc-summary" name="summary" maxlength="1200" required><%= values.summary %></textarea></div>
-        <div class="cc-field"><label for="cc-contact">Public contact</label><input id="cc-contact" name="contact" maxlength="240" required value="<%= values.contact %>" placeholder="Email, phone number, or https:// website"><small>Use a verified contact the host actually publishes. Do not invent an email address; phone numbers and web URLs are supported.</small></div>
+        <div class="cc-field"><label for="cc-contact">Public contact</label><input id="cc-contact" name="contact" maxlength="240" required value="<%= values.contact %>" placeholder="Email, phone number, or https:// website"><small>Use a contact the host actually publishes. Phone numbers and web URLs are supported alongside email.</small></div>
       </section>
 
       <section>
         <p class="cc-kicker">4 · Public story & direction</p>
         <div class="cc-field"><label for="cc-purpose">Why this place exists</label><textarea id="cc-purpose" name="purpose" maxlength="800" required><%= values.purpose %></textarea><small>This is visitor-facing story copy.</small></div>
-        <div class="cc-field"><label for="cc-material">Visitor-facing story / atmosphere</label><textarea id="cc-material" name="presenceMaterial" maxlength="800" required><%= values.presenceMaterial %></textarea><small>This appears on the public site. Describe the real place and atmosphere; do not put private art-direction instructions here.</small></div>
+        <div class="cc-field"><label for="cc-material">Visitor-facing story / atmosphere</label><textarea id="cc-material" name="presenceMaterial" maxlength="800" required><%= values.presenceMaterial %></textarea><small>This appears on the public site. Describe the host and atmosphere; do not put private art-direction instructions here.</small></div>
         <fieldset class="cc-field" style="border:0;padding:0">
           <legend>Composition direction</legend>
           <div class="cc-choice-grid">
@@ -72,18 +72,18 @@
       </section>
 
       <section>
-        <p class="cc-kicker">5 · Optional first real activity</p>
-        <p class="cc-task__dek">Add an activity only when you have real event facts. Complete all four fields together, or leave this entire section blank. You can create a truthful place with no scheduled activity rather than inventing one.</p>
+        <p class="cc-kicker">5 · Optional first activity</p>
+        <p class="cc-task__dek">Add an activity only when you have event facts. Complete all four fields together, or leave this entire section blank. You can create a truthful place with no scheduled activity rather than inventing one.</p>
         <div class="cc-field"><label for="cc-activity-title">Activity title</label><input id="cc-activity-title" name="activityTitle" maxlength="120" value="<%= values.activityTitle %>"></div>
         <div class="cc-field"><label for="cc-activity-description">Activity description</label><textarea id="cc-activity-description" name="activityDescription" maxlength="1200"><%= values.activityDescription %></textarea></div>
         <div class="cc-field"><label for="cc-activity-start">Starts</label><input id="cc-activity-start" type="datetime-local" name="activityStartsLocal" value="<%= values.activityStartsLocal %>"></div>
-        <div class="cc-field"><label for="cc-activity-end">Ends</label><input id="cc-activity-end" type="datetime-local" name="activityEndsLocal" value="<%= values.activityEndsLocal %>"><small>When supplied, these local wall-clock times are converted using the place timezone.</small></div>
+        <div class="cc-field"><label for="cc-activity-end">Ends</label><input id="cc-activity-end" type="datetime-local" name="activityEndsLocal" value="<%= values.activityEndsLocal %>"><small>When supplied, these local times use the host timezone above.</small></div>
       </section>
 
       <section class="cc-direction-preview">
         <p class="cc-kicker">Creation consequence</p>
-        <h2>Create local workspace + initial Release</h2>
-        <p>The entered facts become the first immutable local Release and therefore the local public preview. This is not a Hive publish, provider upload, payment, deployment, or DNS action.</p>
+        <h2>Create workspace + first website version</h2>
+        <p>The entered facts become the first local public version for this isolated test workspace. This is not a Hive publish, provider upload, payment, production deployment, or DNS action.</p>
       </section>
 
       <button class="cc-button cc-button--ink" type="submit">Create this place</button>

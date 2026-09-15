@@ -7,7 +7,7 @@
   <header class="cc-poster-nav">
     <a class="cc-wordmark" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary">
-      <% if (primaryActivity) { %><a href="#what-is-on">What’s on</a><% } %>
+      <% if (primaryActivity) { %><a href="#what-is-on">Activity</a><% } %>
       <a href="#visit">Where</a>
       <a href="#story">Story</a>
     </nav>
@@ -22,7 +22,7 @@
             <h1 id="cc-poster-title"><%= graph.facts.tagline %></h1>
             <p class="cc-poster-hero__summary"><%= graph.facts.summary %></p>
             <% if (primaryActivity) { %>
-              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See <%= primaryActivity.title %></a>
+              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : primaryActivity.lifecycle === 'completed' ? 'Activity recap' : `See ${primaryActivity.title}` %></a>
             <% } %>
           </div>
           <div class="cc-poster-hero__art">
@@ -39,14 +39,14 @@
             <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { day: '2-digit', timeZone: graph.identity.timezone }) %></strong>
           </div>
           <div class="cc-poster-night__body">
-            <p class="cc-kicker">Next at <%= graph.identity.displayName %></p>
+            <p class="cc-kicker"><%= primaryActivity.lifecycle === 'scheduled' ? `Next at ${graph.identity.displayName}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : `Previously at ${graph.identity.displayName}` %></p>
             <h2 id="cc-next-night"><%= primaryActivity.title %></h2>
             <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-poster-night__actions">
-            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? 'Details & RSVP' : 'Details' %></a>
+            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? 'Details & RSVP' : 'Activity details' %></a>
             <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
@@ -57,6 +57,7 @@
           <p class="cc-kicker">The place</p>
           <p class="cc-poster-story__line"><%= graph.intent.presenceMaterial %></p>
           <p class="cc-poster-story__small"><%= graph.intent.purpose %></p>
+          <p class="cc-poster-story__small"><%= graph.intent.participation %></p>
         </section>
       <% } %>
 
@@ -73,12 +74,18 @@
         </section>
       <% } %>
 
-      <% if (section === 'offer' && graph.offers[0]) { %>
+      <% if (section === 'offer' && graph.offers.length) { %>
         <section class="cc-poster-offer">
           <p class="cc-kicker">From <%= graph.identity.displayName %></p>
-          <h2><%= graph.offers[0].title %></h2>
-          <p><%= graph.offers[0].summary %></p>
-          <% if (contact.href) { %><a class="cc-link cc-link--light" href="<%= contact.href %>">Ask about <%= graph.offers[0].title %></a><% } %>
+          <% graph.offers.forEach((offer) => { %>
+            <article style="margin-bottom:1.25rem">
+              <% if (offer.category) { %><p class="cc-kicker"><%= offer.category %></p><% } %>
+              <h2><%= offer.title %></h2>
+              <p><%= offer.summary %></p>
+              <% if (offer.price) { %><p><strong><%= offer.price %></strong></p><% } %>
+              <% if (contact.href) { %><a class="cc-link cc-link--light" href="<%= contact.href %>">Ask about <%= offer.title %></a><% } %>
+            </article>
+          <% }) %>
         </section>
       <% } %>
     <% }) %>

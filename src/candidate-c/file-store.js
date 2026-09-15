@@ -72,7 +72,10 @@ class FileCandidateCStore {
   }
 
   executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest) {
-    return this.draftMutation(slug, expectedRevision, expectedDigest, (store) => (
+    // CandidateCStore deliberately checks the immutable live Release before
+    // checking the working-version tokens. Do not wrap this in draftMutation:
+    // doing so would mask a superseded live base as an ordinary stale draft.
+    return this.mutate((store) => (
       store.executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest)
     ));
   }

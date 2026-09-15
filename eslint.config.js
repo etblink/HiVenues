@@ -5,6 +5,7 @@ const nodeGlobals = {
   AbortSignal: 'readonly',
   Buffer: 'readonly',
   console: 'readonly',
+  Event: 'readonly',
   fetch: 'readonly',
   FormData: 'readonly',
   __dirname: 'readonly',

@@ -9,7 +9,7 @@
     <p><%= graph.facts.presence.label %></p>
     <nav aria-label="Primary">
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
-      <% if (primaryActivity) { %><a href="#table">What’s on</a><% } %>
+      <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
@@ -28,7 +28,7 @@
             <p><%= graph.facts.summary %></p>
             <div class="cc-hospitality-hero__actions">
               <% if (graph.offers.length) { %><a class="cc-button cc-button--hospitality" href="#menu">See what’s offered</a><% } %>
-              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See <%= primaryActivity.title %></a><% } %>
+              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.lifecycle === 'scheduled' ? `See ${primaryActivity.title}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : 'Activity recap' %></a><% } %>
             </div>
           </div>
         </section>
@@ -62,6 +62,7 @@
           <div>
             <p class="cc-kicker">Why this place</p>
             <p><%= graph.intent.purpose %></p>
+            <p><strong><%= graph.intent.participation %></strong></p>
           </div>
         </section>
       <% } %>
@@ -69,18 +70,18 @@
       <% if (section === 'activity' && primaryActivity) { %>
         <section class="cc-hospitality-table" id="table" aria-labelledby="cc-table-title">
           <div class="cc-hospitality-table__date">
-            <span>NEXT</span>
+            <span><%= primaryActivity.lifecycle === 'scheduled' ? 'NEXT' : primaryActivity.lifecycle === 'cancelled' ? 'UPDATE' : 'PAST' %></span>
             <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: graph.identity.timezone }) %></strong>
           </div>
           <div>
-            <p class="cc-kicker">At <%= graph.identity.displayName %></p>
+            <p class="cc-kicker"><%= primaryActivity.lifecycle === 'scheduled' ? `At ${graph.identity.displayName}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : `Previously at ${graph.identity.displayName}` %></p>
             <h2 id="cc-table-title"><%= primaryActivity.title %></h2>
             <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-hospitality-table__actions">
-            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'About this activity' %></a>
+            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'Activity details' %></a>
             <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
@@ -91,6 +92,7 @@
           <div>
             <p class="cc-kicker"><%= graph.facts.presence.mode === 'online' ? 'Find us online' : 'Come by' %></p>
             <h2 id="cc-hospitality-visit-title"><%= graph.facts.presence.label %></h2>
+            <% if (!graph.offers.length) { %><p><%= graph.intent.participation %></p><% } %>
           </div>
           <div class="cc-hospitality-visit__details">
             <% if (graph.facts.presence.address) { %><p><strong>Find us</strong><br><%= graph.facts.presence.address %></p><% } %>
