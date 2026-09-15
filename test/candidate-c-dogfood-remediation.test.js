@@ -183,7 +183,7 @@ test('dogfood remediation: Studio exposes complete draft preview, mobile review 
 
   const studio = await request(app).get(`/candidate-c/studio/${slug}`).expect(200);
   assert.match(studio.text, /Site preview · Poster room/);
-  assert.match(studio.text, /Content &amp; visit/);
+  assert.match(studio.text, /Content & visit/);
   assert.match(studio.text, /\+ Add activity/);
   assert.match(studio.text, /\+ Add offering/);
   assert.match(studio.text, /Import media/);
