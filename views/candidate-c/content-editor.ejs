@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+<% const v = typeof values === 'object' && values ? values : {}; %>
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Site · Content & visit</p>
+    <h1>Edit what visitors actually see.</h1>
+    <p class="cc-task__dek">These are the public facts and story fields established during setup. Saving changes only your working version; visitors keep seeing the current Release until you explicitly release again. The stable URL and host identity do not change when you rename the place.</p>
+
+    <% if (saved) { %><div class="cc-studio-notice" role="status"><strong>Saved to draft.</strong> Review the complete visitor page in Studio before releasing.</div><% } %>
+    <% if (errors.length) { %>
+      <section class="cc-conflict" role="alert">
+        <strong>Check these public details.</strong>
+        <ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul>
+      </section>
+    <% } %>
+
+    <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/content">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+
+      <section>
+        <p class="cc-kicker">Identity</p>
+        <div class="cc-field"><label for="cc-content-name">Public name</label><input id="cc-content-name" name="displayName" maxlength="100" required value="<%= v.displayName ?? graph.identity.displayName %>"><small>The URL remains <code><%= graph.identity.slug %></code>.</small></div>
+        <div class="cc-field"><label for="cc-content-type">Place / host type</label><input id="cc-content-type" name="archetype" maxlength="120" required value="<%= v.archetype ?? graph.identity.archetype %>"></div>
+        <div class="cc-field"><label for="cc-content-summary">Public summary</label><textarea id="cc-content-summary" name="summary" maxlength="1200" required><%= v.summary ?? graph.facts.summary %></textarea><small>This appears in the visitor-facing hero/introduction where the chosen composition supports it.</small></div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">Visit</p>
+        <div class="cc-field"><label for="cc-content-presence">Presence line</label><input id="cc-content-presence" name="presenceLabel" maxlength="240" required value="<%= v.presenceLabel ?? graph.facts.presence.label %>"></div>
+        <div class="cc-field"><label for="cc-content-address">Physical address</label><input id="cc-content-address" name="address" maxlength="300" value="<%= v.address ?? graph.facts.presence.address ?? '' %>"><small><%= graph.facts.presence.mode === 'online' ? 'Optional for this online host.' : 'Required for this physical/hybrid host.' %></small></div>
+        <div class="cc-field" id="contact"><label for="cc-content-contact">Public contact</label><input id="cc-content-contact" name="contact" maxlength="240" required value="<%= v.contact ?? graph.facts.contact %>"><small>Email, phone, website, or bounded plain text are all supported. The public consequence follows the actual contact type.</small></div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">Story</p>
+        <div class="cc-field"><label for="cc-content-purpose">Why this place exists</label><textarea id="cc-content-purpose" name="purpose" maxlength="800" required><%= v.purpose ?? graph.intent.purpose %></textarea></div>
+        <div class="cc-field"><label for="cc-content-material">Visitor-facing story / atmosphere</label><textarea id="cc-content-material" name="presenceMaterial" maxlength="800" required><%= v.presenceMaterial ?? graph.intent.presenceMaterial %></textarea><small>This is public copy. Describe the place for visitors; do not put internal design instructions here.</small></div>
+        <div class="cc-field"><label for="cc-content-participation">Invitation / participation copy</label><textarea id="cc-content-participation" name="participation" maxlength="800" required><%= v.participation ?? graph.intent.participation %></textarea></div>
+      </section>
+
+      <button class="cc-button cc-button--ink" type="submit">Save public content to draft</button>
+    </form>
+  </main>
+</body>
+</html>

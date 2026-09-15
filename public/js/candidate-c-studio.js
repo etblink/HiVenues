@@ -9,6 +9,7 @@
       'preview media focal position before an explicit server commit',
       'mark transient saving state while an HTMX request is in flight',
       'render server-owned stale-revision conflicts without treating them as successful saves',
+      'refresh the complete server-rendered draft preview after an edit',
       'reconcile page restoration with current server truth',
     ]),
   });
@@ -88,6 +89,8 @@
     // The inspector swaps with outerHTML, so event.detail.target is the detached
     // previous panel. Focus must land in the live panel the server just rendered.
     focusInspector(inspector());
+    const preview = document.querySelector('#cc-full-preview-frame');
+    if (preview) preview.contentWindow.location.reload();
   });
 
   document.body.addEventListener('htmx:afterRequest', (event) => {

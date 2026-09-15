@@ -34,6 +34,7 @@
         <div class="cc-studio-rail__group">
           <span class="cc-studio-rail__label">Page</span>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>First impression</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/content">Content & visit</a>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=page.order" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Section order</button>
         </div>
         <div class="cc-studio-rail__group">
@@ -41,22 +42,24 @@
           <% activities.forEach((activity) => { %>
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= activity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= activity.title %></button>
           <% }) %>
+          <a class="cc-studio-rail__add" href="/candidate-c/studio/<%= graph.identity.slug %>/activity/new">+ Add activity</a>
         </div>
-        <% if (graph.offers.length) { %>
-          <div class="cc-studio-rail__group">
-            <span class="cc-studio-rail__label">Offers</span>
-            <% graph.offers.forEach((offer) => { %>
-              <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
-            <% }) %>
-          </div>
-        <% } %>
+        <div class="cc-studio-rail__group">
+          <span class="cc-studio-rail__label">Offers</span>
+          <% graph.offers.forEach((offer) => { %>
+            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
+          <% }) %>
+          <a class="cc-studio-rail__add" href="/candidate-c/studio/<%= graph.identity.slug %>/offer/new">+ Add offering</a>
+        </div>
         <div class="cc-studio-rail__group">
           <span class="cc-studio-rail__label">Site</span>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/direction">Direction</a>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=look" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Look</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/brand">Look settings</a>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
           <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Connect</button>
-          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= media[0].id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Media</button>
+          <a href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Import media</a>
+          <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Media</button>
           <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History</a>
         </div>
       </nav>
@@ -69,14 +72,38 @@
         <div class="cc-stage-device">
           <div id="candidate-canvas-slot">
             <% if (family.id === 'poster') { %>
-              <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } else if (family.id === 'editorial') { %>
-              <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } else { %>
-              <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
+              <%- include('compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
             <% } %>
           </div>
         </div>
+
+        <section class="cc-complete-preview" aria-labelledby="cc-complete-preview-title">
+          <div class="cc-complete-preview__head">
+            <div>
+              <p class="cc-kicker">Complete visitor page</p>
+              <h2 id="cc-complete-preview-title">Everything in the draft, not just the edit canvas.</h2>
+              <p>This is the full visitor-facing draft page. Story, visit details, summary, Activities and Offers appear here through the same public composition template used by Preview.</p>
+            </div>
+            <fieldset class="cc-preview-size-toggle">
+              <legend class="cc-visually-hidden">Preview width</legend>
+              <input id="cc-preview-desktop" type="radio" name="cc-preview-width" checked>
+              <label for="cc-preview-desktop">Desktop</label>
+              <input id="cc-preview-mobile" type="radio" name="cc-preview-width">
+              <label for="cc-preview-mobile">Mobile · 390px</label>
+            </fieldset>
+          </div>
+          <div class="cc-full-preview-shell">
+            <iframe
+              id="cc-full-preview-frame"
+              title="Complete visitor-facing draft preview"
+              src="/candidate-c/studio/<%= graph.identity.slug %>/preview?r=<%= revision %>"
+              loading="eager"></iframe>
+          </div>
+        </section>
       </section>
 
       <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>

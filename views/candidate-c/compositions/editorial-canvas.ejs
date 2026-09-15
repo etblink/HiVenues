@@ -9,8 +9,9 @@
     <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit first impression</button>
   </div>
   <div class="cc-canvas-editorial__art">
-    <%- include('../_art', { media: media[0], graph }) %>
-    <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= media[0].id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Adjust image focus</button>
+    <%- include('../_art', { media: heroMedia, graph }) %>
+    <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Adjust image focus</button>
+    <a class="cc-edit-chip" href="/candidate-c/studio/<%= graph.identity.slug %>/media-library"><%= heroMedia.kind === 'bootstrap-art' ? 'Import real image' : 'Replace image' %></a>
   </div>
   <% if (primaryActivity) { %>
     <article class="cc-canvas-editorial__activity">
@@ -21,4 +22,5 @@
       <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= primaryActivity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit activity</button>
     </article>
   <% } %>
+  <%- include('_canvas-complete', { graph, contact, logoMedia }) %>
 </main>

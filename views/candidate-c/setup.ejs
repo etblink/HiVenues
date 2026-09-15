@@ -7,25 +7,25 @@
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status">Draft r<%= revision %></span>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
-    <p class="cc-kicker">Guided creation · four moments</p>
-    <h1>Shape the place before you tune the controls.</h1>
-    <p class="cc-task__dek">This is art direction over the same canonical draft the Studio edits. There is no basic-mode copy of your site and nothing becomes public from this screen.</p>
+    <p class="cc-kicker">Guided site shaping</p>
+    <h1>Shape the public story and its composition.</h1>
+    <p class="cc-task__dek">The three text fields below are visitor-facing copy, not private design notes. Direction changes the structural composition around the same canonical draft. Nothing becomes visitor-facing until you explicitly release the website.</p>
 
     <div class="cc-setup-grid">
       <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/setup">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
         <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
         <div class="cc-field">
-          <label for="cc-purpose">1 · Purpose</label>
+          <label for="cc-purpose">1 · Why this place exists</label>
           <textarea id="cc-purpose" name="purpose" required><%= graph.intent.purpose %></textarea>
-          <small>What are you making, and what should people be able to do here?</small>
+          <small>Public story copy. Tell visitors what the place is for in ordinary language.</small>
         </div>
         <div class="cc-field">
-          <label for="cc-material">2 · Presence & material</label>
+          <label for="cc-material">2 · Visitor-facing story / atmosphere</label>
           <textarea id="cc-material" name="presenceMaterial" required><%= graph.intent.presenceMaterial %></textarea>
-          <small>Where does it happen, and what real material or atmosphere should lead?</small>
+          <small>This appears on the public site. Describe the real place and atmosphere; do not put internal art-direction instructions here.</small>
         </div>
         <fieldset class="cc-field" style="border:0;padding:0">
           <legend>3 · Direction</legend>
@@ -48,20 +48,20 @@
           </div>
         </fieldset>
         <div class="cc-field">
-          <label for="cc-participation">4 · Participation</label>
+          <label for="cc-participation">4 · Visitor invitation</label>
           <textarea id="cc-participation" name="participation" required><%= graph.intent.participation %></textarea>
-          <small>Describe the useful next steps in ordinary language; mechanics remain truthful underneath.</small>
+          <small>Public copy describing useful next steps. The underlying mechanics remain truthful and separate.</small>
         </div>
-        <button class="cc-button cc-button--ink" type="submit">Shape this draft</button>
+        <button class="cc-button cc-button--ink" type="submit">Save story & direction to draft</button>
       </form>
 
       <section class="cc-direction-preview" aria-label="Current generated first draft">
         <% if (family.id === 'poster') { %>
-          <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
         <% } else if (family.id === 'editorial') { %>
-          <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <%- include('compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
         <% } else { %>
-          <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
+          <%- include('compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
         <% } %>
       </section>
     </div>

@@ -3,7 +3,9 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
+const { MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createCandidateCOperatorRouter } = require('./operator-router');
+const { buildViewModel } = require('./present');
 
 const DOGFOOD_HOST = '127.0.0.1';
 const SESSION_COOKIE = 'hivenues_dogfood_session';
@@ -53,6 +55,7 @@ function createDogfoodApp({ store, publicIngress = false, accessSecret = '', sec
   app.set('trust proxy', 'loopback');
   app.set('views', path.join(root, 'views'));
   app.set('view engine', 'ejs');
+  app.use(express.raw({ type: 'multipart/form-data', limit: MAX_MULTIPART_BYTES }));
   app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
   // The access page may use Candidate C styling. Product media and routes remain gated.
@@ -93,6 +96,35 @@ function createDogfoodApp({ store, publicIngress = false, accessSecret = '', sec
     });
     app.use(requireSameOrigin);
   }
+
+  app.post('/candidate-c/studio/:slug/media-import', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    const renderFailure = (status, message) => res.status(status).render('candidate-c/media-library', {
+      pageTitle: `Media — ${snapshot.draft.identity.displayName}`,
+      ...buildViewModel(snapshot),
+      mediaError: message,
+      imported: '',
+    });
+    if (typeof store.importLocalImage !== 'function') return renderFailure(501, 'Local media import requires the durable dogfood runtime.');
+
+    let parsed;
+    try {
+      parsed = parseMultipartForm(req.body, req.get('Content-Type'));
+    } catch (error) {
+      return renderFailure(400, error.message || 'The image could not be read.');
+    }
+    const result = store.importLocalImage(req.params.slug, {
+      ...parsed.fields,
+      imageBuffer: parsed.imageBuffer,
+      inspection: parsed.inspection,
+    }, Number(parsed.fields.expectedRevision), String(parsed.fields.expectedDraftDigest || ''));
+    if (!result.ok) {
+      const stale = ['STALE_REVISION', 'STALE_DIGEST', 'INVALID_REVISION', 'INVALID_DRAFT_DIGEST'].includes(result.reason);
+      return renderFailure(stale ? 409 : 400, result.message || result.reason);
+    }
+    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/media-library?imported=${encodeURIComponent(result.mediaRole)}`);
+  });
 
   // Product routes must run before the public directory fallback; otherwise the
   // real public/candidate-c asset directory redirects /candidate-c to /candidate-c/.
