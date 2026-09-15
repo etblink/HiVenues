@@ -94,7 +94,7 @@
           </div>
           <div class="cc-hospitality-visit__details">
             <% if (graph.facts.presence.address) { %><p><strong>Find us</strong><br><%= graph.facts.presence.address %></p><% } %>
-            <p><strong>Write</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+            <p><strong>Contact</strong><br><% if (contact.href) { %><a href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p>
           </div>
         </section>
       <% } %>
