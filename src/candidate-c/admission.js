@@ -21,10 +21,10 @@ const inputSchema = z.object({
   presenceMaterial: z.string().trim().min(1).max(800),
   direction: z.enum(['poster', 'editorial', 'hospitality']),
   participation: z.string().trim().min(1).max(800),
-  activityTitle: z.string().trim().min(1).max(120),
-  activityDescription: z.string().trim().min(1).max(1200),
-  activityStartsLocal: z.string().trim().regex(LOCAL_DATETIME),
-  activityEndsLocal: z.string().trim().regex(LOCAL_DATETIME),
+  activityTitle: z.string().trim().max(120).default(''),
+  activityDescription: z.string().trim().max(1200).default(''),
+  activityStartsLocal: z.string().trim().max(40).default(''),
+  activityEndsLocal: z.string().trim().max(40).default(''),
 }).strict().superRefine((input, ctx) => {
   if (input.presenceMode !== 'online' && !input.address) {
     ctx.addIssue({ code: 'custom', path: ['address'], message: 'A physical or hybrid place needs an address.' });
@@ -33,6 +33,25 @@ const inputSchema = z.object({
     new Intl.DateTimeFormat('en-US', { timeZone: input.timezone }).format(new Date());
   } catch (_) {
     ctx.addIssue({ code: 'custom', path: ['timezone'], message: 'Use a valid IANA timezone such as America/Los_Angeles.' });
+  }
+
+  const activityFields = [
+    ['activityTitle', input.activityTitle],
+    ['activityDescription', input.activityDescription],
+    ['activityStartsLocal', input.activityStartsLocal],
+    ['activityEndsLocal', input.activityEndsLocal],
+  ];
+  const populated = activityFields.filter(([, value]) => Boolean(value));
+  if (populated.length > 0 && populated.length < activityFields.length) {
+    for (const [field, value] of activityFields) {
+      if (!value) ctx.addIssue({ code: 'custom', path: [field], message: 'Complete all activity fields or leave the entire optional activity section blank.' });
+    }
+  }
+  if (input.activityStartsLocal && !LOCAL_DATETIME.test(input.activityStartsLocal)) {
+    ctx.addIssue({ code: 'custom', path: ['activityStartsLocal'], message: 'Use a valid local activity start time.' });
+  }
+  if (input.activityEndsLocal && !LOCAL_DATETIME.test(input.activityEndsLocal)) {
+    ctx.addIssue({ code: 'custom', path: ['activityEndsLocal'], message: 'Use a valid local activity end time.' });
   }
 });
 
@@ -130,22 +149,41 @@ function buildCandidateCHostFromInput(rawInput, { randomUUID = crypto.randomUUID
   const slug = slugify(input.displayName);
   if (!slug || RESERVED_SLUGS.has(slug)) return { ok: false, reason: 'INVALID_HOST_SLUG', fields: [{ path: 'displayName', message: 'Choose a name that produces a usable, non-reserved URL.' }] };
 
+  const hasActivity = Boolean(input.activityTitle);
   let startsAt;
   let endsAt;
-  try {
-    startsAt = localDateTimeToOffsetIso(input.activityStartsLocal, input.timezone);
-    endsAt = localDateTimeToOffsetIso(input.activityEndsLocal, input.timezone);
-  } catch (error) {
-    return { ok: false, reason: error.message, fields: [{ path: 'activityStartsLocal', message: 'Choose real local times in the selected timezone.' }] };
-  }
-  if (Date.parse(endsAt) <= Date.parse(startsAt)) {
-    return { ok: false, reason: 'INVALID_ACTIVITY_WINDOW', fields: [{ path: 'activityEndsLocal', message: 'The activity must end after it starts.' }] };
+  if (hasActivity) {
+    try {
+      startsAt = localDateTimeToOffsetIso(input.activityStartsLocal, input.timezone);
+      endsAt = localDateTimeToOffsetIso(input.activityEndsLocal, input.timezone);
+    } catch (error) {
+      return { ok: false, reason: error.message, fields: [{ path: 'activityStartsLocal', message: 'Choose real local times in the selected timezone.' }] };
+    }
+    if (Date.parse(endsAt) <= Date.parse(startsAt)) {
+      return { ok: false, reason: 'INVALID_ACTIVITY_WINDOW', fields: [{ path: 'activityEndsLocal', message: 'The activity must end after it starts.' }] };
+    }
   }
 
   const defaults = directionDefaults[input.direction];
   const mediaId = `media-${slug}-bootstrap-001`;
-  const activityId = `activity-${slug}-001`;
-  const activitySlug = slugify(input.activityTitle) || 'first-activity';
+  const activities = [];
+  if (hasActivity) {
+    const activityId = `activity-${slug}-001`;
+    const activitySlug = slugify(input.activityTitle) || 'first-activity';
+    activities.push({
+      id: activityId,
+      slug: activitySlug,
+      title: input.activityTitle,
+      description: input.activityDescription,
+      startsAt,
+      endsAt,
+      presence: activityPresence(input),
+      lifecycle: 'scheduled',
+      mediaId,
+      publicActions: [{ mechanic: 'rsvp_local' }, { mechanic: 'calendar_ics' }, { mechanic: 'applaud_hive' }],
+    });
+  }
+
   const graph = {
     schemaVersion: 1,
     identity: {
@@ -165,18 +203,7 @@ function buildCandidateCHostFromInput(rawInput, { randomUUID = crypto.randomUUID
       },
       contact: input.contact,
     },
-    activities: [{
-      id: activityId,
-      slug: activitySlug,
-      title: input.activityTitle,
-      description: input.activityDescription,
-      startsAt,
-      endsAt,
-      presence: activityPresence(input),
-      lifecycle: 'scheduled',
-      mediaId,
-      publicActions: [{ mechanic: 'rsvp_local' }, { mechanic: 'calendar_ics' }, { mechanic: 'applaud_hive' }],
-    }],
+    activities,
     offers: [],
     media: [{
       id: mediaId,
