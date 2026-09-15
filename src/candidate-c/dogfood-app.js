@@ -94,10 +94,13 @@ function createDogfoodApp({ store, publicIngress = false, accessSecret = '', sec
     app.use(requireSameOrigin);
   }
 
-  app.use(express.static(path.join(root, 'public')));
-  app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
+  // Product routes must run before the public directory fallback; otherwise the
+  // real public/candidate-c asset directory redirects /candidate-c to /candidate-c/.
+  // Unmatched asset paths (for example /candidate-c/media/...) fall through.
   app.get('/', (req, res) => res.redirect(303, '/candidate-c'));
   app.use('/candidate-c', createCandidateCOperatorRouter({ store }));
+  app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
+  app.use(express.static(path.join(root, 'public')));
   return app;
 }
 
