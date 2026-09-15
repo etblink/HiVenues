@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { CandidateCHiveIntegrationService } = require('../src/candidate-c/hive-integration');
+const { publicSession } = require('../src/candidate-c/hive-integration-router');
 
 function fixtureAccount(name = 'alice') {
   return {
@@ -78,6 +79,9 @@ test('Hive integration verifies account control without broadcasting and prevent
   });
   assert.equal(session.account, 'alice');
   assert.equal(service.getSession(session.token, 'lantern-fold')?.account, 'alice');
+  const safeSession = publicSession(session);
+  assert.deepEqual(Object.keys(safeSession).sort(), ['account', 'expiresAt', 'issuedAt']);
+  assert.equal('token' in safeSession, false);
 
   await assert.rejects(
     service.verify({
