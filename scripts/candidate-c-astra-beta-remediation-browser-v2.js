@@ -108,7 +108,16 @@ function observeContext(context, evidence) {
 }
 
 function observePage(page, evidence) {
-  page.on('console', (message) => { if (message.type() === 'error') evidence.consoleErrors.push(message.text()); });
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    const expectedResource = /^Failed to load resource: the server responded with a status of (400|409|413) \(/.exec(text);
+    if (expectedResource) {
+      evidence.adversarialResourceConsoleErrors.push({ status: Number(expectedResource[1]), text });
+      return;
+    }
+    evidence.consoleErrors.push(text);
+  });
   page.on('pageerror', (error) => evidence.pageErrors.push(error.message));
 }
 
@@ -235,7 +244,7 @@ async function main() {
     candidate: EXACT_SHA,
     tree: EXACT_TREE,
     fixture: { synthetic: true, slug: SLUG, secondarySlug: SECONDARY_SLUG, purpose: 'Issue #269 Astra Studio beta remediation qualification.' },
-    screenshots: [], audits: [], externalRequests: [], consoleErrors: [], pageErrors: [],
+    screenshots: [], audits: [], externalRequests: [], consoleErrors: [], adversarialResourceConsoleErrors: [], pageErrors: [],
   };
   observeContext(context, evidence);
   let page = await context.newPage();
@@ -610,7 +619,9 @@ async function main() {
 
     const external = zeroEffects(store);
     assert.equal(evidence.externalRequests.length, 0, `external requests: ${JSON.stringify(evidence.externalRequests)}`);
-    assert.equal(evidence.consoleErrors.length, 0, `console errors: ${JSON.stringify(evidence.consoleErrors)}`);
+    const expectedAdversarialStatuses = evidence.adversarialResourceConsoleErrors.map((entry) => entry.status).sort((a, b) => a - b);
+    assert.deepEqual(expectedAdversarialStatuses, [400, 400, 409, 409, 413], `adversarial resource console errors: ${JSON.stringify(evidence.adversarialResourceConsoleErrors)}`);
+    assert.equal(evidence.consoleErrors.length, 0, `unexpected console errors: ${JSON.stringify(evidence.consoleErrors)}`);
     assert.equal(evidence.pageErrors.length, 0, `page errors: ${JSON.stringify(evidence.pageErrors)}`);
 
     evidence.proof = {
@@ -631,6 +642,7 @@ async function main() {
       staleReleaseRejected: true,
       staleUrgentRejected: true,
       urgentPreservedUnpublishedDraft: true,
+      expectedAdversarialResourceStatuses: expectedAdversarialStatuses,
       restart: {
         persisted: true,
         multiHost: true,
@@ -653,6 +665,7 @@ async function main() {
       horizontalOverflowFindings: evidence.audits.filter((item) => item.geometry.scrollWidth > item.geometry.clientWidth + 1).length,
       incompleteImageFindings: evidence.audits.reduce((sum, item) => sum + item.geometry.incompleteImages, 0),
       externalRequests: evidence.externalRequests.length,
+      expectedAdversarialResourceConsoleErrors: evidence.adversarialResourceConsoleErrors.length,
       unexpectedConsoleErrors: evidence.consoleErrors.length + evidence.pageErrors.length,
     };
     fs.writeFileSync(path.join(OUTPUT_ROOT, 'manifest.json'), `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
