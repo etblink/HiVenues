@@ -10,6 +10,7 @@
       'mark transient saving state while an HTMX request is in flight',
       'render server-owned stale-revision conflicts without treating them as successful saves',
       'coordinate compact Studio command menus without mirroring durable host state',
+      'present and dismiss the first-draft handoff without creating a second host model',
       'reconcile page restoration with current server truth',
     ]),
   });
@@ -53,6 +54,37 @@
     });
   }
 
+  function firstDraftReveal() {
+    return document.querySelector('[data-first-draft-reveal]');
+  }
+
+  function dismissFirstDraftReveal() {
+    const reveal = firstDraftReveal();
+    if (!reveal || reveal.hidden) return;
+    reveal.hidden = true;
+    const canvas = document.querySelector('.cc-studio-commandbar summary');
+    if (canvas) canvas.focus({ preventScroll: true });
+  }
+
+  function presentFirstDraftIfCreated() {
+    const reveal = firstDraftReveal();
+    if (!reveal) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('created') !== '1') return;
+
+    reveal.hidden = false;
+    const heading = reveal.querySelector('h1');
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      window.requestAnimationFrame(() => heading.focus({ preventScroll: true }));
+    }
+
+    // The reveal is a one-time handoff state, not durable host state. Remove the
+    // query marker so reload/back does not pretend a new host was created again.
+    url.searchParams.delete('created');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
   function updateFocalPreview(input) {
     const form = input.closest('[data-focal-form]');
     if (!form) return;
@@ -73,6 +105,11 @@
   });
 
   document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-dismiss-first-draft]')) {
+      dismissFirstDraftReveal();
+      return;
+    }
+
     const editTrigger = event.target.closest('.cc-edit-chip, [data-open-inspector]');
     if (editTrigger) {
       openInspector();
@@ -84,6 +121,14 @@
     if (!event.target.closest('.cc-studio-commandbar') && !editTrigger) {
       closeCommandMenus();
     }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && firstDraftReveal() && !firstDraftReveal().hidden) {
+      dismissFirstDraftReveal();
+      return;
+    }
+    if (event.key === 'Escape' && inspector()?.dataset.open === 'true') closeInspector();
   });
 
   document.addEventListener('input', (event) => {
@@ -152,5 +197,6 @@
   });
 
   syncContextState();
+  presentFirstDraftIfCreated();
   window.CandidateCStudio = inventory;
 })();
