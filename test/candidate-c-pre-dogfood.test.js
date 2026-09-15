@@ -134,10 +134,10 @@ test('operator router creates a host through typed form fields and serves its St
   const store = new ProvisioningFileCandidateCStore({ statePath: tempState(t) });
   const app = createDogfoodApp({ store });
   await request(app).get('/candidate-c').expect(200).expect(/Create a place/);
-  await request(app).get('/candidate-c/new').expect(200).expect(/Start from real facts/);
+  await request(app).get('/candidate-c/new').expect(200).expect(/Start with the host, not a template/).expect(/Purpose/).expect(/Presence/).expect(/Direction/).expect(/Participation/);
   const created = await request(app).post('/candidate-c/new').type('form').send(input()).expect(303);
   assert.equal(created.headers.location, '/candidate-c/studio/dogfood-house?created=1');
-  await request(app).get('/candidate-c/studio/dogfood-house').expect(200).expect(/Dogfood House/);
+  await request(app).get('/candidate-c/studio/dogfood-house').expect(200).expect(/Dogfood House/).expect(/Here is your place/);
   await request(app).get('/candidate-c/dogfood-house').expect(200).expect(/Dogfood House/);
   await request(app).post('/candidate-c/new').type('form').send(input()).expect(409).expect(/already exists/);
   await request(app).post('/candidate-c/new').type('form').send({ ...input(), bindings: 'forbidden' }).expect(400);
