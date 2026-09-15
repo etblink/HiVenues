@@ -64,7 +64,18 @@ jobs:
           CANDIDATE_C_DOGFOOD_REMEDIATION_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           FOURTH_STREET_EXTERIOR_IMAGE: .qualification-source/fourth-street-bar-exterior.jpg
           FOURTH_STREET_LOGO_IMAGE: .qualification-source/fourth-street-bar-logo.jpg
-        run: node scripts/candidate-c-dogfood-remediation-browser-v2.js
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/candidate-c-dogfood-remediation-browser-v2.js')
+          source = path.read_text()
+          needle = "  assert.equal(blocking.length, 0, `${label}: blocking accessibility ${JSON.stringify(blocking.map((item) => item.id))}`);"
+          detail = "  if (blocking.length) console.error('AXE_BLOCKING_DETAIL ' + JSON.stringify(blocking.map((item) => ({ id: item.id, impact: item.impact, nodes: item.nodes.map((node) => ({ target: node.target, html: node.html, failureSummary: node.failureSummary, any: node.any, all: node.all, none: node.none })) }))));\n"
+          if needle not in source:
+              raise SystemExit('dogfood accessibility assertion drifted')
+          path.write_text(source.replace(needle, detail + needle))
+          PY
+          node scripts/candidate-c-dogfood-remediation-browser-v2.js
       - name: Run Chromium synthetic add-Release-urgent lifecycle qualification
         env:
           CANDIDATE_C_DOGFOOD_LIFECYCLE_ROOT: artifacts/candidate-c-dogfood-remediation-lifecycle
