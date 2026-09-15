@@ -6,6 +6,7 @@
   </div>
   <div class="cc-canvas-poster__art">
     <%- include('../_art', { media: heroMedia, graph }) %>
+    <button type="button" class="cc-edit-chip" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Adjust image focus</button>
     <a class="cc-edit-chip" href="/candidate-c/studio/<%= graph.identity.slug %>/media-library"><%= heroMedia.kind === 'bootstrap-art' ? 'Import real image' : 'Replace image' %></a>
   </div>
   <% if (primaryActivity) { %>
