@@ -32,6 +32,72 @@
   color: #6b5546;
 }
 
+/* #272 convergence loads after this file. These selectors are intentionally
+   more specific than the convergence selectors so accessibility remains a
+   product invariant instead of depending on stylesheet order. */
+.cc-creator-body .cc-creator-kicker {
+  color: #5f6369;
+}
+
+.cc-creator-body .cc-creator-field small,
+.cc-creator-body .cc-creator-choice span {
+  color: #60646a;
+}
+
+.cc-first-draft-reveal .cc-first-draft-reveal__eyebrow {
+  color: #5f6369;
+}
+
+.cc-studio-body .cc-studio-stage__identity strong {
+  color: #30343a;
+}
+
+.cc-studio-body .cc-studio-stage__identity span,
+.cc-studio-body .cc-studio-stage__meta {
+  color: #50565c;
+}
+
+/* Poster: the #272 activity band and offer surface invert the older palette.
+   Keep copy and links on the correct side of that inversion. */
+.cc-poster .cc-poster-night__body p,
+.cc-poster .cc-poster-night .cc-link {
+  color: #351b12;
+}
+
+.cc-poster .cc-poster-offer .cc-link--light {
+  color: #351b12;
+}
+
+/* Editorial's index/footer are intentionally quiet, but still AA at their
+   small display sizes. */
+.cc-editorial .cc-editorial-index,
+.cc-editorial .cc-editorial-footer {
+  color: #5b5e64;
+}
+
+/* Hospitality: the media-led hero, compact service nav and dark Activity card
+   introduced new background pairings. Preserve the family character without
+   allowing inherited warm-brown labels to disappear into those surfaces. */
+.cc-hospitality .cc-hospitality-nav > p,
+.cc-hospitality .cc-hospitality-footer {
+  color: #57524c;
+}
+
+.cc-hospitality .cc-hospitality-hero .cc-kicker {
+  color: #664531;
+}
+
+.cc-hospitality .cc-hospitality-dish__category {
+  color: #685649;
+}
+
+.cc-hospitality .cc-hospitality-table .cc-kicker,
+.cc-hospitality .cc-hospitality-table__date,
+.cc-hospitality .cc-hospitality-table__date strong,
+.cc-hospitality .cc-hospitality-table > div:nth-child(2) > p:last-child {
+  color: #f3ede3;
+}
+
 /* Keep the horizontally scrollable mobile Studio rail and compact header inside
    the viewport. Mobile keeps the host and release action; duplicate draft labels
    move out of the crowded topbar rather than widening the document. */
