@@ -6,20 +6,27 @@
 <body class="cc-public cc-hospitality cc-activity-page" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-hospitality-nav cc-hospitality-nav--activity">
     <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
-    <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to dinner</a>
+    <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
   </header>
 
   <main class="cc-hospitality-activity">
     <section class="cc-hospitality-activity__intro">
       <div class="cc-hospitality-activity__copy">
-        <p class="cc-kicker">A seat at the table</p>
+        <p class="cc-kicker">At <%= graph.identity.displayName %></p>
         <h1><%= activity.title %></h1>
         <%- include('../_status', { activity }) %>
         <p class="cc-time"><%= activity.humanTime %></p>
         <p class="cc-hospitality-activity__description"><%= activity.description %></p>
         <dl class="cc-hospitality-activity__facts">
-          <div><dt>Where</dt><dd><%= activity.presence.venueName %><br><%= activity.presence.address %></dd></div>
-          <div><dt>Table</dt><dd>Shared seating · supper paced as one menu</dd></div>
+          <div>
+            <dt>Where</dt>
+            <dd>
+              <%= activity.presence.mode === 'online' ? activity.presence.platformLabel : activity.presence.venueName %>
+              <% if (activity.presence.mode !== 'online') { %><br><%= activity.presence.address %><% } %>
+              <% if (activity.presence.mode === 'hybrid') { %><br><%= activity.presence.platformLabel %><% } %>
+            </dd>
+          </div>
+          <div><dt>Participation</dt><dd><%= graph.intent.participation %></dd></div>
         </dl>
       </div>
       <div class="cc-hospitality-activity__media">
@@ -30,9 +37,9 @@
 
     <section class="cc-hospitality-rsvp" aria-labelledby="cc-hospitality-rsvp-title">
       <div>
-        <p class="cc-kicker">Sunday table</p>
+        <p class="cc-kicker"><%= graph.identity.displayName %></p>
         <h2 id="cc-hospitality-rsvp-title">Tell us who to expect.</h2>
-        <p>This reference records the RSVP locally. It does not create a blockchain transaction, payment, or provider reservation.</p>
+        <p>This dogfood runtime records the RSVP locally. It does not create a blockchain transaction, payment, provider reservation, or platform account.</p>
       </div>
       <% if (activity.open) { %>
       <form class="cc-rsvp" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">
