@@ -85,7 +85,8 @@
         </div>
         <div class="cc-field">
           <label for="cc-contact">Contact</label>
-          <input id="cc-contact" name="contact" maxlength="240" required value="<%= values.contact %>" placeholder="hello@example.com">
+          <input id="cc-contact" name="contact" maxlength="240" required value="<%= values.contact %>" placeholder="Email, phone number, or https:// website">
+          <small>Use a verified contact the host actually publishes. Do not invent an email address; phone numbers and web URLs are supported.</small>
         </div>
       </section>
 
@@ -123,24 +124,24 @@
       </section>
 
       <section>
-        <p class="cc-kicker">5 · First real activity</p>
-        <p class="cc-task__dek">The first activity is typed here so the new place is useful immediately and its cancellation/status path can be tested without source editing.</p>
+        <p class="cc-kicker">5 · Optional first real activity</p>
+        <p class="cc-task__dek">Add an activity only when you have real event facts. Complete all four fields together, or leave this entire section blank. You can create a truthful place with no scheduled activity rather than inventing one.</p>
         <div class="cc-field">
           <label for="cc-activity-title">Activity title</label>
-          <input id="cc-activity-title" name="activityTitle" maxlength="120" required value="<%= values.activityTitle %>">
+          <input id="cc-activity-title" name="activityTitle" maxlength="120" value="<%= values.activityTitle %>">
         </div>
         <div class="cc-field">
           <label for="cc-activity-description">Activity description</label>
-          <textarea id="cc-activity-description" name="activityDescription" maxlength="1200" required><%= values.activityDescription %></textarea>
+          <textarea id="cc-activity-description" name="activityDescription" maxlength="1200"><%= values.activityDescription %></textarea>
         </div>
         <div class="cc-field">
           <label for="cc-activity-start">Starts</label>
-          <input id="cc-activity-start" type="datetime-local" name="activityStartsLocal" required value="<%= values.activityStartsLocal %>">
+          <input id="cc-activity-start" type="datetime-local" name="activityStartsLocal" value="<%= values.activityStartsLocal %>">
         </div>
         <div class="cc-field">
           <label for="cc-activity-end">Ends</label>
-          <input id="cc-activity-end" type="datetime-local" name="activityEndsLocal" required value="<%= values.activityEndsLocal %>">
-          <small>These local wall-clock times are converted server-side using the place timezone.</small>
+          <input id="cc-activity-end" type="datetime-local" name="activityEndsLocal" value="<%= values.activityEndsLocal %>">
+          <small>When supplied, these local wall-clock times are converted server-side using the place timezone.</small>
         </div>
       </section>
 
