@@ -6,12 +6,12 @@
 <body class="cc-public cc-poster cc-activity-page" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-poster-nav">
     <a class="cc-wordmark" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
-    <a class="cc-link cc-link--light" href="/candidate-c/<%= graph.identity.slug %>">Back to the room</a>
+    <a class="cc-link cc-link--light" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
   </header>
   <main class="cc-poster-activity">
     <section class="cc-poster-activity__bill">
       <div>
-        <p class="cc-kicker">One night at <%= graph.identity.displayName %></p>
+        <p class="cc-kicker">At <%= graph.identity.displayName %></p>
         <h1><%= activity.title %></h1>
         <%- include('../_status', { activity }) %>
         <p class="cc-time"><%= activity.humanTime %></p>
@@ -22,9 +22,10 @@
 
     <section class="cc-action-dock" aria-labelledby="cc-come-through">
       <div>
-        <p class="cc-kicker">Come through</p>
-        <h2 id="cc-come-through"><%= activity.presence.venueName %></h2>
-        <p><%= activity.presence.address %></p>
+        <p class="cc-kicker"><%= activity.presence.mode === 'online' ? 'Join online' : activity.presence.mode === 'hybrid' ? 'Join in person or online' : 'Come through' %></p>
+        <h2 id="cc-come-through"><%= activity.presence.mode === 'online' ? activity.presence.platformLabel : activity.presence.venueName %></h2>
+        <% if (activity.presence.mode !== 'online') { %><p><%= activity.presence.address %></p><% } %>
+        <% if (activity.presence.mode === 'hybrid') { %><p><%= activity.presence.platformLabel %></p><% } %>
       </div>
       <% if (activity.open) { %>
       <form class="cc-rsvp" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">
