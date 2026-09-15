@@ -63,17 +63,30 @@
   color: #b8c1cb;
 }
 
-/* Some established Studio components intentionally use light paper cards.
-   Inside the new dark contextual sheet they must establish their own ink rather
-   than inherit the sheet's light foreground. */
+.cc-studio-body .cc-studio-inspector .cc-inspector-help {
+  color: #aeb7c1;
+}
+
+/* Established Studio cards intentionally use light paper. Inside the new dark
+   contextual sheet they must establish their own ink rather than inherit the
+   sheet's light foreground. */
 .cc-studio-body .cc-studio-inspector .cc-consequence-truth,
-.cc-studio-body .cc-studio-inspector .cc-release-row {
+.cc-studio-body .cc-studio-inspector .cc-release-row,
+.cc-studio-body .cc-studio-inspector .cc-live-note {
   color: #2f3338;
 }
 
 .cc-studio-body .cc-studio-inspector .cc-release-row small,
-.cc-studio-body .cc-studio-inspector .cc-consequence-truth small {
+.cc-studio-body .cc-studio-inspector .cc-consequence-truth small,
+.cc-studio-body .cc-studio-inspector .cc-live-note small,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-inspector-help,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-studio-inspector__eyebrow {
   color: #555b62;
+}
+
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-button,
+.cc-studio-body .cc-studio-inspector .cc-live-note .cc-link {
+  color: #2f3338;
 }
 
 /* Poster: the #272 activity band and offer surface invert the older palette.
@@ -81,6 +94,17 @@
 .cc-public.cc-poster .cc-poster-night__body p,
 .cc-public.cc-poster .cc-poster-night .cc-link {
   color: #351b12;
+}
+
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(53, 27, 18, 0.45);
+}
+
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled,
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled strong,
+.cc-public.cc-poster .cc-poster-night p.cc-status--cancelled span {
+  color: #4a1b0f;
 }
 
 .cc-public.cc-poster .cc-poster-offer .cc-link--light {
@@ -104,6 +128,13 @@
 
 .cc-public.cc-hospitality .cc-hospitality-hero .cc-kicker {
   color: #664531;
+}
+
+/* Sparse and synthetic hosts may contain a perfectly ordinary word wider than
+   the former 9ch editorial measure. Let the headline use its actual copy column
+   instead of fracturing words or creating horizontal page overflow. */
+.cc-public.cc-hospitality .cc-hospitality-hero h1 {
+  max-width: 100%;
 }
 
 .cc-public.cc-hospitality .cc-hospitality-dish__category {
