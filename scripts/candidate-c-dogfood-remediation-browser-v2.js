@@ -67,8 +67,10 @@ async function capture(page, filename, label, evidence) {
 
 async function openCommand(page, label) {
   const summary = page.locator('.cc-studio-commandbar summary').filter({ hasText: label });
-  await summary.click();
-  await page.locator('.cc-studio-commandbar details[open]').filter({ has: summary }).waitFor();
+  assert.equal(await summary.count(), 1, `expected one ${label} command menu`);
+  const details = summary.locator('xpath=..');
+  if (!(await details.evaluate((node) => node.open))) await summary.click();
+  assert.equal(await details.evaluate((node) => node.open), true, `${label} command menu did not open`);
 }
 
 async function main() {
