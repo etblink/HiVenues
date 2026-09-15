@@ -17,6 +17,19 @@ function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+async function stopServer(target) {
+  if (!target?.listening) return;
+  await new Promise((resolve, reject) => {
+    const forceTimer = setTimeout(() => target.closeAllConnections?.(), 1000);
+    forceTimer.unref?.();
+    target.close((error) => {
+      clearTimeout(forceTimer);
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
 async function auditPage(page, axeSource, label) {
   await page.addScriptTag({ content: axeSource });
   const geometry = await page.evaluate((pageLabel) => ({
@@ -56,6 +69,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
+  page.setDefaultTimeout(15000);
+  page.setDefaultNavigationTimeout(20000);
 
   function observe(target) {
     target.on('request', (request) => {
@@ -130,7 +145,9 @@ async function main() {
     await capture(page, '03-created-studio', 'created-studio');
 
     await page.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
-    assert.match(await page.locator('body').textContent(), /Friday Gathering/);
+    const freshPublicText = await page.locator('body').textContent();
+    assert.match(freshPublicText, /Friday Gathering/);
+    assert.doesNotMatch(freshPublicText, /Harbor & Hearth|Northline|Nova Ashby|Sunday supper|Sunday table|harbor change color/i);
     await capture(page, '04-created-public', 'created-public');
 
     await page.goto(`${origin}/candidate-c/studio/dogfood-house/urgent?activity=activity-dogfood-house-001`, { waitUntil: 'networkidle' });
@@ -162,16 +179,22 @@ async function main() {
       deployments: 0,
     });
 
-    await new Promise((resolve) => server.close(resolve));
+    console.log('pre-dogfood checkpoint: closing original browser page before server restart');
+    await page.close();
+    await stopServer(server);
     store = new ProvisioningFileCandidateCStore({ statePath });
     app = createDogfoodApp({ store, publicIngress: true, accessSecret: ACCESS_SECRET, secureCookie: false });
     server = await startDogfoodServer(app, { port: 0 });
     origin = `http://127.0.0.1:${server.address().port}`;
     const restartedPage = await context.newPage();
+    restartedPage.setDefaultTimeout(15000);
+    restartedPage.setDefaultNavigationTimeout(20000);
     observe(restartedPage);
     await login(restartedPage);
     await restartedPage.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
-    assert.match(await restartedPage.locator('body').textContent(), /Cancelled/);
+    const restartedText = await restartedPage.locator('body').textContent();
+    assert.match(restartedText, /Cancelled/);
+    assert.doesNotMatch(restartedText, /Harbor & Hearth|Northline|Nova Ashby|Sunday supper|Sunday table|harbor change color/i);
     await capture(restartedPage, '07-restart-public', 'restart-public');
     await restartedPage.close();
 
@@ -223,9 +246,10 @@ async function main() {
       finding: 'PRE_DOGFOOD_BROWSER_EVIDENCE_READY_FOR_PROJECT_LEAD_REVIEW',
     };
     fs.writeFileSync(path.join(OUTPUT_ROOT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    console.log(`pre-dogfood qualification complete: ${JSON.stringify(summary)}`);
   } finally {
     await browser.close();
-    if (server?.listening) await new Promise((resolve) => server.close(resolve));
+    await stopServer(server);
   }
 }
 
