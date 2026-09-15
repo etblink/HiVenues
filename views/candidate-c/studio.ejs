@@ -59,13 +59,15 @@
           <span><%= graph.facts.presence.mode %></span>
         </div>
         <div class="cc-stage-device">
-          <% if (family.id === 'poster') { %>
-            <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } else if (family.id === 'editorial') { %>
-            <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } else { %>
-            <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
-          <% } %>
+          <div id="candidate-canvas-slot">
+            <% if (family.id === 'poster') { %>
+              <%- include('compositions/poster-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } else if (family.id === 'editorial') { %>
+              <%- include('compositions/editorial-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } else { %>
+              <%- include('compositions/hospitality-canvas', { graph, media, primaryActivity, oob: false }) %>
+            <% } %>
+          </div>
         </div>
       </section>
 
