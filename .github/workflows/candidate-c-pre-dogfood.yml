@@ -7,8 +7,10 @@ on:
       - 'views/candidate-c/**'
       - 'scripts/candidate-c-dogfood.js'
       - 'scripts/candidate-c-pre-dogfood-browser.js'
+      - 'scripts/candidate-c-truthful-fresh-host-browser.js'
       - 'test/candidate-c-pre-dogfood.test.js'
       - 'test/candidate-c-composition-reuse.test.js'
+      - 'test/candidate-c-fresh-host-truthfulness.test.js'
       - 'package.json'
       - '.github/workflows/candidate-c-pre-dogfood.yml'
   workflow_dispatch:
@@ -41,7 +43,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
       - name: Run deterministic pre-dogfood contracts
-        run: node --test --test-concurrency=1 test/candidate-c-pre-dogfood.test.js test/candidate-c-composition-reuse.test.js
+        run: node --test --test-concurrency=1 test/candidate-c-pre-dogfood.test.js test/candidate-c-composition-reuse.test.js test/candidate-c-fresh-host-truthfulness.test.js
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Run Chromium fresh-host + restart + urgent qualification
@@ -49,6 +51,11 @@ jobs:
           CANDIDATE_C_PRE_DOGFOOD_REVIEW_ROOT: artifacts/candidate-c-pre-dogfood-review
           CANDIDATE_C_PRE_DOGFOOD_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/candidate-c-pre-dogfood-browser.js
+      - name: Run Chromium truthful zero-activity fresh-host qualification
+        env:
+          CANDIDATE_C_PRE_DOGFOOD_REVIEW_ROOT: artifacts/candidate-c-pre-dogfood-review
+          CANDIDATE_C_PRE_DOGFOOD_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-truthful-fresh-host-browser.js
       - name: Publish pre-dogfood evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -64,10 +71,11 @@ jobs:
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('node:fs');
           const manifest = JSON.parse(fs.readFileSync('artifacts/candidate-c-pre-dogfood-review/manifest.json', 'utf8'));
+          const truthful = JSON.parse(fs.readFileSync('artifacts/candidate-c-pre-dogfood-review/truthful-zero-activity/manifest.json', 'utf8'));
           console.log('## Candidate C pre-dogfood qualification');
           console.log('');
           console.log(`- Exact candidate: ${manifest.candidate}`);
-          console.log(`- Screenshots: ${manifest.summary.screenshotCount}`);
+          console.log(`- Primary screenshots: ${manifest.summary.screenshotCount}`);
           console.log(`- Blocking accessibility findings: ${manifest.summary.blockingAccessibilityFindings}`);
           console.log(`- Horizontal overflow findings: ${manifest.summary.horizontalOverflowFindings}`);
           console.log(`- Incomplete images: ${manifest.summary.incompleteImageFindings}`);
@@ -75,6 +83,8 @@ jobs:
           console.log(`- Unexpected console/page errors: ${manifest.summary.unexpectedConsoleErrors}`);
           console.log(`- New host: ${manifest.proof.slug} · revision ${manifest.proof.revision}`);
           console.log(`- Restart proof: ${manifest.proof.activityLifecycleAfterRestart} · live ${manifest.proof.liveReleaseKind} release ${manifest.proof.liveReleaseId}`);
+          console.log(`- Truthful zero-activity host: ${truthful.slug} · activities ${truthful.activities} · restart ${truthful.restartPersisted}`);
+          console.log(`- Truthful contact consequence: ${truthful.contact.href}`);
           console.log(`- Access secret persisted: ${manifest.proof.accessSecretPersisted}`);
           console.log(`- Hive RPC attempts/writes: ${manifest.summary.hiveRpcAttempts}/${manifest.summary.hiveWrites}`);
           console.log(`- Provider/payment/signing/deployment effects: ${manifest.summary.providerWrites}/${manifest.summary.payments}/${manifest.summary.signingAttempts}/${manifest.summary.deployments}`);
