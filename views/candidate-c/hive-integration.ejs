@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-hive.css">
+</head>
+<body class="cc-studio-body">
+  <main class="cc-hive-shell" data-hive-integration data-slug="<%= graph.identity.slug %>">
+    <header class="cc-hive-topbar">
+      <div>
+        <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">← Back to Studio</a>
+        <p class="cc-hive-eyebrow">Integrations · Hive</p>
+        <h1>Portable identity, underneath <%= graph.identity.displayName %>.</h1>
+        <p>Connect a Hive account without giving HiVenues a private key. Reads come directly from the public chain. Anything that writes to Hive requires a separate approval in your wallet.</p>
+      </div>
+      <div class="cc-hive-network" aria-live="polite">
+        <% if (hiveHealth) { %>
+          <strong>Hive mainnet connected</strong>
+          <span>Head block <%= hiveHealth.headBlockNumber.toLocaleString('en-US') %></span>
+        <% } else { %>
+          <strong>Hive read connection unavailable</strong>
+          <span><%= hiveHealthError || 'Try again in a moment.' %></span>
+        <% } %>
+      </div>
+    </header>
+
+    <section class="cc-hive-principles" aria-label="Hive integration guarantees">
+      <div><strong>Keys stay in your wallet</strong><span>HiVenues never asks for a private key or master password.</span></div>
+      <div><strong>Signing is explicit</strong><span>Verification signs a message only. Publishing opens a separate wallet approval.</span></div>
+      <div><strong>Success is read back</strong><span>HiVenues checks Hive after approval before calling a write confirmed.</span></div>
+    </section>
+
+    <section class="cc-hive-card" aria-labelledby="hive-connect-title">
+      <div class="cc-hive-card__heading">
+        <div>
+          <p class="cc-hive-eyebrow">Identity</p>
+          <h2 id="hive-connect-title"><%= hiveSession ? 'Hive account connected' : 'Connect your Hive account' %></h2>
+        </div>
+        <span class="cc-hive-badge"><%= hiveSession ? 'Verified' : 'Not connected' %></span>
+      </div>
+
+      <% if (hiveSession) { %>
+        <div class="cc-hive-account">
+          <strong>@<%= hiveSession.account %></strong>
+          <% if (hiveAccount?.displayName) { %><span><%= hiveAccount.displayName %></span><% } %>
+          <% if (hiveAccount?.about) { %><p><%= hiveAccount.about %></p><% } %>
+          <small>Posting authority verified. This does not authorize any transaction by itself.</small>
+        </div>
+        <button class="cc-button cc-button--quiet" type="button" data-hive-disconnect>Disconnect Hive account</button>
+      <% } else { %>
+        <form class="cc-hive-connect-form" data-hive-connect-form>
+          <label for="hive-account">Hive username</label>
+          <div class="cc-hive-inline">
+            <span aria-hidden="true">@</span>
+            <input id="hive-account" name="account" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="your-account">
+            <button class="cc-button cc-button--ink" type="submit">Verify with Keychain</button>
+          </div>
+          <p class="cc-hive-help">Keychain will ask you to sign a one-time Posting-authority message. A sign-in message is not a blockchain transaction.</p>
+        </form>
+      <% } %>
+      <p class="cc-hive-status" data-hive-status role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="cc-hive-card <%= hiveSession ? '' : 'cc-hive-card--locked' %>" aria-labelledby="hive-publish-title">
+      <div class="cc-hive-card__heading">
+        <div>
+          <p class="cc-hive-eyebrow">First real action</p>
+          <h2 id="hive-publish-title">Publish a host update to your Hive profile</h2>
+        </div>
+        <span class="cc-hive-badge">Posting authority</span>
+      </div>
+      <p>This is a real, permanent Hive post if you approve it in Keychain. HiVenues prepares the exact operation first and gives you a review step before the wallet opens.</p>
+
+      <% if (!hiveSession) { %>
+        <p class="cc-hive-locked-message">Connect and verify a Hive account above to prepare a post.</p>
+      <% } else { %>
+        <form data-hive-post-form>
+          <label for="hive-post-title">Title</label>
+          <input id="hive-post-title" name="title" maxlength="256" required value="<%= graph.identity.displayName %> — from HiVenues">
+          <label for="hive-post-body">Post</label>
+          <textarea id="hive-post-body" name="body" rows="8" maxlength="30000" required><%= graph.facts.summary %>
+
+This place is being shaped with HiVenues.</textarea>
+          <button class="cc-button cc-button--ink" type="submit">Review Hive post</button>
+        </form>
+
+        <div class="cc-hive-review" data-hive-review hidden>
+          <p class="cc-hive-eyebrow">Wallet consequence review</p>
+          <h3 data-hive-review-heading>Ready for your approval</h3>
+          <dl>
+            <div><dt>Account</dt><dd data-hive-review-account></dd></div>
+            <div><dt>Authority</dt><dd data-hive-review-authority></dd></div>
+            <div><dt>Consequence</dt><dd data-hive-review-consequence></dd></div>
+            <div><dt>Fingerprint</dt><dd><code data-hive-review-fingerprint></code></dd></div>
+          </dl>
+          <p>No action has been broadcast yet. The next button opens Keychain with the exact reviewed operation.</p>
+          <div class="cc-hive-review__actions">
+            <button class="cc-button cc-button--ink" type="button" data-hive-broadcast>Approve in Keychain</button>
+            <button class="cc-button cc-button--quiet" type="button" data-hive-cancel-review>Cancel</button>
+          </div>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/candidate-c-hive.js" defer></script>
+</body>
+</html>
