@@ -57,6 +57,12 @@
   color: #50565c;
 }
 
+/* The #272 contextual editor is a dark panel. The older light-inspector brown
+   above remains for legacy/task contexts, but must not leak into this sheet. */
+.cc-studio-body .cc-studio-inspector__eyebrow {
+  color: #b8c1cb;
+}
+
 /* Poster: the #272 activity band and offer surface invert the older palette.
    Keep copy and links on the correct side of that inversion. */
 .cc-public.cc-poster .cc-poster-night__body p,
