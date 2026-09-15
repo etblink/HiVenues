@@ -222,7 +222,7 @@ async function main() {
     await audit(desktop, 'direction-review-desktop');
 
     await gotoOk(desktop, '/candidate-c/studio/northline-hall/release');
-    assert.match(await desktop.getByRole('heading', { level: 1 }).textContent(), /Publish the website snapshot/);
+    assert.match(await desktop.getByRole('heading', { level: 1 }).textContent(), /Choose what becomes the live website/);
     screenshots.push(await screenshot(desktop, '08-release-review-desktop'));
     await audit(desktop, 'release-review-desktop');
 
