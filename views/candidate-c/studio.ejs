@@ -85,18 +85,21 @@
             <div>
               <p class="cc-kicker">Complete visitor page</p>
               <h2 id="cc-complete-preview-title">Everything in the draft, not just the edit canvas.</h2>
-              <p>This is the full visitor-facing draft page. Story, visit details, summary, Activities and Offers appear here exactly through the same public composition template used by Preview.</p>
+              <p>This is the full visitor-facing draft page. Story, visit details, summary, Activities and Offers appear here through the same public composition template used by Preview.</p>
             </div>
-            <div class="cc-preview-size-toggle" role="group" aria-label="Preview width">
-              <button class="cc-button cc-button--ink" type="button" data-preview-width="desktop" aria-pressed="true">Desktop</button>
-              <button class="cc-button" type="button" data-preview-width="mobile" aria-pressed="false">Mobile · 390px</button>
-            </div>
+            <fieldset class="cc-preview-size-toggle">
+              <legend class="cc-visually-hidden">Preview width</legend>
+              <input id="cc-preview-desktop" type="radio" name="cc-preview-width" checked>
+              <label for="cc-preview-desktop">Desktop</label>
+              <input id="cc-preview-mobile" type="radio" name="cc-preview-width">
+              <label for="cc-preview-mobile">Mobile · 390px</label>
+            </fieldset>
           </div>
-          <div class="cc-full-preview-shell" data-preview-shell data-mode="desktop">
+          <div class="cc-full-preview-shell">
             <iframe
-              data-full-preview
+              id="cc-full-preview-frame"
               title="Complete visitor-facing draft preview"
-              src="/candidate-c/studio/<%= graph.identity.slug %>/preview"
+              src="/candidate-c/studio/<%= graph.identity.slug %>/preview?r=<%= revision %>"
               loading="eager"></iframe>
           </div>
         </section>
