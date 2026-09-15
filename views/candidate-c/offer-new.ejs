@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+<% const v = typeof values === 'object' && values ? values : {}; %>
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Offerings · Add</p>
+    <h1>Add something the host really offers.</h1>
+    <p class="cc-task__dek">Use this for a verified menu item, service, membership, product or other host offering. It stays in the working draft until a normal website Release.</p>
+    <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check the offering.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
+    <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/offer/new">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <div class="cc-field"><label for="cc-new-offer-title">Name</label><input id="cc-new-offer-title" name="title" maxlength="160" required value="<%= v.title ?? '' %>"></div>
+      <div class="cc-field"><label for="cc-new-offer-summary">Description</label><textarea id="cc-new-offer-summary" name="summary" maxlength="1200" required><%= v.summary ?? '' %></textarea></div>
+      <div class="cc-field"><label for="cc-new-offer-category">Category <span aria-hidden="true">·</span> optional</label><input id="cc-new-offer-category" name="category" maxlength="120" value="<%= v.category ?? '' %>"></div>
+      <div class="cc-field"><label for="cc-new-offer-price">Price or short detail <span aria-hidden="true">·</span> optional</label><input id="cc-new-offer-price" name="price" maxlength="80" value="<%= v.price ?? '' %>"></div>
+      <button class="cc-button cc-button--ink" type="submit">Add offering to draft</button>
+    </form>
+  </main>
+</body>
+</html>
