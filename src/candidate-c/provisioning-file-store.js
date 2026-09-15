@@ -2,8 +2,8 @@
 
 const { FileCandidateCStore } = require('./file-store');
 const {
-  decodeImagePayload,
   defaultLocalMediaRoot,
+  inspectImage,
   persistLocalImage,
   removeLocalImageIfNew,
 } = require('./local-media');
@@ -27,35 +27,35 @@ class ProvisioningFileCandidateCStore extends FileCandidateCStore {
     if (!alt || alt.length > 300) return { ok: false, reason: 'MEDIA_ALT_INVALID' };
     if (caption.length > 300) return { ok: false, reason: 'MEDIA_CAPTION_INVALID' };
 
-    let decoded;
+    let inspection;
     try {
-      decoded = decodeImagePayload(input.dataBase64);
+      inspection = input.inspection || inspectImage(input.imageBuffer);
     } catch (error) {
       return { ok: false, reason: error.code || 'MEDIA_INVALID', message: error.message };
     }
+    if (!Buffer.isBuffer(input.imageBuffer)) return { ok: false, reason: 'MEDIA_EMPTY' };
 
     const snapshot = this.snapshot(slug);
     if (!snapshot) return { ok: false, reason: 'NOT_FOUND' };
     const graph = snapshot.draft;
-    const existingLogo = graph.media.find((item) => item.id === `media-${slug}-logo`) || null;
     const hero = graph.media.find((item) => item.id !== `media-${slug}-logo`) || graph.media[0];
     if (!hero) return { ok: false, reason: 'MEDIA_TARGET_MISSING' };
 
     const persisted = persistLocalImage({
       slug,
-      buffer: decoded.buffer,
-      inspection: decoded.inspection,
+      buffer: input.imageBuffer,
+      inspection,
       mediaRoot: this.mediaRoot,
     });
     const descriptor = {
       version: 1,
       storage: 'repo-local',
       path: persisted.publicPath,
-      mime: decoded.inspection.mime,
-      bytes: decoded.inspection.bytes,
-      width: decoded.inspection.width,
-      height: decoded.inspection.height,
-      sha256: decoded.inspection.sha256,
+      mime: inspection.mime,
+      bytes: inspection.bytes,
+      width: inspection.width,
+      height: inspection.height,
+      sha256: inspection.sha256,
     };
     const provenance = caption || `Photo supplied by ${graph.identity.displayName}.`;
     const logoId = `media-${slug}-logo`;
