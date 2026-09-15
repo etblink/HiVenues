@@ -13,9 +13,9 @@ on:
       - 'test/candidate-c-phase2b-urgent.test.js'
       - 'test/candidate-c-phase2b-h1.test.js'
       - 'scripts/candidate-c-phase2b-browser.js'
-      - 'scripts/candidate-c-phase2b-studio-browser.js'
-      - 'scripts/candidate-c-phase2b-urgent-browser.js'
-      - 'scripts/candidate-c-phase2b-h1-browser.js'
+      - 'scripts/candidate-c-phase2b-studio-browser-v2.js'
+      - 'scripts/candidate-c-phase2b-urgent-browser-v2.js'
+      - 'scripts/candidate-c-phase2b-h1-browser-v2.js'
       - 'scripts/candidate-c-phase2b-closure-browser.js'
       - '.github/workflows/candidate-c-phase2b-browser.yml'
   workflow_dispatch:
@@ -60,17 +60,17 @@ jobs:
         env:
           CANDIDATE_C_PHASE2B_STUDIO_REVIEW_ROOT: artifacts/candidate-c-phase2b-studio-review
           CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-phase2b-studio-browser.js
+        run: node scripts/candidate-c-phase2b-studio-browser-v2.js
       - name: Run Phase 2B Workstream E urgent-operation Chromium qualification
         env:
           CANDIDATE_C_PHASE2B_URGENT_REVIEW_ROOT: artifacts/candidate-c-phase2b-urgent-review
           CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-phase2b-urgent-browser.js
+        run: node scripts/candidate-c-phase2b-urgent-browser-v2.js
       - name: Run Phase 2B Workstream F H1 stress Chromium qualification
         env:
           CANDIDATE_C_PHASE2B_H1_REVIEW_ROOT: artifacts/candidate-c-phase2b-h1-review
           CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node scripts/candidate-c-phase2b-h1-browser.js
+        run: node scripts/candidate-c-phase2b-h1-browser-v2.js
       - name: Run Phase 2B closure matrix Chromium qualification (R1/R2/R3 × public/Activity/Studio × desktop/390px)
         env:
           CANDIDATE_C_PHASE2B_CLOSURE_REVIEW_ROOT: artifacts/candidate-c-phase2b-closure-review
