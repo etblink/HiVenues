@@ -77,13 +77,12 @@ function decodeImagePayload(payload) {
   return { buffer, inspection: inspectImage(buffer) };
 }
 
-function localMediaRootForState(statePath) {
-  if (!statePath) throw new TypeError('Local media storage requires a state path.');
-  return path.join(path.dirname(path.resolve(statePath)), 'candidate-c-media');
+function defaultLocalMediaRoot() {
+  return path.join(__dirname, '..', '..', 'public', 'candidate-c', 'media', 'local');
 }
 
-function persistLocalImage({ statePath, slug, buffer, inspection }) {
-  const root = localMediaRootForState(statePath);
+function persistLocalImage({ slug, buffer, inspection, mediaRoot = defaultLocalMediaRoot() }) {
+  const root = path.resolve(mediaRoot);
   const directory = path.join(root, slug);
   fs.mkdirSync(directory, { recursive: true });
   const filename = `${inspection.sha256.slice(0, 24)}.${inspection.extension}`;
@@ -93,7 +92,7 @@ function persistLocalImage({ statePath, slug, buffer, inspection }) {
   return {
     target,
     existed,
-    publicPath: `/candidate-c/local-media/${encodeURIComponent(slug)}/${filename}`,
+    publicPath: `/candidate-c/media/local/${encodeURIComponent(slug)}/${filename}`,
     root,
   };
 }
@@ -111,8 +110,8 @@ function removeLocalImageIfNew(record) {
 module.exports = {
   MAX_IMAGE_BYTES,
   decodeImagePayload,
+  defaultLocalMediaRoot,
   inspectImage,
-  localMediaRootForState,
   persistLocalImage,
   removeLocalImageIfNew,
 };
