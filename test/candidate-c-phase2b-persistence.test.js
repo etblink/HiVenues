@@ -175,7 +175,7 @@ test('Studio emits revision plus digest tokens and durable router rejects a miss
     .type('form')
     .send({ expectedRevision: 1, tagline: 'No digest.' })
     .expect(409)
-    .expect(/newer draft exists/i);
+    .expect(/newer version exists/i);
 
   const before = store.snapshot('northline-hall');
   await request(app)
