@@ -25,6 +25,13 @@ function tokens(store, slug) {
   return { expectedRevision: snapshot.revision, expectedDraftDigest: snapshot.draftDigest };
 }
 
+function mutate(store, slug, label, mutator, manualPaths = []) {
+  const state = store.snapshot(slug);
+  return store.draftMutation(slug, state.revision, state.draftDigest, (inner) => (
+    inner.commit(slug, state.revision, label, mutator, manualPaths, state.draftDigest)
+  ));
+}
+
 test('Astra beta remediation: existing Activity can be rescheduled without identity change and stays draft-only until Release', async (t) => {
   const { store, app } = runtime(t);
   const slug = 'northline-hall';
@@ -102,20 +109,19 @@ test('Astra beta remediation: Poster, Editorial and Hospitality keep authored in
   const category = 'Beta category';
 
   let state = store.snapshot(slug);
-  let result = store.commit(slug, state.revision, 'beta-parity-fixture', (draft) => {
+  let result = mutate(store, slug, 'beta-parity-fixture', (draft) => {
     draft.intent.participation = marker;
     if (!draft.offers.length) draft.offers.push({ id: 'offer-beta-269', title: 'Beta offering', summary: 'Beta summary' });
     draft.offers[0].category = category;
     draft.offers[0].price = detail;
-  }, ['intent.participation', `offers.${state.draft.offers[0]?.id || 'offer-beta-269'}.category`, `offers.${state.draft.offers[0]?.id || 'offer-beta-269'}.price`], state.draftDigest);
+  }, ['intent.participation', `offers.${state.draft.offers[0]?.id || 'offer-beta-269'}.category`, `offers.${state.draft.offers[0]?.id || 'offer-beta-269'}.price`]);
   assert.equal(result.ok, true);
 
   for (const family of ['poster', 'editorial', 'hospitality']) {
-    state = store.snapshot(slug);
-    result = store.commit(slug, state.revision, `direction-${family}`, (draft) => {
+    result = mutate(store, slug, `direction-${family}`, (draft) => {
       draft.presentation.compositionFamily = family;
       draft.intent.direction = family;
-    }, [], state.draftDigest);
+    });
     assert.equal(result.ok, true);
     state = store.snapshot(slug);
     assert.equal(store.createRelease(slug, state.revision, state.draftDigest).ok, true);
