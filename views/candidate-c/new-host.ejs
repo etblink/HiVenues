@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= pageTitle %></title>
+  <link rel="stylesheet" href="/css/candidate-c.css">
+  <link rel="stylesheet" href="/css/candidate-c-hospitality.css">
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c">Back to places</a>
+      <span class="cc-draft-status">Local dogfood workspace</span>
+    </nav>
+
+    <p class="cc-kicker">Create a place</p>
+    <h1>Start from real facts, not a template identity.</h1>
+    <p class="cc-task__dek">These fields create one canonical local workspace and its first immutable local Release. Nothing is sent to Hive, a media provider, a payment service, DNS, or a deployment target. If you later expose this local runtime through a test tunnel, the local public preview can be reachable through that temporary tunnel.</p>
+
+    <% if (errors.length) { %>
+      <section class="cc-conflict" role="alert" aria-live="polite">
+        <strong>Check the place facts before creating it.</strong>
+        <ul>
+          <% errors.forEach((error) => { %>
+            <li><%= error.path ? `${error.path}: ` : '' %><%= error.message %></li>
+          <% }) %>
+        </ul>
+        <% if (reason) { %><small>Reference: <%= reason %></small><% } %>
+      </section>
+    <% } %>
+
+    <form class="cc-setup-form" method="post" action="/candidate-c/new">
+      <section>
+        <p class="cc-kicker">1 · Identity</p>
+        <div class="cc-field">
+          <label for="cc-display-name">Place or host name</label>
+          <input id="cc-display-name" name="displayName" maxlength="100" required value="<%= values.displayName %>">
+          <small>The URL slug is derived server-side from this name and collisions are refused.</small>
+        </div>
+        <div class="cc-field">
+          <label for="cc-archetype">What kind of place is it?</label>
+          <input id="cc-archetype" name="archetype" maxlength="120" required value="<%= values.archetype %>" placeholder="Neighborhood bar, artist studio, community venue…">
+        </div>
+        <div class="cc-field">
+          <label for="cc-timezone">Timezone</label>
+          <input id="cc-timezone" name="timezone" maxlength="100" required value="<%= values.timezone %>" placeholder="America/Los_Angeles">
+          <small>Use an IANA timezone name.</small>
+        </div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">2 · Presence</p>
+        <fieldset class="cc-field" style="border:0;padding:0">
+          <legend>How people reach this place</legend>
+          <div class="cc-choice-grid">
+            <% [['physical','Physical place'],['online','Online'],['hybrid','Hybrid']].forEach(([value,label]) => { %>
+              <label class="cc-choice">
+                <input type="radio" name="presenceMode" value="<%= value %>" <%= values.presenceMode === value ? 'checked' : '' %>>
+                <strong><%= label %></strong>
+              </label>
+            <% }) %>
+          </div>
+        </fieldset>
+        <div class="cc-field">
+          <label for="cc-presence-label">Presence line</label>
+          <input id="cc-presence-label" name="presenceLabel" maxlength="240" required value="<%= values.presenceLabel %>" placeholder="Downtown Las Vegas · open nightly">
+        </div>
+        <div class="cc-field">
+          <label for="cc-address">Physical address</label>
+          <input id="cc-address" name="address" maxlength="300" value="<%= values.address %>">
+          <small>Required for physical and hybrid places; leave blank only for online-only hosts.</small>
+        </div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">3 · Public facts</p>
+        <div class="cc-field">
+          <label for="cc-tagline">Tagline</label>
+          <input id="cc-tagline" name="tagline" maxlength="180" required value="<%= values.tagline %>">
+        </div>
+        <div class="cc-field">
+          <label for="cc-summary">Summary</label>
+          <textarea id="cc-summary" name="summary" maxlength="1200" required><%= values.summary %></textarea>
+        </div>
+        <div class="cc-field">
+          <label for="cc-contact">Contact</label>
+          <input id="cc-contact" name="contact" maxlength="240" required value="<%= values.contact %>" placeholder="hello@example.com">
+        </div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">4 · Direction</p>
+        <div class="cc-field">
+          <label for="cc-purpose">Purpose</label>
+          <textarea id="cc-purpose" name="purpose" maxlength="800" required><%= values.purpose %></textarea>
+        </div>
+        <div class="cc-field">
+          <label for="cc-material">Presence & material</label>
+          <textarea id="cc-material" name="presenceMaterial" maxlength="800" required><%= values.presenceMaterial %></textarea>
+        </div>
+        <fieldset class="cc-field" style="border:0;padding:0">
+          <legend>Composition direction</legend>
+          <div class="cc-choice-grid">
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="poster" <%= values.direction === 'poster' ? 'checked' : '' %>>
+              <strong>Poster room</strong><span>Event-led and tactile.</span>
+            </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="editorial" <%= values.direction === 'editorial' ? 'checked' : '' %>>
+              <strong>Editorial field notes</strong><span>Open and publication-like.</span>
+            </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="hospitality" <%= values.direction === 'hospitality' ? 'checked' : '' %>>
+              <strong>Hospitality table</strong><span>Warm, service-aware and invitation-led.</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="cc-field">
+          <label for="cc-participation">Useful participation</label>
+          <textarea id="cc-participation" name="participation" maxlength="800" required><%= values.participation %></textarea>
+        </div>
+      </section>
+
+      <section>
+        <p class="cc-kicker">5 · First real activity</p>
+        <p class="cc-task__dek">The first activity is typed here so the new place is useful immediately and its cancellation/status path can be tested without source editing.</p>
+        <div class="cc-field">
+          <label for="cc-activity-title">Activity title</label>
+          <input id="cc-activity-title" name="activityTitle" maxlength="120" required value="<%= values.activityTitle %>">
+        </div>
+        <div class="cc-field">
+          <label for="cc-activity-description">Activity description</label>
+          <textarea id="cc-activity-description" name="activityDescription" maxlength="1200" required><%= values.activityDescription %></textarea>
+        </div>
+        <div class="cc-field">
+          <label for="cc-activity-start">Starts</label>
+          <input id="cc-activity-start" type="datetime-local" name="activityStartsLocal" required value="<%= values.activityStartsLocal %>">
+        </div>
+        <div class="cc-field">
+          <label for="cc-activity-end">Ends</label>
+          <input id="cc-activity-end" type="datetime-local" name="activityEndsLocal" required value="<%= values.activityEndsLocal %>">
+          <small>These local wall-clock times are converted server-side using the place timezone.</small>
+        </div>
+      </section>
+
+      <section class="cc-direction-preview">
+        <p class="cc-kicker">Creation consequence</p>
+        <h2>Create local workspace + initial Release</h2>
+        <p>The entered facts become the first immutable local Release and therefore the local public preview. This is not a Hive publish, provider upload, payment, deployment, or DNS action.</p>
+      </section>
+
+      <button class="cc-button cc-button--ink" type="submit">Create this place</button>
+    </form>
+  </main>
+</body>
+</html>
