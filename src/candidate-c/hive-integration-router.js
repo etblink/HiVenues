@@ -26,6 +26,15 @@ function sameOrigin(req) {
   return Boolean(origin) && origin === requestOrigin(req);
 }
 
+function publicSession(session) {
+  if (!session) return null;
+  return Object.freeze({
+    account: session.account,
+    issuedAt: session.issuedAt,
+    expiresAt: session.expiresAt,
+  });
+}
+
 function sessionCookie(token, secure) {
   return [
     `${HIVE_SESSION_COOKIE}=${encodeURIComponent(token)}`,
@@ -97,7 +106,7 @@ function createCandidateCHiveIntegrationRouter({ store, service, secureCookie = 
     return res.render('candidate-c/hive-integration', {
       pageTitle: `Hive — ${current.draft.identity.displayName}`,
       ...buildViewModel(current),
-      hiveSession: session,
+      hiveSession: publicSession(session),
       hiveAccount: account,
       hiveHealth: health,
       hiveHealthError: healthError,
@@ -111,7 +120,7 @@ function createCandidateCHiveIntegrationRouter({ store, service, secureCookie = 
       const session = service.getSession(token(req), req.params.slug);
       const account = session ? await service.getAccountSummary(session.account) : null;
       const health = await service.health();
-      return res.json({ connected: Boolean(session), session, account, health });
+      return res.json({ connected: Boolean(session), session: publicSession(session), account, health });
     } catch (error) {
       return res.status(503).json(errorPayload(error));
     }
@@ -215,6 +224,7 @@ module.exports = {
   clearSessionCookie,
   createCandidateCHiveIntegrationRouter,
   parseCookies,
+  publicSession,
   requestOrigin,
   sameOrigin,
   sessionCookie,
