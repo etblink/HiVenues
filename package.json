@@ -14,6 +14,7 @@
     "build": "npm run build:css",
     "build:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --minify",
     "watch:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --watch",
+    "candidate-c:dogfood": "node scripts/candidate-c-dogfood.js",
     "venue:create": "node scripts/create-venue.js",
     "venue:studio": "node scripts/open-turnkey-studio.js",
     "venue:ready": "node scripts/check-turnkey-readiness.js",

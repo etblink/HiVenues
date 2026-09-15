@@ -6,11 +6,11 @@
 <body class="cc-public cc-editorial cc-activity-page" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-editorial-nav">
     <a class="cc-editorial-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
-    <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to field notes</a>
+    <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
   </header>
   <main class="cc-editorial-activity">
     <section class="cc-editorial-activity__heading">
-      <p class="cc-editorial-index">LIVE SESSION / <%= activity.humanTime %></p>
+      <p class="cc-editorial-index">ACTIVITY / <%= activity.humanTime %></p>
       <h1><%= activity.title %></h1>
       <%- include('../_status', { activity }) %>
       <p class="cc-editorial-activity__dek"><%= activity.description %></p>
@@ -23,9 +23,11 @@
 
     <section class="cc-editorial-activity__participate">
       <div>
-        <p class="cc-editorial-index">JOIN</p>
-        <h2><%= activity.presence.platformLabel %></h2>
-        <p>The session is online. RSVP is local to this HiVenues reference and does not create a platform account.</p>
+        <p class="cc-editorial-index">WHERE</p>
+        <h2><%= activity.presence.mode === 'online' ? activity.presence.platformLabel : activity.presence.venueName %></h2>
+        <% if (activity.presence.mode !== 'online') { %><p><%= activity.presence.address %></p><% } %>
+        <% if (activity.presence.mode === 'hybrid') { %><p><%= activity.presence.platformLabel %></p><% } %>
+        <p>RSVP is recorded locally in this HiVenues dogfood runtime and does not create a platform account, payment, or blockchain transaction.</p>
       </div>
       <% if (activity.open) { %>
       <form class="cc-rsvp cc-rsvp--light" method="post" action="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-post="/candidate-c/<%= graph.identity.slug %>/activities/<%= activity.slug %>/rsvp" hx-target="#cc-rsvp-result" hx-swap="innerHTML">

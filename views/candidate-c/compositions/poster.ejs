@@ -7,9 +7,9 @@
   <header class="cc-poster-nav">
     <a class="cc-wordmark" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
     <nav aria-label="Primary">
-      <a href="#what-is-on">What’s on</a>
-      <a href="#visit">Visit</a>
-      <a href="#story">The room</a>
+      <% if (primaryActivity) { %><a href="#what-is-on">What’s on</a><% } %>
+      <a href="#visit">Where</a>
+      <a href="#story">Story</a>
     </nav>
   </header>
 
@@ -22,12 +22,12 @@
             <h1 id="cc-poster-title"><%= graph.facts.tagline %></h1>
             <p class="cc-poster-hero__summary"><%= graph.facts.summary %></p>
             <% if (primaryActivity) { %>
-              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See the next night</a>
+              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See <%= primaryActivity.title %></a>
             <% } %>
           </div>
           <div class="cc-poster-hero__art">
             <%- include('../_art', { media: media[0], graph }) %>
-            <p class="cc-media-note">House artwork · abstract stage-light study</p>
+            <p class="cc-media-note"><%= media[0].provenance %></p>
           </div>
         </section>
       <% } %>
@@ -39,7 +39,7 @@
             <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { day: '2-digit', timeZone: graph.identity.timezone }) %></strong>
           </div>
           <div class="cc-poster-night__body">
-            <p class="cc-kicker">Next at Northline</p>
+            <p class="cc-kicker">Next at <%= graph.identity.displayName %></p>
             <h2 id="cc-next-night"><%= primaryActivity.title %></h2>
             <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
@@ -54,31 +54,31 @@
 
       <% if (section === 'story') { %>
         <section class="cc-poster-story" id="story">
-          <p class="cc-kicker">From behind the bar</p>
-          <p class="cc-poster-story__line">Three sets close enough to hear the room breathe. Late nights, warm lights, no bad seat.</p>
-          <p class="cc-poster-story__small">Come early, stay through the last note, and make a night of it.</p>
+          <p class="cc-kicker">The place</p>
+          <p class="cc-poster-story__line"><%= graph.intent.presenceMaterial %></p>
+          <p class="cc-poster-story__small"><%= graph.intent.purpose %></p>
         </section>
       <% } %>
 
       <% if (section === 'details') { %>
         <section class="cc-poster-visit" id="visit" aria-labelledby="cc-visit-title">
           <div>
-            <p class="cc-kicker">Find the room</p>
+            <p class="cc-kicker">Where to find us</p>
             <h2 id="cc-visit-title"><%= graph.facts.presence.label %></h2>
           </div>
           <div class="cc-poster-visit__facts">
             <% if (graph.facts.presence.address) { %><p><strong>Address</strong><br><%= graph.facts.presence.address %></p><% } %>
-            <p><strong>Contact</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+            <p><strong>Contact</strong><br><% if (contact.href) { %><a href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p>
           </div>
         </section>
       <% } %>
 
       <% if (section === 'offer' && graph.offers[0]) { %>
         <section class="cc-poster-offer">
-          <p class="cc-kicker">Make the room yours</p>
+          <p class="cc-kicker">From <%= graph.identity.displayName %></p>
           <h2><%= graph.offers[0].title %></h2>
           <p><%= graph.offers[0].summary %></p>
-          <a class="cc-link cc-link--light" href="mailto:<%= graph.facts.contact %>">Ask about a night</a>
+          <% if (contact.href) { %><a class="cc-link cc-link--light" href="<%= contact.href %>">Ask about <%= graph.offers[0].title %></a><% } %>
         </section>
       <% } %>
     <% }) %>
@@ -86,7 +86,7 @@
 
   <footer class="cc-poster-footer">
     <p><%= graph.identity.displayName %></p>
-    <p>Downtown Las Vegas · live, close, late.</p>
+    <p><%= graph.facts.presence.label %></p>
   </footer>
 </body>
 </html>

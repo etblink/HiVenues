@@ -33,6 +33,17 @@ function mediaFor(graph, mediaId) {
   return graph.media.find((item) => item.id === mediaId) || graph.media[0];
 }
 
+function contactFor(value) {
+  const label = String(value || '').trim();
+  if (/^https?:\/\//i.test(label)) return { label, href: label, kind: 'web' };
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(label)) return { label, href: `mailto:${label}`, kind: 'email' };
+  if (/^[+0-9().\-\s]+$/.test(label)) {
+    const tel = label.replace(/[^\d+]/g, '');
+    if (/^\+?\d{7,15}$/.test(tel)) return { label, href: `tel:${tel}`, kind: 'phone' };
+  }
+  return { label, href: null, kind: 'text' };
+}
+
 function buildViewModel(snapshot) {
   const graph = snapshot.draft;
   const family = compositionRegistry[graph.presentation.compositionFamily];
@@ -57,6 +68,7 @@ function buildViewModel(snapshot) {
     activities,
     primaryActivity: activities[0] || null,
     media: graph.media,
+    contact: contactFor(graph.facts.contact),
     release: liveRelease,
     lifecycles: activityLifecycles,
     revision: snapshot.revision,
@@ -104,4 +116,4 @@ function renderIcs(graph, activity) {
   ].join('\r\n');
 }
 
-module.exports = { buildViewModel, compositionRegistry, renderIcs };
+module.exports = { buildViewModel, compositionRegistry, contactFor, renderIcs };

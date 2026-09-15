@@ -8,8 +8,8 @@
     <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%= graph.identity.displayName %></a>
     <p><%= graph.facts.presence.label %></p>
     <nav aria-label="Primary">
-      <a href="#menu">Menu</a>
-      <a href="#table">The table</a>
+      <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
+      <% if (primaryActivity) { %><a href="#table">What’s on</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
@@ -20,15 +20,15 @@
         <section class="cc-hospitality-hero" aria-labelledby="cc-hospitality-title">
           <div class="cc-hospitality-hero__media">
             <%- include('../_art', { media: media[0], graph }) %>
-            <p class="cc-hospitality-caption">House study · synthetic artwork · <%= media[0].asset ? `${media[0].asset.width}×${media[0].asset.height}` : 'bootstrap art' %></p>
+            <p class="cc-hospitality-caption"><%= media[0].provenance %><%= media[0].asset ? ` · ${media[0].asset.width}×${media[0].asset.height}` : '' %></p>
           </div>
           <div class="cc-hospitality-hero__copy">
             <p class="cc-kicker"><%= graph.identity.archetype %></p>
             <h1 id="cc-hospitality-title"><%= graph.facts.tagline %></h1>
             <p><%= graph.facts.summary %></p>
             <div class="cc-hospitality-hero__actions">
-              <a class="cc-button cc-button--hospitality" href="#menu">See tonight’s menu</a>
-              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">Join the Sunday table</a><% } %>
+              <% if (graph.offers.length) { %><a class="cc-button cc-button--hospitality" href="#menu">See what’s offered</a><% } %>
+              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>">See <%= primaryActivity.title %></a><% } %>
             </div>
           </div>
         </section>
@@ -37,9 +37,9 @@
       <% if (section === 'offer' && graph.offers.length) { %>
         <section class="cc-hospitality-menu" id="menu" aria-labelledby="cc-menu-title">
           <header>
-            <p class="cc-kicker">From the kitchen</p>
-            <h2 id="cc-menu-title">A short menu, written for right now.</h2>
-            <p>Ingredients move with the boats, farms, and weather. These are the plates on the current table.</p>
+            <p class="cc-kicker">From <%= graph.identity.displayName %></p>
+            <h2 id="cc-menu-title">Current offerings</h2>
+            <p><%= graph.intent.participation %></p>
           </header>
           <div class="cc-hospitality-menu__list">
             <% graph.offers.forEach((offer) => { %>
@@ -58,10 +58,10 @@
 
       <% if (section === 'story') { %>
         <section class="cc-hospitality-story">
-          <p class="cc-hospitality-story__line">Fire for the vegetables. Salt for the fish. Enough time at the table to notice the harbor change color.</p>
+          <p class="cc-hospitality-story__line"><%= graph.intent.presenceMaterial %></p>
           <div>
-            <p class="cc-kicker">How we cook</p>
-            <p>Our menu stays compact so the room can follow the season closely. The plates are composed here; the welcome belongs to the neighborhood.</p>
+            <p class="cc-kicker">Why this place</p>
+            <p><%= graph.intent.purpose %></p>
           </div>
         </section>
       <% } %>
@@ -69,18 +69,18 @@
       <% if (section === 'activity' && primaryActivity) { %>
         <section class="cc-hospitality-table" id="table" aria-labelledby="cc-table-title">
           <div class="cc-hospitality-table__date">
-            <span>ONE TABLE</span>
+            <span>NEXT</span>
             <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: graph.identity.timezone }) %></strong>
           </div>
           <div>
-            <p class="cc-kicker">Sunday supper</p>
+            <p class="cc-kicker">At <%= graph.identity.displayName %></p>
             <h2 id="cc-table-title"><%= primaryActivity.title %></h2>
             <%- include('../_status', { activity: primaryActivity }) %>
             <p class="cc-time"><%= primaryActivity.humanTime %></p>
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-hospitality-table__actions">
-            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'About this table' %></a>
+            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'About this activity' %></a>
             <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
@@ -89,12 +89,12 @@
       <% if (section === 'details') { %>
         <section class="cc-hospitality-visit" id="visit" aria-labelledby="cc-hospitality-visit-title">
           <div>
-            <p class="cc-kicker">Come by</p>
+            <p class="cc-kicker"><%= graph.facts.presence.mode === 'online' ? 'Find us online' : 'Come by' %></p>
             <h2 id="cc-hospitality-visit-title"><%= graph.facts.presence.label %></h2>
           </div>
           <div class="cc-hospitality-visit__details">
             <% if (graph.facts.presence.address) { %><p><strong>Find us</strong><br><%= graph.facts.presence.address %></p><% } %>
-            <p><strong>Write</strong><br><a href="mailto:<%= graph.facts.contact %>"><%= graph.facts.contact %></a></p>
+            <p><strong>Contact</strong><br><% if (contact.href) { %><a href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p>
           </div>
         </section>
       <% } %>
@@ -103,7 +103,7 @@
 
   <footer class="cc-hospitality-footer">
     <span><%= graph.identity.displayName %></span>
-    <span>Fire · water · season · table</span>
+    <span><%= graph.facts.presence.label %></span>
   </footer>
 </body>
 </html>
