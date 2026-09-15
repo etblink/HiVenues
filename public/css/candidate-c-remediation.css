@@ -14,6 +14,9 @@
   border-color: #1d1b18;
 }
 
+/* Hospitality positioned its single media chip in the lower-right corner. Preserve focal editing and place the new replacement action on a separate hit target instead of stacking both controls. */
+.cc-canvas-hospitality__media > button.cc-edit-chip { bottom: 4.75rem; }
+
 /* New preview/support text must remain readable on the Studio stage's warm gray surface. */
 .cc-studio-stage__toolbar,
 .cc-complete-preview__head p:not(.cc-kicker) { color: #5b554d; }
