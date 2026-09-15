@@ -14,6 +14,10 @@
   border-color: #1d1b18;
 }
 
+/* New preview/support text must remain readable on the Studio stage's warm gray surface. */
+.cc-studio-stage__toolbar,
+.cc-complete-preview__head p:not(.cc-kicker) { color: #5b554d; }
+
 .cc-canvas-complete { grid-column: 1 / -1; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,.14); display: grid; gap: 1.4rem; }
 .cc-studio-canvas--poster .cc-canvas-complete { border-color: var(--cc-night-line); }
 .cc-canvas-complete__head { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 1rem; align-items: end; }
@@ -31,7 +35,7 @@
 .cc-complete-preview { max-width: 1080px; margin: 2.5rem auto 0; padding-top: 2rem; border-top: 1px solid rgba(29,27,24,.18); }
 .cc-complete-preview__head { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 1.5rem; align-items: end; margin-bottom: 1rem; }
 .cc-complete-preview__head h2 { margin: .15rem 0 .4rem; font-size: clamp(1.55rem, 3vw, 2.45rem); }
-.cc-complete-preview__head p:not(.cc-kicker) { max-width: 720px; margin: 0; color: #6d655b; line-height: 1.55; }
+.cc-complete-preview__head p:not(.cc-kicker) { max-width: 720px; margin: 0; line-height: 1.55; }
 .cc-preview-size-toggle { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; margin: 0; padding: 0; border: 0; }
 .cc-preview-size-toggle input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
 .cc-preview-size-toggle label { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: .5rem .8rem; border: 1px solid #1d1b18; border-radius: 999px; background: transparent; color: #1d1b18; font-size: .8rem; font-weight: 760; cursor: pointer; }
@@ -47,7 +51,7 @@
 .cc-media-authoring-preview .cc-art, .cc-media-authoring-preview .cc-admitted-media { width: 100%; min-height: 300px; border-radius: 0; }
 .cc-media-authoring-preview img, .cc-logo-authoring-preview img { display: block; width: 100%; height: 100%; max-height: 360px; object-fit: contain; }
 .cc-logo-authoring-preview { padding: 1.5rem; background: #1b1815; }
-.cc-media-empty-state { padding: 2rem; text-align: center; color: #6a6258; }
+.cc-media-empty-state { padding: 2rem; text-align: center; color: #5b554d; }
 .cc-media-import-form { margin-top: 1rem; box-shadow: none; }
 .cc-media-import-form input[type="file"] { padding: .55rem; }
 .cc-media-import-form code, .cc-review-card code { overflow-wrap: anywhere; }
