@@ -21,6 +21,13 @@ function tokens(store, slug) {
   return { expectedRevision: snapshot.revision, expectedDraftDigest: snapshot.draftDigest };
 }
 
+function mutate(store, slug, label, mutator, manualPaths = []) {
+  const state = store.snapshot(slug);
+  return store.draftMutation(slug, state.revision, state.draftDigest, (inner) => (
+    inner.commit(slug, state.revision, label, mutator, manualPaths, state.draftDigest)
+  ));
+}
+
 test('Astra beta P1: quick Look exposes Bar Gold and saves through the same bounded palette', async (t) => {
   const { store, app } = runtime(t);
   const slug = 'harbor-and-hearth';
@@ -41,11 +48,10 @@ test('Astra beta P1: Release review summarizes meaningful changes and History us
   const slug = 'harbor-and-hearth';
   const firstLive = store.publicSnapshot(slug);
 
-  let state = store.snapshot(slug);
-  assert.equal(store.commit(slug, state.revision, 'beta-change', (draft) => {
+  assert.equal(mutate(store, slug, 'beta-change', (draft) => {
     draft.facts.tagline = 'A visibly changed beta headline.';
     draft.facts.summary = 'A visibly changed beta summary.';
-  }, ['facts.tagline', 'facts.summary'], state.draftDigest).ok, true);
+  }, ['facts.tagline', 'facts.summary']).ok, true);
 
   const review = await request(app).get(`/candidate-c/studio/${slug}/release`).expect(200);
   assert.match(review.text, /Release impact/);
@@ -54,7 +60,7 @@ test('Astra beta P1: Release review summarizes meaningful changes and History us
   assert.match(review.text, /Restoring an earlier version changes Studio only/);
   assert.match(review.text, /Review restore/);
 
-  state = store.snapshot(slug);
+  let state = store.snapshot(slug);
   const newRelease = store.createRelease(slug, state.revision, state.draftDigest);
   assert.equal(newRelease.ok, true);
   const liveBeforeRestore = store.publicSnapshot(slug).draftDigest;
@@ -77,15 +83,15 @@ test('Astra beta P1: Release review summarizes meaningful changes and History us
 test('Astra beta P1: completed Hospitality activity is not labelled NEXT', async (t) => {
   const { store, app } = runtime(t);
   const slug = 'harbor-and-hearth';
-  let state = store.snapshot(slug);
+  const state = store.snapshot(slug);
   const activityId = state.draft.activities[0].id;
-  assert.equal(store.commit(slug, state.revision, 'beta-completed', (draft) => {
+  assert.equal(mutate(store, slug, 'beta-completed', (draft) => {
     draft.presentation.compositionFamily = 'hospitality';
     draft.intent.direction = 'hospitality';
     draft.activities.find((item) => item.id === activityId).lifecycle = 'completed';
-  }, [`activities.${activityId}.lifecycle`], state.draftDigest).ok, true);
-  state = store.snapshot(slug);
-  assert.equal(store.createRelease(slug, state.revision, state.draftDigest).ok, true);
+  }, [`activities.${activityId}.lifecycle`]).ok, true);
+  const changed = store.snapshot(slug);
+  assert.equal(store.createRelease(slug, changed.revision, changed.draftDigest).ok, true);
 
   const page = await request(app).get(`/candidate-c/${slug}`).expect(200);
   assert.doesNotMatch(page.text, />NEXT</);
