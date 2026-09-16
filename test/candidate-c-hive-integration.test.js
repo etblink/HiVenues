@@ -96,7 +96,7 @@ test('Hive integration verifies account control without broadcasting and prevent
   );
 });
 
-test('Hive integration prepares a Posting operation, requires wallet acceptance, and confirms by chain read-back', async () => {
+test('Hive integration prepares, arms, accepts, and confirms a Posting operation by chain read-back', async () => {
   const { service, setContent } = harness();
   const challenge = await service.issueChallenge({ account: 'alice', origin: 'https://example.test', slug: 'lantern-fold' });
   const session = await service.verify({
@@ -118,8 +118,19 @@ test('Hive integration prepares a Posting operation, requires wallet acceptance,
 
   assert.equal(preflight.authority, 'Posting');
   assert.equal(preflight.operations[0][0], 'comment');
+  assert.equal(preflight.state, 'prepared');
   assert.match(preflight.summary.consequence, /permanent Hive profile post/);
   assert.doesNotMatch(JSON.stringify(preflight), /private.?key|master.?password/i);
+
+  assert.throws(
+    () => service.markAccepted({ id: preflight.id, token: session.token, slug: 'lantern-fold', transactionId: 'b'.repeat(40) }),
+    /Open this reviewed Hive action/i,
+  );
+
+  const armed = service.beginBroadcast({ id: preflight.id, token: session.token, slug: 'lantern-fold' });
+  assert.equal(armed.state, 'wallet-open');
+  assert.deepEqual(armed.operations, preflight.operations);
+  assert.equal(armed.fingerprint, preflight.fingerprint);
 
   await assert.rejects(
     service.observe({ id: preflight.id, token: session.token, slug: 'lantern-fold' }),
@@ -145,6 +156,55 @@ test('Hive integration prepares a Posting operation, requires wallet acceptance,
   const confirmed = await service.observe({ id: preflight.id, token: session.token, slug: 'lantern-fold' });
   assert.equal(confirmed.observed, true);
   assert.equal(confirmed.state, 'chain-observable');
+});
+
+test('Hive integration blocks stale reviews before wallet open and preserves armed reviews for reconciliation', async () => {
+  const { service, advance } = harness();
+  const challenge = await service.issueChallenge({ account: 'alice', origin: 'https://example.test', slug: 'lantern-fold' });
+  const session = await service.verify({
+    challengeId: challenge.id,
+    account: 'alice',
+    publicKey: 'STM7fixture',
+    signature: 'signed',
+    slug: 'lantern-fold',
+    origin: 'https://example.test',
+  });
+
+  const stale = service.prepareProfilePost({
+    token: session.token,
+    slug: 'lantern-fold',
+    host: { identity: { displayName: 'Lantern Fold Studio' } },
+    title: 'Stale review',
+    body: 'This review should expire before the wallet opens.',
+  });
+  advance(5 * 60 * 1000 + 1);
+  assert.throws(
+    () => service.beginBroadcast({ id: stale.id, token: session.token, slug: 'lantern-fold' }),
+    /missing or expired/i,
+  );
+
+  const fresh = service.prepareProfilePost({
+    token: session.token,
+    slug: 'lantern-fold',
+    host: { identity: { displayName: 'Lantern Fold Studio' } },
+    title: 'Armed review',
+    body: 'This review is armed before the wallet opens.',
+  });
+  const armed = service.beginBroadcast({ id: fresh.id, token: session.token, slug: 'lantern-fold' });
+  assert.equal(armed.state, 'wallet-open');
+
+  // Reproduce the real proof failure: wallet interaction lasts longer than the
+  // short prepared-review TTL. Once armed, the exact review must still be
+  // recordable and reconcilable rather than being pruned after a chain write.
+  advance(5 * 60 * 1000 + 1);
+  const accepted = service.markAccepted({
+    id: fresh.id,
+    token: session.token,
+    slug: 'lantern-fold',
+    transactionId: 'c'.repeat(40),
+  });
+  assert.equal(accepted.state, 'wallet-approved');
+  assert.equal(accepted.fingerprint, fresh.fingerprint);
 });
 
 test('Hive integration expires verification challenges and rejects unknown accounts', async () => {
