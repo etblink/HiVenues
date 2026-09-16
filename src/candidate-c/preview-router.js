@@ -3,7 +3,7 @@
 const express = require('express');
 const { disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, renderIcs } = require('./present');
-const { createCandidateCPreviewTerritoryRouter, createCandidateCPublicTerritoryRouter } = require('./territory-router');
+const { createCandidateCPreviewTerritoryRouter, createCandidateCPublicTerritoryRouter, territoryLocals } = require('./territory-router');
 
 function previewLocals(snapshot) {
   return { ...buildViewModel(snapshot), draftPreview: true, studio: false };
@@ -13,9 +13,45 @@ function previewActivityPath(slug, activitySlug) {
   return `/candidate-c/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
 }
 
+function topLevelReviewSurface(view, key) {
+  const surface = view.territory.surfaces.find((item) => item.key === key) || null;
+  if (!surface) return null;
+  return view.territory.navigation.some((entry) => entry.surfaceRole === surface.role) ? surface : null;
+}
+
 function createCandidateCPreviewRouter({ store } = {}) {
   if (!store) throw new TypeError('Candidate C preview router requires a store.');
   const router = express.Router();
+
+  // Studio review is a transient projection, never durable host state. HTMX swaps
+  // this fragment into the existing canvas. A non-HTMX request falls back to the
+  // ordinary full Preview so the route does not become a second Studio mode.
+  router.get('/studio/:slug/review', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    const requested = String(req.query.surface || 'canvas');
+    const view = territoryLocals(snapshot, { draftPreview: true });
+    res.set('Cache-Control', 'no-store');
+
+    if (requested === 'canvas') {
+      if (req.get('HX-Request') !== 'true') {
+        return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+      }
+      return res.render('candidate-c/fragments/studio-canvas', {
+        ...view,
+        selectedReviewKey: 'canvas',
+      });
+    }
+
+    const surface = topLevelReviewSurface(view, requested);
+    if (!surface) return res.status(400).send('UNKNOWN_STUDIO_REVIEW_SURFACE');
+    if (req.get('HX-Request') !== 'true') return res.redirect(303, surface.path);
+    return res.render('candidate-c/fragments/territory-review', {
+      ...view,
+      surface,
+      selectedReviewKey: surface.key,
+    });
+  });
 
   router.get('/studio/:slug/preview', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);

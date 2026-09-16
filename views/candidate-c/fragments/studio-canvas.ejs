@@ -1,0 +1,12 @@
+<div class="cc-studio-surface-review" data-selected-review="canvas">
+  <%- include('studio-surface-nav', { graph, selectedReviewKey }) %>
+  <div class="cc-studio-canvas-review">
+    <% if (family.id === 'poster') { %>
+      <%- include('../compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+    <% } else if (family.id === 'editorial') { %>
+      <%- include('../compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+    <% } else { %>
+      <%- include('../compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+    <% } %>
+  </div>
+</div>

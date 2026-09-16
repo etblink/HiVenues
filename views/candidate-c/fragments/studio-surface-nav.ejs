@@ -1,0 +1,33 @@
+<%
+  const slug = encodeURIComponent(graph.identity.slug);
+  const previewBase = `/candidate-c/studio/${slug}/preview`;
+  const labels = graph.schemaVersion === 2 ? graph.navigation.labels : {};
+  const items = [
+    { key: 'home', role: 'home', label: labels.home || 'Home', show: true, path: previewBase },
+    { key: 'activities-index', role: 'activities', label: labels.activities || 'Activities', show: graph.activities.length > 0, path: `${previewBase}/activities` },
+    { key: 'stories-index', role: 'stories', label: labels.stories || 'Stories', show: graph.schemaVersion === 2 && graph.stories.length > 0, path: `${previewBase}/stories` },
+    { key: 'gallery', role: 'gallery', label: labels.gallery || 'Gallery', show: graph.schemaVersion === 2 && graph.gallery.mediaIds.length > 0, path: `${previewBase}/gallery` },
+    { key: 'offers', role: 'offers', label: labels.offers || 'Offers', show: graph.offers.length > 0, path: `${previewBase}/offers` },
+    { key: 'people-index', role: 'people', label: labels.people || 'People', show: graph.schemaVersion === 2 && graph.people.length > 0, path: `${previewBase}/people` },
+    { key: 'about-visit', role: 'about-visit', label: labels['about-visit'] || (graph.facts.presence.mode === 'online' ? 'About' : 'About & visit'), show: true, path: `${previewBase}/about` },
+  ].filter((item) => item.show);
+%>
+<nav class="cc-studio-surface-nav" aria-label="Review visitor page">
+  <span class="cc-studio-surface-nav__label">Review page</span>
+  <a
+    href="/candidate-c/studio/<%= slug %>"
+    hx-get="/candidate-c/studio/<%= slug %>/review?surface=canvas"
+    hx-target="#candidate-canvas-slot"
+    hx-swap="innerHTML"
+    data-review-surface="canvas"
+    <%- selectedReviewKey === 'canvas' ? 'aria-current="page"' : '' %>>Canvas</a>
+  <% items.forEach((item) => { %>
+    <a
+      href="<%= item.path %>"
+      hx-get="/candidate-c/studio/<%= slug %>/review?surface=<%= encodeURIComponent(item.key) %>"
+      hx-target="#candidate-canvas-slot"
+      hx-swap="innerHTML"
+      data-review-surface="<%= item.key %>"
+      <%- selectedReviewKey === item.key ? 'aria-current="page"' : '' %>><%= item.label %></a>
+  <% }) %>
+</nav>

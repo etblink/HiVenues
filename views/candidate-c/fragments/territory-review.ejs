@@ -1,0 +1,19 @@
+<div class="cc-studio-surface-review" data-selected-review="<%= surface.key %>">
+  <%- include('studio-surface-nav', { graph, selectedReviewKey: surface.key }) %>
+  <section class="cc-territory-review" aria-label="Working visitor preview: <%= surface.label %>">
+    <header class="cc-territory-review__header">
+      <div>
+        <p class="cc-kicker">Working visitor preview</p>
+        <strong><%= surface.label %></strong>
+        <span>Nothing in this review becomes live until Release.</span>
+      </div>
+      <a class="cc-link" href="<%= surface.path %>" target="_blank" rel="noopener">Open full preview</a>
+    </header>
+    <iframe
+      class="cc-territory-review__frame"
+      src="<%= surface.path %>"
+      title="Working preview — <%= surface.label %> — <%= graph.identity.displayName %>"
+      loading="eager"
+      sandbox="allow-same-origin"></iframe>
+  </section>
+</div>

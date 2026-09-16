@@ -124,13 +124,7 @@
 
         <div class="cc-stage-device" data-review-device>
           <div id="candidate-canvas-slot">
-            <% if (family.id === 'poster') { %>
-              <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
-            <% } else if (family.id === 'editorial') { %>
-              <%- include('compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
-            <% } else { %>
-              <%- include('compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
-            <% } %>
+            <%- include('fragments/studio-canvas', { graph, family, activities, media, heroMedia, logoMedia, contact, primaryActivity, selectedReviewKey: 'canvas' }) %>
           </div>
         </div>
       </section>
