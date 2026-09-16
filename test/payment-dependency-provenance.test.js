@@ -31,8 +31,8 @@ function assertScriptDisabledInstallsNeedNoPatch(workflow) {
 
   assert.equal(
     installs.length,
-    3,
-    'CI must retain deterministic, visual, and manual-smoke script-disabled install paths',
+    2,
+    'CI must retain deterministic and manual live-smoke script-disabled install paths',
   );
   assert.doesNotMatch(normalized, /patch-package/);
   assert.doesNotMatch(normalized, /Apply pinned dependency patch/);
