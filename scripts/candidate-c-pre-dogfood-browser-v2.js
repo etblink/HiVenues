@@ -148,6 +148,7 @@ async function main() {
       submitFirstDraft(page),
     ]);
     assert.match(await page.locator('body').textContent(), /Here is your place\./);
+    assert.match(await page.locator('body').textContent(), /Nothing is live yet/);
     await capture(page, '03-first-draft-reveal', 'first-draft-reveal');
     await dismissFirstDraftReveal(page);
     assert.match(await page.locator('body').textContent(), /Dogfood House/);
@@ -155,11 +156,36 @@ async function main() {
     await capture(page, '04-created-studio', 'created-studio');
 
     const activityId = store.snapshot('dogfood-house').draft.activities[0].id;
+    const unpublished = store.snapshot('dogfood-house');
+    assert.deepEqual(unpublished.releases, []);
+    assert.equal(unpublished.liveReleaseId, null);
+    assert.equal(store.publicSnapshot('dogfood-house'), null);
+
+    const preReleaseResponse = await page.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
+    assert.equal(preReleaseResponse?.status(), 404);
+    assert.match(await page.locator('body').textContent(), /Not Found/);
+
+    await page.goto(`${origin}/candidate-c/studio/dogfood-house/release`, { waitUntil: 'networkidle' });
+    const releaseReviewText = await page.locator('body').textContent();
+    assert.match(releaseReviewText, /No release/);
+    assert.match(releaseReviewText, /Nothing is live yet/);
+    assert.match(releaseReviewText, /This will be the first live website version/);
+    await capture(page, '05-first-release-review', 'first-release-review');
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === '/candidate-c/studio/dogfood-house' && Boolean(url.searchParams.get('released'))),
+      page.getByRole('button', { name: 'Publish website release' }).click(),
+    ]);
+
+    const firstLive = store.publicSnapshot('dogfood-house');
+    assert(firstLive);
+    assert.equal(firstLive.releases.length, 1);
+    assert.equal(firstLive.releases.find((item) => item.id === firstLive.liveReleaseId).kind, 'full');
+
     await page.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
     const freshPublicText = await page.locator('body').textContent();
     assert.match(freshPublicText, /Friday Gathering/);
     assert.doesNotMatch(freshPublicText, /Harbor & Hearth|Northline|Nova Ashby|Sunday supper|Sunday table|harbor change color/i);
-    await capture(page, '05-created-public', 'created-public');
+    await capture(page, '06-first-release-public', 'first-release-public');
 
     await page.goto(`${origin}/candidate-c/studio/dogfood-house/urgent?activity=${encodeURIComponent(activityId)}`, { waitUntil: 'networkidle' });
     await page.locator('textarea[name="statusNote"]').fill('Cancelled for the browser qualification proof.');
@@ -168,7 +194,7 @@ async function main() {
       page.getByRole('button', { name: 'Review the change' }).click(),
     ]);
     assert.equal(await page.locator('[data-urgent-closed="true"]').count(), 1);
-    await capture(page, '06-urgent-review', 'urgent-review');
+    await capture(page, '07-urgent-review', 'urgent-review');
     await Promise.all([
       page.waitForURL((url) => url.pathname === '/candidate-c/studio/dogfood-house' && url.searchParams.get('urgent') === '1'),
       page.getByRole('button', { name: 'Publish urgent update' }).click(),
@@ -176,7 +202,7 @@ async function main() {
 
     await page.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
     assert.match(await page.locator('body').textContent(), /Cancelled/);
-    await capture(page, '07-cancelled-public', 'cancelled-public');
+    await capture(page, '08-cancelled-public', 'cancelled-public');
 
     const beforeRestart = store.publicSnapshot('dogfood-house');
     assert.equal(beforeRestart.draft.activities[0].lifecycle, 'cancelled');
@@ -200,7 +226,7 @@ async function main() {
     const restartedText = await page.locator('body').textContent();
     assert.match(restartedText, /Cancelled/);
     assert.doesNotMatch(restartedText, /Harbor & Hearth|Northline|Nova Ashby|Sunday supper|Sunday table|harbor change color/i);
-    await capture(page, '08-restart-public', 'restart-public');
+    await capture(page, '09-restart-public', 'restart-public');
 
     const stateText = fs.readFileSync(statePath, 'utf8');
     assert.equal(stateText.includes(ACCESS_SECRET), false);
@@ -231,6 +257,9 @@ async function main() {
       runtime: { node: process.version, chromium: await browser.version(), host: '127.0.0.1 ephemeral', publicIngressGate: true },
       proof: {
         slug: snapshot.draft.identity.slug,
+        preReleasePublicStatus: 404,
+        preReleaseCount: 0,
+        firstReleaseKind: 'full',
         revision: snapshot.revision,
         liveReleaseId: live.liveReleaseId,
         liveReleaseKind: live.releases.find((item) => item.id === live.liveReleaseId).kind,
