@@ -44,6 +44,12 @@
   color: #60646a;
 }
 
+/* The final creation-stage guidance is deliberately quiet, but it remains
+   consequential operator copy and must stay AA on the paper/optional surfaces. */
+.cc-creator-body .cc-creator-final-note {
+  color: #555b62;
+}
+
 .cc-first-draft-reveal .cc-first-draft-reveal__eyebrow {
   color: #5f6369;
 }
