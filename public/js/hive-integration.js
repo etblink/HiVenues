@@ -152,18 +152,24 @@
       if (!this.preflight || this.broadcasting) return;
       this.broadcasting = true;
       if (button) button.disabled = true;
-      this.status('Opening Keychain. Review the operation there before approving it.');
+      this.status('Confirming this review is still current before Keychain opens.');
       try {
-        const wallet = await this.keychainFactory().broadcast({
-          account: this.preflight.account,
-          operations: this.preflight.operations,
-          authority: this.preflight.authority,
+        const armed = await this.request(`/preflight/${encodeURIComponent(this.preflight.id)}/begin`, {
+          method: 'POST',
+          body: '{}',
         });
-        await this.request(`/preflight/${encodeURIComponent(this.preflight.id)}/accepted`, {
+        this.preflight = armed;
+        this.status('Opening Keychain. Review the operation there before approving it.');
+        const wallet = await this.keychainFactory().broadcast({
+          account: armed.account,
+          operations: armed.operations,
+          authority: armed.authority,
+        });
+        await this.request(`/preflight/${encodeURIComponent(armed.id)}/accepted`, {
           method: 'POST',
           body: JSON.stringify({ transactionId: wallet.transactionId || '' }),
         });
-        const observed = await this.observe(this.preflight.id);
+        const observed = await this.observe(armed.id);
         if (observed) {
           this.status(`Confirmed on Hive${observed.transactionId ? ` · ${observed.transactionId}` : ''}.`, 'success');
           const heading = this.root.querySelector('[data-hive-review-heading]');
@@ -174,7 +180,15 @@
           this.status('Keychain approved the broadcast, but HiVenues has not observed the post on-chain yet. Do not submit it again.', 'warning');
         }
       } catch (error) {
-        this.status(humanError(error), 'error');
+        const message = humanError(error);
+        if (/missing or expired/i.test(message)) {
+          this.preflight = null;
+          const review = this.root.querySelector('[data-hive-review]');
+          if (review) review.hidden = true;
+          this.status('This Hive review expired before the wallet opened. Review the post again; nothing was broadcast.', 'warning');
+        } else {
+          this.status(message, 'error');
+        }
         if (button) button.disabled = false;
       } finally {
         this.broadcasting = false;
