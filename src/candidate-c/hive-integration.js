@@ -251,6 +251,28 @@ class CandidateCHiveIntegrationService {
     return this.publicPreflight(preflight);
   }
 
+  beginBroadcast({ id, token, slug }) {
+    this.prune();
+    const session = this.getSession(token, slug);
+    if (!session) throw new AuthenticationError('Connect and verify a Hive account first.', { code: 'HIVE_SESSION_REQUIRED' });
+    const preflight = this.preflights.get(String(id || ''));
+    if (!preflight || preflight.slug !== slug || preflight.account !== session.account) {
+      throw new ValidationError('Hive action review is missing or expired');
+    }
+    if (preflight.state !== 'prepared') {
+      throw new ValidationError('This Hive action is already in progress. Do not submit it again.');
+    }
+
+    // The short TTL protects a prepared-but-abandoned review. Once the exact
+    // reviewed operation is deliberately handed to the wallet, retain its
+    // reconciliation record for the rest of the verified session so a slow
+    // wallet approval cannot produce an acknowledged chain write with no local
+    // path to read it back.
+    preflight.state = 'wallet-open';
+    preflight.expiresAtMs = session.expiresAtMs;
+    return this.publicPreflight(preflight);
+  }
+
   requirePreflight(idValue, token, slug) {
     this.prune();
     const session = this.getSession(token, slug);
@@ -264,6 +286,9 @@ class CandidateCHiveIntegrationService {
 
   markAccepted({ id, token, slug, transactionId }) {
     const preflight = this.requirePreflight(id, token, slug);
+    if (preflight.state !== 'wallet-open') {
+      throw new ValidationError('Open this reviewed Hive action in the wallet before recording acceptance');
+    }
     const rawId = String(transactionId || '').trim();
     if (rawId && !TRANSACTION_ID_PATTERN.test(rawId)) throw new ValidationError('Hive returned an invalid transaction id');
     preflight.state = 'wallet-approved';
