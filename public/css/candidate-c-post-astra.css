@@ -1,0 +1,165 @@
+/* #275 R4 — built-in narrow review for the canonical Studio canvas.
+ * The operator changes only presentation width. The canonical graph, working
+ * revision, inspector and Release semantics remain server-owned and unchanged.
+ */
+
+.cc-studio-stage__review {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cc-studio-review-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.cc-studio-review-toggle button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #aeb8c2;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 760;
+}
+
+.cc-studio-review-toggle button[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.cc-studio-review-toggle button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.cc-stage-device {
+  container-name: cc-stage;
+  container-type: inline-size;
+  transition: width 180ms ease, border-radius 180ms ease;
+}
+
+.cc-studio-stage[data-review-mode='narrow'] .cc-stage-device {
+  width: min(390px, 100%);
+  margin-inline: auto;
+  min-height: 760px;
+  border-radius: 22px;
+}
+
+.cc-studio-stage[data-review-mode='narrow'] .cc-studio-stage__meta::after {
+  content: ' · 390px canvas review';
+}
+
+/* These are component-width adaptations. They intentionally use the canvas
+ * container, not the browser viewport, so desktop narrow review and an actual
+ * narrow device exercise the same authored component geometry. */
+@container cc-stage (max-width: 430px) {
+  .cc-studio-canvas {
+    min-height: 620px;
+  }
+
+  .cc-studio-canvas--poster {
+    padding: 1.5rem;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 1.35rem;
+  }
+
+  .cc-canvas-poster__art {
+    order: -1;
+  }
+
+  .cc-canvas-poster__art .cc-art,
+  .cc-canvas-poster__art .cc-admitted-media {
+    min-height: 300px;
+  }
+
+  .cc-canvas-poster__activity {
+    grid-column: 1;
+  }
+
+  .cc-canvas-poster__mast h1 {
+    font-size: clamp(2.5rem, 13cqi, 4.2rem) !important;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .cc-studio-canvas--editorial {
+    padding: 1.45rem;
+    grid-template-columns: 1fr;
+    gap: 1.35rem;
+  }
+
+  .cc-canvas-editorial__art,
+  .cc-canvas-editorial__activity {
+    grid-column: 1;
+  }
+
+  .cc-canvas-editorial__headline h1 {
+    font-size: clamp(2.7rem, 14cqi, 4.4rem);
+  }
+
+  .cc-canvas-editorial__art .cc-art,
+  .cc-canvas-editorial__art .cc-admitted-media {
+    min-height: 310px;
+  }
+
+  .cc-canvas-hospitality__mast {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cc-canvas-hospitality__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .cc-canvas-hospitality__media {
+    order: -1;
+  }
+
+  .cc-canvas-hospitality__media .cc-art,
+  .cc-canvas-hospitality__media .cc-admitted-media {
+    min-height: 310px;
+  }
+
+  .cc-canvas-hospitality__copy,
+  .cc-canvas-hospitality__menu,
+  .cc-canvas-hospitality__activity {
+    padding: 1.5rem;
+  }
+
+  .cc-canvas-hospitality__copy h1 {
+    font-size: clamp(2.5rem, 13cqi, 4.1rem);
+  }
+
+  .cc-canvas-complete__head,
+  .cc-canvas-complete__grid,
+  .cc-canvas-complete__offers article {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .cc-studio-stage__toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cc-studio-stage__review {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .cc-studio-stage__meta::after {
+    content: ' · native narrow viewport';
+  }
+}

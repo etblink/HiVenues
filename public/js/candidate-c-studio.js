@@ -8,6 +8,7 @@
       'open contextual Studio editing without allocating permanent canvas space',
       'preserve server-owned save, stale-conflict, focal, and reconcile behavior',
       'present the transient first-draft handoff over the same canonical host',
+      'switch the same canonical canvas between wide and narrow review geometry',
     ]),
   });
 
@@ -95,6 +96,7 @@
     document.querySelectorAll('.cc-studio-commandbar details').forEach((item) => item.addEventListener('toggle', () => { if (item.open) closeMenus(item); }));
     document.addEventListener('click', (event) => {
       if (event.target.closest('[data-dismiss-first-draft]')) { dismissReveal(); return; }
+      const review = event.target.closest('[data-review-width]'); if (review) { const stage = document.querySelector('[data-review-stage]'); if (stage) { stage.dataset.reviewMode = review.dataset.reviewWidth; document.querySelectorAll('[data-review-width]').forEach((button) => button.setAttribute('aria-pressed', String(button === review))); } return; }
       const trigger = event.target.closest('.cc-edit-chip, [data-open-inspector]');
       if (trigger) { open(); closeMenus(); }
       if (event.target.closest('[data-close-inspector]')) close();

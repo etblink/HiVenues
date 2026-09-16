@@ -107,16 +107,22 @@
         </details>
       </nav>
 
-      <section class="cc-studio-stage" aria-label="Your place">
+      <section class="cc-studio-stage" aria-label="Your place" data-review-stage data-review-mode="wide">
         <div class="cc-studio-stage__toolbar">
           <div class="cc-studio-stage__identity">
             <strong><%= family.label %></strong>
             <span>Working place</span>
           </div>
-          <span class="cc-studio-stage__meta"><%= graph.facts.presence.label %></span>
+          <div class="cc-studio-stage__review">
+            <span class="cc-studio-stage__meta"><%= graph.facts.presence.label %></span>
+            <div class="cc-studio-review-toggle" role="group" aria-label="Canvas review width">
+              <button type="button" data-review-width="wide" aria-pressed="true">Wide</button>
+              <button type="button" data-review-width="narrow" aria-pressed="false">Narrow review</button>
+            </div>
+          </div>
         </div>
 
-        <div class="cc-stage-device">
+        <div class="cc-stage-device" data-review-device>
           <div id="candidate-canvas-slot">
             <% if (family.id === 'poster') { %>
               <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>

@@ -12,11 +12,13 @@ on:
       - 'test/candidate-c-phase2b-studio.test.js'
       - 'test/candidate-c-phase2b-urgent.test.js'
       - 'test/candidate-c-phase2b-h1.test.js'
+      - 'test/candidate-c-mobile-review.test.js'
       - 'scripts/candidate-c-phase2b-browser.js'
       - 'scripts/candidate-c-phase2b-studio-browser-v2.js'
       - 'scripts/candidate-c-phase2b-urgent-browser-v2.js'
       - 'scripts/candidate-c-phase2b-h1-browser-v2.js'
       - 'scripts/candidate-c-phase2b-closure-browser.js'
+      - 'scripts/candidate-c-post-astra-mobile-review.js'
       - '.github/workflows/candidate-c-phase2b-browser.yml'
   workflow_dispatch:
 
@@ -50,7 +52,7 @@ jobs:
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Run Phase 2B deterministic contracts
-        run: node --test --test-concurrency=1 test/candidate-c-phase2b-product.test.js test/candidate-c-phase2b-studio.test.js test/candidate-c-phase2b-urgent.test.js test/candidate-c-phase2b-h1.test.js
+        run: node --test --test-concurrency=1 test/candidate-c-phase2b-product.test.js test/candidate-c-phase2b-studio.test.js test/candidate-c-phase2b-urgent.test.js test/candidate-c-phase2b-h1.test.js test/candidate-c-mobile-review.test.js
       - name: Run Phase 2B Media/R3 Chromium qualification
         env:
           CANDIDATE_C_PHASE2B_REVIEW_ROOT: artifacts/candidate-c-phase2b-review
@@ -76,6 +78,11 @@ jobs:
           CANDIDATE_C_PHASE2B_CLOSURE_REVIEW_ROOT: artifacts/candidate-c-phase2b-closure-review
           CANDIDATE_C_PHASE2B_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/candidate-c-phase2b-closure-browser.js
+      - name: Run post-Astra R4 narrow-review + native-390 Chromium qualification
+        env:
+          CANDIDATE_C_POST_ASTRA_MOBILE_REVIEW_ROOT: artifacts/candidate-c-post-astra-mobile-review
+          CANDIDATE_C_POST_ASTRA_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/candidate-c-post-astra-mobile-review.js
       - name: Publish Phase 2B browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -87,6 +94,7 @@ jobs:
             artifacts/candidate-c-phase2b-urgent-review
             artifacts/candidate-c-phase2b-h1-review
             artifacts/candidate-c-phase2b-closure-review
+            artifacts/candidate-c-post-astra-mobile-review
           if-no-files-found: warn
           retention-days: 90
       - name: Summarize Phase 2B evidence
@@ -100,6 +108,7 @@ jobs:
           const urgent = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-urgent-review/manifest.json', 'utf8'));
           const h1 = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-h1-review/manifest.json', 'utf8'));
           const closure = JSON.parse(fs.readFileSync('artifacts/candidate-c-phase2b-closure-review/manifest.json', 'utf8'));
+          const mobile = JSON.parse(fs.readFileSync('artifacts/candidate-c-post-astra-mobile-review/manifest.json', 'utf8'));
           console.log('## Candidate C Phase 2B browser evidence');
           console.log('');
           console.log(`- Exact candidate: ${product.candidate}`);
@@ -112,6 +121,7 @@ jobs:
           console.log(`- Unexpected console/page errors: ${product.summary.unexpectedConsoleErrors + studio.summary.unexpectedConsoleErrors + urgent.summary.unexpectedConsoleErrors}`);
           console.log(`- D proof: ${studio.proof.offer} · ${studio.proof.voice} · ${studio.proof.contact}`);
           console.log(`- Closure matrix screenshots: ${closure.summary.screenshotCount} (blocking a11y ${closure.summary.blockingAccessibilityFindings}, overflow ${closure.summary.horizontalOverflowFindings}, external ${closure.summary.externalRequests})`);
+          console.log(`- R4 narrow/mobile review: ${mobile.summary.desktopNarrowHosts} desktop narrow + ${mobile.summary.native390Hosts} native 390 hosts, ${mobile.summary.screenshotCount} screenshots, overflow ${mobile.summary.horizontalOverflowFindings}, blocking a11y ${mobile.summary.blockingAccessibilityFindings}`);
           console.log(`- F/H1: ${h1.summary.customClientFiles} custom client file / ${h1.summary.customClientLines} lines · ${h1.summary.representativeEdits} edits at ${h1.summary.minRegionsPerEdit}–${h1.summary.maxRegionsPerEdit} regions · finding ${h1.finding}`);
           console.log(`- E proof: urgent release ${urgent.proof.urgentRelease.id} from ${urgent.proof.urgentRelease.baseReleaseId}; changed ${urgent.proof.urgentRelease.changedPaths.join(', ')}; stale-live rejected ${urgent.proof.staleLiveRejected.status}`);
           console.log(`- Hive RPC attempts/writes: ${studio.summary.hiveRpcAttempts}/${studio.summary.hiveWrites}`);
