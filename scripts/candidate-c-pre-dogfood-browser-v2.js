@@ -161,9 +161,11 @@ async function main() {
     assert.equal(unpublished.liveReleaseId, null);
     assert.equal(store.publicSnapshot('dogfood-house'), null);
 
-    const preReleaseResponse = await page.goto(`${origin}/candidate-c/dogfood-house`, { waitUntil: 'networkidle' });
-    assert.equal(preReleaseResponse?.status(), 404);
-    assert.match(await page.locator('body').textContent(), /Not Found/);
+    // Prove the visitor route fails closed without rendering the expected 404 in
+    // the browser page, which would otherwise pollute the console-error oracle.
+    const preReleaseResponse = await context.request.get(`${origin}/candidate-c/dogfood-house`);
+    assert.equal(preReleaseResponse.status(), 404);
+    assert.doesNotMatch(await preReleaseResponse.text(), /Dogfood House/);
 
     await page.goto(`${origin}/candidate-c/studio/dogfood-house/release`, { waitUntil: 'networkidle' });
     const releaseReviewText = await page.locator('body').textContent();
