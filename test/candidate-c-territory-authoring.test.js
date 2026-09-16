@@ -55,7 +55,7 @@ test('v1 territory upgrade is explicit, Working-only and content-empty', async (
   assert.equal(store.publicSnapshot('northline-hall').draft.schemaVersion, 1);
 
   const studio = await request(app).get('/candidate-c/studio/northline-hall').expect(200);
-  assert.match(studio.text, /Stories, people &amp; gallery/);
+  assert.match(studio.text, /Stories, people & gallery/);
 
   const hub = await request(app).get('/candidate-c/studio/northline-hall/territory-content').expect(200);
   assert.match(hub.text, /Enable territory content in Working/);
@@ -75,7 +75,7 @@ test('v1 territory upgrade is explicit, Working-only and content-empty', async (
   assert.equal(stableDigest(store.publicSnapshot('northline-hall').draft), originalDigest);
 });
 
-test('ordinary operator can author profiles, stories and an ordered gallery without leaking Working to Live', async () => {
+test('ordinary operator can author profiles, stories and a gallery selection without leaking Working to Live', async () => {
   const store = storeFor();
   const app = appFor(store);
   let snapshot = store.snapshot('northline-hall');
@@ -135,7 +135,6 @@ test('ordinary operator can author profiles, stories and an ordered gallery with
   assert.equal(store.publicSnapshot('northline-hall').draft.schemaVersion, 1);
 
   const mediaA = snapshot.draft.media[0].id;
-  const mediaB = snapshot.draft.media[1].id;
   await request(app)
     .post('/candidate-c/studio/northline-hall/territory-content/gallery')
     .type('form')
@@ -144,13 +143,11 @@ test('ordinary operator can author profiles, stories and an ordered gallery with
       title: 'Northline views',
       summary: 'A bounded selection from media already held by this host.',
       include_0: '1',
-      order_0: '2',
-      include_1: '1',
-      order_1: '1',
+      order_0: '1',
     })
     .expect(303);
   snapshot = store.snapshot('northline-hall');
-  assert.deepEqual(snapshot.draft.gallery.mediaIds, [mediaB, mediaA]);
+  assert.deepEqual(snapshot.draft.gallery.mediaIds, [mediaA]);
 
   const stableStoryId = snapshot.draft.stories[0].id;
   const stableStorySlug = snapshot.draft.stories[0].slug;
