@@ -3,7 +3,10 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
+const { HiveRpcPool } = require('../hive/rpc-pool');
 const { createBetaRemediationRouter } = require('./beta-remediation-router');
+const { CandidateCHiveIntegrationService } = require('./hive-integration');
+const { createCandidateCHiveIntegrationRouter } = require('./hive-integration-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createCandidateCOperatorRouter } = require('./operator-router');
 const { buildViewModel } = require('./present');
@@ -11,6 +14,11 @@ const { buildViewModel } = require('./present');
 const DOGFOOD_HOST = '127.0.0.1';
 const SESSION_COOKIE = 'hivenues_dogfood_session';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const DEFAULT_HIVE_RPC_NODES = Object.freeze([
+  'https://api.hive.blog',
+  'https://api.openhive.network',
+  'https://api.deathwing.me',
+]);
 
 function parseCookies(header) {
   const cookies = new Map();
@@ -49,6 +57,8 @@ function createDogfoodApp({
   accessSecret = '',
   secureCookie = publicIngress,
   provenance = null,
+  hiveRpcPool = null,
+  hiveIntegrationService = null,
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -58,11 +68,14 @@ function createDogfoodApp({
   const app = express();
   const sessions = new Set();
   const root = path.join(__dirname, '..', '..');
+  const liveHiveRpcPool = hiveRpcPool || new HiveRpcPool({ nodes: DEFAULT_HIVE_RPC_NODES });
+  const liveHiveIntegration = hiveIntegrationService || new CandidateCHiveIntegrationService({ rpcPool: liveHiveRpcPool });
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback');
   app.set('views', path.join(root, 'views'));
   app.set('view engine', 'ejs');
   app.use(express.raw({ type: 'multipart/form-data', limit: MAX_MULTIPART_BYTES }));
+  app.use(express.json({ limit: '32kb' }));
   app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
   // Convert parser ceilings into an ordinary product error instead of exposing
@@ -193,6 +206,11 @@ function createDogfoodApp({
   // real public/candidate-c asset directory redirects /candidate-c to /candidate-c/.
   // Unmatched asset paths (for example /candidate-c/media/...) fall through.
   app.get('/', (req, res) => res.redirect(303, '/candidate-c'));
+  app.use('/candidate-c', createCandidateCHiveIntegrationRouter({
+    store,
+    service: liveHiveIntegration,
+    secureCookie: Boolean(secureCookie),
+  }));
   app.use('/candidate-c', createBetaRemediationRouter({ store }));
   app.use('/candidate-c', createCandidateCOperatorRouter({ store }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
@@ -208,6 +226,7 @@ function startDogfoodServer(app, { port = 4173 } = {}) {
 }
 
 module.exports = {
+  DEFAULT_HIVE_RPC_NODES,
   DOGFOOD_HOST,
   SESSION_COOKIE,
   createDogfoodApp,

@@ -102,6 +102,8 @@
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Participation</button>
             <a href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Media library</a>
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
+            <span class="cc-studio-commandmenu__label">Integrations</span>
+            <a href="/candidate-c/studio/<%= graph.identity.slug %>/hive">Hive</a>
             <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History & release</a>
           </div>
         </details>
