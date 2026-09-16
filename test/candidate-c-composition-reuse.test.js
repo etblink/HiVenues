@@ -46,7 +46,7 @@ function assertTruthfulHtml(html, expected) {
   assert.doesNotMatch(html, LEAK_PATTERN);
 }
 
-test('composition families remain structural across physical, online, and hybrid fresh hosts', async (t) => {
+test('composition families remain structural across physical, online, and hybrid fresh hosts after explicit Release', async (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-composition-reuse-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const store = new ProvisioningFileCandidateCStore({ statePath: path.join(directory, 'state.json') });
@@ -81,7 +81,12 @@ test('composition families remain structural across physical, online, and hybrid
     },
   ];
 
-  for (const item of cases) assert.equal(store.createHost(item.graph).ok, true);
+  for (const item of cases) {
+    assert.equal(store.createHost(item.graph).ok, true);
+    const working = store.snapshot(item.graph.identity.slug);
+    const released = store.createRelease(item.graph.identity.slug, working.revision, working.draftDigest);
+    assert.equal(released.ok, true);
+  }
   const app = createDogfoodApp({ store });
 
   for (const { graph, expectedPresence } of cases) {
