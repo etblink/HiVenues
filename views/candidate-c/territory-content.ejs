@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Territory · Content</p>
+    <h1>Shape the parts of the place beyond the home page.</h1>
+    <p class="cc-task__dek">Stories, people and gallery selections are part of the same host graph as Activities, Offers and the home page. Changes stay in Working until you explicitly Release them.</p>
+
+    <% if (upgraded) { %>
+      <div class="cc-studio-notice" role="status"><strong>Territory pages enabled in Working.</strong> The live Release is unchanged. Add real host content below, review it in Preview, then Release when ready.</div>
+    <% } else if (saved) { %>
+      <div class="cc-studio-notice" role="status"><strong>Saved to Working.</strong> Preview the territory before releasing.</div>
+    <% } %>
+
+    <% if (!isTerritoryV2) { %>
+      <section>
+        <p class="cc-kicker">One host · richer territory</p>
+        <h2>Enable stories, people and gallery authoring.</h2>
+        <p>This upgrades only the current Working graph to the richer territory schema. It does not publish anything, change the stable host identity, invent public stories or people, or alter the current live Release.</p>
+        <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/enable">
+          <input type="hidden" name="expectedRevision" value="<%= revision %>">
+          <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+          <button class="cc-button cc-button--ink" type="submit">Enable territory content in Working</button>
+        </form>
+      </section>
+    <% } else { %>
+      <section>
+        <p class="cc-kicker">Stories</p>
+        <h2>Updates, dispatches and essays</h2>
+        <p>Write host-owned public content. The title creates a stable URL when the story is first added; later edits keep that identity.</p>
+        <% if (graph.stories.length) { %>
+          <ul>
+            <% graph.stories.forEach((story) => { %>
+              <li><a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/story/<%= story.id %>"><strong><%= story.title %></strong></a> · <%= story.kind %> · <code><%= story.slug %></code></li>
+            <% }) %>
+          </ul>
+        <% } else { %><p>No stories yet. Nothing is fabricated for the public site.</p><% } %>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/story/new">Add story</a>
+      </section>
+
+      <section>
+        <p class="cc-kicker">People</p>
+        <h2>Profiles that belong to this host</h2>
+        <p>Add real people or public-facing host identities. Stories can credit these stable profiles.</p>
+        <% if (graph.people.length) { %>
+          <ul>
+            <% graph.people.forEach((profile) => { %>
+              <li><a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/profile/<%= profile.id %>"><strong><%= profile.displayName %></strong></a><% if (profile.role) { %> · <%= profile.role %><% } %> · <code><%= profile.slug %></code></li>
+            <% }) %>
+          </ul>
+        <% } else { %><p>No people yet. Add only identities the host intends to publish.</p><% } %>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/profile/new">Add person</a>
+      </section>
+
+      <section>
+        <p class="cc-kicker">Gallery</p>
+        <h2><%= graph.gallery.title %></h2>
+        <p><%= graph.gallery.mediaIds.length %> selected media item<%= graph.gallery.mediaIds.length === 1 ? '' : 's' %>. Gallery media always comes from this host's existing Media library.</p>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/gallery">Edit gallery</a>
+        <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Open Media library</a>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>

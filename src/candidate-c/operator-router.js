@@ -7,6 +7,7 @@ const { buildViewModel } = require('./present');
 const { provisionCandidateCHost } = require('./provision');
 const { createCandidateCRouter } = require('./router');
 const { CandidateCStore } = require('./store');
+const { createCandidateCTerritoryAuthoringRouter } = require('./territory-authoring-router');
 
 const EMPTY_FORM = Object.freeze({
   displayName: '',
@@ -339,6 +340,7 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
     });
   });
 
+  router.use(createCandidateCTerritoryAuthoringRouter({ store }));
   router.use(createCandidateCRouter({ store }));
   router.store = store;
   return router;
