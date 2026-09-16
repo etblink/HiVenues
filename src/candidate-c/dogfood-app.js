@@ -6,6 +6,7 @@ const express = require('express');
 const { createBetaRemediationRouter } = require('./beta-remediation-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createCandidateCOperatorRouter } = require('./operator-router');
+const { createCandidateCPreviewRouter } = require('./preview-router');
 const { buildViewModel } = require('./present');
 
 const DOGFOOD_HOST = '127.0.0.1';
@@ -194,6 +195,9 @@ function createDogfoodApp({
   // Unmatched asset paths (for example /candidate-c/media/...) fall through.
   app.get('/', (req, res) => res.redirect(303, '/candidate-c'));
   app.use('/candidate-c', createBetaRemediationRouter({ store }));
+  // Preview routes intentionally run before the ordinary operator/public router.
+  // They render only the working snapshot and never route through publicSnapshot.
+  app.use('/candidate-c', createCandidateCPreviewRouter({ store }));
   app.use('/candidate-c', createCandidateCOperatorRouter({ store }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
   app.use(express.static(path.join(root, 'public')));

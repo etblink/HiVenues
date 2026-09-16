@@ -6,10 +6,14 @@
 <%
   const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
   const sparseHost = !primaryActivity && graph.offers.length === 0;
+  const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
+  const hostHref = previewMode ? `/candidate-c/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/candidate-c/${encodeURIComponent(graph.identity.slug)}`;
+  const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
 %>
 <body class="cc-public cc-hospitality <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-hospitality-nav">
-    <a class="cc-hospitality-name" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <p><%= graph.facts.presence.label %></p>
     <nav aria-label="Primary">
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
@@ -32,7 +36,7 @@
             <p><%= graph.facts.summary %></p>
             <div class="cc-hospitality-hero__actions">
               <% if (graph.offers.length) { %><a class="cc-button cc-button--hospitality" href="#menu">See what’s offered</a><% } %>
-              <% if (primaryActivity) { %><a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.lifecycle === 'scheduled' ? `See ${primaryActivity.title}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : 'Activity recap' %></a><% } %>
+              <% if (primaryActivity) { %><a class="cc-link" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.lifecycle === 'scheduled' ? `See ${primaryActivity.title}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : 'Activity recap' %></a><% } %>
             </div>
           </div>
         </section>
@@ -85,8 +89,8 @@
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-hospitality-table__actions">
-            <a class="cc-button cc-button--hospitality" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'Activity details' %></a>
-            <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+            <a class="cc-button cc-button--hospitality" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'Activity details' %></a>
+            <a class="cc-link" href="<%= calendarHref(primaryActivity) %>"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
       <% } %>

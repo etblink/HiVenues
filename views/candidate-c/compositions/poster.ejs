@@ -6,10 +6,14 @@
 <%
   const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
   const sparseHost = !primaryActivity && graph.offers.length === 0;
+  const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
+  const hostHref = previewMode ? `/candidate-c/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/candidate-c/${encodeURIComponent(graph.identity.slug)}`;
+  const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
 %>
 <body class="cc-public cc-poster <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-poster-nav">
-    <a class="cc-wordmark" href="/candidate-c/<%= graph.identity.slug %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <a class="cc-wordmark" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#what-is-on">Activity</a><% } %>
       <a href="#visit">Where</a>
@@ -26,7 +30,7 @@
             <h1 id="cc-poster-title"><%= graph.facts.tagline %></h1>
             <p class="cc-poster-hero__summary"><%= graph.facts.summary %></p>
             <% if (primaryActivity) { %>
-              <a class="cc-button cc-button--warm" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : primaryActivity.lifecycle === 'completed' ? 'Activity recap' : `See ${primaryActivity.title}` %></a>
+              <a class="cc-button cc-button--warm" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : primaryActivity.lifecycle === 'completed' ? 'Activity recap' : `See ${primaryActivity.title}` %></a>
             <% } %>
           </div>
           <div class="cc-poster-hero__art">
@@ -50,8 +54,8 @@
             <p><%= primaryActivity.description %></p>
           </div>
           <div class="cc-poster-night__actions">
-            <a class="cc-button" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>"><%= primaryActivity.open ? 'Details & RSVP' : 'Activity details' %></a>
-            <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>/activities/<%= primaryActivity.slug %>/calendar.ics"><%= graph.voice.terms.calendar_ics %></a>
+            <a class="cc-button" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.open ? 'Details & RSVP' : 'Activity details' %></a>
+            <a class="cc-link" href="<%= calendarHref(primaryActivity) %>"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
       <% } %>

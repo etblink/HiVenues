@@ -3,10 +3,14 @@
 <head>
   <%- include('_head', { graph, pageTitle }) %>
 </head>
+<%
+  const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
+  const hostHref = previewMode ? `/candidate-c/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/candidate-c/${encodeURIComponent(graph.identity.slug)}`;
+%>
 <body class="cc-task-body" style="--cc-accent:<%= graph.presentation.accent %>">
   <main class="cc-task">
     <nav class="cc-task-nav">
-      <a class="cc-link" href="/candidate-c/<%= graph.identity.slug %>">Back to <%= graph.identity.displayName %></a>
+      <a class="cc-link" href="<%= hostHref %>">Back to <%= graph.identity.displayName %></a>
       <span class="cc-draft-status">Connection unavailable in this test</span>
     </nav>
     <p class="cc-kicker">What this visitor action means</p>
