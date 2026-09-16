@@ -190,6 +190,20 @@ function createCandidateCHiveIntegrationRouter({ store, service, secureCookie = 
     }
   });
 
+  router.post('/studio/:slug/hive/preflight/:id/begin', (req, res) => {
+    const current = snapshot(req, res);
+    if (!current || !requireMutationOrigin(req, res)) return;
+    try {
+      return res.json(service.beginBroadcast({
+        id: req.params.id,
+        token: token(req),
+        slug: req.params.slug,
+      }));
+    } catch (error) {
+      return res.status(error?.code === 'HIVE_SESSION_REQUIRED' ? 401 : 400).json(errorPayload(error));
+    }
+  });
+
   router.post('/studio/:slug/hive/preflight/:id/accepted', (req, res) => {
     const current = snapshot(req, res);
     if (!current || !requireMutationOrigin(req, res)) return;
