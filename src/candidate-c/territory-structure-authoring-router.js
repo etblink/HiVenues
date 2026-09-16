@@ -15,6 +15,15 @@ const NAVIGATION_ROLES = Object.freeze([
   Object.freeze({ id: 'about-visit', defaultLabel: 'About & visit', help: 'Identity, presence and contact information.' }),
 ]);
 
+// Territory v2 stores the semantic presentation recipe that each bounded
+// Direction represents. Keep this aligned with the defaults assigned when a
+// v1 host explicitly enables Territory content.
+const DIRECTION_RECIPE_BY_FAMILY = Object.freeze({
+  poster: Object.freeze({ emphasis: 'events', density: 'dense', navigation: 'compact', mediaRhythm: 'hero-led' }),
+  editorial: Object.freeze({ emphasis: 'stories', density: 'balanced', navigation: 'editorial', mediaRhythm: 'alternating' }),
+  hospitality: Object.freeze({ emphasis: 'hospitality', density: 'airy', navigation: 'expanded', mediaRhythm: 'gallery-led' }),
+});
+
 function currentRevision(body) {
   return Number(body.expectedRevision);
 }
@@ -38,6 +47,42 @@ function draftMutation(store, slug, body, label, mutator, manualPaths = []) {
       ok: false,
       reason: 'INVALID_TERRITORY_STRUCTURE',
       message: error?.issues?.[0]?.message || error?.message || 'The territory change is invalid.',
+    };
+  }
+}
+
+function applyDirectionWithTerritoryRecipe(store, slug, proposalId, body) {
+  const revision = currentRevision(body);
+  const digest = currentDigest(body);
+  const apply = (innerStore) => {
+    const workspace = innerStore.workspace(slug);
+    if (!workspace) return { ok: false, reason: 'NOT_FOUND' };
+    const proposal = innerStore.proposal(slug, proposalId);
+    if (!proposal) return { ok: false, reason: 'PROPOSAL_NOT_FOUND' };
+    if (proposal.baseRevision !== workspace.revision) {
+      return { ok: false, reason: 'STALE_REVISION', actualRevision: workspace.revision };
+    }
+    const result = innerStore.commit(slug, revision, 'apply-direction', (draft) => {
+      draft.presentation.compositionFamily = proposal.familyId;
+      draft.intent.direction = proposal.familyId;
+      if (draft.schemaVersion === 2) {
+        draft.presentation.recipe = { ...DIRECTION_RECIPE_BY_FAMILY[proposal.familyId] };
+      }
+    }, [], digest);
+    if (result.ok) workspace.proposals.delete(proposalId);
+    return result;
+  };
+
+  try {
+    if (typeof store.draftMutation === 'function') {
+      return store.draftMutation(slug, revision, digest, apply);
+    }
+    return apply(store);
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'INVALID_TERRITORY_STRUCTURE',
+      message: error?.issues?.[0]?.message || error?.message || 'The Direction change is invalid.',
     };
   }
 }
@@ -312,11 +357,22 @@ function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
     return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
+  // Territory v2 Direction changes carry their bounded presentation recipe as
+  // part of the same durable Working mutation. This route is registered before
+  // the legacy Candidate C apply handler and deliberately preserves v1 behavior.
+  router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
+    const result = applyDirectionWithTerritoryRecipe(store, req.params.slug, req.params.proposalId, req.body);
+    if (!result.ok) return mutationError(res, result);
+    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+  });
+
   return router;
 }
 
 module.exports = {
+  DIRECTION_RECIPE_BY_FAMILY,
   NAVIGATION_ROLES,
+  applyDirectionWithTerritoryRecipe,
   createCandidateCTerritoryStructureAuthoringRouter,
   deriveUpdateTitle,
 };
