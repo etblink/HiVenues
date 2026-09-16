@@ -1,0 +1,7 @@
+/* Bounded host accents include mid and dark hues. Filled warm actions keep the
+   host color recognizable while lifting it toward paper so the established dark
+   action label stays WCAG AA across the supported Studio accent palette. */
+.cc-button--warm {
+  background: color-mix(in srgb, var(--cc-accent, #ef9f55) 65%, white);
+  color: #1b100c;
+}
