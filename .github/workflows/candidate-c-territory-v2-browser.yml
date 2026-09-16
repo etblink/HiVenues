@@ -1,0 +1,90 @@
+name: Candidate C Territory v2 Browser Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'src/candidate-c/**'
+      - 'views/candidate-c/**'
+      - 'public/css/candidate-c*.css'
+      - 'public/js/candidate-c-studio.js'
+      - 'test/candidate-c-territory-*.test.js'
+      - 'test/candidate-c-studio-territory-review.test.js'
+      - 'scripts/candidate-c-territory-v2-browser.js'
+      - '.github/workflows/candidate-c-territory-v2-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-territory-v2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Same-host multi-Direction territory evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Bind exact candidate tree
+        id: provenance
+        shell: bash
+        run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Run Territory v2 deterministic contracts
+        run: node --test --test-concurrency=1 test/candidate-c-territory-kernel.test.js test/candidate-c-territory-routes.test.js test/candidate-c-studio-territory-review.test.js
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run same-host multi-Direction browser proof
+        env:
+          CANDIDATE_C_TERRITORY_V2_ROOT: artifacts/candidate-c-territory-v2
+          CANDIDATE_C_TERRITORY_V2_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CANDIDATE_C_TERRITORY_V2_EXACT_TREE: ${{ steps.provenance.outputs.tree }}
+        run: node scripts/candidate-c-territory-v2-browser.js
+      - name: Publish Territory v2 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-territory-v2-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-territory-v2
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Summarize Territory v2 evidence
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-territory-v2/manifest.json', 'utf8'));
+          console.log('## Candidate C Territory v2 evidence');
+          console.log('');
+          console.log(`- Exact candidate: ${m.candidate}`);
+          console.log(`- Exact tree: ${m.tree}`);
+          console.log(`- Synthetic host: ${m.host.name} (${m.host.id})`);
+          console.log(`- Directions: ${m.families.map((family) => family.id).join(', ')}`);
+          console.log(`- Semantic digests across Directions: ${m.summary.semanticDigestCount}`);
+          console.log(`- Screenshots: ${m.summary.screenshotCount}`);
+          console.log(`- Audited surfaces: ${m.summary.auditCount}`);
+          console.log(`- Blocking accessibility findings: ${m.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${m.summary.horizontalOverflowFindings}`);
+          console.log(`- Incomplete image findings: ${m.summary.incompleteImageFindings}`);
+          console.log(`- External requests: ${m.summary.externalRequests}`);
+          console.log(`- Unexpected console errors: ${m.summary.unexpectedConsoleErrors}`);
+          console.log(`- Hive RPC/writes: ${m.summary.hiveRpcAttempts}/${m.summary.hiveWrites}`);
+          console.log(`- Provider/payment/signing/deployment effects: ${m.summary.providerWrites}/${m.summary.payments}/${m.summary.signingAttempts}/${m.summary.deployments}`);
+          console.log('');
+          console.log('A green job is machine evidence only. Project Lead visual inspection of the preserved screenshots is still required.');
+          NODE
