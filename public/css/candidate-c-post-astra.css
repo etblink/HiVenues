@@ -14,9 +14,9 @@
 .cc-studio-review-toggle {
   display: inline-flex;
   padding: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(48, 42, 36, 0.2);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.045);
+  background: rgba(48, 42, 36, 0.055);
 }
 
 .cc-studio-review-toggle button {
@@ -25,7 +25,7 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #aeb8c2;
+  color: #4b4640;
   cursor: pointer;
   font: inherit;
   font-size: 0.7rem;
@@ -33,12 +33,12 @@
 }
 
 .cc-studio-review-toggle button[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.12);
+  background: #332e29;
   color: #fff;
 }
 
 .cc-studio-review-toggle button:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid #332e29;
   outline-offset: 2px;
 }
 
