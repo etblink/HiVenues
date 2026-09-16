@@ -8,6 +8,7 @@
   const v = typeof values === 'object' && values ? values : {};
   const selectedAuthors = new Set(Array.isArray(v.authorProfileIds) ? v.authorProfileIds : (v.authorProfileIds ? [v.authorProfileIds] : []));
   const selectedMedia = new Set(Array.isArray(v.mediaIds) ? v.mediaIds : (v.mediaIds ? [v.mediaIds] : []));
+  const longStoryKinds = storyKinds.filter((kind) => kind.id !== 'update');
   const action = story
     ? `/candidate-c/studio/${graph.identity.slug}/territory-content/story/${story.id}`
     : `/candidate-c/studio/${graph.identity.slug}/territory-content/story/new`;
@@ -19,14 +20,14 @@
     </nav>
     <p class="cc-kicker">Territory · Stories · <%= story ? 'Edit' : 'Add' %></p>
     <h1><%= story ? 'Edit this story.' : 'Add a story to the host.' %></h1>
-    <p class="cc-task__dek">This is visitor-facing host content, not an internal design note. Saving changes only Working; the public Release remains unchanged until Release.</p>
+    <p class="cc-task__dek">Use this editor for longer Dispatches and Essays. Quick short-form posts belong in the dedicated Update workflow. Saving changes only Working; the public Release remains unchanged until Release.</p>
 
     <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check this story.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
 
     <form class="cc-setup-form" method="post" action="<%= action %>">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-      <div class="cc-field"><label for="cc-story-kind">Story type</label><select id="cc-story-kind" name="kind"><% storyKinds.forEach((kind) => { %><option value="<%= kind.id %>" <%= (v.kind || 'update') === kind.id ? 'selected' : '' %>><%= kind.label %> — <%= kind.help %></option><% }) %></select></div>
+      <div class="cc-field"><label for="cc-story-kind">Story type</label><select id="cc-story-kind" name="kind"><% longStoryKinds.forEach((kind) => { %><option value="<%= kind.id %>" <%= (v.kind || 'dispatch') === kind.id ? 'selected' : '' %>><%= kind.label %> — <%= kind.help %></option><% }) %></select></div>
       <div class="cc-field"><label for="cc-story-title">Title</label><input id="cc-story-title" name="title" maxlength="160" required value="<%= v.title ?? '' %>"><% if (story) { %><small>Stable public URL: <code><%= story.slug %></code></small><% } else { %><small>A stable URL is created from the title when you add the story.</small><% } %></div>
       <div class="cc-field"><label for="cc-story-dek">Short summary <span aria-hidden="true">·</span> optional</label><textarea id="cc-story-dek" name="dek" maxlength="320"><%= v.dek ?? '' %></textarea></div>
       <div class="cc-field"><label for="cc-story-body">Story</label><textarea id="cc-story-body" name="body" maxlength="16000" required><%= v.body ?? '' %></textarea></div>
