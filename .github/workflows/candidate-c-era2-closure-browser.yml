@@ -43,7 +43,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
       - name: Run Era 2 deterministic contracts
-        run: node --test --test-concurrency=1 test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js test/candidate-c-territory-release-review.test.js
+        run: node --test --test-concurrency=1 test/candidate-c-direction-recipe.test.js test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js test/candidate-c-territory-release-review.test.js
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Run fixture-free Era 2 closure proof
