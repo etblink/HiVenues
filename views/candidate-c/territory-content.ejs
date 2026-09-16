@@ -84,7 +84,7 @@
             </div>
             <span class="cc-territory-card__icon"><%- include('_icon', { name: 'story' }) %></span>
           </div>
-          <span class="cc-territory-card__metric"><%= longStories.length %> Story<%= longStories.length === 1 ? '' : 'ies' %></span>
+          <span class="cc-territory-card__metric"><%= longStories.length %> <%= longStories.length === 1 ? 'Story' : 'Stories' %></span>
           <% if (longStories.length) { %>
             <ul class="cc-territory-card__items">
               <% longStories.slice(0, 4).forEach((story) => { %>
