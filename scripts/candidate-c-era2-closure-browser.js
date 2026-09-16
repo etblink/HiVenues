@@ -176,7 +176,7 @@ async function main() {
 
     await goStudio(origin); await openMenu('Page');
     await page.getByRole('link', { name: 'Story & visit details' }).click();
-    await page.getByLabel('What should a visitor understand quickly?').fill('A fictional arts house where listening, making and neighborhood gathering stay close enough to feel personal.');
+    await page.getByLabel('Public summary').fill('A fictional arts house where listening, making and neighborhood gathering stay close enough to feel personal.');
     await page.getByRole('button', { name: /Save/ }).click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}/content?saved=1`);
 
