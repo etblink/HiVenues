@@ -66,16 +66,16 @@ test('admission rejects unknown authority, reserved slugs, malformed timezones a
   assert.equal(build(input({ address: '' })).ok, false);
 });
 
-test('fresh host provisioning is durable, collision-safe, and creates one immutable initial live Release', (t) => {
+test('fresh host provisioning is durable, collision-safe, and remains unpublished until explicit Release', (t) => {
   const statePath = tempState(t);
   const store = new ProvisioningFileCandidateCStore({ statePath });
   const graph = build().graph;
   const created = store.createHost(graph);
   assert.equal(created.ok, true);
   assert.equal(created.snapshot.revision, 1);
-  assert.equal(created.snapshot.releases.length, 1);
-  assert.equal(created.snapshot.releases[0].kind, 'full');
-  assert.equal(created.snapshot.liveReleaseId, created.snapshot.releases[0].id);
+  assert.deepEqual(created.snapshot.releases, []);
+  assert.equal(created.snapshot.liveReleaseId, null);
+  assert.equal(store.publicSnapshot('dogfood-house'), null);
   assert.deepEqual(store.diagnostics().external, {
     hiveRpcAttempts: 0,
     hiveWrites: 0,
@@ -94,15 +94,30 @@ test('fresh host provisioning is durable, collision-safe, and creates one immuta
   assert(snapshot);
   assert.equal(snapshot.draft.facts.tagline, graph.facts.tagline);
   assert.equal(snapshot.draft.activities[0].title, 'Friday Gathering');
-  assert.equal(snapshot.liveReleaseId, created.snapshot.liveReleaseId);
+  assert.deepEqual(snapshot.releases, []);
+  assert.equal(snapshot.liveReleaseId, null);
+  assert.equal(restarted.publicSnapshot('dogfood-house'), null);
+
+  const released = restarted.createRelease('dogfood-house', snapshot.revision, snapshot.draftDigest);
+  assert.equal(released.ok, true);
+  const live = restarted.snapshot('dogfood-house');
+  assert.equal(live.releases.length, 1);
+  assert.equal(live.releases[0].kind, 'full');
+  assert.equal(live.liveReleaseId, live.releases[0].id);
+  assert(restarted.publicSnapshot('dogfood-house'));
 });
 
-test('existing Workstream-E urgent release semantics operate on a newly admitted host and survive restart', (t) => {
+test('existing Workstream-E urgent release semantics operate after an explicit first Release and survive restart', (t) => {
   const statePath = tempState(t);
   const store = new ProvisioningFileCandidateCStore({ statePath });
   const graph = build().graph;
   assert.equal(store.createHost(graph).ok, true);
+  const unpublished = store.snapshot('dogfood-house');
+  const firstRelease = store.createRelease('dogfood-house', unpublished.revision, unpublished.draftDigest);
+  assert.equal(firstRelease.ok, true);
   const before = store.snapshot('dogfood-house');
+  assert(before.liveReleaseId);
+
   const proposed = store.proposeUrgent('dogfood-house', {
     kind: 'activity-status',
     activityId: graph.activities[0].id,
@@ -130,15 +145,24 @@ test('existing Workstream-E urgent release semantics operate on a newly admitted
   assert.equal(live.releases.find((item) => item.id === live.liveReleaseId).kind, 'urgent');
 });
 
-test('operator router creates a host through typed form fields and serves its Studio and public site', async (t) => {
+test('operator router creates a working-only host, then serves it publicly after explicit Release', async (t) => {
   const store = new ProvisioningFileCandidateCStore({ statePath: tempState(t) });
   const app = createDogfoodApp({ store });
   await request(app).get('/candidate-c').expect(200).expect(/Create a place/);
   await request(app).get('/candidate-c/new').expect(200).expect(/Start with the host, not a template/).expect(/Purpose/).expect(/Presence/).expect(/Direction/).expect(/Participation/);
   const created = await request(app).post('/candidate-c/new').type('form').send(input()).expect(303);
   assert.equal(created.headers.location, '/candidate-c/studio/dogfood-house?created=1');
-  await request(app).get('/candidate-c/studio/dogfood-house').expect(200).expect(/Dogfood House/).expect(/Here is your place/);
+  await request(app).get('/candidate-c/studio/dogfood-house').expect(200).expect(/Dogfood House/).expect(/Here is your place/).expect(/Nothing is live yet/);
+  await request(app).get('/candidate-c/dogfood-house').expect(404);
+
+  const working = store.snapshot('dogfood-house');
+  await request(app)
+    .post('/candidate-c/studio/dogfood-house/release')
+    .type('form')
+    .send({ expectedRevision: working.revision, expectedDraftDigest: working.draftDigest })
+    .expect(303);
   await request(app).get('/candidate-c/dogfood-house').expect(200).expect(/Dogfood House/);
+
   await request(app).post('/candidate-c/new').type('form').send(input()).expect(409).expect(/already exists/);
   await request(app).post('/candidate-c/new').type('form').send({ ...input(), bindings: 'forbidden' }).expect(400);
 });
