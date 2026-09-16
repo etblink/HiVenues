@@ -1,0 +1,88 @@
+name: Candidate C Territory Authoring Browser Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'src/candidate-c/**'
+      - 'views/candidate-c/**'
+      - 'public/css/candidate-c*.css'
+      - 'public/js/candidate-c-studio.js'
+      - 'test/candidate-c-territory-authoring*.test.js'
+      - 'scripts/candidate-c-territory-authoring-browser.js'
+      - '.github/workflows/candidate-c-territory-authoring-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-territory-authoring-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Ordinary-host territory authoring evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Bind exact candidate tree
+        id: provenance
+        shell: bash
+        run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Run Territory authoring deterministic contracts
+        run: node --test --test-concurrency=1 test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run ordinary-host territory authoring browser proof
+        env:
+          CANDIDATE_C_TERRITORY_AUTHORING_ROOT: artifacts/candidate-c-territory-authoring
+          CANDIDATE_C_TERRITORY_AUTHORING_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CANDIDATE_C_TERRITORY_AUTHORING_EXACT_TREE: ${{ steps.provenance.outputs.tree }}
+        run: node scripts/candidate-c-territory-authoring-browser.js
+      - name: Publish Territory authoring evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-territory-authoring-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-territory-authoring
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Summarize Territory authoring evidence
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-territory-authoring/manifest.json', 'utf8'));
+          console.log('## Candidate C Territory authoring evidence');
+          console.log('');
+          console.log(`- Exact candidate: ${m.candidate}`);
+          console.log(`- Exact tree: ${m.tree}`);
+          console.log(`- Ordinary seeded host: ${m.host.slug}`);
+          console.log(`- Screenshots: ${m.summary.screenshotCount}`);
+          console.log(`- Audited screens: ${m.summary.auditCount}`);
+          console.log(`- Working restart preserved: ${m.summary.restartWorkingPreserved}`);
+          console.log(`- Release restart preserved: ${m.summary.releaseRestartPreserved}`);
+          console.log(`- Blocking accessibility findings: ${m.summary.blockingAccessibilityFindings}`);
+          console.log(`- Horizontal overflow findings: ${m.summary.horizontalOverflowFindings}`);
+          console.log(`- Incomplete image findings: ${m.summary.incompleteImageFindings}`);
+          console.log(`- External requests: ${m.summary.externalRequests}`);
+          console.log(`- Unexpected console errors: ${m.summary.unexpectedConsoleErrors}`);
+          console.log(`- Hive/provider/payment/signing/deployment effects: ${m.effects.hiveWrites}/${m.effects.providerWrites}/${m.effects.payments}/${m.effects.signingAttempts}/${m.effects.deployments}`);
+          console.log('');
+          console.log('This is machine/browser evidence. Project Lead screenshot inspection remains required before accepting the Studio quality bar.');
+          NODE
