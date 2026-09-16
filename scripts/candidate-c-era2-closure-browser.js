@@ -219,31 +219,27 @@ async function main() {
     await page.getByRole('link', { name: 'Stories, people & gallery' }).click();
     await page.getByRole('button', { name: 'Enable territory content in Working' }).click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}/territory-content?upgraded=1`);
-    await addProfile(origin, 'Mara Vale', 'Program curator', 'Fictional curator for the Lantern Relay closure proof.');
-    await addProfile(origin, 'Ivo Stone', 'Print steward', 'Fictional print steward for the Lantern Relay closure proof.');
-    await addProfile(origin, 'Nia Holloway', 'Table host', 'Fictional table host for the Lantern Relay closure proof.');
+    await addProfile(origin, 'Mara Vale', 'Program curator', 'Fictional curator for the Lantern Relay qualification host.');
+    await addProfile(origin, 'Theo March', 'Resident printer', 'Fictional printmaker responsible for the shared edition table.');
+    await addProfile(origin, 'June Orin', 'Listening host', 'Fictional host for close-listening sessions and guest record nights.');
     graph = store.snapshot(SLUG).draft;
-    assert.equal(graph.people.length, 3);
-    const [mara, ivo, nia] = graph.people;
-
-    await page.goto(`${origin}/candidate-c/studio/${SLUG}/territory-content`, { waitUntil: 'networkidle' });
-    await page.getByRole('link', { name: 'Write an Update' }).click();
-    await page.locator('#cc-update-body').fill('Tonight’s listening room opens at 7:30. The floor is quiet by eight.');
+    const mara = graph.people.find((item) => item.displayName === 'Mara Vale');
+    const theo = graph.people.find((item) => item.displayName === 'Theo March');
+    const june = graph.people.find((item) => item.displayName === 'June Orin');
+    await page.goto(`${origin}/candidate-c/studio/${SLUG}/territory-content/update/new`, { waitUntil: 'networkidle' });
+    await page.locator('#cc-update-body').fill('Tonight at the Relay: doors at seven, close listening at eight.');
     await page.locator('#cc-update-title').fill('Tonight at the Relay');
-    await page.locator('#cc-update-author').selectOption(mara.id);
-    await page.getByRole('button', { name: 'Add Update to Working' }).click();
+    await page.locator('#cc-update-author').selectOption(june.id);
+    const updateMedia = page.locator('input[name="mediaIds"]'); if (await updateMedia.count()) await updateMedia.first().check();
+    await page.getByRole('button', { name: 'Share Update to Working' }).click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}/territory-content?saved=1`);
-    await addStory(origin, 'dispatch', 'Notes from the print table', 'A short field dispatch from a shared edition night.', 'Ink dries slowly when everyone is still talking. This fictional dispatch records the ordinary texture of the print table.', ivo.id);
-    await addStory(origin, 'essay', 'Why the room stays small', 'A longer note on closeness as part of the host.', 'Lantern Relay keeps the room small on purpose. The fictional host treats attention, proximity and repeated return as part of the experience rather than scarcity theater.', nia.id);
-    graph = store.snapshot(SLUG).draft;
-    assert.equal(graph.stories.length, 3);
+    await addStory(origin, 'dispatch', 'Print Table Notes', 'A fictional dispatch from the shared table.', 'Theo shares notes from the latest small-edition print session.', theo.id);
+    await addStory(origin, 'essay', 'Why Small Rooms Matter', 'A fictional essay about close-range cultural spaces.', 'Mara writes about the value of rooms where artists and neighbors can remain within conversational distance.', mara.id);
 
     await page.goto(`${origin}/candidate-c/studio/${SLUG}/territory-content/gallery`, { waitUntil: 'networkidle' });
     await page.locator('#cc-gallery-title').fill('Relay studies');
-    await page.locator('#cc-gallery-summary').fill('A fictional visual notebook curated from media already admitted to this host.');
-    const includes = page.locator('input[type="checkbox"][name^="include_"]');
-    assert.ok(await includes.count()); await includes.first().check();
-    await page.locator('input[type="number"][name^="order_"]').first().fill('1');
+    await page.locator('#cc-gallery-summary').fill('A bounded collection of the host media already admitted to Lantern Relay.');
+    const galleryChecks = page.locator('input[name^="include_"]'); if (await galleryChecks.count()) await galleryChecks.first().check();
     await page.getByRole('button', { name: 'Save gallery to Working' }).click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}/territory-content?saved=1`);
 
@@ -296,6 +292,15 @@ async function main() {
     const liveDigest = liveBeforeRestart.draftDigest;
     const workingDigest = store.snapshot(SLUG).draftDigest;
     assert.equal(liveDigest, workingDigest);
+
+    // A successful Release redirects to Studio. Let that page fully settle and
+    // prove it is clean before deliberately taking its origin offline. Moving
+    // the browser off-origin prevents the restart proof itself from manufacturing
+    // ERR_CONNECTION_REFUSED while late CSS/JS requests are still in flight.
+    await page.waitForLoadState('networkidle');
+    assert.equal(externalRequests.length, 0, `unexpected external requests before restart: ${externalRequests.join(', ')}`);
+    assert.equal(consoleErrors.length, 0, `unexpected console errors before restart: ${JSON.stringify(consoleErrors)}`);
+    await page.goto('about:blank');
 
     await stopServer(server);
     store = new FileCandidateCStore({ statePath, now: () => Date.parse('2026-09-16T20:00:00Z') });
@@ -352,13 +357,15 @@ async function main() {
         releaseRestartPreserved: store.publicSnapshot(SLUG).draftDigest === liveDigest,
       },
       effects: diagnostics.external,
-      screenshots,
       audits,
+      screenshots,
     };
     fs.writeFileSync(path.join(OUTPUT_ROOT, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ ok: true, candidate: EXACT_SHA, tree: EXACT_TREE, host: SLUG, revision: store.snapshot(SLUG).revision, releaseDigest: liveDigest, screenshots: screenshots.length })}\n`);
   } finally {
-    await stopServer(server).catch(() => {});
+    await stopServer(server);
     await browser.close();
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
