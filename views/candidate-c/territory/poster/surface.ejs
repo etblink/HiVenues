@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-poster cc-territory cc-territory--poster" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-territory-poster__mast">
+    <a class="cc-wordmark" href="<%= territory.navigation.find((item) => item.role === 'home')?.path %>"><%- include('../../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Primary"><% territory.navigation.forEach((item) => { %><a href="<%= item.path %>" <%= item.surfaceRole === surface.role ? 'aria-current="page"' : '' %>><%= item.label %></a><% }) %></nav>
+  </header>
+  <main class="cc-territory-poster__page">
+    <header class="cc-territory-poster__title">
+      <p class="cc-kicker"><%= graph.identity.archetype %> / <%= surface.label %></p>
+      <% if (surface.role === 'activities-index') { %><h1>What is on the wall.</h1><p><%= graph.intent.participation %></p><% } %>
+      <% if (surface.role === 'offers') { %><h1>Take something with you.</h1><p><%= graph.intent.participation %></p><% } %>
+      <% if (surface.role === 'stories-index') { %><h1>Dispatches from the room.</h1><p><%= graph.intent.purpose %></p><% } %>
+      <% if (surface.role === 'story-detail') { %><h1><%= story.title %></h1><% if (story.dek) { %><p><%= story.dek %></p><% } %><% } %>
+      <% if (surface.role === 'gallery') { %><h1><%= graph.gallery.title %></h1><p><%= graph.gallery.summary %></p><% } %>
+      <% if (surface.role === 'people-index') { %><h1>People on the relay.</h1><p>The names behind this fictional reference house.</p><% } %>
+      <% if (surface.role === 'profile-detail') { %><h1><%= profile.displayName %></h1><p><%= profile.role || graph.identity.displayName %></p><% } %>
+      <% if (surface.role === 'about-visit') { %><h1><%= graph.facts.tagline %></h1><p><%= graph.facts.summary %></p><% } %>
+    </header>
+
+    <% if (surface.role === 'activities-index') { %><section class="cc-territory-poster__grid"><% activities.forEach((activity, index) => { %><article class="cc-territory-poster__card"><span class="cc-territory-poster__number"><%= String(index + 1).padStart(2, '0') %></span><p class="cc-kicker"><%= activity.status.label %> · <%= activity.humanTime %></p><h2><a href="<%= activityPaths[activity.id] %>"><%= activity.title %></a></h2><p><%= activity.description %></p><a class="cc-link cc-link--light" href="<%= activityPaths[activity.id] %>"><%= activity.open ? 'Details & RSVP' : 'Activity details' %></a></article><% }) %></section><% } %>
+    <% if (surface.role === 'offers') { %><section class="cc-territory-poster__grid"><% graph.offers.forEach((offer) => { %><article class="cc-territory-poster__card"><p class="cc-kicker"><%= offer.category || 'From the house' %></p><h2><%= offer.title %></h2><p><%= offer.summary %></p><% if (offer.price) { %><strong><%= offer.price %></strong><% } %></article><% }) %></section><% } %>
+    <% if (surface.role === 'stories-index') { %><section class="cc-territory-poster__stack"><% stories.forEach((item, index) => { %><article><p class="cc-kicker"><%= String(index + 1).padStart(2, '0') %> / <%= item.kind %></p><div><h2><a href="<%= storyPaths[item.id] %>"><%= item.title %></a></h2><p><%= item.dek || item.body %></p></div></article><% }) %></section><% } %>
+    <% if (surface.role === 'story-detail') { %><article class="cc-territory-poster__story"><% if (story.media[0]) { %><div class="cc-territory-poster__story-art"><%- include('../../_art', { media: story.media[0], graph }) %></div><% } %><div><p class="cc-kicker"><%= story.kind %><% if (story.authors.length) { %> / <%= story.authors.map((author) => author.displayName).join(', ') %><% } %></p><p class="cc-territory-poster__story-copy"><%= story.body %></p></div></article><% } %>
+    <% if (surface.role === 'gallery') { %><section class="cc-territory-poster__gallery"><% galleryMedia.forEach((item, index) => { %><figure><%- include('../../_art', { media: item, graph }) %><figcaption><%= String(index + 1).padStart(2, '0') %> / <%= item.alt %></figcaption></figure><% }) %></section><% } %>
+    <% if (surface.role === 'people-index') { %><section class="cc-territory-poster__grid"><% people.forEach((person) => { %><article class="cc-territory-poster__card"><p class="cc-kicker"><%= person.role || 'Contributor' %></p><h2><a href="<%= profilePaths[person.id] %>"><%= person.displayName %></a></h2><p><%= person.bio %></p></article><% }) %></section><% } %>
+    <% if (surface.role === 'profile-detail') { %><article class="cc-territory-poster__story"><% if (profile.media) { %><div class="cc-territory-poster__story-art"><%- include('../../_art', { media: profile.media, graph }) %></div><% } %><div><p class="cc-kicker"><%= profile.role || 'Contributor' %></p><p class="cc-territory-poster__story-copy"><%= profile.bio %></p><% profile.links.forEach((link) => { %><p><a class="cc-link cc-link--light" href="<%= link.url %>"><%= link.label %></a></p><% }) %></div></article><% } %>
+    <% if (surface.role === 'about-visit') { %><section class="cc-territory-poster__about"><div><p class="cc-kicker">The place</p><p class="cc-territory-poster__story-copy"><%= graph.intent.presenceMaterial %></p><p><%= graph.intent.purpose %></p></div><div><p class="cc-kicker">Find it</p><h2><%= graph.facts.presence.label %></h2><% if (graph.facts.presence.address) { %><p><%= graph.facts.presence.address %></p><% } %><p><% if (contact.href) { %><a class="cc-link cc-link--light" href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p></div></section><% } %>
+  </main>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p><%= graph.facts.presence.label %></p></footer>
+</body>
+</html>
