@@ -128,6 +128,7 @@ async function main() {
     await dismissFirstDraftReveal(page);
     assert.equal(store.snapshot(SLUG).draft.activities.length, 0);
     assert.equal(store.snapshot(SLUG).draft.offers.length, 0);
+    assert.equal(store.publicSnapshot(SLUG), null, 'fresh working-only host became public before first Release');
     await capture(page, '01-synthetic-created-empty.png', 'synthetic-created-empty', evidence);
 
     await openCommand(page, 'Activities');
@@ -143,7 +144,7 @@ async function main() {
     const activity = store.snapshot(SLUG).draft.activities[0];
     assert(activity);
     assert.equal(activity.title, ACTIVITY_TITLE);
-    assert.equal(store.publicSnapshot(SLUG).draft.activities.length, 0, 'draft Activity became live without a Release');
+    assert.equal(store.publicSnapshot(SLUG), null, 'draft Activity became live without a Release');
     await capture(page, '02-synthetic-added-activity-draft.png', 'synthetic-added-activity-draft', evidence);
 
     await page.getByRole('link', { name: 'Release', exact: true }).click();
