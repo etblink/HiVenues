@@ -8,6 +8,7 @@ on:
       - 'public/css/candidate-c*.css'
       - 'public/js/candidate-c-studio.js'
       - 'test/candidate-c-territory-authoring*.test.js'
+      - 'test/candidate-c-territory-release-review.test.js'
       - 'scripts/candidate-c-territory-authoring-browser.js'
       - '.github/workflows/candidate-c-territory-authoring-browser.yml'
   workflow_dispatch:
@@ -44,7 +45,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-fund
       - name: Run Territory authoring deterministic contracts
-        run: node --test --test-concurrency=1 test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js
+        run: node --test --test-concurrency=1 test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js test/candidate-c-territory-release-review.test.js
       - name: Install pinned Chromium runtime
         run: npx --no-install playwright install --with-deps chromium
       - name: Run ordinary-host territory authoring browser proof
