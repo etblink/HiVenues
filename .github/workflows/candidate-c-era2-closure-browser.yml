@@ -1,0 +1,84 @@
+name: Candidate C Era 2 Closure Qualification
+
+on:
+  pull_request:
+    paths:
+      - 'src/candidate-c/**'
+      - 'views/candidate-c/**'
+      - 'public/css/candidate-c*.css'
+      - 'public/js/candidate-c-studio.js'
+      - 'scripts/candidate-c-era2-closure-browser.js'
+      - '.github/workflows/candidate-c-era2-closure-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-c-era2-closure-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Fixture-free maximal host reconstruction
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Bind exact candidate tree
+        id: provenance
+        shell: bash
+        run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Run Era 2 deterministic contracts
+        run: node --test --test-concurrency=1 test/candidate-c-territory-authoring.test.js test/candidate-c-territory-authoring-persistence.test.js test/candidate-c-territory-release-review.test.js
+      - name: Install pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Run fixture-free Era 2 closure proof
+        env:
+          CANDIDATE_C_ERA2_CLOSURE_ROOT: artifacts/candidate-c-era2-closure
+          CANDIDATE_C_ERA2_CLOSURE_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CANDIDATE_C_ERA2_CLOSURE_EXACT_TREE: ${{ steps.provenance.outputs.tree }}
+        run: node scripts/candidate-c-era2-closure-browser.js
+      - name: Publish Era 2 closure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: candidate-c-era2-closure-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/candidate-c-era2-closure
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Summarize Era 2 closure evidence
+        if: success()
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('node:fs');
+          const m = JSON.parse(fs.readFileSync('artifacts/candidate-c-era2-closure/manifest.json', 'utf8'));
+          console.log('## Candidate C Era 2 closure evidence');
+          console.log('');
+          console.log(`- Exact candidate: ${m.candidate}`);
+          console.log(`- Exact tree: ${m.tree}`);
+          console.log(`- Studio-created host: ${m.host.slug}`);
+          console.log(`- Fixture host used: ${m.reconstruction.fixtureHostUsed}`);
+          console.log(`- Activities / Offers / Stories / People: ${m.reconstruction.activities.length} / ${m.reconstruction.offers.length} / ${m.reconstruction.stories.length} / ${m.reconstruction.people.length}`);
+          console.log(`- Screenshots / audits: ${m.summary.screenshotCount} / ${m.summary.auditCount}`);
+          console.log(`- Release restart preserved: ${m.summary.releaseRestartPreserved}`);
+          console.log(`- Blocking accessibility / overflow / incomplete image: ${m.summary.blockingAccessibilityFindings} / ${m.summary.horizontalOverflowFindings} / ${m.summary.incompleteImageFindings}`);
+          console.log(`- External requests / console errors: ${m.summary.externalRequests} / ${m.summary.unexpectedConsoleErrors}`);
+          console.log(`- Hive/provider/payment/signing/deployment effects: ${m.effects.hiveWrites}/${m.effects.providerWrites}/${m.effects.payments}/${m.effects.signingAttempts}/${m.effects.deployments}`);
+          console.log('');
+          console.log('This is machine/browser evidence. Project Lead screenshot inspection remains required before closing Roadmap Era 2.');
+          NODE
