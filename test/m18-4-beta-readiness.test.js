@@ -90,9 +90,8 @@ test('M18.4 distinguishes future sign-in-required follow copy from unavailable c
   assert.match(profile, /Following isn’t available here yet\./);
 });
 
-test('M18.4 current visual-contract wiring and production boundary remain intact', () => {
+test('M18.4 production boundary and retained visual oracle remain intact without general-CI binding', () => {
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
-  const workflow = read('.github/workflows/ci.yml');
   const suite = visualContract().machineSuites.find(({ id }) => id === 'm18-patron-surfaces');
   assert.match(operations, /HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD/);
   assert.match(operations, /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/);
@@ -103,8 +102,6 @@ test('M18.4 current visual-contract wiring and production boundary remain intact
   assert.equal(suite.outputDir, 'm18-4-visual');
   assert.ok(suite.invariants.includes('wallet'));
   assert.ok(suite.invariants.includes('owner inbox'));
-  assert.match(workflow, /UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
 });
 
 test('M18.4 live qualification explicitly reads both social-graph directions without writes', () => {
