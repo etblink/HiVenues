@@ -7,6 +7,13 @@
   <%
     const liveSnapshot = release ? release.snapshot : null;
     const releaseChanges = [];
+    const territoryCounts = (snapshot) => ({
+      stories: snapshot && snapshot.schemaVersion === 2 ? snapshot.stories.length : 0,
+      people: snapshot && snapshot.schemaVersion === 2 ? snapshot.people.length : 0,
+      gallery: snapshot && snapshot.schemaVersion === 2 ? snapshot.gallery.mediaIds.length : 0,
+    });
+    const workingTerritory = territoryCounts(graph);
+    const liveTerritory = territoryCounts(liveSnapshot);
     if (!liveSnapshot) {
       releaseChanges.push('This will be the first live website version.');
     } else {
@@ -18,10 +25,23 @@
       if (graph.intent.purpose !== liveSnapshot.intent.purpose || graph.intent.presenceMaterial !== liveSnapshot.intent.presenceMaterial || graph.intent.participation !== liveSnapshot.intent.participation) releaseChanges.push('Public story or visitor invitation changed.');
       if (graph.presentation.compositionFamily !== liveSnapshot.presentation.compositionFamily) releaseChanges.push('Visual Direction changed.');
       if (graph.presentation.accent !== liveSnapshot.presentation.accent) releaseChanges.push('Accent changed.');
+      if (JSON.stringify(graph.presentation.recipe || null) !== JSON.stringify(liveSnapshot.presentation.recipe || null)) releaseChanges.push('Direction recipe changed.');
       if (JSON.stringify(graph.activities) !== JSON.stringify(liveSnapshot.activities)) releaseChanges.push('Activities changed.');
       if (JSON.stringify(graph.offers) !== JSON.stringify(liveSnapshot.offers)) releaseChanges.push('Offerings changed.');
       if (JSON.stringify(graph.media) !== JSON.stringify(liveSnapshot.media)) releaseChanges.push('Media or image focus changed.');
       if (JSON.stringify(graph.voice) !== JSON.stringify(liveSnapshot.voice)) releaseChanges.push('Visitor-facing action wording changed.');
+      const workingStories = graph.schemaVersion === 2 ? graph.stories : [];
+      const liveStories = liveSnapshot.schemaVersion === 2 ? liveSnapshot.stories : [];
+      if (JSON.stringify(workingStories) !== JSON.stringify(liveStories)) releaseChanges.push('Stories and Updates changed.');
+      const workingPeople = graph.schemaVersion === 2 ? graph.people : [];
+      const livePeople = liveSnapshot.schemaVersion === 2 ? liveSnapshot.people : [];
+      if (JSON.stringify(workingPeople) !== JSON.stringify(livePeople)) releaseChanges.push('Public profiles changed.');
+      const workingGallery = graph.schemaVersion === 2 ? graph.gallery : null;
+      const liveGallery = liveSnapshot.schemaVersion === 2 ? liveSnapshot.gallery : null;
+      if (JSON.stringify(workingGallery) !== JSON.stringify(liveGallery)) releaseChanges.push('Gallery changed.');
+      const workingNavigation = graph.schemaVersion === 2 ? graph.navigation : null;
+      const liveNavigation = liveSnapshot.schemaVersion === 2 ? liveSnapshot.navigation : null;
+      if (JSON.stringify(workingNavigation) !== JSON.stringify(liveNavigation)) releaseChanges.push('Visitor navigation changed.');
     }
   %>
   <main class="cc-task">
@@ -40,6 +60,9 @@
         <p><strong><%= graph.facts.tagline %></strong></p>
         <p><%= graph.facts.summary %></p>
         <p><%= activities.length %> Activity · <%= graph.offers.length %> Offer · <%= graph.media.length %> Media asset</p>
+        <% if (graph.schemaVersion === 2) { %>
+          <p><%= workingTerritory.stories %> Story / Update · <%= workingTerritory.people %> Profile · <%= workingTerritory.gallery %> Gallery item</p>
+        <% } %>
       </section>
       <section class="cc-review-card">
         <p class="cc-kicker">Currently live</p>
@@ -47,6 +70,9 @@
         <% if (release) { %>
           <p><strong><%= release.snapshot.facts.tagline %></strong></p>
           <p><%= release.snapshot.facts.summary %></p>
+          <% if (release.snapshot.schemaVersion === 2) { %>
+            <p><%= liveTerritory.stories %> Story / Update · <%= liveTerritory.people %> Profile · <%= liveTerritory.gallery %> Gallery item</p>
+          <% } %>
         <% } else { %>
           <p>Nothing is live yet.</p>
         <% } %>
