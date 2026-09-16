@@ -169,7 +169,7 @@ test('Issue142: query properties are strict and source text and selection URLs a
   assert.equal(selectionHref('/studio/canvas', createVenueCanvasSelection({ blockId: 'a&b', fieldId: 'x y' })), '/studio/canvas?blockId=a%26b&fieldId=x+y#selection-summary');
 });
 
-test('Issue142: current visual contract activates exactly the two Canvas states inside selected CI', () => {
+test('Issue142: retained visual contract still describes the two Canvas evidence states', () => {
   const contract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/visual-qualification-contract.json'), 'utf8'));
   assert.deepEqual(contract.reviewScenarios.filter((x) => x.mode === 'canvas').map((x) => ({ id: x.id, selection: x.selection, viewport: x.viewport })), [
     { id: 'fourth-street-canvas-desktop', selection: { blockId: 'home.hero', fieldId: 'lede' }, viewport: { width: 1440, height: 1000 } },
@@ -177,13 +177,10 @@ test('Issue142: current visual contract activates exactly the two Canvas states 
   ]);
   assert.ok(contract.reviewScenarios.some((x) => x.id === 'home-mobile'));
   assert.ok(contract.reviewScenarios.some((x) => x.id === 'home-desktop'));
-  const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   for (const file of ['capture-source-authoring-visual.js', 'capture-current-contract-visual.js', 'assemble-current-visual-evidence.js']) {
     const capture = fs.readFileSync(path.join(ROOT, 'scripts', file), 'utf8');
     assert.match(capture, /readOnlyCanvas/);
     assert.match(capture, /selectedCanvasCardCount|inspectReadOnlyCanvas/);
     assert.match(capture, /selectionSummaryFocused|inspectReadOnlyCanvas/);
   }
-  assert.match(workflow, /src\/venue\/source-authoring-surface\.js/);
-  assert.match(workflow, /scripts\/capture-current-contract-visual\.js/);
 });

@@ -76,30 +76,14 @@ test('M18.2 visual fixture renders real signed-out and fixture-authenticated she
   assert.deepEqual(fixture.hiveReadService.calls.map((call) => call.method), ['getProfile', 'getAccountPosts']);
 });
 
-test('M18.2 CI keeps dual-OS qualification and current-contract UI/UX evidence', () => {
+test('M18.2 retained visual oracle remains self-contained while general CI stays cross-platform', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-m18-visual.js'), 'utf8');
   const contract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
-  const visualJob = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
   const suite = contract.machineSuites.find(({ id }) => id === 'm18-shell');
   assert.match(workflow, /os:\s*[\s\S]*ubuntu-latest[\s\S]*windows-latest/);
-  assert.match(workflow, /visual=false/);
-  assert.match(workflow, /views\/\*\|public\/\*\|src\/input\.css/);
-  assert.match(workflow, /scripts\/capture-\*-visual\.js/);
-  assert.match(workflow, /workflow_dispatch[\s\S]*?visual=true/);
-  assert.doesNotMatch(workflow, /\.github\/workflows\/\*[^\n]*visual=true/);
-  assert.ok(visualJob);
-  assert.match(visualJob, /name: UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(visualJob, /needs:\n\s+- scope\n\s+- verify/);
-  assert.match(visualJob, /if: needs\.scope\.outputs\.visual == 'true'/);
-  assert.match(visualJob, /runs-on:\s*ubuntu-latest/);
-  assert.match(visualJob, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(visualJob, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(visualJob, /node scripts\/capture-current-contract-visual\.js/);
-  assert.match(visualJob, /node scripts\/assemble-current-visual-evidence\.js/);
-  assert.match(visualJob, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(visualJob, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  assert.match(visualJob, /does not constitute Project Lead visual approval/);
+  assert.doesNotMatch(workflow, /UI\/UX current-contract evidence/);
+  assert.doesNotMatch(workflow, /run-current-visual-contract/);
   assert.ok(suite);
   assert.deepEqual(suite.command, ['npm', 'run', 'test:visual:m18']);
   assert.equal(suite.outputEnv, 'M18_VISUAL_OUTPUT');

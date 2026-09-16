@@ -27,8 +27,7 @@ test('C2-E visual harness freezes mobile/desktop moderation and unavailable-stor
   assert.match(script, /status of 503/);
 });
 
-test('C2-E remains a retained machine oracle in pinned current visual qualification', () => {
-  const workflow = read('.github/workflows/ci.yml');
+test('C2-E remains a self-contained retained visual oracle without binding general CI', () => {
   const contract = visualContract();
   const suite = contract.machineSuites.find(({ id }) => id === 'moderation');
   assert.ok(suite);
@@ -37,12 +36,6 @@ test('C2-E remains a retained machine oracle in pinned current visual qualificat
   assert.equal(suite.outputDir, 'c2-e-visual');
   assert.ok(suite.invariants.some((value) => /focus return/i.test(value)));
   assert.ok(suite.invariants.some((value) => /unavailable fail-closed/i.test(value)));
-  assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
-  assert.match(workflow, /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020/);
-  assert.match(workflow, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
-  assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(workflow, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(workflow, /retention-days: 90/);
 });
 
 test('C2-E controls disclose local-only effect and preserve accessible dialog semantics', () => {

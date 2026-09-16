@@ -8,7 +8,6 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const contract = JSON.parse(fs.readFileSync(path.join(root, 'config', 'issue-130-presentation-review.json'), 'utf8'));
 const capture = fs.readFileSync(path.join(root, 'scripts', 'capture-issue-130-presentation-review.js'), 'utf8');
-const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
 
 const REQUIRED = [
   'issue130-fourth-home-mobile',
@@ -39,7 +38,7 @@ test('Issue #130 freezes exactly the required eight-view human presentation enve
   assert.equal(contract.scenarios.filter(({ surface }) => surface === 'venue-studio').length, 4);
 });
 
-test('Issue #130 visual evidence is an exact-head CI obligation and a bounded uploaded artifact', () => {
+test('Issue #130 presentation capture remains a bounded self-contained evidence tool', () => {
   assert.match(capture, /fullPage:\s*false/);
   assert.match(capture, /blockingAccessibilityImpacts/);
   assert.match(capture, /horizontalOverflow/);
@@ -47,9 +46,4 @@ test('Issue #130 visual evidence is an exact-head CI obligation and a bounded up
   assert.match(capture, /juniper-starter/);
   assert.match(capture, /Built with HiVenues/);
   assert.match(capture, /Hive RPC calls/);
-
-  assert.match(workflow, /Capture Issue 130 presentation review evidence/);
-  assert.match(workflow, /node scripts\/capture-issue-130-presentation-review\.js/);
-  assert.match(workflow, /artifacts\/issue-130-presentation-review/);
-  assert.match(workflow, /github\.event\.pull_request\.head\.sha \|\| github\.sha/);
 });
