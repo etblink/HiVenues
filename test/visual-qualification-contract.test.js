@@ -138,36 +138,18 @@ test('accessibility findings are classified rather than hidden behind PASS', () 
   assert.ok(findings.every(({ reason }) => reason.length >= 40));
 });
 
-test('workflow preserves universal qualification and deliberate full-path semantics', () => {
+test('general CI preserves current deterministic/security/Hive-smoke gates without replaying historical visuals', () => {
   assert.match(workflow, /matrix:[\s\S]*ubuntu-latest[\s\S]*windows-latest/);
-  assert.match(workflow, /Run deterministic quality gate[\s\S]*npm run check/);
+  assert.match(workflow, /Run deterministic quality gate[\s\S]*npm run check:deterministic/);
+  assert.match(workflow, /Run bounded production dependency audit[\s\S]*npm run audit:prod:ci/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(workflow, /node scripts\/capture-current-contract-visual\.js/);
-  assert.match(workflow, /node scripts\/capture-v2-component-cardinality-visual\.js/);
-  assert.match(workflow, /V2_CARDINALITY_REVIEW_ROOT: artifacts\/v2-component-cardinality-review/);
-  assert.match(workflow, /artifacts\/v2-component-cardinality-review/);
-  assert.match(workflow, /node scripts\/capture-v2-media-authoring-visual\.js/);
-  assert.match(workflow, /V2_MEDIA_REVIEW_ROOT: artifacts\/v2-media-authoring-review/);
-  assert.match(workflow, /const v2Media = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-media-authoring-review\/manifest\.json'/);
-  assert.match(workflow, /artifacts\/v2-media-authoring-review/);
-  assert.match(workflow, /node scripts\/capture-v2-local-media-authoring-visual\.js/);
-  assert.match(workflow, /V2_LOCAL_MEDIA_REVIEW_ROOT: artifacts\/v2-local-media-authoring-review/);
-  assert.match(workflow, /const v2LocalMedia = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-local-media-authoring-review\/manifest\.json'/);
-  assert.match(workflow, /artifacts\/v2-local-media-authoring-review/);
-  assert.match(workflow, /node scripts\/capture-v2-workspace-checkpoint-visual\.js/);
-  assert.match(workflow, /V2_CHECKPOINT_REVIEW_ROOT: artifacts\/v2-workspace-checkpoint-review/);
-  assert.match(workflow, /const v2Checkpoint = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-workspace-checkpoint-review\/manifest\.json'/);
-  assert.match(workflow, /artifacts\/v2-workspace-checkpoint-review/);
-  assert.match(workflow, /node scripts\/capture-v2-fresh-bootstrap-visual\.js/);
-  assert.match(workflow, /V2_BOOTSTRAP_REVIEW_ROOT: artifacts\/v2-fresh-bootstrap-review/);
-  assert.match(workflow, /const v2Bootstrap = JSON\.parse\(fs\.readFileSync\('artifacts\/v2-fresh-bootstrap-review\/manifest\.json'/);
-  assert.match(workflow, /artifacts\/v2-fresh-bootstrap-review/);
-  assert.match(workflow, /node scripts\/assemble-current-visual-evidence\.js/);
-  assert.match(workflow, /artifacts\/current-visual-review/);
-  assert.doesNotMatch(workflow, /path:\s*artifacts\s*$/m);
   assert.match(workflow, /Live Hive read-only smoke/);
   assert.match(workflow, /if: github\.event_name == 'workflow_dispatch'/);
   assert.match(workflow, /HIVE_WRITE_MODE: disabled/);
   assert.match(workflow, /npm run smoke:live/);
+  assert.doesNotMatch(workflow, /UI\/UX current-contract evidence/);
+  assert.doesNotMatch(workflow, /run-current-visual-contract/);
+  assert.doesNotMatch(workflow, /capture-current-contract-visual/);
+  assert.doesNotMatch(workflow, /capture-v2-/);
+  assert.doesNotMatch(workflow, /upload-artifact/);
 });

@@ -9,7 +9,6 @@ const { createUx1fVisualFixture } = require('./support/ux-1f-fixture');
 
 const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1f-visual.js'), 'utf8');
-const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
@@ -49,11 +48,9 @@ test('UX-1F pinned-Chromium contract covers every required viewport, degradation
   assert.match(capture, /assert\.deepEqual\(fixture\.rpcPool\.calls, \[\]\)/);
 });
 
-test('UX-1F and UX-1E remain distinct retained machine suites in current visual qualification', () => {
-  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
+test('UX-1F and UX-1E remain distinct retained self-contained machine suites', () => {
   const ux1f = visualContract.machineSuites.find(({ id }) => id === 'homepage');
   const ux1e = visualContract.machineSuites.find(({ id }) => id === 'wall-inbox');
-  assert.ok(job);
   assert.ok(ux1f);
   assert.ok(ux1e);
   assert.deepEqual(ux1f.command, ['npm', 'run', 'test:visual:ux-1f']);
@@ -62,10 +59,6 @@ test('UX-1F and UX-1E remain distinct retained machine suites in current visual 
   assert.deepEqual(ux1e.command, ['node', 'scripts/capture-ux-1e-visual.js']);
   assert.equal(ux1e.outputEnv, 'UX_1E_VISUAL_OUTPUT');
   assert.equal(ux1e.outputDir, 'ux-1e-visual');
-  assert.match(job, /UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(job, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
   for (const id of ['m18-shell','m18-wall-pay','m18-patron-surfaces','threads','composer','weighted-voting','content-hierarchy']) {
     assert.ok(visualContract.machineSuites.some((suite) => suite.id === id), `Missing predecessor suite ${id}`);
   }

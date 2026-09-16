@@ -9,7 +9,6 @@ const { createUx1cVisualFixture } = require('./support/ux-1c-fixture');
 
 const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1c-visual.js'), 'utf8');
-const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
@@ -48,11 +47,9 @@ test('UX-1C pinned-Chromium contract covers neutral, contextual weighted directi
   assert.match(capture, /assert\.equal\(evidence\.scrollY, 0\)/);
 });
 
-test('UX-1B and UX-1C remain distinct retained machine oracles without serial-order coupling', () => {
-  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
+test('UX-1B and UX-1C remain distinct retained self-contained machine oracles', () => {
   const ux1b = visualContract.machineSuites.find(({ id }) => id === 'composer');
   const ux1c = visualContract.machineSuites.find(({ id }) => id === 'weighted-voting');
-  assert.ok(job);
   assert.ok(ux1b);
   assert.ok(ux1c);
   assert.deepEqual(ux1b.command, ['npm', 'run', 'test:visual:ux-1b']);
@@ -60,8 +57,4 @@ test('UX-1B and UX-1C remain distinct retained machine oracles without serial-or
   assert.equal(ux1b.outputEnv, 'UX_1B_VISUAL_OUTPUT');
   assert.equal(ux1c.outputEnv, 'UX_1C_VISUAL_OUTPUT');
   assert.notEqual(ux1b.outputDir, ux1c.outputDir);
-  assert.match(job, /npx --no-install playwright install --with-deps chromium/);
-  assert.match(job, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(job, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
 });

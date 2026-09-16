@@ -9,7 +9,6 @@ const { createUx1dVisualFixture } = require('./support/ux-1d-fixture');
 
 const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1d-visual.js'), 'utf8');
-const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
@@ -56,10 +55,7 @@ test('UX-1D pinned-Chromium contract covers posts, Threads, nesting, mobile, and
   assert.match(capture, /assert\.equal\(evidence\.scrollY, 0\)/);
 });
 
-test('UX-1D current contract retains every accepted predecessor machine oracle', () => {
-  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
-  assert.ok(job);
-  assert.match(job, /npx --no-install playwright install --with-deps chromium/);
+test('UX-1D retained visual contract keeps every accepted predecessor machine oracle self-contained', () => {
   const expected = new Map([
     ['m18-shell', 'test:visual:m18'],
     ['m18-wall-pay', 'test:visual:m18-3'],
@@ -77,7 +73,4 @@ test('UX-1D current contract retains every accepted predecessor machine oracle',
   const ux1d = visualContract.machineSuites.find(({ id }) => id === 'content-hierarchy');
   assert.equal(ux1d.outputEnv, 'UX_1D_VISUAL_OUTPUT');
   assert.equal(ux1d.outputDir, 'ux-1d-visual');
-  assert.match(job, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(job, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
 });

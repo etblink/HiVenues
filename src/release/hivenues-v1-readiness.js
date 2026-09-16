@@ -52,12 +52,19 @@ function evaluateHiVenuesV1Readiness({ root = path.resolve(__dirname, '../..'), 
     if (pkg.scripts?.[name] !== command) throw new HiVenuesV1ReadinessError(`package script ${name} is missing or unexpected`);
   }
   for (const relative of REQUIRED_TURNKEY_FILES) requireFile(root, relative, fsImpl);
+
   const workflow = fsImpl.readFileSync(requireFile(root, '.github/workflows/ci.yml', fsImpl), 'utf8');
-  if (!workflow.includes('node scripts/capture-issue-132-turnkey-visual.js')) {
-    throw new HiVenuesV1ReadinessError('ordinary CI must capture Issue #132 turnkey visual evidence');
+  if (!workflow.includes('npm run check:deterministic')) {
+    throw new HiVenuesV1ReadinessError('ordinary CI must retain the deterministic quality gate');
   }
-  if (!workflow.includes('test/turnkey-release.test.js')) {
-    throw new HiVenuesV1ReadinessError('CI visual scope must recognize the turnkey integration oracle');
+  if (!workflow.includes('npm run audit:prod:ci')) {
+    throw new HiVenuesV1ReadinessError('ordinary CI must retain the bounded production dependency audit');
+  }
+  if (!workflow.includes("github.event_name == 'workflow_dispatch'") || !workflow.includes('npm run smoke:live')) {
+    throw new HiVenuesV1ReadinessError('manual CI must retain the live Hive read-only smoke');
+  }
+  if (workflow.includes('UI/UX current-contract evidence') || workflow.includes('capture-issue-132-turnkey-visual.js')) {
+    throw new HiVenuesV1ReadinessError('general CI must not replay superseded legacy visual qualification');
   }
   if (!String(pkg.scripts?.check || '').includes('release:check:hivenues-v1')) {
     throw new HiVenuesV1ReadinessError('npm run check must include the HiVenues v1 release oracle');

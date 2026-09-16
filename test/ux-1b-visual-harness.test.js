@@ -9,7 +9,6 @@ const { createUx1bVisualFixture } = require('./support/ux-1b-fixture');
 
 const ROOT = path.join(__dirname, '..');
 const capture = fs.readFileSync(path.join(ROOT, 'scripts', 'capture-ux-1b-visual.js'), 'utf8');
-const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const visualContract = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'visual-qualification-contract.json'), 'utf8'));
 
@@ -76,20 +75,13 @@ test('UX-1B pinned-Chromium contract covers composers and new conditional econom
   assert.match(capture, /duplicateIds/);
 });
 
-test('UX-1B remains a retained machine oracle with commit-bound current review artifacts', () => {
-  const job = workflow.match(/  visual-acceptance:\n[\s\S]*?(?=\n  live-read-smoke:)/)?.[0];
+test('UX-1B remains a retained self-contained machine oracle', () => {
   const ux1a = visualContract.machineSuites.find(({ id }) => id === 'threads');
   const ux1b = visualContract.machineSuites.find(({ id }) => id === 'composer');
-  assert.ok(job);
   assert.ok(ux1a);
   assert.ok(ux1b);
   assert.deepEqual(ux1a.command, ['npm', 'run', 'test:visual:ux-1a']);
   assert.deepEqual(ux1b.command, ['npm', 'run', 'test:visual:ux-1b']);
   assert.equal(ux1b.outputEnv, 'UX_1B_VISUAL_OUTPUT');
   assert.equal(ux1b.outputDir, 'ux-1b-visual');
-  assert.match(job, /UI\/UX current-contract evidence \(Ubuntu \/ pinned Chromium\)/);
-  assert.match(job, /npx --no-install playwright install --with-deps chromium/);
-  assert.match(job, /node scripts\/run-current-visual-contract\.js/);
-  assert.match(job, /current-visual-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(job, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
 });
