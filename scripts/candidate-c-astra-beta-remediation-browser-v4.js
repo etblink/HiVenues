@@ -334,7 +334,16 @@ async function main() {
     await dismissFirstDraftReveal(page);
     const originalActivity = store.snapshot(SLUG).draft.activities[0];
     assert(originalActivity);
+    assert.equal(store.publicSnapshot(SLUG), null, 'fresh host must remain working-only until explicit Release');
     await capture(page, '03-studio-desktop-normal.png', 'studio-desktop-normal', evidence);
+
+    // Establish the first deliberate live baseline before testing subsequent
+    // draft/live isolation. This keeps the broad Astra proof aligned with R1
+    // instead of depending on the pre-Astra implicit seed Release.
+    await publishCurrent(page, origin, SLUG);
+    const firstLive = store.publicSnapshot(SLUG);
+    assert(firstLive);
+    assert.equal(firstLive.releases.length, 1);
 
     await openStudioLink(page, 'Offers', '+ Add offer');
     await page.locator('#cc-new-offer-title').fill('Synthetic Lab Pass');
