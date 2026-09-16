@@ -116,55 +116,150 @@ const offerSchema = z.object({
   price: z.string().min(1).optional(),
 });
 
-const hostGraphSchema = z.object({
+const identitySchema = z.object({
+  hostId: z.string().min(1),
+  slug: z.string().min(1),
+  displayName: z.string().min(1),
+  archetype: z.string().min(1),
+  timezone: z.string().min(1),
+});
+
+const factsSchema = z.object({
+  tagline: z.string().min(1).max(180),
+  summary: z.string().min(1).max(1200),
+  presence: z.object({
+    mode: z.enum(['physical', 'online', 'hybrid']),
+    label: z.string().min(1),
+    address: z.string().optional(),
+  }),
+  contact: z.string().min(1),
+});
+
+const voiceSchema = z.object({
+  terms: z.record(z.string(), z.string().min(1)),
+  tone: z.string().min(1),
+});
+
+const bindingsSchema = z.object({
+  hive: z.object({
+    state: z.enum(['disconnected', 'read-only', 'connected']),
+    account: z.string().nullable(),
+    communityId: z.string().nullable(),
+  }),
+  media: z.object({ state: z.enum(['local', 'degraded', 'connected']), provider: z.string().nullable() }),
+});
+
+const intentSchema = z.object({
+  purpose: z.string(),
+  presenceMaterial: z.string(),
+  direction: z.enum(['poster', 'editorial', 'hospitality']),
+  participation: z.string(),
+});
+
+// Keep the v1 object key order and field shape frozen. Release digests are SHA-256
+// over JSON.stringify(validatedGraph), so even a harmless read-time migration would
+// invalidate persisted release provenance.
+const hostGraphV1Schema = z.object({
   schemaVersion: z.literal(1),
-  identity: z.object({
-    hostId: z.string().min(1),
-    slug: z.string().min(1),
-    displayName: z.string().min(1),
-    archetype: z.string().min(1),
-    timezone: z.string().min(1),
-  }),
-  facts: z.object({
-    tagline: z.string().min(1).max(180),
-    summary: z.string().min(1).max(1200),
-    presence: z.object({
-      mode: z.enum(['physical', 'online', 'hybrid']),
-      label: z.string().min(1),
-      address: z.string().optional(),
-    }),
-    contact: z.string().min(1),
-  }),
+  identity: identitySchema,
+  facts: factsSchema,
   activities: z.array(activitySchema),
   offers: z.array(offerSchema),
   media: z.array(mediaSchema),
-  voice: z.object({
-    terms: z.record(z.string(), z.string().min(1)),
-    tone: z.string().min(1),
-  }),
+  voice: voiceSchema,
   presentation: z.object({
     compositionFamily: z.enum(['poster', 'editorial', 'hospitality']),
     arrangement: z.array(z.string().min(1)),
     accent: z.string().min(1),
   }),
-  bindings: z.object({
-    hive: z.object({
-      state: z.enum(['disconnected', 'read-only', 'connected']),
-      account: z.string().nullable(),
-      communityId: z.string().nullable(),
-    }),
-    media: z.object({ state: z.enum(['local', 'degraded', 'connected']), provider: z.string().nullable() }),
-  }),
-  intent: z.object({
-    purpose: z.string(),
-    presenceMaterial: z.string(),
-    direction: z.enum(['poster', 'editorial', 'hospitality']),
-    participation: z.string(),
-  }),
+  bindings: bindingsSchema,
+  intent: intentSchema,
 });
 
-function validateHostGraph(graph) {
-  const parsed = hostGraphSchema.parse(graph);
+const territoryRoleSchema = z.enum([
+  'home',
+  'activities',
+  'stories',
+  'offers',
+  'gallery',
+  'people',
+  'about-visit',
+]);
+
+const storySchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  kind: z.enum(['dispatch', 'essay', 'update']),
+  title: z.string().min(1).max(160),
+  dek: z.string().max(320).optional(),
+  body: z.string().min(1).max(16000),
+  publishedAt: z.string().datetime({ offset: true }).optional(),
+  authorProfileIds: z.array(z.string().min(1)).max(8),
+  mediaIds: z.array(z.string().min(1)).max(24),
+});
+
+const profileSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  displayName: z.string().min(1).max(120),
+  role: z.string().min(1).max(160).optional(),
+  bio: z.string().min(1).max(2000),
+  mediaId: z.string().min(1).optional(),
+  links: z.array(z.object({
+    label: z.string().min(1).max(80),
+    url: z.string().url(),
+  })).max(12),
+});
+
+const hostGraphV2Schema = z.object({
+  schemaVersion: z.literal(2),
+  identity: identitySchema,
+  facts: factsSchema,
+  activities: z.array(activitySchema),
+  offers: z.array(offerSchema),
+  stories: z.array(storySchema),
+  people: z.array(profileSchema),
+  gallery: z.object({
+    title: z.string().min(1).max(120),
+    summary: z.string().min(1).max(600),
+    mediaIds: z.array(z.string().min(1)).max(60),
+  }),
+  media: z.array(mediaSchema),
+  voice: voiceSchema,
+  presentation: z.object({
+    compositionFamily: z.enum(['poster', 'editorial', 'hospitality']),
+    arrangement: z.array(z.string().min(1)),
+    accent: z.string().min(1),
+    recipe: z.object({
+      emphasis: z.enum(['events', 'stories', 'hospitality', 'balanced']),
+      density: z.enum(['airy', 'balanced', 'dense']),
+      navigation: z.enum(['compact', 'expanded', 'editorial']),
+      mediaRhythm: z.enum(['hero-led', 'alternating', 'gallery-led']),
+    }).optional(),
+  }),
+  navigation: z.object({
+    priorities: z.array(territoryRoleSchema).min(1).max(7),
+    labels: z.record(z.string(), z.string().min(1).max(80)),
+  }),
+  bindings: bindingsSchema,
+  intent: intentSchema,
+});
+
+const hostGraphSchema = z.discriminatedUnion('schemaVersion', [
+  hostGraphV1Schema,
+  hostGraphV2Schema,
+]);
+
+function assertUnique(items, keyFor, label) {
+  const seen = new Set();
+  for (const item of items) {
+    const key = keyFor(item);
+    if (seen.has(key)) throw new Error(`Duplicate Candidate C ${label}: ${key}`);
+    seen.add(key);
+  }
+}
+
+function validateCommonReferences(parsed) {
   const mediaIds = new Set();
   for (const media of parsed.media) {
     if (mediaIds.has(media.id)) throw new Error(`Duplicate Candidate C media id: ${media.id}`);
@@ -185,6 +280,42 @@ function validateHostGraph(graph) {
       throw new Error(`Voice term references unknown Candidate C mechanic: ${mechanicId}`);
     }
   }
+  return mediaIds;
+}
+
+function validateV2References(parsed, mediaIds) {
+  assertUnique(parsed.activities, (item) => item.id, 'activity id');
+  assertUnique(parsed.activities, (item) => item.slug, 'activity slug');
+  assertUnique(parsed.offers, (item) => item.id, 'offer id');
+  assertUnique(parsed.stories, (item) => item.id, 'story id');
+  assertUnique(parsed.stories, (item) => item.slug, 'story slug');
+  assertUnique(parsed.people, (item) => item.id, 'profile id');
+  assertUnique(parsed.people, (item) => item.slug, 'profile slug');
+  assertUnique(parsed.navigation.priorities.map((role) => ({ role })), (item) => item.role, 'navigation role');
+
+  const profileIds = new Set(parsed.people.map((profile) => profile.id));
+  for (const profile of parsed.people) {
+    if (profile.mediaId && !mediaIds.has(profile.mediaId)) {
+      throw new Error(`Candidate C profile references missing media: ${profile.mediaId}`);
+    }
+  }
+  for (const story of parsed.stories) {
+    for (const mediaId of story.mediaIds) {
+      if (!mediaIds.has(mediaId)) throw new Error(`Candidate C story references missing media: ${mediaId}`);
+    }
+    for (const profileId of story.authorProfileIds) {
+      if (!profileIds.has(profileId)) throw new Error(`Candidate C story references missing profile: ${profileId}`);
+    }
+  }
+  for (const mediaId of parsed.gallery.mediaIds) {
+    if (!mediaIds.has(mediaId)) throw new Error(`Candidate C gallery references missing media: ${mediaId}`);
+  }
+}
+
+function validateHostGraph(graph) {
+  const parsed = hostGraphSchema.parse(graph);
+  const mediaIds = validateCommonReferences(parsed);
+  if (parsed.schemaVersion === 2) validateV2References(parsed, mediaIds);
   return parsed;
 }
 
@@ -234,7 +365,10 @@ module.exports = {
   disclosureFor,
   formatActivityTime,
   hostGraphSchema,
+  hostGraphV1Schema,
+  hostGraphV2Schema,
   mechanicRegistry,
   stableDigest,
+  territoryRoleSchema,
   validateHostGraph,
 };
