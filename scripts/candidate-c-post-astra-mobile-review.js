@@ -97,7 +97,7 @@ async function main() {
         const device = document.querySelector('[data-review-device]');
         const canvas = document.querySelector('#candidate-canvas');
         const button = document.querySelector('[data-review-width="narrow"]');
-        const style = canvas ? getComputedStyle(canvas) : null;
+        const style = canvas ? window.getComputedStyle(canvas) : null;
         return {
           mode: stage?.dataset.reviewMode,
           pressed: button?.getAttribute('aria-pressed'),
