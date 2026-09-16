@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content">Back to territory content</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Territory · Navigation</p>
+    <h1>Shape how visitors move through this place.</h1>
+    <p class="cc-task__dek">Choose the visitor-facing label and priority for each semantic part of the territory. Availability stays truthful: a route with no real content remains absent even if you give it a high priority here.</p>
+
+    <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check this navigation.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
+
+    <form class="cc-setup-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/navigation">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <% navigationRows.forEach((row) => { %>
+        <fieldset class="cc-field">
+          <legend><%= row.defaultLabel %></legend>
+          <p><%= row.help %></p>
+          <div class="cc-field">
+            <label for="cc-nav-label-<%= row.id %>">Visitor-facing label</label>
+            <input id="cc-nav-label-<%= row.id %>" name="label_<%= row.id %>" maxlength="80" required value="<%= row.label %>">
+          </div>
+          <div class="cc-field">
+            <label for="cc-nav-order-<%= row.id %>">Priority</label>
+            <input id="cc-nav-order-<%= row.id %>" type="number" min="1" max="<%= navigationRows.length %>" step="1" name="order_<%= row.id %>" required value="<%= row.order %>">
+          </div>
+          <small><strong><%= row.available ? 'Available now' : 'Not shown yet' %>.</strong> <%= row.available ? 'This surface currently has real content or is always available.' : 'HiVenues will keep it out of visitor navigation until the host has real content for it.' %></small>
+        </fieldset>
+      <% }) %>
+      <button class="cc-button cc-button--ink" type="submit">Save navigation to Working</button>
+    </form>
+  </main>
+</body>
+</html>

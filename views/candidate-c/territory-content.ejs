@@ -4,6 +4,10 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%
+  const updates = isTerritoryV2 ? graph.stories.filter((story) => story.kind === 'update') : [];
+  const longStories = isTerritoryV2 ? graph.stories.filter((story) => story.kind !== 'update') : [];
+%>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -11,7 +15,7 @@
     </nav>
     <p class="cc-kicker">Territory · Content</p>
     <h1>Shape the parts of the place beyond the home page.</h1>
-    <p class="cc-task__dek">Stories, people and gallery selections are part of the same host graph as Activities, Offers and the home page. Changes stay in Working until you explicitly Release them.</p>
+    <p class="cc-task__dek">Stories, Updates, people, gallery selections and navigation are part of the same host graph as Activities, Offers and the home page. Changes stay in Working until you explicitly Release them.</p>
 
     <% if (upgraded) { %>
       <div class="cc-studio-notice" role="status"><strong>Territory pages enabled in Working.</strong> The live Release is unchanged. Add real host content below, review it in Preview, then Release when ready.</div>
@@ -22,8 +26,8 @@
     <% if (!isTerritoryV2) { %>
       <section>
         <p class="cc-kicker">One host · richer territory</p>
-        <h2>Enable stories, people and gallery authoring.</h2>
-        <p>This upgrades only the current Working graph to the richer territory schema. It does not publish anything, change the stable host identity, invent public stories or people, or alter the current live Release.</p>
+        <h2>Enable stories, Updates, people and gallery authoring.</h2>
+        <p>This upgrades only the current Working graph to the richer territory schema. It does not publish anything, change the stable host identity, invent public content or people, or alter the current live Release.</p>
         <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/enable">
           <input type="hidden" name="expectedRevision" value="<%= revision %>">
           <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
@@ -32,23 +36,37 @@
       </section>
     <% } else { %>
       <section>
-        <p class="cc-kicker">Stories</p>
-        <h2>Updates, dispatches and essays</h2>
-        <p>Write host-owned public content. The title creates a stable URL when the story is first added; later edits keep that identity.</p>
-        <% if (graph.stories.length) { %>
+        <p class="cc-kicker">Updates</p>
+        <h2>Short-form notes without long-form ceremony</h2>
+        <p>Use Updates for quick notices, images and reactions. They are a provider-neutral HiVenues capability; a Direction or Voice may eventually present them as Threads, Snaps, dispatches or something native to the host.</p>
+        <% if (updates.length) { %>
           <ul>
-            <% graph.stories.forEach((story) => { %>
+            <% updates.forEach((update) => { %>
+              <li><a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/update/<%= update.id %>"><strong><%= update.title %></strong></a> · <code><%= update.slug %></code></li>
+            <% }) %>
+          </ul>
+        <% } else { %><p>No Updates yet. Nothing is fabricated for the public territory.</p><% } %>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/update/new">Write an Update</a>
+      </section>
+
+      <section>
+        <p class="cc-kicker">Stories</p>
+        <h2>Dispatches and essays</h2>
+        <p>Write longer host-owned public content. The title creates a stable URL when the story is first added; later edits keep that identity.</p>
+        <% if (longStories.length) { %>
+          <ul>
+            <% longStories.forEach((story) => { %>
               <li><a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/story/<%= story.id %>"><strong><%= story.title %></strong></a> · <%= story.kind %> · <code><%= story.slug %></code></li>
             <% }) %>
           </ul>
-        <% } else { %><p>No stories yet. Nothing is fabricated for the public site.</p><% } %>
+        <% } else { %><p>No long-form stories yet. Nothing is fabricated for the public site.</p><% } %>
         <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/story/new">Add story</a>
       </section>
 
       <section>
         <p class="cc-kicker">People</p>
         <h2>Profiles that belong to this host</h2>
-        <p>Add real people or public-facing host identities. Stories can credit these stable profiles.</p>
+        <p>Add real people or public-facing host identities. Stories and Updates can credit these stable profiles.</p>
         <% if (graph.people.length) { %>
           <ul>
             <% graph.people.forEach((profile) => { %>
@@ -65,6 +83,16 @@
         <p><%= graph.gallery.mediaIds.length %> selected media item<%= graph.gallery.mediaIds.length === 1 ? '' : 's' %>. Gallery media always comes from this host's existing Media library.</p>
         <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/gallery">Edit gallery</a>
         <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Open Media library</a>
+      </section>
+
+      <section>
+        <p class="cc-kicker">Navigation</p>
+        <h2>Visitor labels and route priority</h2>
+        <p>Choose what the host calls each semantic surface and how available surfaces are prioritized. Empty route families remain absent until real content exists, so navigation never fabricates a page merely because it has a label.</p>
+        <ol>
+          <% graph.navigation.priorities.forEach((role) => { %><li><strong><%= graph.navigation.labels[role] || role %></strong> <small><code><%= role %></code></small></li><% }) %>
+        </ol>
+        <a class="cc-button cc-button--quiet" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/navigation">Edit navigation</a>
       </section>
     <% } %>
   </main>

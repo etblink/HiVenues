@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+<%
+  const v = typeof values === 'object' && values ? values : {};
+  const selectedMedia = new Set(Array.isArray(v.mediaIds) ? v.mediaIds : (v.mediaIds ? [v.mediaIds] : []));
+  const action = update
+    ? `/candidate-c/studio/${graph.identity.slug}/territory-content/update/${update.id}`
+    : `/candidate-c/studio/${graph.identity.slug}/territory-content/update/new`;
+%>
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/candidate-c/studio/<%= graph.identity.slug %>/territory-content">Back to territory content</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Territory · Updates · <%= update ? 'Edit' : 'Write' %></p>
+    <h1><%= update ? 'Edit this Update.' : 'Share a quick Update.' %></h1>
+    <p class="cc-task__dek">Updates are the short-form publishing layer: quick notes, notices, images or reactions without long-form ceremony. They remain provider-neutral and stay in Working until you explicitly Release.</p>
+
+    <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check this Update.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
+
+    <form class="cc-setup-form" method="post" action="<%= action %>">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <div class="cc-field">
+        <label for="cc-update-body">Update</label>
+        <textarea id="cc-update-body" name="body" maxlength="800" required><%= v.body ?? '' %></textarea>
+        <small>Up to 800 characters. Use Stories when the idea needs a longer form.</small>
+      </div>
+      <div class="cc-field">
+        <label for="cc-update-title">Short label <span aria-hidden="true">·</span> optional</label>
+        <input id="cc-update-title" name="title" maxlength="160" value="<%= v.title ?? '' %>">
+        <small>If blank, HiVenues derives a brief label from the Update. <% if (update) { %>Stable public URL: <code><%= update.slug %></code>.<% } else { %>The public URL is fixed when the Update is first added.<% } %></small>
+      </div>
+      <div class="cc-field">
+        <label for="cc-update-author">Posted by <span aria-hidden="true">·</span> optional</label>
+        <select id="cc-update-author" name="authorProfileId">
+          <option value="">Host / no individual byline</option>
+          <% graph.people.forEach((profile) => { %><option value="<%= profile.id %>" <%= v.authorProfileId === profile.id ? 'selected' : '' %>><%= profile.displayName %><% if (profile.role) { %> — <%= profile.role %><% } %></option><% }) %>
+        </select>
+      </div>
+      <fieldset class="cc-field"><legend>Media <span aria-hidden="true">·</span> optional</legend>
+        <% graph.media.forEach((media) => { %><label><input type="checkbox" name="mediaIds" value="<%= media.id %>" <%= selectedMedia.has(media.id) ? 'checked' : '' %>> <%= media.alt %> <small>(<%= media.kind %>)</small></label><% }) %>
+        <small>Choose up to four media items.</small>
+      </fieldset>
+      <div class="cc-field">
+        <label for="cc-update-published">Display date/time <span aria-hidden="true">·</span> optional</label>
+        <input id="cc-update-published" type="datetime-local" name="publishedLocal" value="<%= v.publishedLocal ?? '' %>">
+        <small>Interpreted in <%= graph.identity.timezone %>.</small>
+      </div>
+      <button class="cc-button cc-button--ink" type="submit"><%= update ? 'Save Update to Working' : 'Add Update to Working' %></button>
+    </form>
+
+    <% if (update) { %>
+      <form method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/territory-content/update/<%= update.id %>/delete">
+        <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+        <button class="cc-button cc-button--quiet" type="submit">Delete Update from Working</button>
+      </form>
+    <% } %>
+  </main>
+</body>
+</html>

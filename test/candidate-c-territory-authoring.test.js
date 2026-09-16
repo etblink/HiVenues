@@ -10,6 +10,7 @@ const { createCandidateCOperatorRouter } = require('../src/candidate-c/operator-
 const { createCandidateCPreviewRouter } = require('../src/candidate-c/preview-router');
 const { CandidateCStore } = require('../src/candidate-c/store');
 const { stableDigest } = require('../src/candidate-c/model');
+const { buildTerritoryProjection } = require('../src/candidate-c/territory');
 const { upgradeGraphToV2 } = require('../src/candidate-c/territory-authoring-router');
 
 function northlineV1() {
@@ -55,7 +56,7 @@ test('v1 territory upgrade is explicit, Working-only and content-empty', async (
   assert.equal(store.publicSnapshot('northline-hall').draft.schemaVersion, 1);
 
   const studio = await request(app).get('/candidate-c/studio/northline-hall').expect(200);
-  assert.match(studio.text, /Stories, people & gallery/);
+  assert.match(studio.text, /Stories, people &amp; gallery/);
 
   const hub = await request(app).get('/candidate-c/studio/northline-hall/territory-content').expect(200);
   assert.match(hub.text, /Enable territory content in Working/);
@@ -75,7 +76,7 @@ test('v1 territory upgrade is explicit, Working-only and content-empty', async (
   assert.equal(stableDigest(store.publicSnapshot('northline-hall').draft), originalDigest);
 });
 
-test('ordinary operator can author profiles, stories and a gallery selection without leaking Working to Live', async () => {
+test('ordinary operator can author profiles, stories and a gallery without leaking Working to Live', async () => {
   const store = storeFor();
   const app = appFor(store);
   let snapshot = store.snapshot('northline-hall');
@@ -232,4 +233,129 @@ test('territory authoring rejects stale writes without changing the current Work
   assert.equal(after.revision, current.revision);
   assert.equal(after.draftDigest, currentDigest);
   assert.equal(after.draft.people.length, 0);
+});
+
+test('operator can author a short-form Update and semantic navigation without fabricating empty routes', async () => {
+  const store = storeFor();
+  const app = appFor(store);
+  let snapshot = store.snapshot('northline-hall');
+
+  await request(app)
+    .post('/candidate-c/studio/northline-hall/territory-content/enable')
+    .type('form')
+    .send(concurrency(snapshot))
+    .expect(303);
+  snapshot = store.snapshot('northline-hall');
+
+  const updateForm = await request(app)
+    .get('/candidate-c/studio/northline-hall/territory-content/update/new')
+    .expect(200);
+  assert.match(updateForm.text, /Share a quick Update/);
+
+  await request(app)
+    .post('/candidate-c/studio/northline-hall/territory-content/update/new')
+    .type('form')
+    .send({
+      ...concurrency(snapshot),
+      body: 'Doors are open. The first set starts in twenty minutes.',
+      mediaIds: snapshot.draft.media[0].id,
+    })
+    .expect(303);
+  snapshot = store.snapshot('northline-hall');
+  const update = snapshot.draft.stories.find((item) => item.kind === 'update');
+  assert.ok(update);
+  assert.equal(update.title, 'Doors are open. The first set starts in twenty minutes.');
+  assert.deepEqual(update.mediaIds, [snapshot.draft.media[0].id]);
+  const stableUpdateId = update.id;
+  const stableUpdateSlug = update.slug;
+
+  const preview = await request(app)
+    .get(`/candidate-c/studio/northline-hall/preview/stories/${stableUpdateSlug}`)
+    .expect(200);
+  assert.match(preview.text, /Doors are open/);
+  await request(app).get(`/candidate-c/northline-hall/stories/${stableUpdateSlug}`).expect(404);
+
+  let projection = buildTerritoryProjection(snapshot.draft);
+  assert.equal(projection.navigation.some((entry) => entry.role === 'stories'), true);
+  assert.equal(projection.navigation.some((entry) => entry.role === 'gallery'), false);
+  assert.equal(projection.navigation.some((entry) => entry.role === 'people'), false);
+
+  const navigationForm = await request(app)
+    .get('/candidate-c/studio/northline-hall/territory-content/navigation')
+    .expect(200);
+  assert.match(navigationForm.text, /Shape how visitors move through this place/);
+  assert.match(navigationForm.text, /Not shown yet/);
+
+  await request(app)
+    .post('/candidate-c/studio/northline-hall/territory-content/navigation')
+    .type('form')
+    .send({
+      ...concurrency(snapshot),
+      label_home: 'Front door', order_home: '2',
+      label_activities: 'Nights', order_activities: '3',
+      label_stories: 'Dispatches', order_stories: '1',
+      label_offers: 'Offers', order_offers: '4',
+      label_gallery: 'Photos', order_gallery: '5',
+      label_people: 'People', order_people: '6',
+      'label_about-visit': 'About', 'order_about-visit': '7',
+    })
+    .expect(303);
+  snapshot = store.snapshot('northline-hall');
+  assert.equal(snapshot.draft.navigation.priorities[0], 'stories');
+  assert.equal(snapshot.draft.navigation.labels.stories, 'Dispatches');
+  projection = buildTerritoryProjection(snapshot.draft);
+  assert.equal(projection.navigation[0].role, 'stories');
+  assert.equal(projection.navigation[0].label, 'Dispatches');
+  assert.equal(projection.navigation.some((entry) => entry.role === 'gallery'), false);
+  assert.equal(projection.navigation.some((entry) => entry.role === 'people'), false);
+
+  const staleNavigation = concurrency(snapshot);
+  await request(app)
+    .post(`/candidate-c/studio/northline-hall/territory-content/update/${stableUpdateId}`)
+    .type('form')
+    .send({
+      ...concurrency(snapshot),
+      body: 'Doors are open. The first set is on now.',
+      mediaIds: snapshot.draft.media[0].id,
+    })
+    .expect(303);
+  snapshot = store.snapshot('northline-hall');
+  const editedUpdate = snapshot.draft.stories.find((item) => item.id === stableUpdateId);
+  assert.equal(editedUpdate.slug, stableUpdateSlug);
+  assert.equal(editedUpdate.body, 'Doors are open. The first set is on now.');
+
+  await request(app)
+    .post('/candidate-c/studio/northline-hall/territory-content/navigation')
+    .type('form')
+    .send({
+      ...staleNavigation,
+      label_home: 'Stale home', order_home: '1',
+      label_activities: 'Stale nights', order_activities: '2',
+      label_stories: 'Stale dispatches', order_stories: '3',
+      label_offers: 'Stale offers', order_offers: '4',
+      label_gallery: 'Stale photos', order_gallery: '5',
+      label_people: 'Stale people', order_people: '6',
+      'label_about-visit': 'Stale about', 'order_about-visit': '7',
+    })
+    .expect(409);
+  assert.equal(store.snapshot('northline-hall').draft.navigation.labels.stories, 'Dispatches');
+
+  const diagnosticsBefore = store.diagnostics();
+  await request(app)
+    .post('/candidate-c/studio/northline-hall/release')
+    .type('form')
+    .send(concurrency(snapshot))
+    .expect(303);
+
+  const live = store.publicSnapshot('northline-hall');
+  const publicUpdate = await request(app)
+    .get(`/candidate-c/northline-hall/stories/${stableUpdateSlug}`)
+    .expect(200);
+  assert.match(publicUpdate.text, /Doors are open\. The first set is on now/);
+  const liveProjection = buildTerritoryProjection(live.draft);
+  assert.equal(liveProjection.navigation[0].role, 'stories');
+  assert.equal(liveProjection.navigation[0].label, 'Dispatches');
+  assert.equal(liveProjection.navigation.some((entry) => entry.role === 'gallery'), false);
+  assert.equal(liveProjection.navigation.some((entry) => entry.role === 'people'), false);
+  assert.deepEqual(store.diagnostics(), diagnosticsBefore);
 });
