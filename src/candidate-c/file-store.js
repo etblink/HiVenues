@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { provisionCandidateCHost } = require('./provision');
 const { CandidateCStore } = require('./store');
 const { seedCandidateCHosts } = require('./fixtures');
 
@@ -51,6 +52,10 @@ class FileCandidateCStore {
 
   diagnostics() {
     return this.readStore().diagnostics();
+  }
+
+  createHost(graph) {
+    return this.mutate((store) => provisionCandidateCHost(store, graph));
   }
 
   proposal(slug, proposalId) {

@@ -167,3 +167,59 @@ test('territory-authored objects and navigation survive restart without leaking 
   assert.equal(store.publicSnapshot(slug).draft.stories.find((item) => item.id === beforeRestart.storyId)?.slug, beforeRestart.storySlug);
   assert.equal(store.publicSnapshot(slug).draft.people[0].id, beforeRestart.profileId);
 });
+
+test('guided creator provisions a file-backed Working host that survives restart without leaking Live state', async (t) => {
+  const { statePath, store } = fixture(t);
+  const app = appFor(store);
+
+  await request(app)
+    .post('/candidate-c/new')
+    .type('form')
+    .send({
+      displayName: 'Lantern Relay',
+      archetype: 'Independent arts venue',
+      timezone: 'America/Los_Angeles',
+      presenceMode: 'physical',
+      presenceLabel: 'Downtown Las Vegas',
+      address: '100 Test Way, Las Vegas, NV',
+      tagline: 'Signals, stories, and shared nights.',
+      summary: 'A fictional host created through the ordinary guided creator for durable persistence qualification.',
+      contact: 'hello@lanternrelay.example',
+      purpose: 'Give a small arts host a distinctive territory without developer intervention.',
+      presenceMaterial: 'A physical gathering place with an event-led public presence.',
+      direction: 'poster',
+      participation: 'Invite people to discover programs and choose when to participate.',
+      activityTitle: 'First Signal',
+      activityDescription: 'A fictional opening program used only for deterministic qualification.',
+      activityStartsLocal: '2026-09-17T19:00',
+      activityEndsLocal: '2026-09-17T21:00',
+    })
+    .expect(303)
+    .expect('Location', '/candidate-c/studio/lantern-relay?created=1');
+
+  const created = store.snapshot('lantern-relay');
+  assert.ok(created);
+  assert.equal(created.revision, 1);
+  assert.equal(created.draft.identity.displayName, 'Lantern Relay');
+  assert.equal(created.draft.activities.length, 1);
+  assert.deepEqual(created.releases, []);
+  assert.equal(created.liveReleaseId, null);
+  assert.equal(store.publicSnapshot('lantern-relay'), null);
+
+  const restartedStore = new FileCandidateCStore({
+    statePath,
+    now: () => Date.parse('2026-09-16T18:00:00Z'),
+  });
+  const restarted = restartedStore.snapshot('lantern-relay');
+  assert.ok(restarted);
+  assert.equal(restarted.draft.identity.hostId, created.draft.identity.hostId);
+  assert.equal(restarted.draftDigest, created.draftDigest);
+  assert.deepEqual(restarted.releases, []);
+  assert.equal(restarted.liveReleaseId, null);
+  assert.equal(restartedStore.publicSnapshot('lantern-relay'), null);
+
+  await request(appFor(restartedStore))
+    .get('/candidate-c/studio/lantern-relay')
+    .expect(200)
+    .expect(/Lantern Relay/);
+});
