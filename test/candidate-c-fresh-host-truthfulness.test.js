@@ -64,7 +64,7 @@ test('contact rendering preserves email, phone, web, and plain-text consequences
   assert.deepEqual(contactFor('Front desk'), { label: 'Front desk', href: null, kind: 'text' });
 });
 
-test('operator can create and restart a zero-activity physical host with web contact without fake mailto output', async (t) => {
+test('fresh host stays working-only across restart until an explicit first Release', async (t) => {
   const statePath = tempState(t);
   const store = new ProvisioningFileCandidateCStore({ statePath });
   const app = createDogfoodApp({ store });
@@ -72,18 +72,75 @@ test('operator can create and restart a zero-activity physical host with web con
   const created = await request(app).post('/candidate-c/new').type('form').send(input()).expect(303);
   assert.equal(created.headers.location, '/candidate-c/studio/truthful-bar?created=1');
 
-  const publicPage = await request(app).get('/candidate-c/truthful-bar').expect(200);
+  const studio = await request(app).get(created.headers.location).expect(200);
+  assert.match(studio.text, /Nothing is live yet/);
+  await request(app).get('/candidate-c/studio/truthful-bar/preview').expect(200).expect(/Truthful Bar/);
+  await request(app).get('/candidate-c/truthful-bar').expect(404);
+  await request(app).get('/candidate-c/studio/truthful-bar/urgent').expect(409);
+  const publicIndex = await request(app).get('/candidate-c/').expect(200);
+  assert.doesNotMatch(publicIndex.text, /Truthful Bar/);
+
+  const beforeRestart = store.snapshot('truthful-bar');
+  assert.equal(beforeRestart.draft.activities.length, 0);
+  assert.deepEqual(beforeRestart.releases, []);
+  assert.equal(beforeRestart.liveReleaseId, null);
+  assert.equal(store.publicSnapshot('truthful-bar'), null);
+
+  const restarted = new ProvisioningFileCandidateCStore({ statePath });
+  const afterRestart = restarted.snapshot('truthful-bar');
+  assert.equal(afterRestart.draft.activities.length, 0);
+  assert.equal(afterRestart.draft.facts.contact, 'https://example.com/');
+  assert.deepEqual(afterRestart.releases, []);
+  assert.equal(afterRestart.liveReleaseId, null);
+  assert.equal(restarted.publicSnapshot('truthful-bar'), null);
+
+  const restartedApp = createDogfoodApp({ store: restarted });
+  await request(restartedApp)
+    .post('/candidate-c/studio/truthful-bar/release')
+    .type('form')
+    .send({
+      expectedRevision: afterRestart.revision,
+      expectedDraftDigest: afterRestart.draftDigest,
+    })
+    .expect(303);
+
+  const released = restarted.snapshot('truthful-bar');
+  assert.equal(released.releases.length, 1);
+  assert.equal(released.releases[0].kind, 'full');
+  assert.match(released.releases[0].id, /^release-1-/);
+  assert.equal(released.liveReleaseId, released.releases[0].id);
+
+  const publicPage = await request(restartedApp).get('/candidate-c/truthful-bar').expect(200);
   assert.match(publicPage.text, /Truthful Bar/);
   assert.match(publicPage.text, /href="https:\/\/example\.com\/"/);
   assert.doesNotMatch(publicPage.text, /mailto:https:/);
   assert.doesNotMatch(publicPage.text, /What.s on|NEXT|CURRENT \/|Unverified event/i);
 
-  const snapshot = store.snapshot('truthful-bar');
-  assert.equal(snapshot.draft.activities.length, 0);
-  assert.equal(snapshot.releases.length, 1);
-  assert.equal(snapshot.releases[0].kind, 'full');
+  const releasedIndex = await request(restartedApp).get('/candidate-c/').expect(200);
+  assert.match(releasedIndex.text, /Truthful Bar/);
 
-  const restarted = new ProvisioningFileCandidateCStore({ statePath });
-  assert.equal(restarted.snapshot('truthful-bar').draft.activities.length, 0);
-  assert.equal(restarted.snapshot('truthful-bar').draft.facts.contact, 'https://example.com/');
+  const secondRestart = new ProvisioningFileCandidateCStore({ statePath });
+  const persistedRelease = secondRestart.snapshot('truthful-bar');
+  assert.equal(persistedRelease.releases.length, 1);
+  assert.equal(secondRestart.publicSnapshot('truthful-bar').draft.facts.contact, 'https://example.com/');
+});
+
+test('durable state rejects mixed unpublished/live publication pointers', async (t) => {
+  const statePath = tempState(t);
+  const store = new ProvisioningFileCandidateCStore({ statePath });
+  const app = createDogfoodApp({ store });
+  await request(app).post('/candidate-c/new').type('form').send(input()).expect(303);
+
+  const envelope = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  const workspace = envelope.state.workspaces.find((item) => item.slug === 'truthful-bar');
+  assert(workspace);
+  assert.deepEqual(workspace.releases, []);
+  assert.equal(workspace.liveReleaseId, null);
+  workspace.liveReleaseId = 'release-that-does-not-exist';
+  fs.writeFileSync(statePath, `${JSON.stringify(envelope, null, 2)}\n`, 'utf8');
+
+  assert.throws(
+    () => new ProvisioningFileCandidateCStore({ statePath }).snapshot('truthful-bar'),
+    (error) => error.code === 'CANDIDATE_C_INVALID_PERSISTED_STATE'
+  );
 });

@@ -16,7 +16,7 @@
       <p><a class="cc-button cc-button--ink" href="/candidate-c/new">Create a place</a></p>
     <% } %>
     <div class="cc-index__grid">
-      <% hosts.forEach((host) => { %>
+      <% hosts.filter(Boolean).forEach((host) => { %>
         <article class="cc-index-card cc-index-card--<%= host.family.id %>">
           <p class="cc-kicker"><%= host.graph.identity.archetype %></p>
           <h2><%= host.graph.identity.displayName %></h2>

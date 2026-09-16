@@ -1,6 +1,6 @@
 'use strict';
 
-const { clone, stableDigest, validateHostGraph } = require('./model');
+const { clone, validateHostGraph } = require('./model');
 
 function provisionCandidateCHost(store, graph) {
   if (!store || !(store.workspaces instanceof Map) || typeof store.snapshot !== 'function') {
@@ -20,22 +20,13 @@ function provisionCandidateCHost(store, graph) {
     if (existing?.draft.identity.hostId === validated.identity.hostId) return { ok: false, reason: 'HOST_ID_EXISTS' };
   }
 
-  const digest = stableDigest(validated);
-  const seedRelease = {
-    id: `release-seed-${digest.slice(0, 10)}`,
-    kind: 'full',
-    draftRevision: 1,
-    digest,
-    createdAt: new Date(store.now()).toISOString(),
-    snapshot: clone(validated),
-  };
   store.workspaces.set(validated.identity.slug, {
     revision: 1,
     draft: clone(validated),
     history: [{ revision: 1, label: 'seed', draft: clone(validated) }],
     manualPaths: new Set(),
-    releases: [seedRelease],
-    liveReleaseId: seedRelease.id,
+    releases: [],
+    liveReleaseId: null,
     proposals: new Map(),
     urgent: new Map(),
     rsvps: new Map(),
@@ -44,7 +35,7 @@ function provisionCandidateCHost(store, graph) {
   return {
     ok: true,
     slug: validated.identity.slug,
-    release: clone(seedRelease),
+    release: null,
     snapshot: store.snapshot(validated.identity.slug),
   };
 }

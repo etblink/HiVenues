@@ -170,8 +170,8 @@ class CandidateCStore {
       if (!Array.isArray(record.manualPaths) || record.manualPaths.some((item) => typeof item !== 'string')) {
         throw stateError(`Invalid manual paths for ${record.slug}.`);
       }
-      if (!Array.isArray(record.releases) || record.releases.length === 0) {
-        throw stateError(`Missing release history for ${record.slug}.`);
+      if (!Array.isArray(record.releases)) {
+        throw stateError(`Invalid release history for ${record.slug}.`);
       }
       const releaseIds = new Set();
       const releases = record.releases.map((release) => {
@@ -201,7 +201,11 @@ class CandidateCStore {
         }
         return { ...clone(release), kind, snapshot: clone(snapshot) };
       });
-      if (typeof record.liveReleaseId !== 'string' || !releaseIds.has(record.liveReleaseId)) {
+      if (releases.length === 0) {
+        if (record.liveReleaseId !== null) {
+          throw stateError(`Unpublished workspace has an invalid live release pointer for ${record.slug}.`);
+        }
+      } else if (typeof record.liveReleaseId !== 'string' || !releaseIds.has(record.liveReleaseId)) {
         throw stateError(`Live release pointer is invalid for ${record.slug}.`);
       }
 

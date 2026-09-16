@@ -51,6 +51,7 @@ function contactFor(value) {
 }
 
 function buildViewModel(snapshot) {
+  if (!snapshot) return null;
   const graph = snapshot.draft;
   const family = compositionRegistry[graph.presentation.compositionFamily];
   const liveRelease = snapshot.releases.find((item) => item.id === snapshot.liveReleaseId) || null;
