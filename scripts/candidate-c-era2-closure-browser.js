@@ -284,10 +284,9 @@ async function main() {
     await page.setViewportSize(DESKTOP);
     await page.goto(`${origin}/candidate-c/studio/${SLUG}/release`, { waitUntil: 'networkidle' });
     const releaseText = await page.locator('body').textContent();
-    assert.match(releaseText, /Stories and Updates changed/);
-    assert.match(releaseText, /Public profiles changed/);
-    assert.match(releaseText, /Gallery changed/);
-    assert.match(releaseText, /Visitor navigation changed/);
+    assert.match(releaseText, /This will be the first live website version\./);
+    assert.match(releaseText, /3 Activity · 3 Offer · 1 Media asset/);
+    assert.match(releaseText, /3 Story \/ Update · 3 Profile · 1 Gallery item/);
     await capture('07-release-review', 'release-review');
     await page.getByRole('button', { name: 'Publish website release' }).click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}?released=*`);
