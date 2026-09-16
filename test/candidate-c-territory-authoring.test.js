@@ -56,7 +56,7 @@ test('v1 territory upgrade is explicit, Working-only and content-empty', async (
   assert.equal(store.publicSnapshot('northline-hall').draft.schemaVersion, 1);
 
   const studio = await request(app).get('/candidate-c/studio/northline-hall').expect(200);
-  assert.match(studio.text, /Stories, people &amp; gallery/);
+  assert.match(studio.text, /href="\/candidate-c\/studio\/northline-hall\/territory-content"/);
 
   const hub = await request(app).get('/candidate-c/studio/northline-hall/territory-content').expect(200);
   assert.match(hub.text, /Enable territory content in Working/);
