@@ -35,7 +35,8 @@ function sha256File(filePath) {
 }
 
 function semanticDigest(host) {
-  const { direction, ...semanticIntent } = host.intent;
+  const semanticIntent = { ...host.intent };
+  delete semanticIntent.direction;
   return stableDigest({
     identity: host.identity,
     facts: host.facts,
