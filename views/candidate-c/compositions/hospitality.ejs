@@ -18,6 +18,7 @@
     <nav aria-label="Primary">
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
       <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
+      <% if (discoverableActivities.length) { %><a href="#more-activities">More dates</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
@@ -93,6 +94,27 @@
             <a class="cc-link" href="<%= calendarHref(primaryActivity) %>"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
+
+        <% if (discoverableActivities.length) { %>
+          <section class="cc-hospitality-menu" id="more-activities" aria-labelledby="cc-more-activities-title">
+            <header>
+              <p class="cc-kicker">More from <%= graph.identity.displayName %></p>
+              <h2 id="cc-more-activities-title">Other dates & activities</h2>
+              <p>Keep exploring without losing what is still scheduled.</p>
+            </header>
+            <div class="cc-hospitality-menu__list">
+              <% discoverableActivities.forEach((activity) => { %>
+                <article class="cc-hospitality-dish">
+                  <div>
+                    <p class="cc-hospitality-dish__category"><%= activity.status.label %> · <%= activity.humanTime %></p>
+                    <h3><a class="cc-link" href="<%= activityHref(activity) %>"><%= activity.title %></a></h3>
+                    <p><%= activity.description %></p>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
       <% } %>
 
       <% if (section === 'details') { %>

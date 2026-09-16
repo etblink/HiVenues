@@ -16,6 +16,7 @@
     <a class="cc-wordmark" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#what-is-on">Activity</a><% } %>
+      <% if (discoverableActivities.length) { %><a href="#more-activities">More</a><% } %>
       <a href="#visit">Where</a>
       <a href="#story">Story</a>
     </nav>
@@ -58,6 +59,20 @@
             <a class="cc-link" href="<%= calendarHref(primaryActivity) %>"><%= graph.voice.terms.calendar_ics %></a>
           </div>
         </section>
+
+        <% if (discoverableActivities.length) { %>
+          <section class="cc-poster-story" id="more-activities" aria-labelledby="cc-more-activities-title">
+            <p class="cc-kicker">More on the wall</p>
+            <h2 id="cc-more-activities-title">Other activities</h2>
+            <% discoverableActivities.forEach((activity) => { %>
+              <article style="margin-top:1.5rem">
+                <p class="cc-time"><%= activity.humanTime %> · <%= activity.status.label %></p>
+                <h3><a class="cc-link cc-link--light" href="<%= activityHref(activity) %>"><%= activity.title %></a></h3>
+                <p class="cc-poster-story__small"><%= activity.description %></p>
+              </article>
+            <% }) %>
+          </section>
+        <% } %>
       <% } %>
 
       <% if (section === 'story') { %>

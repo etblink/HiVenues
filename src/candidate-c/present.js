@@ -71,11 +71,15 @@ function buildViewModel(snapshot) {
       definition: mechanicRegistry[action.mechanic],
     })),
   }));
+  const featuredActivity = activities[0] || null;
+  const discoverableActivities = featuredActivity ? activities.filter((activity) => activity.id !== featuredActivity.id) : [];
   return {
     graph,
     family,
     activities,
-    primaryActivity: activities[0] || null,
+    featuredActivity,
+    primaryActivity: featuredActivity,
+    discoverableActivities,
     media: graph.media,
     heroMedia,
     logoMedia,

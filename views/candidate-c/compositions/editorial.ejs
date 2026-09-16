@@ -16,6 +16,7 @@
     <a class="cc-editorial-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#current">Activity</a><% } %>
+      <% if (discoverableActivities.length) { %><a href="#activity-index">Index</a><% } %>
       <a href="#notes">Story</a>
       <a href="#about">About</a>
     </nav>
@@ -64,11 +65,27 @@
             </div>
           </div>
         </section>
+
+        <% if (discoverableActivities.length) { %>
+          <section class="cc-editorial-offer" id="activity-index" aria-labelledby="cc-activity-index-title">
+            <p class="cc-editorial-index">03 / ACTIVITY INDEX</p>
+            <div>
+              <h2 id="cc-activity-index-title">Also in the field notes</h2>
+              <% discoverableActivities.forEach((activity) => { %>
+                <article style="margin-bottom:1.5rem">
+                  <p class="cc-kicker"><%= activity.status.label %> · <%= activity.humanTime %></p>
+                  <h3><a class="cc-link" href="<%= activityHref(activity) %>"><%= activity.title %></a></h3>
+                  <p><%= activity.description %></p>
+                </article>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
       <% } %>
 
       <% if (section === 'offer' && graph.offers.length) { %>
         <section class="cc-editorial-offer">
-          <p class="cc-editorial-index">03 / OFFERINGS</p>
+          <p class="cc-editorial-index">04 / OFFERINGS</p>
           <div>
             <% graph.offers.forEach((offer) => { %>
               <article style="margin-bottom:1.5rem">
@@ -85,7 +102,7 @@
 
       <% if (section === 'details') { %>
         <section class="cc-editorial-about" id="about">
-          <p class="cc-editorial-index">04 / WHERE</p>
+          <p class="cc-editorial-index">05 / WHERE</p>
           <div>
             <h2><%= graph.facts.presence.label %></h2>
             <% if (graph.facts.presence.address) { %><p><strong>Address</strong><br><%= graph.facts.presence.address %></p><% } %>
