@@ -110,6 +110,7 @@ async function main() {
     await page.goto(`${origin}/candidate-c/studio/${SLUG}`, { waitUntil: 'networkidle' });
     await capture('01-desktop-studio-entry', 'desktop-studio-entry');
 
+    await page.locator('.cc-studio-commandbar summary').filter({ hasText: 'Page' }).click();
     const territoryEntry = page.locator(`a[href="/candidate-c/studio/${SLUG}/territory-content"]`).first();
     await territoryEntry.click();
     await page.waitForURL(`**/candidate-c/studio/${SLUG}/territory-content`);
