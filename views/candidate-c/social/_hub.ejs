@@ -1,0 +1,102 @@
+<%
+  const stateCopy = hubStateCopy(hub, graph.identity.displayName);
+  const showMaterial = hub.status === 'ready' || hub.status === 'partial' || hub.status === 'empty';
+%>
+<% if (hub.status !== 'ready') { %>
+  <section class="cc-social-state cc-social-state--<%= hub.status %>" role="status">
+    <p class="cc-kicker"><%= socialLabels.state %></p>
+    <h2><%= stateCopy.heading %></h2>
+    <p><%= stateCopy.body %></p>
+  </section>
+<% } %>
+
+<% if (showMaterial) { %>
+  <% if (hub.community) { %>
+    <section class="cc-social-community-card" aria-labelledby="cc-social-community-title">
+      <div>
+        <p class="cc-kicker"><%= socialLabels.community %></p>
+        <h2 id="cc-social-community-title"><%= hub.community.title %></h2>
+        <div class="cc-social-richtext"><%- hub.community.aboutHtml %></div>
+      </div>
+      <dl class="cc-social-community-facts">
+        <div><dt>People connected</dt><dd><%= hub.community.subscriberCount.toLocaleString('en-US') %></dd></div>
+      </dl>
+    </section>
+  <% } %>
+
+  <% socialOrder.forEach((section) => { %>
+    <% if (section === 'threads' && hub.threads.length) { %>
+      <section class="cc-social-section cc-social-section--threads" aria-labelledby="cc-social-threads-title">
+        <header class="cc-social-section__head">
+          <p class="cc-kicker"><%= socialLabels.threadsKicker %></p>
+          <h2 id="cc-social-threads-title"><%= socialLabels.threadsTitle %></h2>
+        </header>
+        <div class="cc-social-thread-grid">
+          <% hub.threads.forEach((item) => { %>
+            <article class="cc-social-thread-card">
+              <div class="cc-social-author-row">
+                <a class="cc-social-author" href="<%= memberHref(item.author) %>">@<%= item.author %></a>
+                <% const created = formatCommunityTime(item.created, graph.identity.timezone); %>
+                <% if (created) { %><span><%= created %></span><% } %>
+              </div>
+              <div class="cc-social-richtext"><%- item.bodyHtml %></div>
+              <% if (item.replyCount) { %><p class="cc-social-meta"><%= item.replyCount %> <%= item.replyCount === 1 ? 'reply' : 'replies' %></p><% } %>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (section === 'posts' && hub.posts.length) { %>
+      <section class="cc-social-section cc-social-section--posts" aria-labelledby="cc-social-posts-title">
+        <header class="cc-social-section__head">
+          <p class="cc-kicker"><%= socialLabels.postsKicker %></p>
+          <h2 id="cc-social-posts-title"><%= socialLabels.postsTitle %></h2>
+        </header>
+        <div class="cc-social-post-grid">
+          <% hub.posts.forEach((item) => { %>
+            <article class="cc-social-post-card">
+              <% if (item.primaryImage) { %><img src="<%= item.primaryImage %>" alt="" loading="lazy"><% } %>
+              <div class="cc-social-post-card__body">
+                <div class="cc-social-author-row">
+                  <a class="cc-social-author" href="<%= memberHref(item.author) %>">@<%= item.author %></a>
+                  <% const created = formatCommunityTime(item.created, graph.identity.timezone); %>
+                  <% if (created) { %><span><%= created %></span><% } %>
+                </div>
+                <h3><%= item.title %></h3>
+                <p><%= item.excerpt %></p>
+                <p class="cc-social-meta"><%= item.replyCount %> <%= item.replyCount === 1 ? 'response' : 'responses' %></p>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (section === 'people' && hub.people.length) { %>
+      <section class="cc-social-section cc-social-section--people" id="people" aria-labelledby="cc-social-people-title">
+        <header class="cc-social-section__head">
+          <p class="cc-kicker"><%= socialLabels.peopleKicker %></p>
+          <h2 id="cc-social-people-title"><%= socialLabels.peopleTitle %></h2>
+          <p><%= socialLabels.peopleBody %></p>
+        </header>
+        <div class="cc-social-people-grid">
+          <% hub.people.forEach((person) => { %>
+            <a class="cc-social-person-card" href="<%= memberHref(person.name) %>">
+              <img src="<%= person.profileImage %>" alt="" loading="lazy">
+              <span>
+                <strong><%= person.displayName %></strong>
+                <small>@<%= person.name %></small>
+                <% if (person.about) { %><em><%= person.about %></em><% } %>
+              </span>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+  <% }) %>
+
+  <% if (!hub.posts.length && !hub.threads.length && !hub.people.length && hub.status === 'ready') { %>
+    <p class="cc-social-quiet"><%= socialLabels.quiet %></p>
+  <% } %>
+<% } %>
