@@ -51,7 +51,7 @@ my-v2-venue/
 
 This workflow is local authoring only. It does not route v2 into the production public runtime, publish or deploy a host, modify deployment manifests, write/sign on Hive, activate payments, or change infrastructure. Those are separate later boundaries.
 
-## Preserved v1 venue workflow
+## Legacy local venue workflow
 
 ```bash
 npm run venue:create -- ./my-venue
@@ -84,9 +84,9 @@ Venue Studio listens only on `127.0.0.1`. Use its browser controls to edit the v
 - **Accessibility, provenance, deterministic CI, deployment identity, and rollback discipline remain release requirements.**
 - Future product qualification must include at least one **non-physical creator/performer archetype** in addition to physical-host references.
 
-## Check preserved v1 readiness
+## Check local workspace readiness
 
-After saving a v1 workspace:
+After saving a legacy local workspace:
 
 ```bash
 npm run venue:ready -- ./my-venue
@@ -94,15 +94,14 @@ npm run venue:ready -- ./my-venue
 
 This is an offline, non-production rehearsal. It validates canonical `venue-source.json` bytes and managed media, then proves the saved source can enter the existing deployment-binding and portable-workspace compiler using a `.invalid` rehearsal target. It must leave the source bytes unchanged and performs no deployment, DNS, VPS, Hive, signing, onboarding, key, or funds effect.
 
-Before a v1 release candidate is accepted, run the repository gates:
+For repository wiring and the ordinary quality suite, run:
 
 ```bash
-npm run release:check:name
-npm run release:check:hivenues-v1
+npm run check:turnkey-wiring
 npm run check
 ```
 
-The HiVenues v1 oracle is distinct from the preserved Fourth Street reference-production gate. Historical compatibility identifiers and provenance files remain scoped history; current product-facing release metadata is HiVenues.
+`check:turnkey-wiring` verifies that the local turnkey workflow and its repository wiring are present. It is **not** a product-version or release-readiness declaration. Product milestones are defined by the canonical product doctrine and roadmap, not by this wiring check.
 
 ## Current forward sequence
 
@@ -128,12 +127,12 @@ No later step is authorized merely because it appears in this sequence.
 - `src/venue/v2/turnkey-workspace.js` — current venue-oriented native-v2 starter workspace composition.
 - `src/venue/v2/studio-app.js` — flagship v2 authoring Studio application.
 - `src/venue/v2/turnkey-studio.js` — loopback-only flagship v2 Studio runtime.
-- `src/venue/turnkey-workspace.js` — preserved v1 starter workspace and source composition.
+- `src/venue/turnkey-workspace.js` — legacy local starter workspace and source composition.
 - `src/venue/turnkey-studio.js` — loopback-only turnkey Studio wrapper.
 - `src/venue/turnkey-readiness.js` — offline saved-source readiness rehearsal.
 - `src/venue/source.js` — deployment-agnostic source contract.
 - `src/venue/workspace-from-source.js` — existing deployment-binding/workspace path.
-- `src/release/v1-readiness.js` — preserved Fourth Street reference-production gate.
+- `src/release/v1-readiness.js` — historical Fourth Street reference-production gate.
 - `docs/DEPLOYMENT_AGNOSTIC_VENUE_SOURCE.md` — accepted source/deployment architecture.
 
 `npm run check` remains the deterministic repository qualification gate. Production deployment and live Hive effects require their own explicit authorization and are not implied by any local authoring command, documentation decision, or GitHub issue.
