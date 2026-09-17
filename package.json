@@ -1,16 +1,18 @@
 {
   "name": "hivenues",
   "version": "1.0.0",
-  "description": "HiVenues is a multi-venue community and social platform powered by Hive, with Fourth Street Bar as the reference deployment.",
+  "description": "HiVenues is a premium, host-first frontend factory for Hive.",
   "private": true,
-  "main": "src/server.js",
+  "main": "src/product/app.js",
   "engines": {
     "node": ">=24.15 <25",
     "npm": ">=11"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "npm run build:css && node --watch src/server.js",
+    "start": "node scripts/hivenues-studio.js",
+    "dev": "npm run build:css && node --watch scripts/hivenues-studio.js",
+    "legacy:start": "node src/server.js",
+    "legacy:dev": "npm run build:css && node --watch src/server.js",
     "build": "npm run build:css",
     "build:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --minify",
     "watch:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --watch",
