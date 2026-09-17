@@ -17,6 +17,7 @@
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#what-is-on">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#more-activities">More</a><% } %>
+      <% if (!previewMode) { %><a href="<%= hostHref %>/community">Community</a><% } %>
       <a href="#visit">Where</a>
       <a href="#story">Story</a>
     </nav>

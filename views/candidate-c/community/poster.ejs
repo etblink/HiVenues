@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-poster cc-community cc-community--poster" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-poster-nav cc-community-nav">
+    <a class="cc-wordmark" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community">
+      <a href="<%= hostHref %>">Back to the room</a>
+    </nav>
+  </header>
+
+  <main class="cc-community-shell cc-community-poster-shell">
+    <header class="cc-community-mast cc-community-mast--poster">
+      <p class="cc-kicker">From the people around <%= graph.identity.displayName %></p>
+      <h1>On the community board</h1>
+      <p>Notes and replies travel through Hive, but this board keeps the room’s own voice and visual world in front.</p>
+    </header>
+
+    <%- include('_thread', {
+      graph,
+      community,
+      communityStateCopy,
+      formatCommunityTime,
+      replyDepthClass,
+      communityLabels: {
+        root: 'Pinned to the board',
+        replies: 'From the room',
+        state: 'Board status',
+        quiet: 'No replies are pinned beneath this note yet.'
+      }
+    }) %>
+  </main>
+
+  <footer class="cc-poster-footer">
+    <p><%= graph.identity.displayName %></p>
+    <p>Public conversation · read only</p>
+  </footer>
+</body>
+</html>

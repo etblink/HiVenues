@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-editorial cc-community cc-community--editorial" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-editorial-nav cc-community-nav">
+    <a class="cc-editorial-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community">
+      <a href="<%= hostHref %>">Return to field notes</a>
+    </nav>
+  </header>
+
+  <main class="cc-community-shell cc-community-editorial-shell">
+    <header class="cc-community-mast cc-community-mast--editorial">
+      <p class="cc-editorial-index">COMMUNITY / CORRESPONDENCE</p>
+      <div>
+        <h1>Correspondence</h1>
+        <p>A public exchange around the work—read here in <%= graph.identity.displayName %>’s editorial rhythm rather than as a platform feed.</p>
+      </div>
+    </header>
+
+    <%- include('_thread', {
+      graph,
+      community,
+      communityStateCopy,
+      formatCommunityTime,
+      replyDepthClass,
+      communityLabels: {
+        root: 'Opening note',
+        replies: 'Responses',
+        state: 'Correspondence status',
+        quiet: 'No responses have followed this note yet.'
+      }
+    }) %>
+  </main>
+
+  <footer class="cc-editorial-footer">
+    <span><%= graph.identity.displayName %></span>
+    <span>Public correspondence · read only</span>
+  </footer>
+</body>
+</html>

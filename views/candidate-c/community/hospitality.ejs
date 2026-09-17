@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-public cc-hospitality cc-community cc-community--hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-community-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Community">
+      <a href="<%= hostHref %>">Back to the house</a>
+    </nav>
+  </header>
+
+  <main class="cc-community-shell cc-community-hospitality-shell">
+    <header class="cc-community-mast cc-community-mast--hospitality">
+      <p class="cc-kicker">Neighbors, guests & regulars</p>
+      <h1>Around the table</h1>
+      <p>Conversation from the wider community, presented with the same welcome as the rest of <%= graph.identity.displayName %>.</p>
+    </header>
+
+    <%- include('_thread', {
+      graph,
+      community,
+      communityStateCopy,
+      formatCommunityTime,
+      replyDepthClass,
+      communityLabels: {
+        root: 'At the center of the table',
+        replies: 'Around the table',
+        state: 'Table status',
+        quiet: 'The table is quiet beneath this note for now.'
+      }
+    }) %>
+  </main>
+
+  <footer class="cc-hospitality-footer">
+    <span><%= graph.identity.displayName %></span>
+    <span>Public conversation · read only</span>
+  </footer>
+</body>
+</html>
