@@ -75,6 +75,18 @@ Some internal and browser routes still contain `/candidate-c`. Removing that voc
 | `docs/ROADMAP.md` | Current verified program marker and routing bridge. |
 | `docs/CURRENT_ARCHITECTURE.md` | Current repository/architecture map for implementation decisions. |
 
+## Preserved legacy turnkey compatibility
+
+The older local venue turnkey workflow remains preserved while #301 classifies compatibility dependencies. These are **not** the ordinary current product path, but the existing deterministic wiring gate still protects them:
+
+```bash
+npm run venue:create -- ./my-venue
+npm run venue:studio -- ./my-venue
+npm run venue:ready -- ./my-venue
+```
+
+Do not extend this workflow for new product features. Its retention is compatibility/evidence work until a later dependency audit proves it can be retired or absorbed safely.
+
 ## Governing product rules
 
 The doctrine set controls implementation, not the other way around. The shortest working rules are:
