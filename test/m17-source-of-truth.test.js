@@ -57,7 +57,7 @@ test('V1 release gate rejects controlled, payment, topology, and placeholder dri
     [{HIVE_CONTROLLED_ACCOUNTS:'etblink'},/HIVE_CONTROLLED_ACCOUNTS must be explicitly empty/],
     [{HIVE_CONTROLLED_ACTIONS:'post'},/HIVE_CONTROLLED_ACTIONS must be explicitly empty/],
     [{DISTRIATOR_ENABLED:'true'},/DISTRIATOR_ENABLED must be false/],
-    [{HIVE_BAR_HOST:'other.example',APP_ORIGIN:'https://other.example'},/HIVE_BAR_HOST must be exactly fourthstreetbar\\.com/],
+    [{HIVE_BAR_HOST:'other.example',APP_ORIGIN:'https://other.example'},/HIVE_BAR_HOST must be exactly fourthstreetbar\.com/],
     [{TRUST_PROXY:'1'},/TRUST_PROXY must be exactly loopback/],
     [{SESSION_SECRET:'REPLACE_WITH_AT_LEAST_32_RANDOM_BYTES'},/SESSION_SECRET must not contain an example placeholder/],
   ];
