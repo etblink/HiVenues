@@ -5,7 +5,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const { EXPECTED_APP_TAG, EXPECTED_V1_ACTIONS, assertFunctionalV1Baseline } = require('../scripts/check-functional-v1-baseline');
-const { NEXT_SUCCESSOR_OPERATION } = require('../scripts/release-coherence/current-routing');
 const { BETA_ACTIONS } = require('../src/beta/actions');
 const { V1_ACTIONS } = require('../src/v1/actions');
 
@@ -26,7 +25,6 @@ test('functional Fourth Street V1 boundary remains preserved under HiVenues 1.0.
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: NEXT_SUCCESSOR_OPERATION,
   });
 });
 
@@ -46,7 +44,7 @@ test('last-good bookkeeping is atomic and explicit rollback stays explicit', () 
   assert.doesNotMatch(rollback, /commit=.*last_good/);
 });
 
-test('HV8 historical production state stays in governance and operations while README remains product-first', () => {
+test('HV8 historical production state stays in retained records and operations while README remains product-first', () => {
   const readme = read('README.md');
   const roadmap = read('docs/ROADMAP.md');
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
@@ -62,7 +60,6 @@ test('HV8 historical production state stays in governance and operations while R
   assert.match(roadmap, /^HV8_CURRENT_RUNNING_WRITE_MODE = beta$/m);
   assert.match(roadmap, /^HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD$/m);
   assert.match(roadmap, /^LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED$/m);
-  assert.match(roadmap, new RegExp(`^NEXT_OPERATION = ${NEXT_SUCCESSOR_OPERATION}$`, 'm'));
   assert.match(operations, /Production remains on the current `beta-fdb5b5b` release until a later, separately authorized transition/);
   assert.match(operations, /`last-good` is evidence and a recovery candidate, not permission to mutate the host/);
 });

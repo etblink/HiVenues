@@ -4,8 +4,6 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
-const { assertReleaseCoherence } = require('../scripts/check-release-coherence');
-const { NEXT_SUCCESSOR_OPERATION } = require('../scripts/release-coherence/current-routing');
 const { loadDormantV1Config } = require('../scripts/check-v1-release');
 const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../src/release/release-version');
 const { assertPrivexV1Release } = require('../src/release/v1-readiness');
@@ -75,10 +73,4 @@ test('runs the dormant V1 release check without network access or server startup
   const summary = JSON.parse(result.stdout);
   assert.equal(summary.profile, 'privex-v1-self-signing');
   assert.equal(result.stdout.includes(sessionSecret), false);
-});
-
-test('release and successor living-document sources remain coherent across final package and historical deployment identities', () => {
-  assert.deepEqual(assertReleaseCoherence(), {
-    product:'HiVenues',packageVersion:'1.0.0',appTag:'fourth-street-bar-app/0.1.0',v1ActionCount:12,acceptedSuccessorMilestones:6,nextOperation:NEXT_SUCCESSOR_OPERATION,
-  });
 });

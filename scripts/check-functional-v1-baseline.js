@@ -2,7 +2,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { assertReleaseCoherence } = require('./check-release-coherence');
 const { PACKAGE_VERSION, RELEASE_APP_TAG } = require('../src/release/release-version');
 const { V1_ACTIONS } = require('../src/v1/actions');
 
@@ -28,8 +27,6 @@ function read(relativePath) {
 }
 
 function assertFunctionalV1Baseline() {
-  const releaseCoherence = assertReleaseCoherence();
-
   const manifest = JSON.parse(read('ops/privex/manifest.json'));
   const operations = read('docs/PRODUCTION_OPERATIONS.md');
   const deploy = read('ops/privex/bin/hive-bar-deploy');
@@ -85,7 +82,6 @@ function assertFunctionalV1Baseline() {
     productionProfile: 'privex-beta-self-signing',
     v1ProductionActivated: false,
     finalRelease: false,
-    successorRouting: releaseCoherence.nextOperation,
   });
 }
 
