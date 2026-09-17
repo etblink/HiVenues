@@ -29,9 +29,11 @@ SVG FOR VECTOR UI / HOST-NATIVE VISUAL SEMANTICS
 
 ## Canonical product boundary
 
-`src/product/app.js` is the ordinary application entry boundary introduced by #301.
+`src/product/app.js` is the ordinary application composition root introduced by #301.
 
-It currently wraps the qualified Era-0–3 implementation under `src/candidate-c/` so the repository can establish one product-owned entry point before renaming active internals. This is a migration seam, not a compatibility layer.
+It now owns application assembly directly and composes the already-qualified Era-0–3 implementation still housed under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a compatibility shim that delegates back to this canonical root so retained qualification callers preserve their exact exports while ordinary code has a single product-owned dependency direction.
+
+This is intentionally narrower than a route or namespace migration. Existing `/candidate-c` URLs, persisted state conventions, views, assets, ingress endpoints, and qualified behavior remain unchanged in this tranche.
 
 New ordinary application code must use the product boundary or product-owned domain seams. Do not create new dependencies on `src/candidate-c/` simply because current internals still live there.
 
@@ -43,8 +45,8 @@ Current internals still include `CandidateC*` identifiers, `/candidate-c` routes
 
 ### 1. Active product
 
-- `src/product/` — canonical ordinary product boundary;
-- the portions of `src/candidate-c/` used by that boundary — current qualified Studio/Territory implementation pending promotion/rename;
+- `src/product/` — canonical ordinary product boundary and application composition root;
+- the portions of `src/candidate-c/` consumed by that root — current qualified Studio/Territory implementation pending promotion/rename;
 - current EJS views/assets and semantic renderers consumed by that implementation;
 - current HostGraph, Working/Live, Release/History, Territory, Studio, and read-only social/community paths.
 
@@ -79,7 +81,7 @@ Do not create `legacy:*` commands or compatibility gates simply to keep unreleas
 
 Keep qualification tooling only when it protects an enduring current product contract that ordinary focused tests cannot adequately cover. One-off milestone screenshot campaigns, exact old release rehearsals, and superseded harnesses are deletion candidates.
 
-The current Candidate-C dogfood launcher is temporarily useful while the qualified implementation namespace itself is being migrated. It should not become permanent architecture by inertia.
+The historical Candidate-C dogfood app entry now exists only as a compatibility shim for retained qualification callers. Its ingress/provenance behavior remains part of the canonical composition root until #301 separately proves those qualification surfaces can be renamed, replaced, or removed.
 
 ### 5. Historical documentation
 
