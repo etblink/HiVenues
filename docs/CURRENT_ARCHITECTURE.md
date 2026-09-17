@@ -29,24 +29,24 @@ SVG FOR VECTOR UI / HOST-NATIVE VISUAL SEMANTICS
 
 ## Canonical product boundary
 
-`src/product/app.js` is the ordinary application composition root introduced by #301.
+`src/product/app.js` is the ordinary application composition root.
 
-It now owns application assembly directly and composes the already-qualified Era-0–3 implementation still housed under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a compatibility shim that delegates back to this canonical root so retained qualification callers preserve their exact exports while ordinary code has a single product-owned dependency direction.
+It owns application assembly directly and composes the already-qualified Era-0–3 implementation still housed partly under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a **qualification shim** that delegates back to the canonical root so retained exact-head qualification callers preserve their exports while ordinary code has a single product-owned dependency direction.
 
-This is intentionally narrower than a route or namespace migration. Existing `/candidate-c` URLs, persisted state conventions, views, assets, ingress endpoints, and qualified behavior remain unchanged in this tranche.
+New ordinary application code must use the product boundary or product-owned domain seams. Do not create new dependencies on `src/candidate-c/` merely because current internals still live there.
 
-New ordinary application code must use the product boundary or product-owned domain seams. Do not create new dependencies on `src/candidate-c/` simply because current internals still live there.
+### Historical naming debt
 
-### Transitional naming debt
+Current internals still include `CandidateC*` identifiers, `/candidate-c` routes, candidate-c views/assets, and dogfood qualification endpoints. These are not durable product names and do not define architectural authority.
 
-Current internals still include `CandidateC*` identifiers, `/candidate-c` routes, candidate-c views/assets, and dogfood qualification endpoints. These are not durable product names. #301 should remove them as the active dependency set is migrated and requalified.
+They are now classified as **non-blocking maintenance debt**. Migrate or remove them only when a concrete product, safety, or maintenance requirement justifies the blast radius and the affected routes/state/assets can be requalified. Do not reopen a repository-normalization campaign merely to erase names from history.
 
 ## Source classification
 
 ### 1. Active product
 
 - `src/product/` — canonical ordinary product boundary and application composition root;
-- the portions of `src/candidate-c/` consumed by that root — current qualified Studio/Territory implementation pending promotion/rename;
+- the portions of `src/candidate-c/` consumed by that root — current qualified Studio/Territory implementation carrying historical naming debt;
 - current EJS views/assets and semantic renderers consumed by that implementation;
 - current HostGraph, Working/Live, Release/History, Territory, Studio, and read-only social/community paths.
 
@@ -79,9 +79,9 @@ Do not create `legacy:*` commands or compatibility gates simply to keep unreleas
 
 ### 4. Qualification tooling
 
-Keep qualification tooling only when it protects an enduring current product contract that ordinary focused tests cannot adequately cover. One-off milestone screenshot campaigns, exact old release rehearsals, and superseded harnesses are deletion candidates.
+Keep qualification tooling only when it protects an enduring current product contract that ordinary focused tests cannot adequately cover. One-off milestone screenshot campaigns, exact old release rehearsals, and superseded harnesses remain maintenance candidates.
 
-The historical Candidate-C dogfood app entry now exists only as a compatibility shim for retained qualification callers. Its ingress/provenance behavior remains part of the canonical composition root until #301 separately proves those qualification surfaces can be renamed, replaced, or removed.
+The historical Candidate-C dogfood app entry exists only as a qualification shim for retained qualification callers. Its ingress/provenance behavior remains part of the canonical composition root until a separately justified change proves those qualification surfaces can be renamed, replaced, or removed safely.
 
 ### 5. Historical documentation
 
@@ -115,7 +115,7 @@ Working Preview navigation must remain in Working Preview; Live routes must rema
 
 ## Hive boundary
 
-Era 3 admits real/provider-realistic **read-side** Hive/community state. Era 4 writes remain held while #301 is active.
+Era 3 admits real/provider-realistic **read-side** Hive/community state. Era 4 is the next strategic era, but consequential writes remain unauthorized until a bounded Era-4 charter admits a concrete slice.
 
 ```text
 MECHANIC         = exact consequence
@@ -141,14 +141,18 @@ Before introducing a subsystem, answer:
 
 A new framework, parallel model, provider-specific product model, or Candidate line requires explicit architectural justification.
 
-## What #301 still needs to normalize
+## #301 closure and remaining maintenance debt
 
-- migrate/rename active `candidate-c` internals and browser routes;
-- identify current dependencies on older modules, promote useful primitives, and delete the rest;
-- remove obsolete npm scripts, milestone harnesses, stale tests, and superseded docs;
-- collapse the test suite toward current product-level contracts rather than historical milestone preservation;
-- remove merged branches where permissions permit;
-- establish ordinary main-branch protection and release/version safeguards;
-- perform a final repo-health review before reopening Era 4.
+The #301 repository/product-core normalization exit audit passed on the green canonical main after PRs #302 and #303. The repository now has an obvious canonical product root, install/dev/check commands, current documentation hierarchy, feature-placement rule, ordinary PR/CI loop, and next roadmap objective.
 
-Cleanup is complete only when a competent engineer can identify the current product, its code, ordinary dev/test loop, feature-placement rules, and next objective without learning unreleased historical architectures.
+Remaining items are maintenance/admin debt rather than blockers to product progression:
+
+- historical `candidate-c` source/route/view/asset naming;
+- retained qualification scripts whose current value should be reassessed when touched;
+- historical scripts/docs/data with no ordinary command authority;
+- merged branch deletion where repository tooling permits;
+- main-branch protection/ruleset configuration in GitHub administration.
+
+These should be handled opportunistically or by bounded maintenance issues when they create concrete ambiguity, risk, or cost. They do not outrank Era-4 roadmap work merely because they are old.
+
+The next architectural task is therefore not a namespace cleanup. It is to define the first bounded Era-4 participation slice while preserving all frozen Era-0–3 contracts.

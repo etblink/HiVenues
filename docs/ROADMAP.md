@@ -10,30 +10,29 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-At the opening of issue #301:
+The #301 exit audit was performed against:
 
 ```text
-CANONICAL_MAIN = 0eecced8d29889fba98bea14d00040d10f980cb9
-CANONICAL_TREE = 87bbe759ceaf7cd4e5d73249952d5c56894d76ee
+EXIT_AUDIT_MAIN = 75375fb1aa6fb1ae4513f7d1e12d2f8427bd5844
+EXIT_AUDIT_TREE = e8b9b421b58ac24c4451645d18d9b377a23e35c8
+POST_MERGE_CI = #1264 / PASS
 
 ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
 ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE
 ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 
-CURRENT OBJECTIVE = #301 REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION
-ERA 4 — REAL HIVE-BACKED PARTICIPATION        HELD UNTIL #301 CLOSES
-PRODUCT FEATURE EXPANSION                     PAUSED FOR NORMALIZATION
-EXTERNAL EFFECTS                              ZERO
+#301 — REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION   COMPLETE
+NEXT OBJECTIVE = ERA 4 — REAL HIVE-BACKED PARTICIPATION
+ERA 4 IMPLEMENTATION = REQUIRES BOUNDED CHARTER / ISSUE
+EXTERNAL EFFECTS = ZERO UNTIL EXPLICITLY AUTHORIZED
 ```
 
 Era 2 was closed through the Territory Authoring workstream. Era 3 was subsequently closed after read-only social/community discovery, provider-realistic Hive reads, host-native Direction-specific presentation, degraded/failure states, browser qualification, and confirmation that observed Hive state does not enter HostGraph.
 
-## Current objective — #301
+## #301 normalization outcome
 
-The immediate job is to make the repository express the product that has already won.
-
-The target ordinary contribution loop is:
+Normalization established the ordinary product/repository loop:
 
 ```text
 prioritized issue
@@ -45,24 +44,58 @@ prioritized issue
 → ordinary PR review
 → required CI
 → merge
-→ delete branch
+→ branch cleanup where tooling permits
 → release/version when appropriate
 ```
 
-The normalization objective includes:
+The objective closed with:
 
-1. promote the qualified Territory/Studio product behind an obvious canonical product boundary;
-2. distinguish active product code, shared infrastructure, legacy/compatibility code, qualification/evidence tools, and historical documentation;
-3. make README, architecture, current roadmap, and development instructions agree;
-4. establish obvious install/dev/check commands;
-5. remove old sediment only after dependency/search evidence proves removal safe;
-6. use ordinary branch/PR/CI/release safeguards rather than project-specific governance machinery where standard repository practice is sufficient.
+1. `src/product/app.js` as the canonical application composition root;
+2. an obvious install/dev/check command surface;
+3. README, current architecture, current roadmap, and development instructions aligned;
+4. obsolete compatibility gates and milestone-only CI/test machinery substantially reduced;
+5. superseded development code explicitly denied backwards-compatibility status;
+6. remaining historical `candidate-c` naming classified as non-authoritative implementation debt rather than a second product line;
+7. ordinary CI green on Windows and Ubuntu plus production dependency audits;
+8. exact recommended main-branch safeguards documented where the available integration cannot administer GitHub branch protection;
+9. a fresh exit audit confirming all 12 #301 repository questions can be answered from the repository without project archaeology.
 
-Normalization is **not** a rewrite. Existing mature infrastructure should be reused behind product-owned seams. No Candidate D or parallel product line is authorized.
+Remaining historical names, branches, scripts, or documents may be cleaned when concrete dependency evidence and maintenance value justify it. They do not independently reopen normalization.
 
-## Strategic sequence after normalization
+## Next objective — Era 4
 
-Unless a future explicit roadmap revision changes the program logic, the remaining eras are:
+The next strategic era is **Real Hive-Backed Participation**.
+
+The roadmap's preferred authority progression remains:
+
+```text
+PUBLIC READS
+→ ACCOUNT / PROFILE STATE
+→ COMMUNITY / CONTENT STATE
+→ IDENTITY PROOF
+→ FOLLOW / COMMUNITY ACTIONS
+→ POST / UPDATE / REPLY
+→ VOTE / RECOMMEND / APPLAUSE
+→ RESOURCE / REWARD STATE
+→ LATER VALUE ACTIONS
+```
+
+This ordering is a planning preference, not blanket authorization. Before Era-4 product code begins, open a bounded charter/issue specifying the first admitted consequence class, authority boundary, wallet/signing provider seam, reconciliation/read-back behavior, degraded states, qualification evidence, and held scope.
+
+The governing separation remains:
+
+```text
+MECHANIC         = exact consequence
+VOICE            = host language
+PRESENTATION     = Direction-specific visual form
+PROVIDER BINDING = external execution/state source
+```
+
+No customer private keys belong in HiVenues. A provider or wallet acceptance must not be presented as confirmed success until the product has the appropriate canonical read-back/reconciliation evidence for that consequence.
+
+## Remaining strategic sequence
+
+Unless a future explicit roadmap revision changes the program logic:
 
 ```text
 ERA 4  — REAL HIVE-BACKED PARTICIPATION
@@ -82,7 +115,7 @@ The boundaries between intermediate eras may be split or partially interleaved w
 
 ## Current hard boundary
 
-Issue #301 does not authorize:
+Until a bounded Era-4 charter explicitly authorizes a concrete slice, do not introduce:
 
 - Hive writes, signing, broadcast, follow/unfollow, subscribe/unsubscribe, posting, replying, or voting;
 - value movement or payments;
@@ -90,7 +123,7 @@ Issue #301 does not authorize:
 - Fourth Street customer work;
 - independent Astra qualification;
 - a React/Vue/SPA rewrite;
-- bulk deletion or cosmetic renaming without dependency evidence.
+- broad cleanup or renaming solely for aesthetics.
 
 ## Successor rule
 
@@ -104,7 +137,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–3 are complete/frozen; #301 normalization is active; Era 4 is held.
+→ Eras 0–3 are complete/frozen; #301 normalization is complete; Era 4 is next and requires a bounded charter.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
