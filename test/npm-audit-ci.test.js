@@ -207,7 +207,7 @@ test('workflow separates both OS audit lanes from the deterministic verification
     packageJson.scripts.check,
     `${packageJson.scripts['check:deterministic']} && npm run audit:prod:ci`,
   );
-  assert.match(packageJson.scripts.check, /release:check:hivenues-v1/);
+  assert.match(packageJson.scripts.check, /check:turnkey-wiring/);
   assert.match(verifyBlock, /run: npm run check:deterministic/);
   assert.doesNotMatch(verifyBlock, /audit:prod/);
   assert.match(auditBlock, /ubuntu-latest/);
