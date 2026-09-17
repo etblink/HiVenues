@@ -1,215 +1,116 @@
-# Hive-Venues Living Roadmap
+# HiVenues — Current Program Marker
 
-This document records current successor state together with the current HiVenues product-maturation overlay. Superseded states remain recoverable from Git history rather than being carried as authoritative living state.
+This file is the **current-state bridge** into the frozen strategic roadmap. It is intentionally short.
 
-## Product-doctrine overlay — current product direction
+The canonical strategic sequence is defined by:
 
-`HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_0_1_0.md` is the controlling product-doctrine record for future product selection.
+- `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md`
 
-> **HiVenues gives a host identity its own purpose-built Hive frontend. The host supplies the brand, context, vocabulary, content model, audience relationship, and goals; Hive supplies portable identity, community, publishing, social interaction, durable public content, rewards, and economic primitives.**
+The product destination and constraints are defined by the frozen doctrine set referenced from that roadmap. Historical program plans remain available in Git history and historical documents, but they do not override this marker when they describe older PM/HV/Candidate states.
 
-```text
-HOST_IDENTITY_FIRST_EXPERIENCE
-+
-HIVE_FOUNDATIONAL_INFRASTRUCTURE
-+
-DOMAIN_NATIVE_TRANSLATION
-=
-HIVENUES
-```
+## Verified current state
 
-A host can be a physical place, creator, performer, band/group, brand/organization, or event-centered identity. Future broad product qualification must include at least one first-class non-physical creator/performer reference.
-
-Historical PM1 records remain byte-preserved. Their optional-Community product doctrine is superseded for future product identity, while current source/runtime representation of safe disabled/preconnection states remains valid:
+At the opening of issue #301:
 
 ```text
-SCHEMA_REPRESENTABILITY != PRODUCT_QUALIFICATION
+CANONICAL_MAIN = 0eecced8d29889fba98bea14d00040d10f980cb9
+CANONICAL_TREE = 87bbe759ceaf7cd4e5d73249952d5c56894d76ee
+
+ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
+ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE
+ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
+ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
+
+CURRENT OBJECTIVE = #301 REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION
+ERA 4 — REAL HIVE-BACKED PARTICIPATION        HELD UNTIL #301 CLOSES
+PRODUCT FEATURE EXPANSION                     PAUSED FOR NORMALIZATION
+EXTERNAL EFFECTS                              ZERO
 ```
 
-The product overlay does not weaken public read-only browsing, user-controlled Hive signing, separately privileged transaction authority, semantic authoring, accessibility, CI, provenance, or production safety.
+Era 2 was closed through the Territory Authoring workstream. Era 3 was subsequently closed after read-only social/community discovery, provider-realistic Hive reads, host-native Direction-specific presentation, degraded/failure states, browser qualification, and confirmation that observed Hive state does not enter HostGraph.
 
----
+## Current objective — #301
 
-## Current successor state — machine-checked compatibility routing
+The immediate job is to make the repository express the product that has already won.
 
-The release-coherence system currently guards the following accepted successor/production facts. This block is preserved until a separately governed release-coherence migration changes that contract.
-
-<!-- HV6_CURRENT_ROUTING_START -->
-```text
-SUCCESSOR_FOUNDATIONS = HV1_THROUGH_HV6_ACCEPTED
-FOURTH_STREET_CLIENT_STATUS = FIRST_REAL_CLIENT__SOLE_REAL_CLIENT
-FOURTH_STREET_DEPLOYMENT_STATUS = REFERENCE_DEPLOYMENT
-HV7_SECOND_VENUE_NOMINEE = JUNIPER_WORKS_COOPERATIVE
-HV7_SECOND_VENUE_NOMINEE_STATUS = VALIDATED__SYNTHETIC_TIER_A
-HV7_REQUIREMENT_COUNT = 24
-HV7_FROZEN_REQUIREMENT_ADJUDICATION = PASS__24_OF_24
-HV8_CURRENT_RUNNING_BUILD = beta-fdb5b5b
-HV8_CURRENT_RUNNING_COMMIT = fdb5b5b1436c9e41b5869c7ba3bd1f6a92f9165e
-HV8_CURRENT_RUNNING_TREE = 6420f0ca2392ec4ed968bc2e928151870c3b591c
-HV8_CURRENT_RUNNING_WRITE_MODE = beta
-HV8_CURRENT_RUNNING_READY = ready
-HV8_PHASE_A_READ_ONLY_PREFLIGHT = PASS
-HV8_PRODUCTION_CAPABILITY_STATE = OBSERVED__PAYMENTS_ONBOARDING_MODERATION_ACTIVE
-HV8_REFERENCE_DEPLOYMENT_CONVERGENCE = TECHNICALLY_QUALIFIED__PRODUCTION_TRANSITION_WITHHELD
-VENUE_HOME_COMMUNITY_PULSE = ACCEPTED
-PROFILE_RECENT_ACTIVITY = ACCEPTED
-ISOLATED_VENUE_RUNTIME_ADMISSION = ACCEPTED
-PORTABLE_VENUE_WORKSPACE = ACCEPTED
-DEPLOYMENT_AGNOSTIC_VENUE_SOURCE = ACCEPTED
-DEPLOYMENT_AGNOSTIC_SOURCE_AUTHORING = ACCEPTED
-DEPLOYMENT_AGNOSTIC_SOURCE_DURABILITY = ACCEPTED
-LOCAL_SOURCE_AUTHORING_OPERATOR_LAUNCHER = ACCEPTED
-CID_TECHNICAL_VIABILITY = PASS__NO_PRODUCT_AUTHORITY
-CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
-CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
-THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
-NEXT_OPERATION = THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
-LIVE_SUCCESSOR_PRODUCTION_MUTATION = NOT_AUTHORIZED
-PUBLIC_PRODUCTION_AUTHORING = NOT_AUTHORIZED
-REAL_SECOND_VENUE_AUTHORIZED = NO
-VENUE_OUTREACH = NOT_AUTHORIZED
-SHARED_RUNTIME_MULTI_TENANCY = DEFERRED
-DEFAULT_RUNTIME_MODEL = ONE_ISOLATED_VENUE_PER_RUNTIME
-```
-<!-- HV6_CURRENT_ROUTING_END -->
-
-Canonical source moves independently of deployment identity. The healthy Fourth Street reference deployment remains on its observed exact release; source work does not imply production transition.
-
-## Accepted successor foundations preserved
-
-HV-1 through HV-6 remain accepted foundations. HV-7 validated Juniper Works Cooperative as a synthetic non-bar venue. **HV-8 established that the successor is technically deployable** while also establishing that production transition remains withheld absent a concrete product or operational reason.
-
-The following accepted progression remains part of the platform foundation:
-
-- **Portable venue workspace** — PR #98.
-- **Deployment-agnostic venue source** — PR #100.
-- **Deployment-agnostic source authoring** — PR #102.
-- **Deployment-agnostic source durability** — PR #103.
-- **Local operator launcher** — PR #104.
-
-## Completed CID lane
-
-The accepted CID technical spike and comparative capability-gap adjudication remain part of the historical successor foundation. The current host-identity doctrine neither reopens nor silently discards that result:
+The target ordinary contribution loop is:
 
 ```text
-CID_TECHNICALLY_VIABLE__NO_PRODUCT_AUTHORITY
-CID_CAPABILITY_GAP = PASS__STABLE_SUBFILE_CONTENT_ADDRESS_REUSE
-CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-BASELINE = CANONICAL_SHA256_PLUS_ORDINARY_FILES_GIT
+prioritized issue
+→ short-lived branch
+→ implementation using the existing product architecture
+→ focused tests
+→ npm run check
+→ browser/visual evidence only when the change needs it
+→ ordinary PR review
+→ required CI
+→ merge
+→ delete branch
+→ release/version when appropriate
 ```
 
-The demonstrated capability gap is stable subfile content-address reuse. Adoption remains deferred without prejudice because the accepted product evidence did not justify the added operational complexity at that stage; future host workflows may reopen the value equation without rewriting this historical result.
+The normalization objective includes:
 
-Additional accepted facts remain:
+1. promote the qualified Territory/Studio product behind an obvious canonical product boundary;
+2. distinguish active product code, shared infrastructure, legacy/compatibility code, qualification/evidence tools, and historical documentation;
+3. make README, architecture, current roadmap, and development instructions agree;
+4. establish obvious install/dev/check commands;
+5. remove old sediment only after dependency/search evidence proves removal safe;
+6. use ordinary branch/PR/CI/release safeguards rather than project-specific governance machinery where standard repository practice is sufficient.
+
+Normalization is **not** a rewrite. Existing mature infrastructure should be reused behind product-owned seams. No Candidate D or parallel product line is authorized.
+
+## Strategic sequence after normalization
+
+Unless a future explicit roadmap revision changes the program logic, the remaining eras are:
 
 ```text
-CID_PRODUCT_ADOPTION = DEFERRED_WITHOUT_PREJUDICE
-HIVE_IDENTITY_KEY_MINIMIZATION = ACCEPTED__TWO_VENUE_IDENTITIES__ONE_SERVER_POSTING_CREDENTIAL
-THREADS_ACTIVE_ACCOUNT_AUTH = OPTIONAL_CLEANUP_ONLY__NOT_POSTING_ACTIVATION_PREREQUISITE
-PRODUCTION_TRANSITION = WITHHELD
+ERA 4  — REAL HIVE-BACKED PARTICIPATION
+ERA 5  — PRODUCT DISTRIBUTION
+ERA 6  — HIVE ACCOUNT ONBOARDING
+ERA 7  — DEPLOYMENT PRODUCT
+ERA 8  — RICHER DIRECTION & DESIGN SYSTEM
+ERA 9  — VALUE / COMMERCE / V4V
+ERA 10 — OPERATIONAL & MOBILE COMPLETION
+ERA 11 — INTERNAL MAXIMAL SYNTHETIC QUALIFICATION
+ERA 12 — INDEPENDENT SYNTHETIC ASTRA
+ERA 13 — FOURTH STREET BAR FIRST CUSTOMER
+ERA 14 — BROADER RELEASE
 ```
 
-The identity/key result remains a venue-era compatibility implementation result; broadening product scope to non-physical hosts does not silently generalize merchant-specific identity requirements to every host archetype. A later Hive-native host contract must distinguish universal Hive identity/community requirements from archetype-specific merchant/Threads/payment roles.
+The boundaries between intermediate eras may be split or partially interleaved when dependency evidence makes that safer, but a major reordering of the product-validation logic requires an explicit roadmap revision.
 
----
+## Current hard boundary
 
-## Current operation — successor-maintenance lane: Posting activation versus optional liquid cleanup
+Issue #301 does not authorize:
 
-The machine-checked successor-maintenance lane remains:
+- Hive writes, signing, broadcast, follow/unfollow, subscribe/unsubscribe, posting, replying, or voting;
+- value movement or payments;
+- production deployment, DNS, VPS, or permanent hosting mutation;
+- Fourth Street customer work;
+- independent Astra qualification;
+- a React/Vue/SPA rewrite;
+- bulk deletion or cosmetic renaming without dependency evidence.
+
+## Successor rule
+
+Before changing product code, a successor should be able to answer:
 
 ```text
-THREADS_POSTING_ACTIVATION_LIQUID_CLEANUP_DECOUPLING__BOUNDED_REPAIR
+WHAT IS HIVENUES?
+→ A premium, host-first frontend factory for Hive.
+
+WHAT IS THE NORTH STAR?
+→ The host’s world becomes the interface to Hive.
+
+WHERE ARE WE?
+→ Eras 0–3 are complete/frozen; #301 normalization is active; Era 4 is held.
+
+WHAT MUST NOT BE LOST?
+→ The governing doctrine plus all completed-era acceptance contracts.
+
+WHAT DECIDES THE NEXT PRODUCT PHASE?
+→ The canonical big-picture roadmap, verified against repository evidence—not whichever code was edited most recently.
 ```
 
-This operation separates machine Posting readiness from optional manual liquid-balance cleanup readiness. Its continued presence preserves accepted least-privilege routing and does not make it the sole current product priority.
-
-Issue #110 remains the separate live-activation boundary. No real key provisioning, authority mutation, live Hive transaction, RC delegation, funds movement, or production activation is authorized by this roadmap.
-
----
-
-## Current PM4 product-maturation state
-
-At the doctrine-reconciliation opening baseline:
-
-```text
-CANONICAL_MAIN = 9351655112a25fd8a1d115d8c402534726b1e035
-CANONICAL_TREE = 15e1d93a6f84bbca233e9313410b29bc88ef470b
-CANONICAL_CI_757 = SUCCESS
-PM3 = ACCEPTED
-ISSUE_198_REFERENCE_VISUAL_WORK = CLOSED
-ISSUE_199_OPERATOR_JOURNEYS = OPEN
-ISSUE_200_MEASURED_RELEASE_GATES = OPEN
-```
-
-### Issue #199
-
-Do not resume the historical gap matrix mechanically. First perform a bounded re-audit against the current host/Hive-native doctrine.
-
-Likely still-relevant families include:
-
-- resource/menu lifecycle gaps where still open;
-- ticket/reservation/support/action editing where semantically applicable;
-- schedule/timestamp editing;
-- general managed media;
-- component recipes;
-- complete fresh-host journeys;
-- responsive preview;
-- exact Save/reopen.
-
-The final journey matrix must include at least one non-physical creator/performer reference. No archetype may acquire a bespoke source model or renderer fork merely to pass qualification.
-
-### Issue #200
-
-Issue #200 remains the later measured quality/release gate. Historical PM1 physical-host criteria remain valuable evidence, but the exact final matrix must include the broadened host scope before execution. Existing Track A/B/C, accessibility, source-generalization, performance/SEO, and canonical-SHA discipline remain controlling.
-
----
-
-## Current product-maturation sequence
-
-```text
-1. HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_V0_1
-2. HIVE_NATIVE_HOST_PRODUCT_CONTRACT
-3. HOST_ACTIVITY_SOCIAL_OBJECT_CONTRACT
-4. PM4_OPERATOR_GAP_REAUDIT
-5. PM4_RELEVANT_OPERATOR_IMPLEMENTATION
-6. STUDIO_PRODUCT_LANGUAGE_AND_INTERACTION_CONVERGENCE
-7. GENERATED_EXPERIENCE_VISUAL_CONVERGENCE
-8. SOCIAL_SURFACE_RECONCILIATION
-9. MEASURED_QUALITY_RELEASE_GATES
-10. EXTERNAL_OPERATOR_AND_AUDIENCE_VALIDATION
-```
-
-No downstream step is automatically authorized by its presence here.
-
-The independent Astra greenfield result is a product/design reference, not a code dependency. The 2024 Fourth Street prototype is intent evidence, not a UI specification. Existing canonical HiVenues references remain engineering/accessibility/regression evidence.
-
----
-
-## Controlling rules
-
-```text
-PRODUCT_TRUTH > ROADMAP_INERTIA
-HOST_SCOPE != BRICK_AND_MORTAR_ONLY
-HIVE_FOUNDATIONAL != HIVE_JARGON_EVERYWHERE
-PUBLIC_READING != SIGNING_REQUIREMENT
-SCHEMA_REPRESENTABILITY != PRODUCT_QUALIFICATION
-COMPATIBILITY_VOCABULARY != PRODUCT_SCOPE
-SUCCESSOR_MAINTENANCE_ROUTING != PRODUCT_MATURATION_PRIORITY
-SEMANTIC_AUTHORING != FREEFORM_PAGE_BUILDER
-VISUAL_QUALITY_IMPROVEMENT != AUTHORITY_WEAKENING
-CANONICAL_SOURCE_IDENTITY != PRODUCTION_ACTIVATION
-ABILITY_TO_DEPLOY != REASON_TO_DEPLOY
-AUTOMATION_AUTHORITY = MINIMUM_REQUIRED_AUTHORITY
-USER_ECONOMIC_CONSEQUENCE = VISIBLE_BEFORE_SIGNING
-```
-
-## Production and external-effect boundary
-
-No production mutation is authorized. Do not restart the service, change protected environment state, move `current` or `last-good`, invoke deploy/rollback, issue Hive/Keychain writes, change account authorities or keys, activate beneficiaries, change current Pay/onboarding/moderation/Distriator/V1 behavior, mutate DNS/VPS/systemd/router/tunnel state, or perform real-host outreach/onboarding.
-
-Fourth Street retains its provenance-bearing compatibility names and exact production/recovery contracts until separately changed for a concrete reason.
-
-## Immediate stop boundary
-
-After `HIVENUES_PRODUCT_DOCTRINE_RECONCILIATION_V0_1` is canonically requalified, stop before the Hive-native host product contract or any implementation work. The next product-design operation requires separate authorization.
+> **Do not let implementation adjacency decide product sequence. Let doctrine define the destination, let the roadmap define the journey, and let evidence decide when a gate is actually closed.**
