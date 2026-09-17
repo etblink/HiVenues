@@ -3,25 +3,31 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const pkg = require('../package.json');
-const {
-  LEGACY_FOURTH_STREET_DEPLOYMENT,
-  PLATFORM_NAME,
-} = require('../src/platform/identity');
-const { isInstalledPrivexRelease } = require('../src/server');
+const { PLATFORM_NAME } = require('../src/platform/identity');
 
-test('distinguishes HiVenues platform identity from preserved Fourth Street deployment identity', () => {
+test('package identity exposes only the current HiVenues product contract', () => {
   assert.equal(PLATFORM_NAME, 'HiVenues');
-  assert.match(pkg.description, /multi-venue community and social platform powered by Hive/i);
-  assert.match(pkg.description, /Fourth Street Bar as the reference deployment/i);
-
-  assert.equal(LEGACY_FOURTH_STREET_DEPLOYMENT.serviceName, 'hive-bar');
-  assert.equal(LEGACY_FOURTH_STREET_DEPLOYMENT.releaseRoot, '/opt/hive-bar');
-  assert.equal(isInstalledPrivexRelease('/opt/hive-bar/current'), true);
-  assert.equal(isInstalledPrivexRelease('/opt/hive-bar/releases/0123456789abcdef'), true);
-  assert.equal(isInstalledPrivexRelease('/opt/hive-venues/current'), false);
-});
-
-test('private npm package-manager identity is final HiVenues while historical deploy paths remain stable', () => {
   assert.equal(pkg.private, true);
   assert.equal(pkg.name, 'hivenues');
+  assert.equal(pkg.main, 'src/product/app.js');
+  assert.match(pkg.description, /premium, host-first frontend factory for Hive/i);
+  assert.equal(pkg.scripts.start, 'node scripts/hivenues-studio.js');
+  assert.equal(pkg.scripts.dev, 'npm run build:css && node --watch scripts/hivenues-studio.js');
+
+  for (const obsolete of [
+    'legacy:start',
+    'legacy:dev',
+    'venue:create',
+    'venue:studio',
+    'venue:ready',
+    'venue:create:v2',
+    'venue:studio:v2',
+    'check:turnkey-wiring',
+    'release:check:functional-v1',
+    'release:check:hivenues-v1',
+    'start:read-only',
+    'start:privex',
+  ]) {
+    assert.equal(Object.hasOwn(pkg.scripts, obsolete), false, `obsolete package script remains: ${obsolete}`);
+  }
 });
