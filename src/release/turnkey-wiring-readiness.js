@@ -73,8 +73,14 @@ function evaluateTurnkeyWiring({ root = path.resolve(__dirname, '../..'), fsImpl
   if (workflow.includes('UI/UX current-contract evidence') || workflow.includes('capture-issue-132-turnkey-visual.js')) {
     throw new TurnkeyWiringError('general CI must not replay superseded legacy visual qualification');
   }
-  if (!String(pkg.scripts?.check || '').includes('check:turnkey-wiring')) {
-    throw new TurnkeyWiringError('npm run check must include the turnkey wiring check');
+
+  const deterministicCommand = String(pkg.scripts?.['check:deterministic'] || '');
+  if (!deterministicCommand.includes('check:turnkey-wiring')) {
+    throw new TurnkeyWiringError('check:deterministic must include the turnkey wiring check');
+  }
+  const checkCommand = String(pkg.scripts?.check || '');
+  if (!checkCommand.includes('check:turnkey-wiring') && !checkCommand.includes('npm run check:deterministic')) {
+    throw new TurnkeyWiringError('npm run check must include turnkey wiring directly or through check:deterministic');
   }
 
   const readme = fsImpl.readFileSync(path.join(root, 'README.md'), 'utf8');
