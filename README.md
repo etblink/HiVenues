@@ -13,12 +13,12 @@ ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE CONTRACTS
 ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE CONTRACTS
 ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
-#301 — REPOSITORY / PRODUCT-CORE NORMALIZATION ACTIVE
-ERA 4 — REAL HIVE-BACKED PARTICIPATION        HELD UNTIL #301 CLOSES
+#301 — REPOSITORY / PRODUCT-CORE NORMALIZATION COMPLETE
+ERA 4 — REAL HIVE-BACKED PARTICIPATION        NEXT / REQUIRES BOUNDED CHARTER
 EXTERNAL EFFECTS                              ZERO
 ```
 
-The strategic roadmap continues beyond Era 4 through distribution, Hive onboarding, deployment, richer Directions, value/commerce, operational completion, synthetic qualification, independent Astra, the first real customer, and broader release. See `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` and `docs/ROADMAP.md`.
+The strategic roadmap continues through distribution, Hive onboarding, deployment, richer Directions, value/commerce, operational completion, synthetic qualification, independent Astra, the first real customer, and broader release. See `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` and `docs/ROADMAP.md`.
 
 ## Developer quick start
 
@@ -49,25 +49,25 @@ See `docs/DEVELOPMENT.md` for the ordinary contribution loop.
 
 ## Canonical product core
 
-`src/product/` is the stable ordinary application boundary.
+`src/product/` is the stable ordinary application boundary. `src/product/app.js` owns application composition.
 
-The already-qualified Era-0–3 implementation currently lives under `src/candidate-c/` while #301 removes experimental naming and repository sediment. That namespace is transitional implementation debt, not a separate supported product and not a compatibility promise.
+The already-qualified Era-0–3 implementation still contains internal `candidate-c` naming. That is implementation-history debt, not a second product line, not a compatibility promise, and not an architectural authority. New ordinary work should enter through product-owned boundaries and seams rather than adding fresh dependencies on the historical namespace.
 
 The current product includes the server-owned HostGraph, Working/Live separation, explicit Release and History, Restore, stale-state protection, urgent isolation, durable persistence, multi-route Territory projection, materially distinct Directions, supported Studio authoring, and host-native read-only social/community surfaces.
 
-Some internal/browser routes still contain `/candidate-c`. Those names should disappear once the active dependency set has been migrated safely. New code must not create additional dependencies on the transitional namespace.
+Existing `/candidate-c` routes, views, assets, identifiers, or qualification names may be migrated later when a concrete product or maintenance requirement justifies the blast radius. Their continued existence does not reopen #301.
 
 ## Repository map
 
 | Area | Role |
 | --- | --- |
-| `src/product/` | Canonical product entry boundary. |
-| `src/candidate-c/` | Current qualified implementation being promoted/renamed during #301. |
+| `src/product/` | Canonical product boundary and application composition root. |
+| `src/candidate-c/` | Current qualified Era-0–3 implementation internals carrying historical naming debt. Do not extend the naming by default. |
 | `src/hive/`, `src/auth/`, and other capability modules | Reusable shared infrastructure only where the current product actually consumes it. |
 | older server/venue/v2/V1/deployment paths | Unreleased historical implementation. No compatibility status; remove when not required by current product or an enduring qualification contract. |
 | `scripts/hivenues-studio.js` | Ordinary loopback local Studio launcher. |
-| `scripts/candidate-c-dogfood.js` | Temporary exact-head qualification harness while the current implementation namespace is migrated. |
-| milestone-specific scripts/tests/docs | Cleanup candidates. Keep only when they protect an enduring current contract that cannot be expressed by ordinary product-level tests. |
+| `scripts/candidate-c-dogfood.js` | Retained qualification launcher; not the ordinary product entry point. |
+| milestone-specific scripts/tests/docs | Maintenance candidates. Keep only when they protect an enduring current contract that cannot be expressed by ordinary product-level tests. |
 | `docs/HIVENUES_*DOCTRINE*` | Frozen product, journey, Hive, distribution, and architecture doctrine. |
 | `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` | Strategic execution roadmap. |
 | `docs/ROADMAP.md` | Current verified program marker. |
@@ -79,12 +79,13 @@ HiVenues has not shipped a public product that requires backwards compatibility 
 
 Therefore:
 
-- historical source control is the archive;
+- Git history is the archive;
 - old code does not earn retention merely because it once passed a milestone;
 - stale tests must not force current docs, package identity, commands, or architecture to preserve superseded assumptions;
 - shared primitives may be retained only when the current product actually depends on them;
 - qualification tooling may be retained only when it protects an enduring current contract;
-- dead development paths should be deleted rather than renamed `legacy` and carried forward indefinitely.
+- dead development paths should be deleted rather than renamed `legacy` and carried forward indefinitely;
+- cleanup debt does not outrank product roadmap work unless it creates real ambiguity, risk, or maintenance cost.
 
 ## Governing product rules
 
@@ -120,9 +121,13 @@ A React/Vue/SPA rewrite is not the default direction. Framework or subsystem cha
 
 See `docs/CURRENT_ARCHITECTURE.md` and `docs/HIVENUES_RENDERING_AUTHORING_ARCHITECTURE_DOCTRINE_0_1_0.md`.
 
-## Current development boundary
+## Next development boundary
 
-Issue #301 is repository normalization, **not Era 4 product expansion**. Until it closes, do not introduce Hive writes/signing/broadcast, follow/unfollow or posting/voting writes, value movement, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra qualification, a parallel Candidate architecture, or a gratuitous framework rewrite.
+Normalization is complete. The strategic next objective is **Era 4 — Real Hive-Backed Participation**.
+
+Era 4 product code should not begin from implementation adjacency. Open a bounded Era-4 charter/issue first that identifies the exact consequence class being admitted, the existing provider-neutral seam it reuses, human-wallet authority requirements, read-back/reconciliation semantics, degraded behavior, tests/evidence, and explicit held scope.
+
+Until such a charter authorizes a concrete slice, preserve the current zero-external-effect boundary: no Hive broadcasts/signing, follow/unfollow or posting/voting writes, value movement, production deployment/DNS/VPS mutation, Fourth Street customer work, or unrelated framework rewrite.
 
 ## Canonical doctrine and roadmap
 

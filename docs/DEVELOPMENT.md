@@ -35,11 +35,11 @@ node scripts/hivenues-studio.js --state ./data/experiment.json --port 4317
 
 Use a new path for a clean synthetic state and reuse the same path to resume.
 
-There is no supported `legacy` development runtime. If old code is still in the tree, it is either a currently reused primitive waiting to be promoted behind a current seam or deletion debt.
+There is no supported `legacy` development runtime. If old code is still in the tree, it is either a currently reused primitive behind a current seam or maintenance/deletion debt.
 
 ## Focused tests first
 
-Use the narrowest current product test that protects the behavior being changed:
+Use the narrowest current product test that protects the behavior being changed. For example:
 
 ```bash
 node --test --test-concurrency=1 test/product-entrypoint.test.js
@@ -74,7 +74,7 @@ prioritized issue
 → required CI
 → review
 → merge
-→ delete branch
+→ delete branch where tooling permits
 ```
 
 Rules:
@@ -84,7 +84,8 @@ Rules:
 - do not preserve superseded code merely because it is old or once qualified;
 - reuse only primitives that satisfy a current requirement;
 - delete stale tests/scripts/docs together with the obsolete behavior they protect;
-- do not use implementation adjacency to begin a later roadmap phase.
+- do not use implementation adjacency to begin a later roadmap phase;
+- do not create broad cleanup work merely to erase historical names when no concrete risk or ambiguity exists.
 
 ## CI
 
@@ -102,9 +103,10 @@ Recommended ordinary GitHub settings:
 - block force pushes and branch deletion;
 - avoid direct feature pushes to `main`;
 - use review requirements proportionate to the active maintainer count;
-- reserve administrator bypass for genuine recovery.
+- reserve administrator bypass for genuine recovery;
+- enable automatic head-branch deletion after merge when appropriate for this repository.
 
-If the installed GitHub integration cannot inspect or modify these settings, document them rather than encoding branch protection into application code.
+The #301 exit audit found that `main` is currently reported as unprotected and repository rulesets are empty. The installed GitHub integration cannot administer the branch-protection endpoint. That is an administrative recommendation, not application-code work and not a reason to invent custom governance machinery inside HiVenues.
 
 ## Release/version policy
 
@@ -120,8 +122,8 @@ When releases begin, preserve exact source commit/tree provenance, CI/qualificat
 
 Consult `docs/CURRENT_ARCHITECTURE.md`.
 
-- `src/product/` is the canonical ordinary product boundary;
-- `src/candidate-c/` is active transitional implementation debt being promoted/renamed during #301;
+- `src/product/` is the canonical ordinary product boundary and application composition root;
+- `src/candidate-c/` contains current qualified Era-0–3 implementation internals carrying historical naming debt; new ordinary features should not deepen that naming by default;
 - shared infrastructure belongs behind product-owned seams only when currently consumed;
 - superseded development code has no compatibility status;
 - qualification tooling stays only when it protects an enduring current contract;
@@ -131,8 +133,8 @@ Do not create Candidate D, a second HostGraph, a provider-specific product model
 
 ## Current authorization boundary
 
-While #301 remains active, work is repository/product-core normalization only. Era 4 is held.
+Repository/product-core normalization is complete. The next strategic objective is **Era 4 — Real Hive-Backed Participation**.
 
-Not authorized here: signing/Hive broadcast, social writes, value movement/payments, production deployment/DNS/VPS mutation, customer-specific Fourth Street work, independent Astra, or a framework rewrite.
+Do not begin Era-4 implementation merely because the roadmap points there. First open a bounded issue/charter that defines the exact consequence being admitted, authority/signing boundary, provider-neutral seam, degraded behavior, reconciliation/read-back semantics, focused tests, browser evidence where needed, and explicitly held scope.
 
-The next product phase opens only after #301's exit condition and repo-health review are satisfied.
+Until such a charter authorizes a concrete slice, preserve zero external effects: no signing/Hive broadcast, social writes, value movement/payments, production deployment/DNS/VPS mutation, customer-specific Fourth Street work, independent Astra, or framework rewrite.
