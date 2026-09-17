@@ -5,6 +5,7 @@ const path = require('node:path');
 const express = require('express');
 const { createBetaRemediationRouter } = require('./beta-remediation-router');
 const { createCandidateCCommunityRouter } = require('./community-router');
+const { createCandidateCSocialReadRouter } = require('./social-read-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createCandidateCOperatorRouter } = require('./operator-router');
 const { createCandidateCPreviewRouter } = require('./preview-router');
@@ -53,6 +54,8 @@ function createDogfoodApp({
   provenance = null,
   discussionReader = null,
   discussionBindings = {},
+  hiveReadService = null,
+  socialBindings = {},
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -201,6 +204,13 @@ function createDogfoodApp({
   // Preview routes intentionally run before the ordinary operator/public router.
   // They render only the working snapshot and never route through publicSnapshot.
   app.use('/candidate-c', createCandidateCPreviewRouter({ store }));
+  // Era 3 social discovery is strictly read-side. It consumes the existing
+  // HiveReadService contract and never acquires signing or broadcast authority.
+  app.use('/candidate-c', createCandidateCSocialReadRouter({
+    store,
+    hiveReadService,
+    socialBindings,
+  }));
   // Community is a read-only public projection over the accepted provider-neutral
   // discussion seam. It must never enter HostGraph or acquire write authority.
   app.use('/candidate-c', createCandidateCCommunityRouter({

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-social-read.css"></head>
+<body class="cc-public cc-editorial cc-social cc-social--editorial cc-member" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-editorial-nav cc-social-nav">
+    <a class="cc-editorial-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community"><a href="<%= communityHref %>">Correspondence</a><a href="<%= socialHref %>">Dispatches</a><a href="<%= hostHref %>">Index</a></nav>
+  </header>
+  <main class="cc-social-shell cc-social-editorial-shell">
+    <%- include('_member', {
+      graph, member, memberStateCopy, formatCommunityTime, memberHref,
+      memberLabels: {
+        state: 'Profile status', identity: 'Contributor profile',
+        memberYes: 'Listed as connected to this Hive community.', memberNo: 'Not currently listed as subscribed to this Hive community.',
+        postsKicker: 'Selected record', postsTitle: 'Recent publications',
+        connectionsKicker: 'Network index', connectionsTitle: 'Public connections',
+        relatedKicker: 'Same issue', relatedTitle: 'Other recent contributors'
+      }
+    }) %>
+  </main>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public profile / read only</span></footer>
+</body>
+</html>

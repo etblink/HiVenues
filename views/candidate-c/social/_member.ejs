@@ -1,0 +1,103 @@
+<%
+  const stateCopy = memberStateCopy(member, graph.identity.displayName);
+  const profile = member.profile || null;
+%>
+<% if (!profile) { %>
+  <section class="cc-social-state cc-social-state--<%= member.status %>" role="status">
+    <p class="cc-kicker"><%= memberLabels.state %></p>
+    <h2><%= stateCopy.heading %></h2>
+    <p><%= stateCopy.body %></p>
+  </section>
+<% } else { %>
+  <% if (member.status !== 'ready') { %>
+    <section class="cc-social-state cc-social-state--<%= member.status %>" role="status">
+      <p class="cc-kicker"><%= memberLabels.state %></p>
+      <h2><%= stateCopy.heading %></h2>
+      <p><%= stateCopy.body %></p>
+    </section>
+  <% } %>
+
+  <section class="cc-member-identity" aria-labelledby="cc-member-name">
+    <img class="cc-member-avatar" src="<%= profile.profileImage %>" alt="">
+    <div class="cc-member-identity__copy">
+      <p class="cc-kicker"><%= memberLabels.identity %></p>
+      <h1 id="cc-member-name"><%= profile.displayName %></h1>
+      <p class="cc-member-handle">@<%= profile.name %></p>
+      <% if (profile.about) { %><p class="cc-member-about"><%= profile.about %></p><% } %>
+      <p class="cc-member-membership">
+        <% if (member.membership === true) { %><%= memberLabels.memberYes %><% } else if (member.membership === false) { %><%= memberLabels.memberNo %><% } else { %>Community connection status is temporarily unavailable.<% } %>
+      </p>
+    </div>
+    <dl class="cc-member-stats">
+      <div><dt>Followers</dt><dd><%= profile.followerCount.toLocaleString('en-US') %></dd></div>
+      <div><dt>Following</dt><dd><%= profile.followingCount.toLocaleString('en-US') %></dd></div>
+      <div><dt>Posts</dt><dd><%= profile.postCount.toLocaleString('en-US') %></dd></div>
+    </dl>
+  </section>
+
+  <% if (member.posts.length) { %>
+    <section class="cc-social-section cc-member-posts" aria-labelledby="cc-member-posts-title">
+      <header class="cc-social-section__head">
+        <p class="cc-kicker"><%= memberLabels.postsKicker %></p>
+        <h2 id="cc-member-posts-title"><%= memberLabels.postsTitle %></h2>
+      </header>
+      <div class="cc-social-post-grid">
+        <% member.posts.forEach((item) => { %>
+          <article class="cc-social-post-card">
+            <% if (item.primaryImage) { %><img src="<%= item.primaryImage %>" alt="" loading="lazy"><% } %>
+            <div class="cc-social-post-card__body">
+              <% const created = formatCommunityTime(item.created, graph.identity.timezone); %>
+              <% if (created) { %><p class="cc-social-meta"><%= created %></p><% } %>
+              <h3><%= item.title %></h3>
+              <p><%= item.excerpt %></p>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="cc-member-connections" aria-labelledby="cc-member-connections-title">
+    <header class="cc-social-section__head">
+      <p class="cc-kicker"><%= memberLabels.connectionsKicker %></p>
+      <h2 id="cc-member-connections-title"><%= memberLabels.connectionsTitle %></h2>
+      <p>These are public Hive connections shown as context only. This page does not change them.</p>
+    </header>
+    <div class="cc-member-connections__grid">
+      <div>
+        <h3>Followers</h3>
+        <% if (member.followers.length) { %>
+          <ul>
+            <% member.followers.forEach((person) => { %><li><a href="<%= memberHref(person.name) %>"><%= person.displayName %> <small>@<%= person.name %></small></a></li><% }) %>
+          </ul>
+        <% } else { %><p class="cc-social-meta">No follower entries are available on this page.</p><% } %>
+      </div>
+      <div>
+        <h3>Following</h3>
+        <% if (member.following.length) { %>
+          <ul>
+            <% member.following.forEach((person) => { %><li><a href="<%= memberHref(person.name) %>"><%= person.displayName %> <small>@<%= person.name %></small></a></li><% }) %>
+          </ul>
+        <% } else { %><p class="cc-social-meta">No following entries are available on this page.</p><% } %>
+      </div>
+    </div>
+  </section>
+
+  <% if (member.relatedPeople.length) { %>
+    <section class="cc-social-section cc-member-related" aria-labelledby="cc-member-related-title">
+      <header class="cc-social-section__head">
+        <p class="cc-kicker"><%= memberLabels.relatedKicker %></p>
+        <h2 id="cc-member-related-title"><%= memberLabels.relatedTitle %></h2>
+        <p>Other people appearing in the recent public material from this place.</p>
+      </header>
+      <div class="cc-social-people-grid">
+        <% member.relatedPeople.forEach((person) => { %>
+          <a class="cc-social-person-card" href="<%= memberHref(person.name) %>">
+            <img src="<%= person.profileImage %>" alt="" loading="lazy">
+            <span><strong><%= person.displayName %></strong><small>@<%= person.name %></small></span>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+<% } %>

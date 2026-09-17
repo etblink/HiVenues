@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-social-read.css">
+</head>
+<body class="cc-public cc-hospitality cc-social cc-social--hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-social-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Community">
+      <a href="<%= communityHref %>">Table talk</a>
+      <a aria-current="page" href="<%= socialHref %>">Notes & people</a>
+      <a href="<%= hostHref %>">Back to the house</a>
+    </nav>
+  </header>
+  <main class="cc-social-shell cc-social-hospitality-shell">
+    <header class="cc-social-mast cc-social-mast--hospitality">
+      <p class="cc-kicker">From around <%= graph.identity.displayName %></p>
+      <h1>Notes from the table</h1>
+      <p>The people, quick notes, and longer stories that give this place continuity beyond a single visit.</p>
+    </header>
+    <%- include('_hub', {
+      graph, hub, hubStateCopy, formatCommunityTime, memberHref,
+      socialOrder: ['people', 'threads', 'posts'],
+      socialLabels: {
+        state: 'Table status',
+        community: 'The wider table',
+        threadsKicker: 'Passed around',
+        threadsTitle: 'Quick notes from the table',
+        postsKicker: 'From the house & community',
+        postsTitle: 'Stories to linger over',
+        peopleKicker: 'Around the table',
+        peopleTitle: 'People you may see here',
+        peopleBody: 'People appearing in recent public material or the community subscriber list.',
+        quiet: 'The table is quiet for the moment.'
+      }
+    }) %>
+  </main>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · read only</span></footer>
+</body>
+</html>

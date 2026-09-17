@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-social-read.css">
+</head>
+<body class="cc-public cc-poster cc-social cc-social--poster" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-poster-nav cc-social-nav">
+    <a class="cc-wordmark" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community">
+      <a href="<%= communityHref %>">Board conversation</a>
+      <a aria-current="page" href="<%= socialHref %>">Updates & people</a>
+      <a href="<%= hostHref %>">Back to the room</a>
+    </nav>
+  </header>
+  <main class="cc-social-shell cc-social-poster-shell">
+    <header class="cc-social-mast cc-social-mast--poster">
+      <p class="cc-kicker">What is moving through <%= graph.identity.displayName %></p>
+      <h1>Fresh on the wall</h1>
+      <p>Quick notes, longer stories, and the people showing up around this place—read from Hive without turning the room into a blockchain dashboard.</p>
+    </header>
+    <%- include('_hub', {
+      graph, hub, hubStateCopy, formatCommunityTime, memberHref,
+      socialOrder: ['threads', 'posts', 'people'],
+      socialLabels: {
+        state: 'Wall signal',
+        community: 'The wider room',
+        threadsKicker: 'Quick notes',
+        threadsTitle: 'New on the wall',
+        postsKicker: 'Longer reads',
+        postsTitle: 'Stories worth pinning up',
+        peopleKicker: 'People around here',
+        peopleTitle: 'Faces on the wall',
+        peopleBody: 'People appearing in recent public notes, stories, or the community subscriber list.',
+        quiet: 'Nothing new has landed on the wall yet.'
+      }
+    }) %>
+  </main>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public social reads · no account action</p></footer>
+</body>
+</html>
