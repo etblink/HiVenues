@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
 const { createBetaRemediationRouter } = require('./beta-remediation-router');
+const { createCandidateCCommunityRouter } = require('./community-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createCandidateCOperatorRouter } = require('./operator-router');
 const { createCandidateCPreviewRouter } = require('./preview-router');
@@ -50,6 +51,8 @@ function createDogfoodApp({
   accessSecret = '',
   secureCookie = publicIngress,
   provenance = null,
+  discussionReader = null,
+  discussionBindings = {},
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -198,6 +201,13 @@ function createDogfoodApp({
   // Preview routes intentionally run before the ordinary operator/public router.
   // They render only the working snapshot and never route through publicSnapshot.
   app.use('/candidate-c', createCandidateCPreviewRouter({ store }));
+  // Community is a read-only public projection over the accepted provider-neutral
+  // discussion seam. It must never enter HostGraph or acquire write authority.
+  app.use('/candidate-c', createCandidateCCommunityRouter({
+    store,
+    discussionReader,
+    discussionBindings,
+  }));
   app.use('/candidate-c', createCandidateCOperatorRouter({ store }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
   app.use(express.static(path.join(root, 'public')));

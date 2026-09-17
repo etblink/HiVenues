@@ -19,6 +19,7 @@
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
       <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#more-activities">More dates</a><% } %>
+      <% if (!previewMode) { %><a href="<%= hostHref %>/community">Table talk</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
