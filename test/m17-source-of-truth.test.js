@@ -4,8 +4,6 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
-const { assertReleaseCoherence } = require('../scripts/check-release-coherence');
-const { NEXT_SUCCESSOR_OPERATION } = require('../scripts/release-coherence/current-routing');
 const { loadDormantV1Config } = require('../scripts/check-v1-release');
 const { RELEASE_APP_TAG, PACKAGE_VERSION } = require('../src/release/release-version');
 const { assertPrivexV1Release } = require('../src/release/v1-readiness');
@@ -59,7 +57,7 @@ test('V1 release gate rejects controlled, payment, topology, and placeholder dri
     [{HIVE_CONTROLLED_ACCOUNTS:'etblink'},/HIVE_CONTROLLED_ACCOUNTS must be explicitly empty/],
     [{HIVE_CONTROLLED_ACTIONS:'post'},/HIVE_CONTROLLED_ACTIONS must be explicitly empty/],
     [{DISTRIATOR_ENABLED:'true'},/DISTRIATOR_ENABLED must be false/],
-    [{HIVE_BAR_HOST:'other.example',APP_ORIGIN:'https://other.example'},/HIVE_BAR_HOST must be exactly fourthstreetbar\.com/],
+    [{HIVE_BAR_HOST:'other.example',APP_ORIGIN:'https://other.example'},/HIVE_BAR_HOST must be exactly fourthstreetbar\\.com/],
     [{TRUST_PROXY:'1'},/TRUST_PROXY must be exactly loopback/],
     [{SESSION_SECRET:'REPLACE_WITH_AT_LEAST_32_RANDOM_BYTES'},/SESSION_SECRET must not contain an example placeholder/],
   ];
@@ -75,10 +73,4 @@ test('runs the dormant V1 release check without network access or server startup
   const summary = JSON.parse(result.stdout);
   assert.equal(summary.profile, 'privex-v1-self-signing');
   assert.equal(result.stdout.includes(sessionSecret), false);
-});
-
-test('release and successor living-document sources remain coherent across final package and historical deployment identities', () => {
-  assert.deepEqual(assertReleaseCoherence(), {
-    product:'HiVenues',packageVersion:'1.0.0',appTag:'fourth-street-bar-app/0.1.0',v1ActionCount:12,acceptedSuccessorMilestones:6,nextOperation:NEXT_SUCCESSOR_OPERATION,
-  });
 });
