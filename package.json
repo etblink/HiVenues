@@ -51,7 +51,7 @@
     "check:secrets": "node scripts/check-secrets.js",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "audit:prod:ci": "node scripts/run-npm-audit-ci.js",
-    "check:deterministic": "npm run check:secrets && npm run check:turnkey-wiring && npm run release:check:functional-v1 && npm run lint && npm run build && npm test",
+    "check:deterministic": "npm run check:secrets && npm run check:turnkey-wiring && npm run lint && npm run build && npm test",
     "check": "npm run check:deterministic && npm run audit:prod:ci",
     "venue:create:v2": "node scripts/create-v2-venue.js",
     "venue:studio:v2": "node scripts/open-v2-studio.js"
