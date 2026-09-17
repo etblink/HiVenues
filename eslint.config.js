@@ -66,6 +66,14 @@ module.exports = [
     },
   },
   {
+    files: ['scripts/candidate-c-era3-social-browser.js'],
+    languageOptions: {
+      globals: {
+        getComputedStyle: 'readonly',
+      },
+    },
+  },
+  {
     files: ['public/js/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
