@@ -191,7 +191,7 @@ test('command runner terminates a stalled child within its attempt boundary', { 
   assert.ok(Date.now() - startedAt < 4_000);
 });
 
-test('workflow separates both OS audit lanes from the deterministic verification lanes', () => {
+test('workflow separates both OS audit lanes from the current deterministic verification lanes', () => {
   const root = path.join(__dirname, '..');
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
@@ -207,7 +207,11 @@ test('workflow separates both OS audit lanes from the deterministic verification
     packageJson.scripts.check,
     'npm run check:deterministic && npm run audit:prod:ci',
   );
-  assert.match(packageJson.scripts['check:deterministic'], /check:turnkey-wiring/);
+  assert.equal(
+    packageJson.scripts['check:deterministic'],
+    'npm run check:secrets && npm run lint && npm run build && npm test',
+  );
+  assert.doesNotMatch(packageJson.scripts['check:deterministic'], /turnkey|legacy|venue/i);
   assert.match(verifyBlock, /run: npm run check:deterministic/);
   assert.doesNotMatch(verifyBlock, /audit:prod/);
   assert.match(auditBlock, /ubuntu-latest/);
