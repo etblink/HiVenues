@@ -1610,3 +1610,331 @@
     grid-template-columns:1fr;
   }
 }
+
+
+/* Era 4 direct host support — value movement stays visibly distinct from social participation. */
+.cc-support-shell {
+  width:min(980px,calc(100% - 2rem));
+  margin-inline:auto;
+  padding:clamp(3rem,7vw,6.5rem) 0;
+}
+.cc-support-mast {
+  display:grid;
+  gap:.75rem;
+  margin-bottom:clamp(2rem,6vw,4.5rem);
+  max-width:760px;
+}
+.cc-support-mast h1,
+.cc-support-mast p {
+  margin:0;
+}
+.cc-support-mast h1 {
+  font-size:clamp(3rem,8vw,7rem);
+  line-height:.9;
+  letter-spacing:-.045em;
+  text-wrap:balance;
+}
+.cc-support-mast > p:last-child {
+  max-width:48rem;
+  font-size:1.05rem;
+  line-height:1.65;
+}
+.cc-support-truth {
+  display:grid;
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+  gap:clamp(1.5rem,5vw,4rem);
+  margin-bottom:clamp(2rem,6vw,4rem);
+  padding:clamp(1.25rem,4vw,2.2rem);
+  border:1px solid currentColor;
+}
+.cc-support-truth h2,
+.cc-support-truth p {
+  margin:0;
+}
+.cc-support-truth h2 {
+  margin-top:.25rem;
+  font-size:clamp(1.7rem,4vw,3rem);
+  line-height:1;
+}
+.cc-support-truth ul {
+  display:grid;
+  gap:.6rem;
+  margin:0;
+  padding-left:1.2rem;
+  line-height:1.5;
+}
+.cc-support-action {
+  display:grid;
+  grid-template-columns:minmax(0,.8fr) minmax(280px,1.2fr);
+  gap:clamp(1.5rem,5vw,4rem);
+  margin-top:clamp(2rem,6vw,4rem);
+  padding:clamp(1.25rem,4vw,2.2rem);
+  border:1px solid currentColor;
+}
+.cc-support-action > div:first-child {
+  display:grid;
+  align-content:start;
+  gap:.45rem;
+}
+.cc-support-action h2,
+.cc-support-action p {
+  margin:0;
+}
+.cc-support-action h2 {
+  font-size:clamp(1.8rem,4vw,3rem);
+  line-height:1;
+}
+.cc-support-action > div:first-child > p:last-child {
+  line-height:1.55;
+}
+.cc-support-action form[data-support-form] {
+  display:grid;
+  gap:.85rem;
+}
+.cc-support-action form[data-support-form] > label {
+  font-size:.76rem;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.cc-support-action__amount {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.65rem;
+}
+.cc-support-action input,
+.cc-support-action select,
+.cc-support-action button {
+  min-height:2.9rem;
+  border:1px solid currentColor;
+  border-radius:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+}
+.cc-support-action input,
+.cc-support-action select {
+  min-width:0;
+  padding:.7rem .85rem;
+}
+.cc-support-action button {
+  padding:.7rem 1rem;
+  font-weight:850;
+  cursor:pointer;
+}
+.cc-support-action button:disabled,
+.cc-support-action input:disabled,
+.cc-support-action select:disabled {
+  cursor:not-allowed;
+  opacity:.52;
+}
+.cc-support-action input:focus-visible,
+.cc-support-action select:focus-visible,
+.cc-support-action button:focus-visible,
+.cc-support-review summary:focus-visible {
+  outline:3px solid var(--cc-accent);
+  outline-offset:3px;
+}
+.cc-support-action__status {
+  min-height:1.45em;
+  font-size:.84rem;
+  line-height:1.5;
+  font-weight:700;
+}
+.cc-support-action[data-support-state="review"],
+.cc-support-action[data-support-state="awaiting-wallet"],
+.cc-support-action[data-support-state="pending"] {
+  box-shadow:inset 0 0 0 2px var(--cc-accent);
+}
+.cc-support-action[data-support-state="uncertain"] .cc-support-action__status,
+.cc-support-action[data-support-state="failed"] .cc-support-action__status,
+.cc-support-action[data-support-state="provider-unavailable"] .cc-support-action__status,
+.cc-support-action[data-support-state="balance-changed"] .cc-support-action__status,
+.cc-support-action[data-support-state="stale"] .cc-support-action__status {
+  text-decoration:underline;
+  text-decoration-thickness:.1em;
+  text-underline-offset:.24em;
+}
+.cc-support-review {
+  width:min(48rem,calc(100vw - 2rem));
+  max-height:calc(100vh - 2rem);
+  overflow:auto;
+  padding:0;
+  border:1px solid #211d1a;
+  border-radius:1rem;
+  background:#fffdf8;
+  color:#211d1a;
+  box-shadow:0 28px 80px rgba(0,0,0,.34);
+}
+.cc-support-review::backdrop { background:rgba(8,7,7,.72); }
+.cc-support-review > form {
+  display:grid;
+  gap:1rem;
+  padding:clamp(1.15rem,4vw,2rem);
+}
+.cc-support-review h2,
+.cc-support-review p { margin:0; }
+.cc-support-review h2 {
+  font-size:clamp(1.8rem,4vw,3rem);
+  line-height:1;
+}
+.cc-support-review dl {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.7rem 1rem;
+  margin:0;
+}
+.cc-support-review dl > div {
+  display:grid;
+  gap:.2rem;
+  padding:.65rem 0;
+  border-top:1px solid rgba(33,29,26,.18);
+}
+.cc-support-review dt {
+  font-size:.72rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.cc-support-review dd {
+  margin:0;
+  overflow-wrap:anywhere;
+  font-weight:750;
+}
+.cc-support-review details {
+  padding:.8rem;
+  border:1px solid rgba(33,29,26,.18);
+}
+.cc-support-review summary { cursor:pointer; font-weight:800; }
+.cc-support-review pre {
+  max-height:14rem;
+  overflow:auto;
+  padding:.75rem;
+  background:#f1ece4;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  font-size:.74rem;
+}
+.cc-support-review__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+}
+.cc-support-review__actions button {
+  appearance:none;
+  border:1px solid #211d1a;
+  border-radius:.5rem;
+  padding:.7rem .95rem;
+  background:#fffdf8;
+  color:#211d1a;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+.cc-support-review__actions [data-support-confirm] {
+  background:#211d1a;
+  color:#fffdf8;
+}
+
+/* Poster: support reads like a benefit card pinned to the room wall. */
+.cc-support-page--poster {
+  background:var(--cc-night);
+  color:var(--cc-night-text);
+}
+.cc-support-page--poster .cc-support-mast h1 {
+  max-width:9ch;
+  text-transform:uppercase;
+}
+.cc-support-page--poster .cc-support-truth,
+.cc-support-page--poster .cc-support-action {
+  border-color:var(--cc-night-line);
+  background:rgba(255,255,255,.03);
+  box-shadow:6px 6px 0 rgba(255,255,255,.045);
+}
+.cc-support-page--poster .cc-support-action input,
+.cc-support-page--poster .cc-support-action select,
+.cc-support-page--poster .cc-support-action button {
+  border-color:var(--cc-night-line);
+  background:rgba(255,255,255,.035);
+}
+.cc-support-page--poster .cc-support-action button {
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+
+/* Editorial: support remains a deliberate patronage note, not wallet chrome. */
+.cc-support-page--editorial {
+  background:#f1eff7;
+  color:#29243b;
+}
+.cc-support-page--editorial .cc-support-mast h1,
+.cc-support-page--editorial .cc-support-truth h2,
+.cc-support-page--editorial .cc-support-action h2 {
+  font-family:Georgia,serif;
+  font-weight:500;
+}
+.cc-support-page--editorial .cc-support-truth,
+.cc-support-page--editorial .cc-support-action {
+  border-left:0;
+  border-right:0;
+  border-color:rgba(41,36,59,.25);
+  background:rgba(255,255,255,.26);
+}
+.cc-support-page--editorial .cc-support-action button {
+  background:#29243b;
+  color:#f1eff7;
+}
+
+/* Hospitality: support feels like leaving something for the house. */
+.cc-support-page--hospitality {
+  background:#f4eee4;
+  color:#2d251f;
+}
+.cc-support-page--hospitality .cc-support-shell {
+  width:min(1040px,calc(100% - 2rem));
+}
+.cc-support-page--hospitality .cc-support-mast {
+  margin-inline:auto;
+  text-align:center;
+}
+.cc-support-page--hospitality .cc-support-mast h1,
+.cc-support-page--hospitality .cc-support-truth h2,
+.cc-support-page--hospitality .cc-support-action h2 {
+  font-family:Georgia,serif;
+}
+.cc-support-page--hospitality .cc-support-truth,
+.cc-support-page--hospitality .cc-support-action {
+  border-color:rgba(45,37,31,.18);
+  border-radius:1.4rem;
+  background:#fffaf1;
+  box-shadow:0 18px 60px rgba(45,37,31,.08);
+}
+.cc-support-page--hospitality .cc-support-action input,
+.cc-support-page--hospitality .cc-support-action select {
+  border-color:rgba(45,37,31,.28);
+  border-radius:.7rem;
+  background:#fff;
+}
+.cc-support-page--hospitality .cc-support-action button {
+  border-color:rgba(45,37,31,.32);
+  border-radius:999px;
+  background:#2d251f;
+  color:#fffaf1;
+}
+
+@media (max-width:760px) {
+  .cc-support-truth,
+  .cc-support-action {
+    grid-template-columns:1fr;
+  }
+  .cc-support-action__amount {
+    grid-template-columns:1fr;
+  }
+  .cc-support-action button,
+  .cc-support-review__actions button {
+    width:100%;
+  }
+  .cc-support-review dl {
+    grid-template-columns:1fr;
+  }
+}
