@@ -90,6 +90,65 @@ function safeAccount(value) {
   }
 }
 
+
+function participationCapability(res) {
+  return Boolean(res.locals?.hivenuesParticipationAvailable);
+}
+
+function verifiedViewer(res) {
+  return safeAccount(res.locals?.hivenuesIdentity?.account);
+}
+
+async function readCommunityRelationship(hiveReads, binding, viewer, available) {
+  const base = {
+    available: Boolean(available),
+    actor: viewer || null,
+    community: isSocialBinding(binding) ? binding.community : null,
+    subscribed: null,
+    issue: null,
+  };
+  if (!available) return Object.freeze({ ...base, issue: 'participation-unavailable' });
+  if (!viewer) return Object.freeze({ ...base, issue: 'identity-required' });
+  if (!isSocialBinding(binding)) return Object.freeze({ ...base, issue: 'binding-invalid' });
+  if (!hiveReads || typeof hiveReads.isCommunityMember !== 'function') {
+    return Object.freeze({ ...base, issue: 'relationship-read-unavailable' });
+  }
+  try {
+    const subscribed = await hiveReads.isCommunityMember(viewer, binding.community);
+    if (typeof subscribed !== 'boolean') {
+      return Object.freeze({ ...base, issue: 'relationship-read-invalid' });
+    }
+    return Object.freeze({ ...base, subscribed });
+  } catch {
+    return Object.freeze({ ...base, issue: 'relationship-read-unavailable' });
+  }
+}
+
+async function readFollowRelationship(hiveReads, target, viewer, available) {
+  const base = {
+    available: Boolean(available),
+    actor: viewer || null,
+    target,
+    following: null,
+    issue: null,
+  };
+  if (!available) return Object.freeze({ ...base, issue: 'participation-unavailable' });
+  if (!viewer) return Object.freeze({ ...base, issue: 'identity-required' });
+  if (viewer === target) return Object.freeze({ ...base, issue: 'self-target' });
+  if (!hiveReads || typeof hiveReads.getFollowStatus !== 'function') {
+    return Object.freeze({ ...base, issue: 'relationship-read-unavailable' });
+  }
+  try {
+    const following = await hiveReads.getFollowStatus(viewer, target);
+    if (typeof following !== 'boolean') {
+      return Object.freeze({ ...base, issue: 'relationship-read-invalid' });
+    }
+    return Object.freeze({ ...base, following });
+  } catch {
+    return Object.freeze({ ...base, issue: 'relationship-read-unavailable' });
+  }
+}
+
 function profileFor(profiles, name) {
   const profile = profiles?.[name];
   return isRecord(profile) ? profile : null;
@@ -335,7 +394,14 @@ function createCandidateCSocialReadRouter({
     const template = SOCIAL_TEMPLATES[view.family.id]?.hub;
     if (!template) return res.sendStatus(404);
 
-    const hub = await readSocialHub(hiveReadService, bindings.get(req.params.slug));
+    const binding = bindings.get(req.params.slug);
+    const hub = await readSocialHub(hiveReadService, binding);
+    const participation = await readCommunityRelationship(
+      hiveReadService,
+      binding,
+      verifiedViewer(res),
+      participationCapability(res),
+    );
     const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
@@ -345,6 +411,7 @@ function createCandidateCSocialReadRouter({
       pageTitle: `Updates — ${view.graph.identity.displayName}`,
       ...view,
       hub,
+      participation,
       hostHref,
       communityHref,
       socialHref,
@@ -367,8 +434,15 @@ function createCandidateCSocialReadRouter({
     const view = buildViewModel(snapshot);
     const template = SOCIAL_TEMPLATES[view.family.id]?.member;
     if (!template) return res.sendStatus(404);
-    const member = await readMember(hiveReadService, bindings.get(req.params.slug), account);
+    const binding = bindings.get(req.params.slug);
+    const member = await readMember(hiveReadService, binding, account);
     if (member.status === 'missing') return res.sendStatus(404);
+    const participation = await readFollowRelationship(
+      hiveReadService,
+      account,
+      verifiedViewer(res),
+      participationCapability(res),
+    );
 
     const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
@@ -379,6 +453,7 @@ function createCandidateCSocialReadRouter({
       pageTitle: `${member.profile?.displayName || `@${account}`} — ${view.graph.identity.displayName}`,
       ...view,
       member,
+      participation,
       hostHref,
       communityHref,
       socialHref,
@@ -400,6 +475,8 @@ module.exports = {
   isSocialBinding,
   memberStateCopy,
   peopleFromHub,
+  readCommunityRelationship,
+  readFollowRelationship,
   readMember,
   readSocialHub,
   socialState,
