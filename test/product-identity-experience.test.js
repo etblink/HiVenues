@@ -139,7 +139,7 @@ test('verified identity renders as bounded session truth rather than an operatio
     hiveReadService,
     sessionSecret: 'identity-experience-test-session-secret-0002',
   });
-  const { token, session } = services.sessionStore.issue('etblink');
+  const { token, session } = services.sessionStore.create('etblink');
   const { app } = appWith({ hiveReadService, identityServices: services });
 
   const response = await request(app)
@@ -166,7 +166,7 @@ test('identity proof stays contextual to the social hub rather than becoming a w
   assert.doesNotMatch(member.text, /hivenues-identity\.js/);
 });
 
-test('frozen direct dogfood renderer does not acquire the new identity surface implicitly', async () => {
+test('historical dogfood entry inherits the canonical product identity surface', async () => {
   const { createDogfoodApp } = require('../src/candidate-c/dogfood-app');
   const store = new CandidateCStore();
   const app = createDogfoodApp({
@@ -179,6 +179,7 @@ test('frozen direct dogfood renderer does not acquire the new identity surface i
     .get('/candidate-c/northline-hall/community/updates')
     .expect(200);
 
-  assert.doesNotMatch(response.text, /data-hivenues-identity/);
-  assert.doesNotMatch(response.text, /data-identity-form/);
+  assert.match(response.text, /data-hivenues-identity/);
+  assert.match(response.text, /data-identity-state="not-identified"/);
+  assert.match(response.text, /data-identity-form/);
 });
