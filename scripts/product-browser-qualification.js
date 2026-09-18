@@ -1668,7 +1668,6 @@ async function runSupportJourney(
     ]]);
     await capture(page, axeSource, manifest, 'poster-direct-support-awaiting-wallet');
 
-    const reload = page.waitForEvent('load');
     await approvePendingSupport(page, hiveReadService, counters);
     await page.locator('[data-support-state="pending"]').waitFor({ timeout: 5000 });
     assert.match(
@@ -1677,10 +1676,12 @@ async function runSupportJourney(
     );
     await capture(page, axeSource, manifest, 'poster-direct-support-canonical-pending');
 
-    await reload;
-    await page.waitForLoadState('networkidle');
-    const reloaded = page.locator('[data-hivenues-support]').first();
-    await reloaded.waitFor();
+    await page.locator('[data-support-state="confirmed"]').waitFor({ timeout: 7000 });
+    assert.match(
+      await root.locator('[data-support-status]').textContent(),
+      /Confirmed on Hive\. 1\.250 HIVE was sent to @northline-pay\./,
+    );
+    assert.equal(await root.locator('[data-support-submit]').isDisabled(), true);
     assert.deepEqual(hiveReadService.liquidSnapshot('etblink'), {
       hive: '11.095 HIVE',
       hbd: '6.789 HBD',
@@ -1690,7 +1691,7 @@ async function runSupportJourney(
       hbd: '0.250 HBD',
     });
     assert.equal(counters.supportBroadcasts.length, 1);
-    await capture(page, axeSource, manifest, 'poster-direct-support-confirmed-reloaded');
+    await capture(page, axeSource, manifest, 'poster-direct-support-confirmed');
   } finally {
     await context.close();
   }
