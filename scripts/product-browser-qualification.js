@@ -625,8 +625,13 @@ async function pageAudit(page, axeSource, label) {
         text: (node.textContent || node.value || '').trim(),
         tag: node.tagName,
         authorizedVote: Boolean(node.closest('[data-hivenues-vote]')),
+        authorizedRewardClaim: Boolean(node.closest('[data-hivenues-reward-claim]')),
       }))
-      .filter((item) => held.test(item.text) && !item.authorizedVote);
+      .filter((item) => (
+        held.test(item.text)
+        && !item.authorizedVote
+        && !item.authorizedRewardClaim
+      ));
     const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
       .map((root) => ({
         action: root.dataset.participationAction || '',
@@ -658,6 +663,17 @@ async function pageAudit(page, axeSource, label) {
       || !item.directions.includes('upvote')
       || item.directions.some((direction) => !['upvote', 'downvote'].includes(direction))
     ));
+    const rewardClaim = Array.from(document.querySelectorAll('[data-hivenues-reward-claim]'))
+      .map((root) => ({
+        actor: root.dataset.rewardActor || '',
+        url: root.dataset.rewardUrl || '',
+        buttons: root.querySelectorAll('[data-reward-submit]').length,
+      }));
+    const invalidRewardClaim = rewardClaim.filter((item) => (
+      !item.actor
+      || !/^\/participation\/[^/]+\/rewards\/claim$/.test(item.url)
+      || item.buttons !== 1
+    ));
     return {
       unauthorized,
       relationship,
@@ -666,6 +682,8 @@ async function pageAudit(page, axeSource, label) {
       invalidContent,
       vote,
       invalidVote,
+      rewardClaim,
+      invalidRewardClaim,
     };
   });
   const accessibility = await page.evaluate(async () => {
@@ -690,6 +708,7 @@ async function pageAudit(page, axeSource, label) {
   assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
   assert.deepEqual(controls.invalidContent, [], label + ': invalid content controls');
   assert.deepEqual(controls.invalidVote, [], label + ': invalid vote controls');
+  assert.deepEqual(controls.invalidRewardClaim, [], label + ': invalid reward claim controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -1223,18 +1242,21 @@ async function runResourceRewardEvidence(
       family: 'poster',
       title: 'Your participation energy',
       metaphor: 'Raise-a-glass strength',
+      claimAction: 'Collect rewards',
     },
     {
       slug: 'nova-ashby',
       family: 'editorial',
       title: 'Your participation capacity',
       metaphor: 'Recommendation strength',
+      claimAction: 'Claim rewards',
     },
     {
       slug: 'harbor-and-hearth',
       family: 'hospitality',
       title: 'Your participation readiness',
       metaphor: 'Applause strength',
+      claimAction: 'Collect rewards',
     },
   ];
 
@@ -1255,10 +1277,17 @@ async function runResourceRewardEvidence(
         assert.match(await resource.textContent(), /550\.000 HP/);
         assert.match(await resource.textContent(), /Resource Credits \(RC\)/);
         assert.match(await resource.textContent(), /Claimable rewards/);
-        assert.match(await resource.textContent(), /This view is read-only/);
+        assert.match(
+          await resource.locator('[data-reward-submit]').textContent(),
+          new RegExp(item.claimAction),
+        );
+        assert.match(
+          await resource.textContent(),
+          /only available change here is claiming these exact pending rewards/i,
+        );
         assert.equal(
-          await resource.locator('button, input[type="submit"], [role="button"]').count(),
-          0,
+          await resource.locator('[data-reward-submit]').count(),
+          1,
         );
         await capture(
           page,
