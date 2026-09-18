@@ -108,6 +108,11 @@ class PreflightStore {
       record.state = 'observed';
       record.observedAt ||= new Date(this.now()).toISOString();
       if (Number.isSafeInteger(observed?.blockNumber)) record.blockNumber = observed.blockNumber;
+      // Duplicate protection is only for work that is still prepared or awaiting
+      // canonical observation. Once the exact operation is confirmed, a later
+      // identical operation may be a legitimate new state transition (for example,
+      // a future reward claim after new rewards accrue).
+      this.fingerprints.delete(`${record.account}:${record.fingerprint}`);
     }
     return this.publicRecord(record);
   }
