@@ -290,6 +290,30 @@ class HiveReadService {
     return Object.fromEntries(profiles.filter((profile) => profile.name).map((profile) => [profile.name, profile]));
   }
 
+  async getContentRecord(authorValue, permlinkValue) {
+    const author = requireHiveAccount(authorValue, 'Author');
+    const permlink = requirePermlink(permlinkValue);
+    const raw = await this.rpcPool.call('bridge', 'get_post', { author, permlink });
+    if (!raw?.author || !raw?.permlink) return null;
+
+    const rawAuthor = requireHiveAccount(raw.author, 'Content author');
+    const rawPermlink = requirePermlink(raw.permlink);
+    if (rawAuthor !== author || rawPermlink !== permlink) return null;
+
+    return Object.freeze({
+      author: rawAuthor,
+      permlink: rawPermlink,
+      parentAuthor: typeof raw.parent_author === 'string' ? raw.parent_author : '',
+      parentPermlink: typeof raw.parent_permlink === 'string' ? raw.parent_permlink : '',
+      title: typeof raw.title === 'string' ? raw.title : '',
+      body: typeof raw.body === 'string' ? raw.body : '',
+      jsonMetadata:
+        typeof raw.json_metadata === 'string'
+          ? raw.json_metadata
+          : JSON.stringify(raw.json_metadata || {}),
+    });
+  }
+
   async getPostWithComments(authorValue, permlinkValue, { discussionFilter = null } = {}) {
     const author = requireHiveAccount(authorValue, 'Author');
     const permlink = requirePermlink(permlinkValue);
@@ -543,6 +567,29 @@ class HiveReadService {
       role: subscriber[1],
       date: subscriber[3],
     }));
+  }
+
+  async observeContentOperation(record) {
+    const operation = record?.operations?.find((item) => (
+      Array.isArray(item) && item[0] === 'comment'
+    ));
+    const value = operation?.[1];
+    if (!value) return false;
+
+    const author = requireHiveAccount(value.author, 'Operation author');
+    const permlink = requirePermlink(value.permlink);
+    const current = await this.getContentRecord(author, permlink);
+    if (!current) return false;
+
+    return (
+      current.author === author
+      && current.permlink === permlink
+      && current.parentAuthor === String(value.parent_author || '')
+      && current.parentPermlink === String(value.parent_permlink || '')
+      && current.title === String(value.title || '')
+      && current.body === String(value.body || '')
+      && current.jsonMetadata === String(value.json_metadata || '')
+    );
   }
 
   async observeSocialOperation(record) {
