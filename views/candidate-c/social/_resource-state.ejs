@@ -1,3 +1,8 @@
+<%
+  const resourceSnapshotTime = resourceState?.displayedAt
+    ? formatCommunityTime(resourceState.displayedAt, graph.identity.timezone)
+    : null;
+%>
 <% if (resourceState?.visible) { %>
   <section class="cc-resource-state cc-resource-state--<%= graph.presentation.compositionFamily %>" aria-labelledby="cc-resource-state-title">
     <header class="cc-resource-state__head">
@@ -50,11 +55,11 @@
         <% } else { %>
           <p class="cc-resource-state__empty">No claimable Hive rewards are waiting right now.</p>
         <% } %>
-        <p class="cc-resource-state__truth">Read-only in this stage. HiVenues is not offering reward claims, transfers, RC delegation, or other value/resource mutations here.</p>
+        <p class="cc-resource-state__truth">This view is read-only. HiVenues is not offering reward claims, transfers, RC delegation, or other value or resource changes here.</p>
       </section>
 
       <p class="cc-resource-state__timestamp">
-        Hive snapshot <time datetime="<%= resourceState.displayedAt %>"><%= resourceState.displayedAt %></time>
+        Hive snapshot <% if (resourceSnapshotTime) { %><time datetime="<%= resourceState.displayedAt %>"><%= resourceSnapshotTime %></time><% } else { %>time unavailable<% } %>
       </p>
     <% } else { %>
       <div class="cc-social-state cc-social-state--<%= resourceState.status %>" role="status">
