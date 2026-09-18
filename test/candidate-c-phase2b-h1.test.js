@@ -31,7 +31,7 @@ function listEjs(directory, out = []) {
   return out;
 }
 
-test('Workstream F: Candidate C ships exactly one bounded custom client island and no inline scripts', () => {
+test('Workstream F + Era 4: Candidate C ships only bounded named client islands and no inline scripts', () => {
   const source = fs.readFileSync(ISLAND, 'utf8');
   const lines = source.split('\n').length - 1;
   assert.ok(lines < 150, `island grew to ${lines} lines`);
@@ -48,8 +48,31 @@ test('Workstream F: Candidate C ships exactly one bounded custom client island a
     const view = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(view, /<script(?![^>]*src=)[^>]*>/, `${path.relative(ROOT, file)} has an inline script`);
     assert.doesNotMatch(view, /\son[a-z]+=|hx-on/, `${path.relative(ROOT, file)} has an inline handler`);
+    const relative = path.relative(ROOT, file).split(path.sep).join('/');
     const scripts = view.match(/<script[^>]*src="([^"]+)"/g) || [];
-    for (const tag of scripts) assert.match(tag, /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js/, `${path.relative(ROOT, file)}: ${tag}`);
+    for (const tag of scripts) {
+      assert.match(
+        tag,
+        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js/,
+        `${relative}: ${tag}`,
+      );
+      if (/keychain-adapter|hivenues-identity/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-hub\.ejs$/,
+          `${relative}: identity client escaped the social participation surface`,
+        );
+      }
+    }
+  }
+
+  for (const family of ['poster', 'editorial', 'hospitality']) {
+    const hub = fs.readFileSync(
+      path.join(ROOT, 'views', 'candidate-c', 'social', `${family}-hub.ejs`),
+      'utf8',
+    );
+    assert.match(hub, /\/js\/keychain-adapter\.js/);
+    assert.match(hub, /\/js\/hivenues-identity\.js/);
   }
 });
 
