@@ -1,14 +1,29 @@
 'use strict';
 
 const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
-const manifest = require('../ops/privex/manifest.json');
 
 function normalizeVersion(value) {
   return String(value || '').trim().replace(/^v/, '');
 }
 
-function assertPinnedRuntime(nodeVersion, npmVersion, expected = manifest.runtime) {
+function repositoryRuntime(root = path.resolve(__dirname, '..')) {
+  const nodeVersion = normalizeVersion(fs.readFileSync(path.join(root, '.nvmrc'), 'utf8'));
+  const packageRecord = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const packageManager = String(packageRecord.packageManager || '').trim();
+  const match = /^npm@(.+)$/.exec(packageManager);
+  if (!nodeVersion) throw new Error('.nvmrc must pin an exact Node version');
+  if (!match || !normalizeVersion(match[1])) {
+    throw new Error('package.json#packageManager must pin an exact npm version');
+  }
+  return Object.freeze({
+    nodeVersion,
+    npmVersion: normalizeVersion(match[1]),
+  });
+}
+
+function assertPinnedRuntime(nodeVersion, npmVersion, expected = repositoryRuntime()) {
   const actualNode = normalizeVersion(nodeVersion);
   const actualNpm = normalizeVersion(npmVersion);
 
@@ -38,9 +53,13 @@ if (require.main === module) {
     const summary = assertPinnedRuntime(process.versions.node, installedNpmVersion());
     process.stdout.write(`${JSON.stringify(summary)}\n`);
   } catch (error) {
-    process.stderr.write(`Hive-Bar runtime refused: ${error.message}\n`);
+    process.stderr.write(`HiVenues runtime refused: ${error.message}\n`);
     process.exitCode = 1;
   }
 }
 
-module.exports = { assertPinnedRuntime, normalizeVersion };
+module.exports = {
+  assertPinnedRuntime,
+  normalizeVersion,
+  repositoryRuntime,
+};
