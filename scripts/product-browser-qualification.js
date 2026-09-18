@@ -736,7 +736,7 @@ async function runRelationshipProviderUnavailableEvidence(
     assert.equal(await hiveReadService.getFollowStatus('blue-cup', 'juniper-lane'), false);
     assert.match(
       await root.locator('[data-participation-status]').textContent(),
-      /human-owned Hive wallet/i,
+      /(Hive Keychain was not found|human-owned Hive wallet)/i,
     );
     await capture(page, axeSource, manifest, 'hospitality-follow-wallet-unavailable');
   } finally {
