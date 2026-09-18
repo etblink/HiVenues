@@ -59,6 +59,22 @@ function socialBindings() {
   return Object.fromEntries(HOSTS.map((host) => [host.slug, SOCIAL_BINDING]));
 }
 
+function qualificationHosts() {
+  const hosts = seedCandidateCHosts();
+  const posterHost = hosts.find((host) => host.identity.slug === 'northline-hall');
+  posterHost.bindings.hive.showNegativeVoteAction = true;
+  posterHost.voice.terms.downvote_hive = 'Not for this room';
+
+  const editorialHost = hosts.find((host) => host.identity.slug === 'nova-ashby');
+  editorialHost.bindings.hive.showNegativeVoteAction = false;
+  editorialHost.voice.terms.downvote_hive = 'Push back';
+
+  const hospitalityHost = hosts.find((host) => host.identity.slug === 'harbor-and-hearth');
+  hospitalityHost.bindings.hive.showNegativeVoteAction = true;
+  hospitalityHost.voice.terms.downvote_hive = 'Not for this table';
+  return hosts;
+}
+
 function contentKey(author, permlink) {
   return String(author) + '/' + String(permlink);
 }
@@ -1267,17 +1283,7 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
 }
 
 async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
-  const browserHosts = seedCandidateCHosts();
-  const posterHost = browserHosts.find((host) => host.identity.slug === 'northline-hall');
-  posterHost.bindings.hive.showNegativeVoteAction = true;
-  posterHost.voice.terms.downvote_hive = 'Not for this room';
-  const editorialHost = browserHosts.find((host) => host.identity.slug === 'nova-ashby');
-  editorialHost.bindings.hive.showNegativeVoteAction = false;
-  editorialHost.voice.terms.downvote_hive = 'Push back';
-  const hospitalityHost = browserHosts.find((host) => host.identity.slug === 'harbor-and-hearth');
-  hospitalityHost.bindings.hive.showNegativeVoteAction = true;
-  hospitalityHost.voice.terms.downvote_hive = 'Not for this table';
-  const store = new CandidateCStore({ hosts: browserHosts });
+  const store = new CandidateCStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const hiveReadService = productReadService(publicKey);
   const app = createHiVenuesApp({
@@ -1320,7 +1326,7 @@ async function main() {
   const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
   const key = await signingKey();
   const publicKey = key.createPublic().toString();
-  const store = new CandidateCStore();
+  const store = new CandidateCStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const beforePublicSnapshots = Object.fromEntries(
     HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
