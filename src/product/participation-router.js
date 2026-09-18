@@ -14,6 +14,12 @@ const {
   buildCommunitySubscription,
   buildFollow,
 } = require('../hive/social-operations');
+const {
+  buildReply,
+  buildRootPost,
+  buildRootPostUpdate,
+  createContentPermlink,
+} = require('./content-operations');
 const { isSocialBinding } = require('../candidate-c/social-read-router');
 const { assertSameOrigin } = require('./identity-router');
 
@@ -110,6 +116,7 @@ function createHiVenuesParticipationRouter({
   services = null,
   socialBindings = {},
   fixedOrigin = '',
+  contentPermlinkFactory = createContentPermlink,
 } = {}) {
   if (!store || typeof store.publicSnapshot !== 'function') {
     throw new TypeError('HiVenues participation router requires a public snapshot store.');
@@ -129,6 +136,57 @@ function createHiVenuesParticipationRouter({
     requireIdentityCsrf(req, identity);
     const active = requireParticipationServices(services);
     return { identity, active };
+  }
+
+
+  function requireContentReadContract(active) {
+    if (
+      typeof active.hiveReadService.getContentRecord !== 'function'
+      || typeof active.hiveReadService.getPostWithComments !== 'function'
+      || typeof active.hiveReadService.observeContentOperation !== 'function'
+    ) {
+      throw new FeatureUnavailableError('Hive content participation is temporarily unavailable', {
+        code: 'CONTENT_PROVIDER_UNAVAILABLE',
+      });
+    }
+    return active;
+  }
+
+  function requireHostBinding(slug) {
+    const binding = bindings.get(slug);
+    if (!isSocialBinding(binding)) {
+      throw new FeatureUnavailableError('This host does not have a valid Hive community binding', {
+        code: 'COMMUNITY_NOT_BOUND',
+      });
+    }
+    return binding;
+  }
+
+  async function requireHostDiscussion(active, binding, rootAuthor, rootPermlink) {
+    const discussion = await active.hiveReadService.getPostWithComments(rootAuthor, rootPermlink);
+    if (
+      discussion?.post?.author !== rootAuthor
+      || discussion?.post?.permlink !== rootPermlink
+      || discussion?.post?.parentAuthor !== ''
+      || discussion?.post?.parentPermlink !== binding.community
+    ) {
+      throw new NotFoundError('Hive discussion is not part of this host community');
+    }
+    return discussion;
+  }
+
+  function discussionContains(discussion, author, permlink) {
+    if (discussion.post?.author === author && discussion.post?.permlink === permlink) return true;
+    return discussion.comments.some((item) => item.author === author && item.permlink === permlink);
+  }
+
+  function discussionHref(snapshot, author, permlink) {
+    return '/candidate-c/'
+      + encodeURIComponent(snapshot.draft.identity.slug)
+      + '/community/posts/'
+      + encodeURIComponent(author)
+      + '/'
+      + encodeURIComponent(permlink);
   }
 
   router.post('/:slug/people/:account/:action', async (req, res) => {
@@ -235,6 +293,139 @@ function createHiVenuesParticipationRouter({
     }
   });
 
+
+
+  router.post('/:slug/content/posts', async (req, res) => {
+    try {
+      const { identity, active: rawActive } = protect(req);
+      const active = requireContentReadContract(rawActive);
+      const snapshot = liveHost(store, req.params.slug);
+      const binding = requireHostBinding(req.params.slug);
+      const title = String(req.body?.title || '').trim();
+      const body = String(req.body?.body || '');
+      const permlink = contentPermlinkFactory(title || 'hivenues-post');
+      const envelope = contextualEnvelope(
+        buildRootPost({
+          account: identity.account,
+          community: binding.community,
+          title,
+          body,
+          permlink,
+        }),
+        snapshot,
+        {
+          consequence: '@' + identity.account + ' will publish a new public Hive post in ' + binding.community + '.',
+          discussionHref: discussionHref(snapshot, identity.account, permlink),
+        },
+      );
+      const preflight = active.preflightStore.create({
+        sessionId: identity.id,
+        envelope,
+        signer: identity.account,
+      });
+      return res.status(201).json({
+        ...preflight,
+        message: participationMessage(preflight),
+      });
+    } catch (error) {
+      return sendParticipationError(res, error);
+    }
+  });
+
+  router.post('/:slug/content/:author/:permlink/update', async (req, res) => {
+    try {
+      const { identity, active: rawActive } = protect(req);
+      const active = requireContentReadContract(rawActive);
+      const snapshot = liveHost(store, req.params.slug);
+      const binding = requireHostBinding(req.params.slug);
+      const author = requireHiveAccount(req.params.author, 'Content author');
+      const permlink = String(req.params.permlink || '').trim().toLowerCase();
+      if (author !== identity.account) {
+        throw new AuthorizationError('Only the verified author can update this Hive post', {
+          code: 'CONTENT_AUTHOR_MISMATCH',
+        });
+      }
+      await requireHostDiscussion(active, binding, author, permlink);
+      const existing = await active.hiveReadService.getContentRecord(author, permlink);
+      if (!existing) throw new NotFoundError('Hive post not found');
+      const envelope = contextualEnvelope(
+        buildRootPostUpdate({
+          account: identity.account,
+          existing,
+          title: req.body?.title,
+          body: req.body?.body,
+        }),
+        snapshot,
+        {
+          consequence: '@' + identity.account + ' will update the existing public Hive post '
+            + author + '/' + permlink + '.',
+          discussionHref: discussionHref(snapshot, author, permlink),
+        },
+      );
+      const preflight = active.preflightStore.create({
+        sessionId: identity.id,
+        envelope,
+        signer: identity.account,
+      });
+      return res.status(201).json({
+        ...preflight,
+        message: participationMessage(preflight),
+      });
+    } catch (error) {
+      return sendParticipationError(res, error);
+    }
+  });
+
+  router.post(
+    '/:slug/content/:rootAuthor/:rootPermlink/replies/:parentAuthor/:parentPermlink',
+    async (req, res) => {
+      try {
+        const { identity, active: rawActive } = protect(req);
+        const active = requireContentReadContract(rawActive);
+        const snapshot = liveHost(store, req.params.slug);
+        const binding = requireHostBinding(req.params.slug);
+        const rootAuthor = requireHiveAccount(req.params.rootAuthor, 'Discussion author');
+        const rootPermlink = String(req.params.rootPermlink || '').trim().toLowerCase();
+        const parentAuthor = requireHiveAccount(req.params.parentAuthor, 'Parent author');
+        const parentPermlink = String(req.params.parentPermlink || '').trim().toLowerCase();
+        const discussion = await requireHostDiscussion(active, binding, rootAuthor, rootPermlink);
+        if (!discussionContains(discussion, parentAuthor, parentPermlink)) {
+          throw new NotFoundError('Reply parent is not part of this canonical discussion');
+        }
+        const parent = await active.hiveReadService.getContentRecord(parentAuthor, parentPermlink);
+        if (!parent) throw new NotFoundError('Reply parent was not found on Hive');
+        const permlink = contentPermlinkFactory('re-' + parentPermlink);
+        const envelope = contextualEnvelope(
+          buildReply({
+            account: identity.account,
+            parent,
+            body: req.body?.body,
+            permlink,
+          }),
+          snapshot,
+          {
+            consequence: '@' + identity.account + ' will publish a public Hive reply to '
+              + parentAuthor + '/' + parentPermlink + '.',
+            discussionHref: discussionHref(snapshot, rootAuthor, rootPermlink),
+            rootAuthor,
+            rootPermlink,
+          },
+        );
+        const preflight = active.preflightStore.create({
+          sessionId: identity.id,
+          envelope,
+          signer: identity.account,
+        });
+        return res.status(201).json({
+          ...preflight,
+          message: participationMessage(preflight),
+        });
+      } catch (error) {
+        return sendParticipationError(res, error);
+      }
+    },
+  );
+
   router.post('/preflight/:id/cancel', (req, res) => {
     try {
       const { identity, active } = protect(req);
@@ -271,7 +462,10 @@ function createHiVenuesParticipationRouter({
     try {
       const { identity, active } = protect(req);
       const record = active.preflightStore.get(req.params.id, identity.id);
-      const observed = await active.hiveReadService.observeSocialOperation(record);
+      const contentAction = ['post', 'update', 'reply'].includes(record.action);
+      const observed = contentAction
+        ? await requireContentReadContract(active).hiveReadService.observeContentOperation(record)
+        : await active.hiveReadService.observeSocialOperation(record);
       const preflight = active.preflightStore.markObserved(
         req.params.id,
         identity.id,

@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { requireHiveAccount } = require('../http/validation');
+const { requireHiveAccount, requirePermlink } = require('../http/validation');
 const { normalizeBindings, formatCommunityTime } = require('./community-router');
 const { buildViewModel } = require('./present');
 
@@ -9,14 +9,17 @@ const SOCIAL_TEMPLATES = Object.freeze({
   poster: Object.freeze({
     hub: 'candidate-c/social/poster-hub',
     member: 'candidate-c/social/poster-member',
+    discussion: 'candidate-c/social/poster-discussion',
   }),
   editorial: Object.freeze({
     hub: 'candidate-c/social/editorial-hub',
     member: 'candidate-c/social/editorial-member',
+    discussion: 'candidate-c/social/editorial-discussion',
   }),
   hospitality: Object.freeze({
     hub: 'candidate-c/social/hospitality-hub',
     member: 'candidate-c/social/hospitality-member',
+    discussion: 'candidate-c/social/hospitality-discussion',
   }),
 });
 
@@ -97,6 +100,86 @@ function participationCapability(res) {
 
 function verifiedViewer(res) {
   return safeAccount(res.locals?.hivenuesIdentity?.account);
+}
+
+
+function contentCapability(res) {
+  return Boolean(res.locals?.hivenuesContentAvailable);
+}
+
+function hasContentReadContract(service) {
+  return Boolean(
+    service
+      && typeof service.getPostWithComments === 'function'
+      && typeof service.getContentRecord === 'function',
+  );
+}
+
+async function readDiscussion(hiveReads, binding, author, permlink, viewer, available) {
+  const base = {
+    status: 'unavailable',
+    issue: null,
+    actor: viewer || null,
+    available: Boolean(available),
+    post: null,
+    comments: Object.freeze([]),
+    profiles: Object.freeze({}),
+    updateRecord: null,
+  };
+  if (!isSocialBinding(binding)) return Object.freeze({ ...base, issue: 'binding-invalid' });
+  if (!hasContentReadContract(hiveReads)) {
+    return Object.freeze({ ...base, issue: 'provider-not-configured' });
+  }
+
+  let discussion;
+  try {
+    discussion = await hiveReads.getPostWithComments(author, permlink);
+  } catch {
+    return Object.freeze({ ...base, status: 'missing', issue: 'post-not-found' });
+  }
+  if (
+    !discussion?.post
+    || discussion.post.author !== author
+    || discussion.post.permlink !== permlink
+    || discussion.post.parentAuthor !== ''
+    || discussion.post.parentPermlink !== binding.community
+    || !Array.isArray(discussion.comments)
+  ) {
+    return Object.freeze({ ...base, status: 'missing', issue: 'post-not-in-host-community' });
+  }
+
+  let updateRecord = null;
+  let status = 'ready';
+  let issue = null;
+  if (viewer === author && available) {
+    try {
+      updateRecord = await hiveReads.getContentRecord(author, permlink);
+      if (
+        !updateRecord
+        || updateRecord.author !== author
+        || updateRecord.permlink !== permlink
+        || updateRecord.parentAuthor !== ''
+        || updateRecord.parentPermlink !== binding.community
+      ) {
+        updateRecord = null;
+        status = 'partial';
+        issue = 'update-record-unavailable';
+      }
+    } catch {
+      status = 'partial';
+      issue = 'update-record-unavailable';
+    }
+  }
+
+  return Object.freeze({
+    ...base,
+    status,
+    issue,
+    post: discussion.post,
+    comments: Object.freeze(discussion.comments),
+    profiles: Object.freeze(discussion.profiles || {}),
+    updateRecord,
+  });
 }
 
 async function readCommunityRelationship(hiveReads, binding, viewer, available) {
@@ -406,6 +489,12 @@ function createCandidateCSocialReadRouter({
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (account) => `${communityHref}/people/${encodeURIComponent(account)}`;
+    const discussionHref = (author, permlink) => (
+      `${communityHref}/posts/${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`
+    );
+    const contentPostEndpoint = '/participation/'
+      + encodeURIComponent(view.graph.identity.slug)
+      + '/content/posts';
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: `Updates — ${view.graph.identity.displayName}`,
@@ -416,6 +505,8 @@ function createCandidateCSocialReadRouter({
       communityHref,
       socialHref,
       memberHref,
+      discussionHref,
+      contentPostEndpoint,
       hubStateCopy,
       formatCommunityTime,
     });
@@ -463,6 +554,64 @@ function createCandidateCSocialReadRouter({
     });
   });
 
+
+  router.get('/:slug/community/posts/:author/:permlink', async (req, res) => {
+    const snapshot = store.publicSnapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+
+    let author;
+    let permlink;
+    try {
+      author = requireHiveAccount(req.params.author, 'Post author');
+      permlink = requirePermlink(req.params.permlink);
+    } catch {
+      return res.sendStatus(404);
+    }
+
+    const view = buildViewModel(snapshot);
+    const template = SOCIAL_TEMPLATES[view.family.id]?.discussion;
+    if (!template) return res.sendStatus(404);
+    const binding = bindings.get(req.params.slug);
+    const discussion = await readDiscussion(
+      hiveReadService,
+      binding,
+      author,
+      permlink,
+      verifiedViewer(res),
+      contentCapability(res),
+    );
+    if (discussion.status === 'missing') return res.sendStatus(404);
+
+    const hostHref = '/candidate-c/' + encodeURIComponent(view.graph.identity.slug);
+    const communityHref = hostHref + '/community';
+    const socialHref = communityHref + '/updates';
+    const memberHref = (account) => communityHref + '/people/' + encodeURIComponent(account);
+    const discussionHref = communityHref + '/posts/' + encodeURIComponent(author)
+      + '/' + encodeURIComponent(permlink);
+    const participationBase = '/participation/' + encodeURIComponent(view.graph.identity.slug)
+      + '/content/' + encodeURIComponent(author) + '/' + encodeURIComponent(permlink);
+    const contentUpdateEndpoint = participationBase + '/update';
+    const contentReplyEndpoint = (parentAuthor, parentPermlink) => (
+      participationBase + '/replies/' + encodeURIComponent(parentAuthor)
+      + '/' + encodeURIComponent(parentPermlink)
+    );
+
+    res.set('Cache-Control', 'no-store');
+    return res.render(template, {
+      pageTitle: (discussion.post?.title || 'Discussion') + ' — ' + view.graph.identity.displayName,
+      ...view,
+      discussion,
+      hostHref,
+      communityHref,
+      socialHref,
+      memberHref,
+      discussionHref,
+      contentUpdateEndpoint,
+      contentReplyEndpoint,
+      formatCommunityTime,
+    });
+  });
+
   router.bindings = bindings;
   return router;
 }
@@ -476,6 +625,7 @@ module.exports = {
   memberStateCopy,
   peopleFromHub,
   readCommunityRelationship,
+  readDiscussion,
   readFollowRelationship,
   readMember,
   readSocialHub,

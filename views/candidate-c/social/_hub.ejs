@@ -6,6 +6,9 @@
   const identitySession = hasIdentitySurface && typeof hivenuesIdentity !== 'undefined'
     ? hivenuesIdentity
     : null;
+  const contentAvailable = typeof hivenuesContentAvailable !== 'undefined'
+    ? hivenuesContentAvailable
+    : false;
 %>
 <% if (hub.status !== 'ready') { %>
   <section class="cc-social-state cc-social-state--<%= hub.status %>" role="status">
@@ -41,6 +44,21 @@
         participationKind: 'community',
         participationLabels: communityParticipationLabels,
         socialHref
+      }) %>
+    </section>
+  <% } %>
+
+  <% if (identitySession && contentAvailable) { %>
+    <section class="cc-content-create" aria-labelledby="cc-content-create-title">
+      <%- include('_content-composer', {
+        graph,
+        mode: 'post',
+        endpoint: contentPostEndpoint,
+        actor: identitySession.account,
+        targetLabel: hub.community?.name || '',
+        initialTitle: '',
+        initialBody: '',
+        labels: contentPostLabels
       }) %>
     </section>
   <% } %>
@@ -84,8 +102,9 @@
                   <% const created = formatCommunityTime(item.created, graph.identity.timezone); %>
                   <% if (created) { %><span><%= created %></span><% } %>
                 </div>
-                <h3><%= item.title %></h3>
+                <h3><a href="<%= discussionHref(item.author, item.permlink) %>"><%= item.title %></a></h3>
                 <p><%= item.excerpt %></p>
+                <p><a class="cc-social-discussion-link" href="<%= discussionHref(item.author, item.permlink) %>">Open discussion</a></p>
                 <p class="cc-social-meta"><%= item.replyCount %> <%= item.replyCount === 1 ? 'response' : 'responses' %></p>
               </div>
             </article>

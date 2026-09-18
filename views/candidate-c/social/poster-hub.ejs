@@ -20,7 +20,7 @@
       <p>Quick notes, longer stories, and the people showing up around this place—read from Hive without turning the room into a blockchain dashboard.</p>
     </header>
     <%- include('_hub', {
-      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref,
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref, discussionHref, contentPostEndpoint,
       socialOrder: ['threads', 'posts', 'people'],
       identityLabels: {
         kicker: 'Join the room',
@@ -48,6 +48,19 @@
         leave: 'Leave this room',
         ready: 'Review the exact Hive subscription change before your wallet opens.'
       },
+      contentPostLabels: {
+        kicker: 'Pin something up',
+        title: 'Add a new public note',
+        body: 'Compose a new public Hive post for this room without exposing raw blockchain fields.',
+        titleLabel: 'Headline',
+        bodyLabel: 'What you want to put on the wall',
+        previewKicker: 'Wall preview',
+        previewTitleEmpty: 'Your headline will appear here',
+        previewBodyEmpty: 'Your public note will appear here.',
+        action: 'Review public note',
+        truth: 'A new public Hive post is created only after exact review and approval in your own wallet.',
+        ready: 'Draft freely; nothing is public yet.'
+      },
       socialLabels: {
         state: 'Wall signal',
         community: 'The wider room',
@@ -66,5 +79,6 @@
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-identity.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
+  <script src="/js/hivenues-content.js" defer></script>
 </body>
 </html>

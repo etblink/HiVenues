@@ -1,0 +1,100 @@
+<%
+  const contentMode = String(mode || 'post');
+  const contentTitle = typeof initialTitle === 'string' ? initialTitle : '';
+  const contentBody = typeof initialBody === 'string' ? initialBody : '';
+  const contentTarget = typeof targetLabel === 'string' ? targetLabel : '';
+%>
+<section
+  class="cc-content-composer cc-content-composer--<%= contentMode %>"
+  data-hivenues-content
+  data-content-mode="<%= contentMode %>"
+  data-content-url="<%= endpoint %>"
+  data-content-actor="<%= actor %>"
+  data-content-target="<%= contentTarget %>"
+  data-content-state="ready"
+>
+  <header class="cc-content-composer__head">
+    <p class="cc-kicker"><%= labels.kicker %></p>
+    <h2><%= labels.title %></h2>
+    <p><%= labels.body %></p>
+  </header>
+
+  <form class="cc-content-composer__fields" data-content-form>
+    <% if (contentMode === 'post' || contentMode === 'update') { %>
+      <label>
+        <span><%= labels.titleLabel %></span>
+        <input
+          type="text"
+          name="title"
+          maxlength="256"
+          required
+          value="<%= contentTitle %>"
+          data-content-title
+        >
+      </label>
+    <% } %>
+    <label>
+      <span><%= labels.bodyLabel %></span>
+      <textarea
+        name="body"
+        required
+        rows="<%= contentMode === 'reply' ? 6 : 10 %>"
+        data-content-body
+      ><%= contentBody %></textarea>
+    </label>
+
+    <section class="cc-content-preview" aria-live="polite">
+      <p class="cc-kicker"><%= labels.previewKicker %></p>
+      <% if (contentMode === 'post' || contentMode === 'update') { %>
+        <h3 data-content-preview-title data-empty="<%= labels.previewTitleEmpty %>"><%= contentTitle || labels.previewTitleEmpty %></h3>
+      <% } %>
+      <p data-content-preview-body data-empty="<%= labels.previewBodyEmpty %>"><%= contentBody || labels.previewBodyEmpty %></p>
+    </section>
+
+    <button type="submit" data-content-submit><%= labels.action %></button>
+    <p class="cc-content-truth"><%= labels.truth %></p>
+    <p class="cc-content-status" data-content-status role="status" aria-live="polite"><%= labels.ready %></p>
+  </form>
+
+  <dialog class="cc-content-review" data-content-review aria-labelledby="cc-content-review-title">
+    <div>
+      <p class="cc-kicker">Before your wallet opens</p>
+      <h2 id="cc-content-review-title">Review the exact public Hive consequence</h2>
+      <p data-content-review-consequence></p>
+      <dl>
+        <div><dt>Verified author</dt><dd data-content-review-account></dd></div>
+        <div><dt>Hive mechanic</dt><dd data-content-review-action></dd></div>
+        <div><dt>Public target</dt><dd data-content-review-target></dd></div>
+        <div><dt>Permlink</dt><dd data-content-review-permlink></dd></div>
+      </dl>
+      <% if (contentMode === 'update') { %>
+        <section class="cc-content-review__public cc-content-review__public--before">
+          <p class="cc-kicker">Currently public</p>
+          <h3><%= contentTitle %></h3>
+          <p><%= contentBody %></p>
+        </section>
+      <% } %>
+      <% if (contentMode === 'post' || contentMode === 'update') { %>
+        <section class="cc-content-review__public">
+          <% if (contentMode === 'update') { %><p class="cc-kicker">After this update</p><% } %>
+          <h3 data-content-review-title-text></h3>
+          <p data-content-review-body-text></p>
+        </section>
+      <% } else { %>
+        <section class="cc-content-review__public">
+          <p data-content-review-body-text></p>
+        </section>
+      <% } %>
+      <details>
+        <summary>Technical operation details</summary>
+        <p>Fingerprint: <code data-content-review-fingerprint></code></p>
+        <pre data-content-review-operations></pre>
+      </details>
+      <p>Your own wallet—not HiVenues—will sign and broadcast this public content operation.</p>
+      <div class="cc-content-review__actions">
+        <button type="button" data-content-confirm>Continue to wallet</button>
+        <button type="button" data-content-cancel>Cancel</button>
+      </div>
+    </div>
+  </dialog>
+</section>
