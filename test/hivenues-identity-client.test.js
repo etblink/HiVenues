@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { setImmediate: waitImmediate } = require('node:timers/promises');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
@@ -50,8 +51,8 @@ function createDom(markup) {
 }
 
 async function settle() {
-  await new Promise((resolve) => setImmediate(resolve));
-  await new Promise((resolve) => setImmediate(resolve));
+  await waitImmediate();
+  await waitImmediate();
 }
 
 test('identity controller signs only the server challenge and reloads after server verification', async () => {
