@@ -64,6 +64,16 @@ const mechanicRegistry = Object.freeze({
     capability: 'hive-follow-account',
     degradedBehavior: 'Offer the public profile link or explain that account following is not connected.',
   }),
+  support_hive: Object.freeze({
+    id: 'support_hive',
+    meaning: 'Transfer an explicitly reviewed liquid HIVE or HBD amount from the verified visitor to this host’s configured value recipient.',
+    consequenceClass: 'signed-value-write',
+    movesValue: true,
+    public: true,
+    reversible: false,
+    capability: 'hive-transfer-support',
+    degradedBehavior: 'Do not show a support action unless a released value recipient and qualified transfer capability are both available.',
+  }),
 });
 
 const activityLifecycles = Object.freeze({
@@ -156,8 +166,9 @@ const bindingsSchema = z.object({
     account: z.string().nullable(),
     communityId: z.string().nullable(),
     // Optional so accepted historical HostGraph bytes remain byte-stable until
-    // an operator explicitly chooses this presentation policy.
+    // an operator explicitly chooses these later capability settings.
     showNegativeVoteAction: z.boolean().optional(),
+    valueRecipient: z.string().nullable().optional(),
   }),
   media: z.object({ state: z.enum(['local', 'degraded', 'connected']), provider: z.string().nullable() }),
 });
