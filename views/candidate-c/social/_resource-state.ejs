@@ -1,0 +1,66 @@
+<% if (resourceState?.visible) { %>
+  <section class="cc-resource-state cc-resource-state--<%= graph.presentation.compositionFamily %>" aria-labelledby="cc-resource-state-title">
+    <header class="cc-resource-state__head">
+      <p class="cc-kicker"><%= resourceLabels.kicker %></p>
+      <h2 id="cc-resource-state-title"><%= resourceLabels.title %></h2>
+      <p><%= resourceLabels.body %></p>
+    </header>
+
+    <% if (resourceState.status === 'ready') { %>
+      <div class="cc-resource-state__grid">
+        <section class="cc-resource-state__card" aria-labelledby="cc-voting-power-title">
+          <p class="cc-resource-state__metaphor"><%= resourceLabels.voting %></p>
+          <h3 id="cc-voting-power-title">Voting strength</h3>
+          <strong><%= resourceState.votingPowerPercent.toFixed(1) %>%</strong>
+          <meter min="0" max="100" value="<%= resourceState.votingPowerPercent %>"><%= resourceState.votingPowerPercent.toFixed(1) %>%</meter>
+          <small>Hive protocol: Voting power</small>
+        </section>
+
+        <section class="cc-resource-state__card" aria-labelledby="cc-rc-title">
+          <p class="cc-resource-state__metaphor"><%= resourceLabels.capacity %></p>
+          <h3 id="cc-rc-title">Activity capacity</h3>
+          <strong><%= resourceState.resourceCreditsPercent.toFixed(1) %>%</strong>
+          <meter min="0" max="100" value="<%= resourceState.resourceCreditsPercent %>"><%= resourceState.resourceCreditsPercent.toFixed(1) %>%</meter>
+          <small>Hive protocol: Resource Credits (RC)</small>
+        </section>
+
+        <section class="cc-resource-state__card cc-resource-state__card--basis" aria-labelledby="cc-hp-title">
+          <p class="cc-resource-state__metaphor"><%= resourceLabels.basis %></p>
+          <h3 id="cc-hp-title">Hive Power basis</h3>
+          <strong><%= resourceState.hivePower.toFixed(3) %> HP</strong>
+          <small>Public Hive account stake used in participation calculations.</small>
+        </section>
+      </div>
+
+      <section class="cc-resource-state__rewards" aria-labelledby="cc-rewards-title">
+        <div>
+          <p class="cc-kicker"><%= resourceLabels.rewards %></p>
+          <h3 id="cc-rewards-title">Claimable rewards</h3>
+        </div>
+        <% if (resourceState.hasClaimableRewards) { %>
+          <dl>
+            <div><dt>HIVE</dt><dd><%= resourceState.rewards.hive.toFixed(3) %></dd></div>
+            <div><dt>HBD</dt><dd><%= resourceState.rewards.hbd.toFixed(3) %></dd></div>
+            <div><dt>Hive Power</dt><dd><%= resourceState.rewards.hivePower.toFixed(3) %></dd></div>
+          </dl>
+          <details>
+            <summary>Protocol reward detail</summary>
+            <p><%= resourceState.rewards.vestingShares.toFixed(6) %> VESTS are currently represented in the Hive Power reward figure above.</p>
+          </details>
+        <% } else { %>
+          <p class="cc-resource-state__empty">No claimable Hive rewards are waiting right now.</p>
+        <% } %>
+        <p class="cc-resource-state__truth">Read-only in this stage. HiVenues is not offering reward claims, transfers, RC delegation, or other value/resource mutations here.</p>
+      </section>
+
+      <p class="cc-resource-state__timestamp">
+        Hive snapshot <time datetime="<%= resourceState.displayedAt %>"><%= resourceState.displayedAt %></time>
+      </p>
+    <% } else { %>
+      <div class="cc-social-state cc-social-state--<%= resourceState.status %>" role="status">
+        <h3>Your Hive participation state is temporarily unavailable.</h3>
+        <p>HiVenues did not guess at voting power, Resource Credits, Hive Power, or rewards.</p>
+      </div>
+    <% } %>
+  </section>
+<% } %>
