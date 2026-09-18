@@ -31,7 +31,12 @@ function createHiVenuesIdentityServices({
     ttlMs: sessionTtlMs,
     now,
   });
-  const authorityVerifier = new PostingAuthorityVerifier(rpcPool);
+  const postingAuthorityVerifier = new PostingAuthorityVerifier(rpcPool);
+  const authorityVerifier = Object.freeze({
+    isAuthorized(account, publicKey) {
+      return postingAuthorityVerifier.isDirectKeyAuthorized(account, publicKey);
+    },
+  });
   const identityProof = new KeychainAuthService({
     challengeStore,
     sessionStore,
@@ -40,6 +45,7 @@ function createHiVenuesIdentityServices({
 
   return Object.freeze({
     authorityVerifier,
+    postingAuthorityVerifier,
     challengeStore,
     identityProof,
     sessionStore,
