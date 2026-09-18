@@ -3,14 +3,14 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 const express = require('express');
-const { createBetaRemediationRouter } = require('../candidate-c/beta-remediation-router');
-const { createCandidateCCommunityRouter } = require('../candidate-c/community-router');
-const { createCandidateCSocialReadRouter } = require('../candidate-c/social-read-router');
-const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('../candidate-c/local-media');
-const { createCandidateCOperatorRouter } = require('../candidate-c/operator-router');
-const { createCandidateCPreviewRouter } = require('../candidate-c/preview-router');
-const { buildViewModel } = require('../candidate-c/present');
-const { ProvisioningFileCandidateCStore } = require('../candidate-c/provisioning-file-store');
+const { createRecoveryRouter } = require('./recovery-router');
+const { createHiVenuesCommunityRouter } = require('./community-router');
+const { createHiVenuesSocialReadRouter } = require('./social-read-router');
+const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
+const { createHiVenuesOperatorRouter } = require('./operator-router');
+const { createHiVenuesPreviewRouter } = require('./preview-router');
+const { buildViewModel } = require('./present');
+const { ProvisioningFileHiVenuesStore } = require('./provisioning-file-store');
 const {
   createHiVenuesIdentityServices,
   identitySessionContext,
@@ -75,9 +75,9 @@ function createHiVenuesApp({
   participationPreflightTtlMs,
   contentPermlinkFactory,
 } = {}) {
-  if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
+  if (!store) throw new TypeError('HiVenues dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
-    throw new Error('CANDIDATE_C_DOGFOOD_ACCESS_SECRET must contain at least 32 characters in public-ingress mode.');
+    throw new Error('HIVENUES_DOGFOOD_ACCESS_SECRET must contain at least 32 characters in public-ingress mode.');
   }
 
   const activeIdentityServices = identityServices === false
@@ -120,7 +120,7 @@ function createHiVenuesApp({
       if (!token || !sessions.has(token)) return res.redirect(303, '/__dogfood/access');
     }
 
-    const match = /^\/candidate-c\/studio\/([^/]+)\/media-import$/.exec(req.path);
+    const match = /^\/hivenues\/studio\/([^/]+)\/media-import$/.exec(req.path);
     if (!match) return res.status(413).send('This request is too large. Return to the previous page and try a smaller input.');
 
     let slug;
@@ -131,7 +131,7 @@ function createHiVenuesApp({
     }
     const snapshot = store.snapshot(slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.status(413).render('candidate-c/media-library', {
+    return res.status(413).render('hivenues/media-library', {
       pageTitle: `Media — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       mediaError: `That image is larger than the ${Math.floor(MAX_IMAGE_BYTES / (1024 * 1024))} MiB limit. Choose a smaller JPEG or PNG and try again.`,
@@ -139,13 +139,13 @@ function createHiVenuesApp({
     });
   });
 
-  // The access page may use Candidate C styling. Product media and routes remain gated.
+  // The access page may use HiVenues styling. Product media and routes remain gated.
   app.use('/css', express.static(path.join(root, 'public', 'css')));
 
   app.get('/__dogfood/access', (req, res) => {
-    if (!publicIngress) return res.redirect(303, '/candidate-c');
+    if (!publicIngress) return res.redirect(303, '/hivenues');
     res.set('Cache-Control', 'no-store');
-    return res.render('candidate-c/dogfood-access', { pageTitle: 'Dogfood access — HiVenues', failed: false });
+    return res.render('hivenues/dogfood-access', { pageTitle: 'Dogfood access — HiVenues', failed: false });
   });
 
   app.post('/__dogfood/access', (req, res) => {
@@ -154,7 +154,7 @@ function createHiVenuesApp({
     if (!origin || origin !== requestOrigin(req)) return res.status(403).send('DOGFOOD_ORIGIN_REJECTED');
     if (!sameSecret(req.body.accessSecret, accessSecret)) {
       res.set('Cache-Control', 'no-store');
-      return res.status(401).render('candidate-c/dogfood-access', { pageTitle: 'Dogfood access — HiVenues', failed: true });
+      return res.status(401).render('hivenues/dogfood-access', { pageTitle: 'Dogfood access — HiVenues', failed: true });
     }
     const token = crypto.randomBytes(32).toString('hex');
     sessions.add(token);
@@ -166,7 +166,7 @@ function createHiVenuesApp({
       maxAge: 8 * 60 * 60 * 1000,
     });
     res.set('Cache-Control', 'no-store');
-    return res.redirect(303, '/candidate-c');
+    return res.redirect(303, '/hivenues');
   });
 
   if (publicIngress) {
@@ -223,7 +223,7 @@ function createHiVenuesApp({
   // ingress/session gate as the rest of the product, so normal and recoverable
   // error pages render the exact persisted assets they reference.
   if (typeof store.mediaRoot === 'string' && store.mediaRoot) {
-    app.use('/candidate-c/media/local', express.static(path.resolve(store.mediaRoot), {
+    app.use('/hivenues/media/local', express.static(path.resolve(store.mediaRoot), {
       dotfiles: 'deny',
       fallthrough: true,
       index: false,
@@ -244,10 +244,10 @@ function createHiVenuesApp({
     ].join('\n'));
   });
 
-  app.post('/candidate-c/studio/:slug/media-import', (req, res) => {
+  app.post('/hivenues/studio/:slug/media-import', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    const renderFailure = (status, message) => res.status(status).render('candidate-c/media-library', {
+    const renderFailure = (status, message) => res.status(status).render('hivenues/media-library', {
       pageTitle: `Media — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       mediaError: message,
@@ -270,32 +270,32 @@ function createHiVenuesApp({
       const stale = ['STALE_REVISION', 'STALE_DIGEST', 'INVALID_REVISION', 'INVALID_DRAFT_DIGEST'].includes(result.reason);
       return renderFailure(stale ? 409 : 400, result.message || result.reason);
     }
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/media-library?imported=${encodeURIComponent(result.mediaRole)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/media-library?imported=${encodeURIComponent(result.mediaRole)}`);
   });
 
   // Product routes must run before the public directory fallback; otherwise the
-  // real public/candidate-c asset directory redirects /candidate-c to /candidate-c/.
-  // Unmatched asset paths (for example /candidate-c/media/...) fall through.
-  app.get('/', (req, res) => res.redirect(303, '/candidate-c'));
-  app.use('/candidate-c', createBetaRemediationRouter({ store }));
+  // real public/hivenues asset directory redirects /hivenues to /hivenues/.
+  // Unmatched asset paths (for example /hivenues/media/...) fall through.
+  app.get('/', (req, res) => res.redirect(303, '/hivenues'));
+  app.use('/hivenues', createRecoveryRouter({ store }));
   // Preview routes intentionally run before the ordinary operator/public router.
   // They render only the working snapshot and never route through publicSnapshot.
-  app.use('/candidate-c', createCandidateCPreviewRouter({ store }));
+  app.use('/hivenues', createHiVenuesPreviewRouter({ store }));
   // Era 3 social discovery is strictly read-side. It consumes the existing
   // HiveReadService contract and never acquires signing or broadcast authority.
-  app.use('/candidate-c', createCandidateCSocialReadRouter({
+  app.use('/hivenues', createHiVenuesSocialReadRouter({
     store,
     hiveReadService,
     socialBindings,
   }));
   // Community is a read-only public projection over the accepted provider-neutral
   // discussion seam. It must never enter HostGraph or acquire write authority.
-  app.use('/candidate-c', createCandidateCCommunityRouter({
+  app.use('/hivenues', createHiVenuesCommunityRouter({
     store,
     discussionReader,
     discussionBindings,
   }));
-  app.use('/candidate-c', createCandidateCOperatorRouter({ store }));
+  app.use('/hivenues', createHiVenuesOperatorRouter({ store }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
   app.use(express.static(path.join(root, 'public')));
   return app;
@@ -303,7 +303,7 @@ function createHiVenuesApp({
 
 function createHiVenuesStore({ statePath, ...options } = {}) {
   if (!statePath) throw new TypeError('HiVenues local store requires statePath.');
-  return new ProvisioningFileCandidateCStore({ statePath, ...options });
+  return new ProvisioningFileHiVenuesStore({ statePath, ...options });
 }
 
 function startHiVenuesServer(app, { port = 4173 } = {}) {
