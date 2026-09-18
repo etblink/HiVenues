@@ -1,0 +1,132 @@
+name: Era 5 Windows distributable
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'views/**'
+      - 'public/**'
+      - 'native/windows/**'
+      - 'scripts/hivenues-installed.js'
+      - 'scripts/era5/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.github/workflows/era5-windows-distributable.yml'
+      - 'docs/HIVENUES_ERA5_WINDOWS_DISTRIBUTABLE_0_1_0.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64-distributable:
+    name: Reproducible Windows x64 distributable
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+
+      - name: Resolve exact source identity
+        id: source
+        shell: pwsh
+        run: |
+          "tree=$(git rev-parse 'HEAD^{tree}')" >> $env:GITHUB_OUTPUT
+
+      - name: Build A native launcher
+        shell: pwsh
+        run: |
+          ./scripts/era5/build-windows-launcher.ps1 -Output "$env:RUNNER_TEMP\launcher-a\HiVenues Studio.exe"
+
+      - name: Build A Windows bundle
+        shell: pwsh
+        run: |
+          node scripts/era5/build-windows-bundle.js --output "$env:RUNNER_TEMP\bundle-a" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}" --launcher "$env:RUNNER_TEMP\launcher-a\HiVenues Studio.exe"
+
+      - name: Build A deterministic distributable
+        shell: pwsh
+        run: |
+          node scripts/era5/build-windows-distributable.js --bundle "$env:RUNNER_TEMP\bundle-a" --output "$env:RUNNER_TEMP\dist-a"
+
+      - name: Build B native launcher
+        shell: pwsh
+        run: |
+          ./scripts/era5/build-windows-launcher.ps1 -Output "$env:RUNNER_TEMP\launcher-b\HiVenues Studio.exe"
+
+      - name: Build B Windows bundle
+        shell: pwsh
+        run: |
+          node scripts/era5/build-windows-bundle.js --output "$env:RUNNER_TEMP\bundle-b" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}" --launcher "$env:RUNNER_TEMP\launcher-b\HiVenues Studio.exe"
+
+      - name: Build B deterministic distributable
+        shell: pwsh
+        run: |
+          node scripts/era5/build-windows-distributable.js --bundle "$env:RUNNER_TEMP\bundle-b" --output "$env:RUNNER_TEMP\dist-b"
+
+      - name: Require byte-for-byte reproducibility
+        id: artifact
+        shell: pwsh
+        run: |
+          $zipA = Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\dist-a" -Filter '*.zip' | Select-Object -First 1
+          $zipB = Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\dist-b" -Filter '*.zip' | Select-Object -First 1
+          if (-not $zipA -or -not $zipB) { throw 'Expected versioned Windows ZIP artifacts were not produced.' }
+
+          $hashA = (Get-FileHash -LiteralPath $zipA.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $hashB = (Get-FileHash -LiteralPath $zipB.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $launcherA = (Get-FileHash -LiteralPath "$env:RUNNER_TEMP\launcher-a\HiVenues Studio.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $launcherB = (Get-FileHash -LiteralPath "$env:RUNNER_TEMP\launcher-b\HiVenues Studio.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+
+          Write-Host "archive A SHA-256: $hashA"
+          Write-Host "archive B SHA-256: $hashB"
+          Write-Host "launcher A SHA-256: $launcherA"
+          Write-Host "launcher B SHA-256: $launcherB"
+
+          if ($launcherA -ne $launcherB) { throw 'Native launcher builds are not reproducible.' }
+          if ($hashA -ne $hashB) { throw 'Windows distributable archives are not byte-for-byte reproducible.' }
+
+          $checksum = Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\dist-a" -Filter '*.sha256' | Select-Object -First 1
+          $expected = ((Get-Content -LiteralPath $checksum.FullName -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+          if ($expected -ne $hashA) { throw 'Published SHA-256 sidecar does not match the distributable archive.' }
+
+          "archive=$($zipA.FullName)" >> $env:GITHUB_OUTPUT
+          "archive_name=$($zipA.Name)" >> $env:GITHUB_OUTPUT
+          "sha256=$hashA" >> $env:GITHUB_OUTPUT
+
+      - name: Extract exact distributable
+        id: extract
+        shell: pwsh
+        run: |
+          $destination = "$env:RUNNER_TEMP\extracted"
+          Expand-Archive -LiteralPath "${{ steps.artifact.outputs.archive }}" -DestinationPath $destination
+          $bundle = Get-ChildItem -LiteralPath $destination -Directory | Select-Object -First 1
+          if (-not $bundle) { throw 'Distributable did not contain its expected top-level bundle directory.' }
+          "bundle=$($bundle.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Qualify extracted distributable
+        shell: pwsh
+        run: |
+          node scripts/era5/qualify-runtime-proof.js --bundle "${{ steps.extract.outputs.bundle }}"
+
+      - name: Upload qualified Windows distributable
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hivenues-windows-x64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\dist-a\*.zip
+            ${{ runner.temp }}\dist-a\*.sha256
+            ${{ runner.temp }}\dist-a\*.provenance.json
+          if-no-files-found: error
+          retention-days: 14
