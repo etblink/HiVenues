@@ -43,6 +43,12 @@
     socialHref
   }) %>
 
+  <%- include('_resource-state', {
+    graph,
+    resourceState,
+    resourceLabels
+  }) %>
+
   <% if (member.posts.length) { %>
     <section class="cc-social-section cc-member-posts" aria-labelledby="cc-member-posts-title">
       <header class="cc-social-section__head">
