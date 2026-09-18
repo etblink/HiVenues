@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const COMMUNITY = 'hive-199299';
@@ -172,7 +172,7 @@ function readService({ contentAvailable = true, root = ROOT } = {}) {
 }
 
 function fixture({ contentAvailable = true, root = ROOT } = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const hiveReadService = readService({ contentAvailable, root });
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: hiveReadService.rpcPool,
@@ -199,10 +199,10 @@ function verified(identityServices, account = 'etblink') {
 test('anonymous hub remains read-only and links public posts into canonical discussion routes', async () => {
   const { app } = fixture();
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .expect(200);
 
-  assert.match(response.text, /href="\/candidate-c\/northline-hall\/community\/posts\/etblink\/room-note"/);
+  assert.match(response.text, /href="\/hivenues\/northline-hall\/community\/posts\/etblink\/room-note"/);
   assert.match(response.text, /Open discussion/);
   assert.doesNotMatch(response.text, /data-hivenues-content/);
   assert.doesNotMatch(response.text, /Review public note/);
@@ -212,7 +212,7 @@ test('verified hub renders a host-native root-post composer without raw Hive fie
   const { app, identityServices } = fixture();
   const session = verified(identityServices);
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
 
@@ -237,7 +237,7 @@ test('all three Directions render materially distinct root-post voice on the sam
     const { app, identityServices } = fixture();
     const session = verified(identityServices);
     const response = await request(app)
-      .get('/candidate-c/' + slug + '/community/updates')
+      .get('/hivenues/' + slug + '/community/updates')
       .set('cookie', session.cookie)
       .expect(200);
 
@@ -250,7 +250,7 @@ test('canonical discussion renders root, comments, own-post update and root/nest
   const { app, identityServices } = fixture();
   const session = verified(identityServices);
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', session.cookie)
     .expect(200);
 
@@ -281,7 +281,7 @@ test('another verified account can reply but cannot see an update composer for s
   const { app, identityServices } = fixture();
   const session = verified(identityServices, 'paper-sparrow');
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', session.cookie)
     .expect(200);
 
@@ -293,7 +293,7 @@ test('another verified account can reply but cannot see an update composer for s
 test('anonymous discussion remains readable but exposes no composer', async () => {
   const { app } = fixture();
   const response = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/posts/etblink/room-note')
+    .get('/hivenues/harbor-and-hearth/community/posts/etblink/room-note')
     .expect(200);
 
   assert.match(response.text, /A note from the room/);
@@ -305,7 +305,7 @@ test('content capability failure suppresses composers without breaking public re
   const { app, identityServices } = fixture({ contentAvailable: false });
   const session = verified(identityServices);
   const response = await request(app)
-    .get('/candidate-c/nova-ashby/community/updates')
+    .get('/hivenues/nova-ashby/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
 
@@ -318,7 +318,7 @@ test('content outside the bound host community cannot be opened as a host discus
   const { app } = fixture({ root: foreign });
 
   await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .expect(404);
 });
 
@@ -328,11 +328,11 @@ test('rendering content surfaces never mutates HostGraph', async () => {
   const before = JSON.stringify(store.publicSnapshot('northline-hall'));
 
   await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
   await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', session.cookie)
     .expect(200);
 

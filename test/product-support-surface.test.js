@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
 
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 const { createHiVenuesApp } = require('../src/product/app');
 const {
   IDENTITY_COOKIE_NAME,
@@ -64,7 +64,7 @@ function reads() {
 }
 
 function fixture({ release = true, supportAvailable = true } = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   if (release) releaseRecipient(store);
   const hiveReadService = reads();
   const identityServices = createHiVenuesIdentityServices({
@@ -87,11 +87,11 @@ function cookie(identityServices, account = 'paper-sparrow') {
 test('public territory links direct support only after the recipient is released', async () => {
   const before = fixture({ release: false });
   const beforePage = await request(before.app)
-    .get('/candidate-c/' + SLUG)
+    .get('/hivenues/' + SLUG)
     .expect(200);
-  assert.doesNotMatch(beforePage.text, /\/candidate-c\/northline-hall\/support/);
+  assert.doesNotMatch(beforePage.text, /\/hivenues\/northline-hall\/support/);
 
-  const workingOnlyStore = new CandidateCStore();
+  const workingOnlyStore = new HiVenuesStore();
   const working = workingOnlyStore.snapshot(SLUG);
   const edited = workingOnlyStore.commit(
     SLUG,
@@ -116,22 +116,22 @@ test('public territory links direct support only after the recipient is released
     identityServices: workingIdentity,
   });
   const workingOnlyPage = await request(workingOnlyApp)
-    .get('/candidate-c/' + SLUG)
+    .get('/hivenues/' + SLUG)
     .expect(200);
-  assert.doesNotMatch(workingOnlyPage.text, /\/candidate-c\/northline-hall\/support/);
+  assert.doesNotMatch(workingOnlyPage.text, /\/hivenues\/northline-hall\/support/);
 
   const released = fixture();
   const releasedPage = await request(released.app)
-    .get('/candidate-c/' + SLUG)
+    .get('/hivenues/' + SLUG)
     .expect(200);
-  assert.match(releasedPage.text, /href="\/candidate-c\/northline-hall\/support"/);
+  assert.match(releasedPage.text, /href="\/hivenues\/northline-hall\/support"/);
   assert.match(releasedPage.text, />Support the room</);
 });
 
 test('unverified support page explains consequence but does not expose a transfer form', async () => {
   const { app } = fixture();
   const response = await request(app)
-    .get('/candidate-c/' + SLUG + '/support')
+    .get('/hivenues/' + SLUG + '/support')
     .expect(200);
 
   assert.match(response.text, /This is direct support, not checkout/i);
@@ -145,7 +145,7 @@ test('unverified support page explains consequence but does not expose a transfe
 test('verified support page exposes exactly one bounded support form and exact-review client', async () => {
   const { app, identityServices } = fixture();
   const response = await request(app)
-    .get('/candidate-c/' + SLUG + '/support')
+    .get('/hivenues/' + SLUG + '/support')
     .set('cookie', cookie(identityServices))
     .expect(200);
 
@@ -164,12 +164,12 @@ test('verified support page exposes exactly one bounded support form and exact-r
 test('released recipient route fails closed when not configured and degrades when support provider is unavailable', async () => {
   const missing = fixture({ release: false });
   await request(missing.app)
-    .get('/candidate-c/' + SLUG + '/support')
+    .get('/hivenues/' + SLUG + '/support')
     .expect(404);
 
   const unavailable = fixture({ supportAvailable: false });
   const response = await request(unavailable.app)
-    .get('/candidate-c/' + SLUG + '/support')
+    .get('/hivenues/' + SLUG + '/support')
     .set('cookie', cookie(unavailable.identityServices))
     .expect(200);
 

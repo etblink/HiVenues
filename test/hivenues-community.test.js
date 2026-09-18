@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const {
   CommunityDiscussionReader,
   SyntheticBridgeDiscussionProvider,
@@ -112,7 +112,7 @@ function appWith({
 } = {}) {
   return {
     store,
-    app: createDogfoodApp({
+    app: createHiVenuesApp({
       store,
       discussionReader,
       discussionBindings,
@@ -139,7 +139,7 @@ test('public host pages discover the community surface without leaking it into d
 test('unconfigured community stays explicit, read-only, and free of external effects', async () => {
   const store = new HiVenuesStore();
   const before = store.diagnostics();
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
 
   const response = await request(app)
     .get('/hivenues/northline-hall/community')
@@ -192,7 +192,7 @@ test('community projection reads Live state and does not leak an unreleased Work
   assert.equal(store.snapshot('northline-hall').draft.presentation.compositionFamily, 'editorial');
   assert.equal(store.publicSnapshot('northline-hall').draft.presentation.compositionFamily, 'poster');
 
-  const app = createDogfoodApp({
+  const app = createHiVenuesApp({
     store,
     discussionReader: readyReader(),
     discussionBindings: bindingsForAllHosts(),
@@ -210,7 +210,7 @@ test('empty and partial discussions remain truthful instead of fabricating a suc
   const emptyProvider = new SyntheticBridgeDiscussionProvider({
     discussions: { 'hivebar-gate/what-a-neighborhood-place-can-be': {} },
   });
-  const emptyApp = createDogfoodApp({
+  const emptyApp = createHiVenuesApp({
     store: new HiVenuesStore(),
     discussionReader: new CommunityDiscussionReader(emptyProvider),
     discussionBindings: bindingsForAllHosts(),
@@ -229,7 +229,7 @@ test('empty and partial discussions remain truthful instead of fabricating a suc
   const partialProvider = new SyntheticBridgeDiscussionProvider({
     discussions: { 'hivebar-gate/what-a-neighborhood-place-can-be': partialWire },
   });
-  const partialApp = createDogfoodApp({
+  const partialApp = createHiVenuesApp({
     store: new HiVenuesStore(),
     discussionReader: new CommunityDiscussionReader(partialProvider),
     discussionBindings: bindingsForAllHosts(),
@@ -249,7 +249,7 @@ test('provider failure and invalid wire render explicit unavailable and degraded
       throw new Error('offline');
     },
   });
-  const unavailableApp = createDogfoodApp({
+  const unavailableApp = createHiVenuesApp({
     store: new HiVenuesStore(),
     discussionReader: unavailableReader,
     discussionBindings: bindingsForAllHosts(),
@@ -266,7 +266,7 @@ test('provider failure and invalid wire render explicit unavailable and degraded
       return [];
     },
   });
-  const degradedApp = createDogfoodApp({
+  const degradedApp = createHiVenuesApp({
     store: new HiVenuesStore(),
     discussionReader: degradedReader,
     discussionBindings: bindingsForAllHosts(),

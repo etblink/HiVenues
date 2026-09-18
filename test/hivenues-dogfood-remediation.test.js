@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
 const { buildHiVenuesHostFromInput } = require('../src/product/admission');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { MAX_IMAGE_BYTES } = require('../src/product/local-media');
 const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
 
@@ -19,7 +19,7 @@ function tempRuntime(t) {
   const statePath = path.join(root, 'state.json');
   const mediaRoot = path.join(root, 'media');
   const store = new ProvisioningFileHiVenuesStore({ statePath, mediaRoot });
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
   return { root, statePath, mediaRoot, store, app };
 }
 

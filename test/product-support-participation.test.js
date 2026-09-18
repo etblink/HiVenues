@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SLUG = 'northline-hall';
@@ -95,7 +95,7 @@ function fixture({
   withRecipient = true,
   hiveReadService = supportReads(),
 } = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   if (withRecipient) releaseRecipient(store);
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: hiveReadService.rpcPool,

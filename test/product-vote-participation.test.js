@@ -9,8 +9,8 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
-const { seedCandidateCHosts } = require('../src/candidate-c/fixtures');
+const { HiVenuesStore } = require('../src/product/store');
+const { seedHiVenuesHosts } = require('../src/product/fixtures');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDINGS = Object.freeze({
@@ -121,11 +121,11 @@ function voteReads({
 function fixture(options = {}) {
   let hosts;
   if (options.showNegativeVoteAction === true) {
-    hosts = seedCandidateCHosts();
+    hosts = seedHiVenuesHosts();
     const host = hosts.find((item) => item.identity.slug === 'northline-hall');
     host.bindings.hive.showNegativeVoteAction = true;
   }
-  const store = new CandidateCStore(hosts ? { hosts } : undefined);
+  const store = new HiVenuesStore(hosts ? { hosts } : undefined);
   const readService = options.hiveReadService || voteReads();
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: readService.rpcPool,

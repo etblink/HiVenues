@@ -42,7 +42,15 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
   assert.match(source, /fetch\(window\.location\.href/);
 
   const publicJs = fs.readdirSync(path.join(ROOT, 'public', 'js')).filter((file) => file.startsWith('hivenues'));
-  assert.deepEqual(publicJs, ['hivenues-studio.js']);
+  assert.deepEqual(publicJs, [
+    'hivenues-content.js',
+    'hivenues-identity.js',
+    'hivenues-participation.js',
+    'hivenues-reward-claim.js',
+    'hivenues-studio.js',
+    'hivenues-support.js',
+    'hivenues-vote.js',
+  ]);
 
   for (const file of listEjs(path.join(ROOT, 'views', 'hivenues'))) {
     const view = fs.readFileSync(file, 'utf8');

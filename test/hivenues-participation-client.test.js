@@ -36,7 +36,7 @@ function markup() {
 function createDom() {
   const dom = new JSDOM(markup(), {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/community/people/juniper-lane',
+    url: 'http://hivenues.test/hivenues/northline-hall/community/people/juniper-lane',
   });
   dom.window.eval(source);
   return dom;

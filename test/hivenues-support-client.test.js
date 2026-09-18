@@ -39,7 +39,7 @@ function markup() {
 function createDom() {
   const dom = new JSDOM(markup(), {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/support',
+    url: 'http://hivenues.test/hivenues/northline-hall/support',
   });
   dom.window.eval(source);
   return dom;

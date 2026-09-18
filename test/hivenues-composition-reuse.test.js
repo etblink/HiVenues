@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
 const { buildHiVenuesHostFromInput } = require('../src/product/admission');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
 
 const LEAK_PATTERN = /undefined|Northline|Nova Ashby|Harbor & Hearth|Sunday supper|Sunday table|harbor change color|Downtown Las Vegas · live, close, late|Field notes · live sessions · dispatches/i;
@@ -87,7 +87,7 @@ test('composition families remain structural across physical, online, and hybrid
     const released = store.createRelease(item.graph.identity.slug, working.revision, working.draftDigest);
     assert.equal(released.ok, true);
   }
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
 
   for (const { graph, expectedPresence } of cases) {
     const slug = graph.identity.slug;

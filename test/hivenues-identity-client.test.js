@@ -43,7 +43,7 @@ function verifiedMarkup(expiresAt = '2026-09-18T08:00:00.000Z') {
 function createDom(markup) {
   const dom = new JSDOM(markup, {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/community/updates',
+    url: 'http://hivenues.test/hivenues/northline-hall/community/updates',
   });
   dom.window.fetch = async () => { throw new Error('unexpected fetch'); };
   dom.window.eval(client);

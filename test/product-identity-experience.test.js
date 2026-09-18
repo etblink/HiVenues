@@ -6,7 +6,7 @@ const request = require('supertest');
 
 const { createHiVenuesApp } = require('../src/product/app');
 const { createHiVenuesIdentityServices, IDENTITY_COOKIE_NAME } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDING = Object.freeze({ community: 'hive-199299', threadsAccount: 'room-notes' });
@@ -84,7 +84,7 @@ function productReadService() {
 }
 
 function appWith(options = {}) {
-  const store = options.store || new CandidateCStore();
+  const store = options.store || new HiVenuesStore();
   const hiveReadService = options.hiveReadService || productReadService();
   const app = createHiVenuesApp({
     store,
@@ -103,7 +103,7 @@ test('canonical social hubs introduce one host-native identity mechanic across t
 
   for (const host of HOSTS) {
     const response = await request(app)
-      .get(`/candidate-c/${host.slug}/community/updates`)
+      .get(`/hivenues/${host.slug}/community/updates`)
       .expect(200);
 
     assert.match(response.text, /data-hivenues-identity/);
@@ -123,7 +123,7 @@ test('canonical social hubs introduce one host-native identity mechanic across t
 test('identity provider unavailability is explicit and does not fabricate an interactive proof control', async () => {
   const { app } = appWith({ identityServices: false });
   const response = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/updates')
+    .get('/hivenues/harbor-and-hearth/community/updates')
     .expect(200);
 
   assert.match(response.text, /data-identity-state="provider-unavailable"/);
@@ -143,7 +143,7 @@ test('verified identity renders as bounded session truth rather than an operatio
   const { app } = appWith({ hiveReadService, identityServices: services });
 
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .set('cookie', `${IDENTITY_COOKIE_NAME}=${token}`)
     .expect(200);
 
@@ -158,7 +158,7 @@ test('verified identity renders as bounded session truth rather than an operatio
 test('identity proof stays contextual to the social hub rather than becoming a wallet banner on member profiles', async () => {
   const { app } = appWith();
   const member = await request(app)
-    .get('/candidate-c/northline-hall/community/people/juniper-lane')
+    .get('/hivenues/northline-hall/community/people/juniper-lane')
     .expect(200);
 
   assert.match(member.text, /Juniper Lane/);
@@ -166,20 +166,3 @@ test('identity proof stays contextual to the social hub rather than becoming a w
   assert.doesNotMatch(member.text, /hivenues-identity\.js/);
 });
 
-test('historical dogfood entry inherits the canonical product identity surface', async () => {
-  const { createDogfoodApp } = require('../src/candidate-c/dogfood-app');
-  const store = new CandidateCStore();
-  const app = createDogfoodApp({
-    store,
-    hiveReadService: productReadService(),
-    socialBindings: socialBindings(),
-  });
-
-  const response = await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
-    .expect(200);
-
-  assert.match(response.text, /data-hivenues-identity/);
-  assert.match(response.text, /data-identity-state="not-identified"/);
-  assert.match(response.text, /data-identity-form/);
-});

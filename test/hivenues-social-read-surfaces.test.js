@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { HiVenuesStore } = require('../src/product/store');
 const { HiveReadService } = require('../src/hive/read-service');
 
@@ -166,7 +166,7 @@ function appWith({ rpc = new RealShapedSocialRpc(), store = new HiVenuesStore(),
   return {
     rpc,
     store,
-    app: createDogfoodApp({
+    app: createHiVenuesApp({
       store,
       hiveReadService,
       socialBindings: bindings,
@@ -254,7 +254,7 @@ test('partial, unavailable, disconnected, and degraded social states stay explic
   assert.match(unavailableResponse.text, /Community updates are temporarily unavailable\./);
   assert.doesNotMatch(unavailableResponse.text, /Why we return/);
 
-  const disconnectedApp = createDogfoodApp({ store: new HiVenuesStore() });
+  const disconnectedApp = createHiVenuesApp({ store: new HiVenuesStore() });
   const disconnected = await request(disconnectedApp)
     .get('/hivenues/northline-hall/community/updates')
     .expect(200);

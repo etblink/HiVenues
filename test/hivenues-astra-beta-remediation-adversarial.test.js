@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { MAX_MULTIPART_BYTES } = require('../src/product/local-media');
 const { contactFor } = require('../src/product/present');
 const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
@@ -17,7 +17,7 @@ function runtime(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-astra-adversarial-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const store = new ProvisioningFileHiVenuesStore({ statePath: path.join(root, 'state.json'), mediaRoot: path.join(root, 'media') });
-  return { store, app: createDogfoodApp({ store }) };
+  return { store, app: createHiVenuesApp({ store }) };
 }
 
 function tokens(store, slug) {

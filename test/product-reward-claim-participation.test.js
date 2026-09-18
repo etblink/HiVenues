@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDINGS = Object.freeze({
@@ -73,7 +73,7 @@ function rewardReads({
 }
 
 function fixture(options = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const readService = options.hiveReadService || rewardReads(options);
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: readService.rpcPool,

@@ -38,7 +38,7 @@ function markup({ negative = true } = {}) {
 function createDom(options) {
   const dom = new JSDOM(markup(options), {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/community/posts/etblink/room-note',
+    url: 'http://hivenues.test/hivenues/northline-hall/community/posts/etblink/room-note',
   });
   dom.window.eval(source);
   return dom;
