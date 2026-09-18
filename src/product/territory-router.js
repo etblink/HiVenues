@@ -5,7 +5,7 @@ const { buildViewModel, mediaFor } = require('./present');
 const { buildTerritoryProjection, findTerritorySurface, rebaseTerritoryProjection, templateForSurface } = require('./territory');
 
 function previewBase(graph) {
-  return `/candidate-c/studio/${encodeURIComponent(graph.identity.slug)}/preview`;
+  return `/studio/studio/${encodeURIComponent(graph.identity.slug)}/preview`;
 }
 
 function territoryLocals(snapshot, { draftPreview = false } = {}) {
@@ -78,18 +78,18 @@ function installTerritoryRoutes(router, { store, draftPreview }) {
   router.get(`${prefix}/about`, render('about-visit'));
 }
 
-function createCandidateCPreviewTerritoryRouter({ store } = {}) {
-  if (!store) throw new TypeError('Candidate C preview territory router requires a store.');
+function createHiVenuesPreviewTerritoryRouter({ store } = {}) {
+  if (!store) throw new TypeError('HiVenues preview territory router requires a store.');
   const router = express.Router();
   installTerritoryRoutes(router, { store, draftPreview: true });
   return router;
 }
 
-function createCandidateCPublicTerritoryRouter({ store } = {}) {
-  if (!store) throw new TypeError('Candidate C public territory router requires a store.');
+function createHiVenuesPublicTerritoryRouter({ store } = {}) {
+  if (!store) throw new TypeError('HiVenues public territory router requires a store.');
   const router = express.Router();
   installTerritoryRoutes(router, { store, draftPreview: false });
   return router;
 }
 
-module.exports = { createCandidateCPreviewTerritoryRouter, createCandidateCPublicTerritoryRouter, renderSurface, territoryLocals };
+module.exports = { createHiVenuesPreviewTerritoryRouter, createHiVenuesPublicTerritoryRouter, renderSurface, territoryLocals };

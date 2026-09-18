@@ -2,13 +2,13 @@
 
 const crypto = require('node:crypto');
 const express = require('express');
-const { buildCandidateCHostFromInput, localDateTimeToOffsetIso, slugify } = require('./admission');
+const { buildHiVenuesHostFromInput, localDateTimeToOffsetIso, slugify } = require('./admission');
 const { buildViewModel } = require('./present');
-const { provisionCandidateCHost } = require('./provision');
-const { createCandidateCRouter } = require('./router');
-const { CandidateCStore } = require('./store');
-const { createCandidateCTerritoryAuthoringRouter } = require('./territory-authoring-router');
-const { createCandidateCTerritoryStructureAuthoringRouter } = require('./territory-structure-authoring-router');
+const { provisionHiVenuesHost } = require('./provision');
+const { createHiVenuesRouter } = require('./router');
+const { HiVenuesStore } = require('./store');
+const { createHiVenuesTerritoryAuthoringRouter } = require('./territory-authoring-router');
+const { createHiVenuesTerritoryStructureAuthoringRouter } = require('./territory-structure-authoring-router');
 
 const EMPTY_FORM = Object.freeze({
   displayName: '',
@@ -40,7 +40,7 @@ const LOOK_ACCENTS = Object.freeze([
 ]);
 
 function renderNewHost(res, { status = 200, values = EMPTY_FORM, errors = [], reason = '' } = {}) {
-  return res.status(status).render('candidate-c/new-host', {
+  return res.status(status).render('studio/new-host', {
     pageTitle: 'Create a place — HiVenues',
     values: { ...EMPTY_FORM, ...values },
     errors,
@@ -97,13 +97,13 @@ function uniqueActivitySlug(graph, title) {
   return `${base}-${suffix}`;
 }
 
-function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) {
+function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
   const router = express.Router();
 
   router.get('/', (req, res) => {
     const hosts = store.list().map((slug) => buildViewModel(store.publicSnapshot(slug)));
-    return res.render('candidate-c/index', {
-      pageTitle: 'Candidate C — HiVenues',
+    return res.render('studio/index', {
+      pageTitle: 'HiVenues — HiVenues',
       hosts,
       canCreate: true,
     });
@@ -112,14 +112,14 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
   router.get('/new', (req, res) => renderNewHost(res));
 
   router.post('/new', (req, res) => {
-    const built = buildCandidateCHostFromInput(req.body);
+    const built = buildHiVenuesHostFromInput(req.body);
     if (!built.ok) {
       return renderNewHost(res, { status: 400, values: req.body, errors: built.fields || [], reason: built.reason });
     }
 
     const result = typeof store.createHost === 'function'
       ? store.createHost(built.graph)
-      : provisionCandidateCHost(store, built.graph);
+      : provisionHiVenuesHost(store, built.graph);
     if (!result.ok) {
       const status = ['HOST_SLUG_EXISTS', 'HOST_ID_EXISTS'].includes(result.reason) ? 409 : 400;
       return renderNewHost(res, {
@@ -130,13 +130,13 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       });
     }
 
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(result.slug)}?created=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(result.slug)}?created=1`);
   });
 
   router.get('/studio/:slug/content', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/content-editor', {
+    return res.render('studio/content-editor', {
       pageTitle: `Content & visit — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       errors: [],
@@ -160,7 +160,7 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
     if (address.length > 300) errors.push({ path: 'address', message: 'Address must be 300 characters or fewer.' });
     if (snapshot.draft.facts.presence.mode !== 'online' && !address) errors.push({ path: 'address', message: 'A physical or hybrid place needs an address.' });
     if (errors.length) {
-      return res.status(400).render('candidate-c/content-editor', {
+      return res.status(400).render('studio/content-editor', {
         pageTitle: `Content & visit — ${snapshot.draft.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -191,13 +191,13 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       'intent.participation',
     ]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/content?saved=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/content?saved=1`);
   });
 
   router.get('/studio/:slug/activity/new', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/activity-new', {
+    return res.render('studio/activity-new', {
       pageTitle: `Add activity — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       values: {},
@@ -226,7 +226,7 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       }
     }
     if (errors.length) {
-      return res.status(400).render('candidate-c/activity-new', {
+      return res.status(400).render('studio/activity-new', {
         pageTitle: `Add activity — ${graph.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -251,13 +251,13 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       });
     }, [`activities.${activityId}`]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/offer/new', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/offer-new', {
+    return res.render('studio/offer-new', {
       pageTitle: `Add offering — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       values: {},
@@ -276,7 +276,7 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
     if (category.length > 120) errors.push({ path: 'category', message: 'Category must be 120 characters or fewer.' });
     if (price.length > 80) errors.push({ path: 'price', message: 'Price/detail must be 80 characters or fewer.' });
     if (errors.length) {
-      return res.status(400).render('candidate-c/offer-new', {
+      return res.status(400).render('studio/offer-new', {
         pageTitle: `Add offering — ${snapshot.draft.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -288,13 +288,13 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       draft.offers.push({ id: offerId, title, summary, ...(category ? { category } : {}), ...(price ? { price } : {}) });
     }, [`offers.${offerId}`]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/brand', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/brand-editor', {
+    return res.render('studio/brand-editor', {
       pageTitle: `Look — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       accents: LOOK_ACCENTS,
@@ -308,13 +308,13 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       draft.presentation.accent = accent;
     }, ['presentation.accent']);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/media-library', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/media-library', {
+    return res.render('studio/media-library', {
       pageTitle: `Media — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
     });
@@ -337,15 +337,15 @@ function createCandidateCOperatorRouter({ store = new CandidateCStore() } = {}) 
       mediaRole: result.mediaRole,
       mediaId: result.mediaId,
       asset: result.asset,
-      redirect: `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/media-library`,
+      redirect: `/studio/studio/${encodeURIComponent(req.params.slug)}/media-library`,
     });
   });
 
-  router.use(createCandidateCTerritoryStructureAuthoringRouter({ store }));
-  router.use(createCandidateCTerritoryAuthoringRouter({ store }));
-  router.use(createCandidateCRouter({ store }));
+  router.use(createHiVenuesTerritoryStructureAuthoringRouter({ store }));
+  router.use(createHiVenuesTerritoryAuthoringRouter({ store }));
+  router.use(createHiVenuesRouter({ store }));
   router.store = store;
   return router;
 }
 
-module.exports = { createCandidateCOperatorRouter, draftMutation };
+module.exports = { createHiVenuesOperatorRouter, draftMutation };

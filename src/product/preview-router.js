@@ -3,14 +3,14 @@
 const express = require('express');
 const { disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, renderIcs } = require('./present');
-const { createCandidateCPreviewTerritoryRouter, createCandidateCPublicTerritoryRouter, territoryLocals } = require('./territory-router');
+const { createHiVenuesPreviewTerritoryRouter, createHiVenuesPublicTerritoryRouter, territoryLocals } = require('./territory-router');
 
 function previewLocals(snapshot) {
   return { ...buildViewModel(snapshot), draftPreview: true, studio: false };
 }
 
 function previewActivityPath(slug, activitySlug) {
-  return `/candidate-c/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
+  return `/studio/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
 }
 
 function topLevelReviewSurface(view, key) {
@@ -19,8 +19,8 @@ function topLevelReviewSurface(view, key) {
   return view.territory.navigation.some((entry) => entry.surfaceRole === surface.role) ? surface : null;
 }
 
-function createCandidateCPreviewRouter({ store } = {}) {
-  if (!store) throw new TypeError('Candidate C preview router requires a store.');
+function createHiVenuesPreviewRouter({ store } = {}) {
+  if (!store) throw new TypeError('HiVenues preview router requires a store.');
   const router = express.Router();
 
   // Studio review is a transient projection, never durable host state. HTMX swaps
@@ -35,9 +35,9 @@ function createCandidateCPreviewRouter({ store } = {}) {
 
     if (requested === 'canvas') {
       if (req.get('HX-Request') !== 'true') {
-        return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+        return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
       }
-      return res.render('candidate-c/fragments/studio-canvas', {
+      return res.render('studio/fragments/studio-canvas', {
         ...view,
         selectedReviewKey: 'canvas',
       });
@@ -46,7 +46,7 @@ function createCandidateCPreviewRouter({ store } = {}) {
     const surface = topLevelReviewSurface(view, requested);
     if (!surface) return res.status(400).send('UNKNOWN_STUDIO_REVIEW_SURFACE');
     if (req.get('HX-Request') !== 'true') return res.redirect(303, surface.path);
-    return res.render('candidate-c/fragments/territory-review', {
+    return res.render('studio/fragments/territory-review', {
       ...view,
       surface,
       selectedReviewKey: surface.key,
@@ -74,7 +74,7 @@ function createCandidateCPreviewRouter({ store } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
     if (!activity) return res.sendStatus(404);
-    const publicActivityPath = `/candidate-c/${snapshot.draft.identity.slug}/activities/${activity.slug}`;
+    const publicActivityPath = `/studio/${snapshot.draft.identity.slug}/activities/${activity.slug}`;
     const draftActivityPath = previewActivityPath(snapshot.draft.identity.slug, activity.slug);
     const calendar = renderIcs(snapshot.draft, activity).replace(`URL:${publicActivityPath}`, `URL:${draftActivityPath}`);
     res.type('text/calendar; charset=utf-8');
@@ -87,7 +87,7 @@ function createCandidateCPreviewRouter({ store } = {}) {
     const snapshot = store.snapshot(req.params.slug);
     const mechanic = mechanicRegistry[req.params.mechanicId];
     if (!snapshot || !mechanic) return res.sendStatus(404);
-    return res.render('candidate-c/consequence', {
+    return res.render('studio/consequence', {
       pageTitle: `${snapshot.draft.voice.terms[mechanic.id] || mechanic.id} — ${snapshot.draft.identity.displayName} — draft preview`,
       ...previewLocals(snapshot),
       mechanic,
@@ -101,10 +101,10 @@ function createCandidateCPreviewRouter({ store } = {}) {
   // one implementation while their snapshot source stays explicit: Preview reads
   // Working, public territory routes read only the live Release. Existing qualified
   // home/activity/consequence routes above remain untouched.
-  router.use(createCandidateCPreviewTerritoryRouter({ store }));
-  router.use(createCandidateCPublicTerritoryRouter({ store }));
+  router.use(createHiVenuesPreviewTerritoryRouter({ store }));
+  router.use(createHiVenuesPublicTerritoryRouter({ store }));
 
   return router;
 }
 
-module.exports = { createCandidateCPreviewRouter, previewActivityPath };
+module.exports = { createHiVenuesPreviewRouter, previewActivityPath };

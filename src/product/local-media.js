@@ -117,7 +117,7 @@ function parseMultipartForm(body, contentType) {
 }
 
 function defaultLocalMediaRoot() {
-  return path.join(__dirname, '..', '..', 'public', 'candidate-c', 'media', 'local');
+  return path.join(__dirname, '..', '..', 'public', 'studio', 'media', 'local');
 }
 
 function persistLocalImage({ slug, buffer, inspection, mediaRoot = defaultLocalMediaRoot() }) {
@@ -131,7 +131,7 @@ function persistLocalImage({ slug, buffer, inspection, mediaRoot = defaultLocalM
   return {
     target,
     existed,
-    publicPath: `/candidate-c/media/local/${encodeURIComponent(slug)}/${filename}`,
+    publicPath: `/studio/media/local/${encodeURIComponent(slug)}/${filename}`,
     root,
   };
 }
