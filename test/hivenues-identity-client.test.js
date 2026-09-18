@@ -100,11 +100,10 @@ test('identity controller signs only the server challenge and reloads after serv
   );
   await settle();
 
-  assert.deepEqual(signed, [{
-    account: 'etblink',
-    message: 'HiVenues identity proof | Account: @etblink | Nonce: one',
-    title: 'HiVenues identity proof for @etblink',
-  }]);
+  assert.equal(signed.length, 1);
+  assert.equal(signed[0].account, 'etblink');
+  assert.equal(signed[0].message, 'HiVenues identity proof | Account: @etblink | Nonce: one');
+  assert.equal(signed[0].title, 'HiVenues identity proof for @etblink');
   assert.equal(calls.length, 2);
   assert.equal(calls[0].url, '/identity/challenge');
   assert.deepEqual(JSON.parse(calls[0].body), { account: 'etblink' });
