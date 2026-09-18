@@ -53,14 +53,14 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js|\/js\/hivenues-support\.js/,
         `${relative}: ${tag}`,
       );
       if (/hivenues-identity/.test(tag)) {
         assert.match(
           relative,
-          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-hub\.ejs$/,
-          `${relative}: identity client escaped the social identity surface`,
+          /^(views\/candidate-c\/social\/(poster|editorial|hospitality)-hub\.ejs|views\/candidate-c\/support\.ejs)$/,
+          `${relative}: identity client escaped an admitted identity surface`,
         );
       }
       if (/hivenues-participation/.test(tag)) {
@@ -91,10 +91,17 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
           `${relative}: reward claim client escaped the verified member surface`,
         );
       }
+      if (/hivenues-support/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/support\.ejs$/,
+          `${relative}: direct-support client escaped the released support surface`,
+        );
+      }
       if (/keychain-adapter/.test(tag)) {
         assert.match(
           relative,
-          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|member|discussion)\.ejs$/,
+          /^(views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|member|discussion)\.ejs|views\/candidate-c\/support\.ejs)$/,
           `${relative}: signer client escaped an admitted human-wallet surface`,
         );
       }
@@ -131,6 +138,18 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     assert.doesNotMatch(discussion, /\/js\/hivenues-identity\.js/);
     assert.doesNotMatch(discussion, /\/js\/hivenues-participation\.js/);
   }
+
+  const support = fs.readFileSync(
+    path.join(ROOT, 'views', 'candidate-c', 'support.ejs'),
+    'utf8',
+  );
+  assert.match(support, /\/js\/keychain-adapter\.js/);
+  assert.match(support, /\/js\/hivenues-identity\.js/);
+  assert.match(support, /\/js\/hivenues-support\.js/);
+  assert.doesNotMatch(support, /\/js\/hivenues-participation\.js/);
+  assert.doesNotMatch(support, /\/js\/hivenues-content\.js/);
+  assert.doesNotMatch(support, /\/js\/hivenues-vote\.js/);
+  assert.doesNotMatch(support, /\/js\/hivenues-reward-claim\.js/);
 });
 
 test('Workstream F: every Studio edit response is one targeted swap plus exactly two OOB regions; E pages ship no script', async () => {

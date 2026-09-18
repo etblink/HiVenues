@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-social-read.css">
+</head>
+<body class="cc-public cc-social cc-social--<%= family.id %> cc-support-page cc-support-page--<%= family.id %>" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="<%= family.id === 'poster' ? 'cc-poster-nav' : family.id === 'editorial' ? 'cc-editorial-nav' : 'cc-hospitality-nav' %> cc-social-nav">
+    <a class="<%= family.id === 'poster' ? 'cc-wordmark' : family.id === 'editorial' ? 'cc-editorial-name' : 'cc-hospitality-name' %>" href="<%= hostHref %>">
+      <%- include('_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span>
+    </a>
+    <nav aria-label="Support">
+      <a href="<%= hostHref %>">Back to <%= graph.identity.displayName %></a>
+    </nav>
+  </header>
+
+  <main class="cc-support-shell">
+    <header class="cc-support-mast">
+      <p class="<%= family.id === 'editorial' ? 'cc-editorial-index' : 'cc-kicker' %>">
+        <%= family.id === 'poster' ? 'Keep the room going' : family.id === 'editorial' ? 'SUPPORT / DIRECT' : 'For the house' %>
+      </p>
+      <h1><%= graph.voice.terms.support_hive || 'Support this host' %></h1>
+      <p>
+        Send liquid HIVE or HBD directly to the Hive account <strong>@<%= recipient %></strong>
+        that <%= graph.identity.displayName %> released specifically for support.
+      </p>
+    </header>
+
+    <section class="cc-support-truth" aria-labelledby="cc-support-truth-title">
+      <div>
+        <p class="<%= family.id === 'editorial' ? 'cc-editorial-index' : 'cc-kicker' %>">Before you continue</p>
+        <h2 id="cc-support-truth-title">This is direct support, not checkout.</h2>
+      </div>
+      <ul>
+        <li>The exact amount and recipient are reviewed before your wallet opens.</li>
+        <li>Your own wallet must approve the transfer with <strong>Active</strong> authority.</li>
+        <li>HiVenues never receives your private key.</li>
+        <li>A confirmed Hive transfer is normally irreversible by HiVenues.</li>
+        <li>This does not prove a purchase, order, charitable deduction, reservation, or fulfillment.</li>
+        <li>No personal message is attached in this first support tranche.</li>
+      </ul>
+    </section>
+
+    <%- include('social/_identity', {
+      identityLabels: {
+        kicker: family.id === 'poster' ? 'Your name on it' : family.id === 'editorial' ? 'Supporter identity' : 'Who is leaving this',
+        title: family.id === 'poster' ? 'Your Hive sending account' : family.id === 'editorial' ? 'The sending account' : 'Your Hive account',
+        body: 'HiVenues verifies the Hive account that will sign the transfer. Identity proof itself does not move value.',
+        unavailableTitle: 'Wallet identity proof is unavailable',
+        verifiedLabel: 'Verified sender',
+        disconnect: 'Use a different account',
+        accountLabel: 'Hive account',
+        placeholder: 'your-account',
+        action: 'Verify my account',
+        ready: 'Nothing is transferred during identity proof.'
+      }
+    }) %>
+
+    <% if (verifiedAccount && supportEndpoint) { %>
+      <section
+        class="cc-support-action"
+        data-hivenues-support
+        data-support-url="<%= supportEndpoint %>"
+        data-support-actor="<%= verifiedAccount %>"
+        data-support-recipient="<%= recipient %>"
+        data-support-state="ready"
+        aria-labelledby="cc-support-action-title"
+      >
+        <div>
+          <p class="<%= family.id === 'editorial' ? 'cc-editorial-index' : 'cc-kicker' %>">Exact amount</p>
+          <h2 id="cc-support-action-title"><%= graph.voice.terms.support_hive || 'Support this host' %></h2>
+          <p>Choose the liquid Hive asset and amount you want your wallet to send to @<%= recipient %>.</p>
+        </div>
+
+        <form data-support-form>
+          <label for="cc-support-amount">Amount</label>
+          <div class="cc-support-action__amount">
+            <input
+              id="cc-support-amount"
+              name="amount"
+              data-support-amount
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="1.000"
+              pattern="^(0|[1-9][0-9]*)\.[0-9]{3}$"
+              required
+            >
+            <select name="asset" data-support-asset aria-label="Asset">
+              <option value="HIVE">HIVE</option>
+              <option value="HBD">HBD</option>
+            </select>
+          </div>
+          <button type="submit" data-support-submit><%= graph.voice.terms.support_hive || 'Review support' %></button>
+          <p class="cc-support-action__status" data-support-status role="status" aria-live="polite">
+            Enter an exact three-decimal amount. Nothing moves until you review it and approve it in your wallet.
+          </p>
+        </form>
+
+        <dialog class="cc-support-review" data-support-review>
+          <form method="dialog">
+            <p class="<%= family.id === 'editorial' ? 'cc-editorial-index' : 'cc-kicker' %>">Exact consequence</p>
+            <h2>Review the transfer before your wallet opens.</h2>
+            <p data-support-review-consequence></p>
+            <dl>
+              <div><dt>From</dt><dd data-support-review-sender></dd></div>
+              <div><dt>To</dt><dd data-support-review-recipient></dd></div>
+              <div><dt>Amount</dt><dd data-support-review-amount></dd></div>
+              <div><dt>Current liquid balance</dt><dd data-support-review-balance></dd></div>
+              <div><dt>Wallet authority</dt><dd data-support-review-authority></dd></div>
+              <div><dt>Memo</dt><dd data-support-review-memo></dd></div>
+            </dl>
+            <p><strong>Direct support only.</strong> This is not proof of a purchase, order, charitable deduction, reservation, or fulfillment.</p>
+            <p><strong>Normally irreversible.</strong> HiVenues cannot reverse a confirmed Hive transfer.</p>
+            <details>
+              <summary>Exact operation</summary>
+              <p><strong>Fingerprint</strong><br><code data-support-review-fingerprint></code></p>
+              <pre data-support-review-operations></pre>
+            </details>
+            <div class="cc-support-review__actions">
+              <button type="button" data-support-cancel>Go back</button>
+              <button type="button" data-support-confirm>Continue to wallet</button>
+            </div>
+          </form>
+        </dialog>
+      </section>
+    <% } else if (verifiedAccount && !supportEndpoint) { %>
+      <section class="cc-support-action cc-support-action--unavailable">
+        <h2>Direct support is temporarily unavailable.</h2>
+        <p>The released recipient remains visible, but HiVenues will not offer a transfer while exact account-state and transaction confirmation are unavailable.</p>
+      </section>
+    <% } %>
+  </main>
+
+  <footer class="<%= family.id === 'poster' ? 'cc-poster-footer' : family.id === 'editorial' ? 'cc-editorial-footer' : 'cc-hospitality-footer' %>">
+    <span><%= graph.identity.displayName %></span>
+    <span>Direct Hive support · human-owned wallet</span>
+  </footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
+  <% if (verifiedAccount && supportEndpoint) { %><script src="/js/hivenues-support.js" defer></script><% } %>
+</body>
+</html>

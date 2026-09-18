@@ -18,6 +18,7 @@
       <% if (primaryActivity) { %><a href="#current">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#activity-index">Index</a><% } %>
       <% if (!previewMode) { %><a href="<%= hostHref %>/community">Correspondence</a><% } %>
+      <% if (!previewMode && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
       <a href="#notes">Story</a>
       <a href="#about">About</a>
     </nav>
@@ -32,6 +33,9 @@
             <p><%= graph.intent.presenceMaterial %></p>
             <p><%= graph.intent.purpose %></p>
             <p><strong><%= graph.intent.participation %></strong></p>
+            <% if (!previewMode && graph.bindings.hive.valueRecipient) { %>
+              <p><a class="cc-link" href="<%= hostHref %>/support"><%= graph.voice.terms.support_hive || 'Support this work' %></a></p>
+            <% } %>
           </div>
         </section>
       <% } %>

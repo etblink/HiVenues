@@ -124,7 +124,7 @@ test('invalid recipient is rejected without any Working or Live mutation', async
   assert.equal(JSON.stringify(store.publicSnapshot(slug)), beforeLive);
 });
 
-test('Tranche A configuration never creates a public support transfer control', async () => {
+test('released value recipient creates only a host-native support link, never an inline transfer control', async () => {
   const { app, store } = fixture();
   const slug = 'northline-hall';
 
@@ -142,7 +142,8 @@ test('Tranche A configuration never creates a public support transfer control', 
     .get('/candidate-c/' + slug)
     .expect(200);
 
+  assert.match(publicPage.text, /href="\/candidate-c\/northline-hall\/support"/);
+  assert.match(publicPage.text, />Support the room</);
   assert.doesNotMatch(publicPage.text, /data-hivenues-support/);
-  assert.doesNotMatch(publicPage.text, /Support the room/);
   assert.doesNotMatch(publicPage.text, /claim_reward_balance|\btransfer\b/i);
 });
