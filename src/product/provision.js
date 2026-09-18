@@ -2,9 +2,9 @@
 
 const { clone, validateHostGraph } = require('./model');
 
-function provisionCandidateCHost(store, graph) {
+function provisionHiVenuesHost(store, graph) {
   if (!store || !(store.workspaces instanceof Map) || typeof store.snapshot !== 'function') {
-    throw new TypeError('Candidate C provisioning requires a CandidateCStore-compatible instance.');
+    throw new TypeError('HiVenues provisioning requires a HiVenuesStore-compatible instance.');
   }
 
   let validated;
@@ -40,4 +40,4 @@ function provisionCandidateCHost(store, graph) {
   };
 }
 
-module.exports = { provisionCandidateCHost };
+module.exports = { provisionHiVenuesHost };

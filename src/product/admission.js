@@ -136,7 +136,7 @@ function activityPresence(input) {
   return { mode: 'physical', venueName: input.displayName, address: input.address };
 }
 
-function buildCandidateCHostFromInput(rawInput, { randomUUID = crypto.randomUUID } = {}) {
+function buildHiVenuesHostFromInput(rawInput, { randomUUID = crypto.randomUUID } = {}) {
   const parsed = inputSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
@@ -247,4 +247,4 @@ function buildCandidateCHostFromInput(rawInput, { randomUUID = crypto.randomUUID
   }
 }
 
-module.exports = { buildCandidateCHostFromInput, localDateTimeToOffsetIso, slugify };
+module.exports = { buildHiVenuesHostFromInput, localDateTimeToOffsetIso, slugify };
