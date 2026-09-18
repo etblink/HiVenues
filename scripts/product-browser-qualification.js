@@ -1168,7 +1168,7 @@ async function runResourceRewardEvidence(
         assert.match(await resource.textContent(), /550\.000 HP/);
         assert.match(await resource.textContent(), /Resource Credits \(RC\)/);
         assert.match(await resource.textContent(), /Claimable rewards/);
-        assert.match(await resource.textContent(), /Read-only in this stage/);
+        assert.match(await resource.textContent(), /This view is read-only/);
         assert.equal(
           await resource.locator('button, input[type="submit"], [role="button"]').count(),
           0,
