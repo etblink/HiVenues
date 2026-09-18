@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { requireHiveAccount } = require('../http/validation');
+const { requireHiveAccount, requirePermlink } = require('../http/validation');
 const {
   AuthenticationError,
   AuthorizationError,
@@ -20,6 +20,7 @@ const {
   buildRootPostUpdate,
   createContentPermlink,
 } = require('./content-operations');
+const { buildVote } = require('./vote-operations');
 const { isSocialBinding } = require('../candidate-c/social-read-router');
 const { assertSameOrigin } = require('./identity-router');
 
@@ -147,6 +148,19 @@ function createHiVenuesParticipationRouter({
     ) {
       throw new FeatureUnavailableError('Hive content participation is temporarily unavailable', {
         code: 'CONTENT_PROVIDER_UNAVAILABLE',
+      });
+    }
+    return active;
+  }
+
+  function requireVoteReadContract(active) {
+    if (
+      typeof active.hiveReadService.getPostWithComments !== 'function'
+      || typeof active.hiveReadService.getVoteWeight !== 'function'
+      || typeof active.hiveReadService.observeVoteOperation !== 'function'
+    ) {
+      throw new FeatureUnavailableError('Hive vote participation is temporarily unavailable', {
+        code: 'VOTE_PROVIDER_UNAVAILABLE',
       });
     }
     return active;
@@ -426,6 +440,72 @@ function createHiVenuesParticipationRouter({
     },
   );
 
+  router.post(
+    '/:slug/votes/:rootAuthor/:rootPermlink/:targetAuthor/:targetPermlink',
+    async (req, res) => {
+      try {
+        const { identity, active: rawActive } = protect(req);
+        const active = requireVoteReadContract(rawActive);
+        const snapshot = liveHost(store, req.params.slug);
+        const binding = requireHostBinding(req.params.slug);
+        const rootAuthor = requireHiveAccount(req.params.rootAuthor, 'Discussion author');
+        const rootPermlink = requirePermlink(req.params.rootPermlink);
+        const targetAuthor = requireHiveAccount(req.params.targetAuthor, 'Vote target author');
+        const targetPermlink = requirePermlink(req.params.targetPermlink);
+
+        const discussion = await requireHostDiscussion(active, binding, rootAuthor, rootPermlink);
+        if (!discussionContains(discussion, targetAuthor, targetPermlink)) {
+          throw new NotFoundError('Vote target is not part of this canonical discussion');
+        }
+
+        const envelope = buildVote({
+          account: identity.account,
+          author: targetAuthor,
+          permlink: targetPermlink,
+          direction: req.body?.direction,
+          percent: req.body?.percent,
+        });
+        const currentWeight = await active.hiveReadService.getVoteWeight(
+          identity.account,
+          targetAuthor,
+          targetPermlink,
+        );
+        if (currentWeight === null) {
+          throw new NotFoundError('Vote target was not found on Hive');
+        }
+        if (currentWeight === envelope.summary.weight) {
+          throw new ConflictError(
+            '@' + identity.account + ' already has this exact Hive vote on '
+              + targetAuthor + '/' + targetPermlink,
+            { code: 'VOTE_ALREADY_CONFIRMED' },
+          );
+        }
+
+        const contextual = contextualEnvelope(envelope, snapshot, {
+          consequence: '@' + identity.account
+            + ' will cast a ' + envelope.summary.percent + '% '
+            + envelope.summary.direction + ' on '
+            + targetAuthor + '/' + targetPermlink + ' on Hive.',
+          currentWeight,
+          rootAuthor,
+          rootPermlink,
+          discussionHref: discussionHref(snapshot, rootAuthor, rootPermlink),
+        });
+        const preflight = active.preflightStore.create({
+          sessionId: identity.id,
+          envelope: contextual,
+          signer: identity.account,
+        });
+        return res.status(201).json({
+          ...preflight,
+          message: participationMessage(preflight),
+        });
+      } catch (error) {
+        return sendParticipationError(res, error);
+      }
+    },
+  );
+
   router.post('/preflight/:id/cancel', (req, res) => {
     try {
       const { identity, active } = protect(req);
@@ -463,9 +543,14 @@ function createHiVenuesParticipationRouter({
       const { identity, active } = protect(req);
       const record = active.preflightStore.get(req.params.id, identity.id);
       const contentAction = ['post', 'update', 'reply'].includes(record.action);
-      const observed = contentAction
-        ? await requireContentReadContract(active).hiveReadService.observeContentOperation(record)
-        : await active.hiveReadService.observeSocialOperation(record);
+      let observed;
+      if (contentAction) {
+        observed = await requireContentReadContract(active).hiveReadService.observeContentOperation(record);
+      } else if (record.action === 'vote') {
+        observed = await requireVoteReadContract(active).hiveReadService.observeVoteOperation(record);
+      } else {
+        observed = await active.hiveReadService.observeSocialOperation(record);
+      }
       const preflight = active.preflightStore.markObserved(
         req.params.id,
         identity.id,
