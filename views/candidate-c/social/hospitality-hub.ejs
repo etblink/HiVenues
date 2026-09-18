@@ -21,7 +21,7 @@
       <p>The people, quick notes, and longer stories that give this place continuity beyond a single visit.</p>
     </header>
     <%- include('_hub', {
-      graph, hub, hubStateCopy, formatCommunityTime, memberHref,
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['people', 'threads', 'posts'],
       identityLabels: {
         kicker: 'At the table',
@@ -34,6 +34,20 @@
         placeholder: 'your-account',
         action: 'Introduce myself',
         ready: 'Nothing is posted or changed on Hive just by introducing yourself.'
+      },
+      communityParticipationLabels: {
+        kicker: 'Your place at the table',
+        title: 'Stay at the table',
+        body: 'Join or leave the host-bound Hive community through your own wallet.',
+        identifyTitle: 'Introduce yourself first',
+        identifyAction: 'Introduce myself',
+        unavailableTitle: 'The table status is unavailable',
+        currentLabel: 'Hive table connection',
+        currentYes: 'You are connected',
+        currentNo: 'You are not connected',
+        join: 'Join the table',
+        leave: 'Leave the table',
+        ready: 'Nothing changes until you review the exact Hive action and approve it in your wallet.'
       },
       socialLabels: {
         state: 'Table status',
@@ -49,8 +63,9 @@
       }
     }) %>
   </main>
-  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · identity only when useful</span></footer>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · wallet-owned participation</span></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-identity.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>
