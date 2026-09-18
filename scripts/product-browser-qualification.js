@@ -310,8 +310,12 @@ function productReadService(publicKey) {
         rewardVests: '0.000000 VESTS',
         lastClaim: null,
       };
+      const liquid = liquidState.get(account);
+      if (!liquid) throw new Error('Synthetic Hive account not found: ' + account);
       return {
         name: account,
+        balance: canonicalLiquid(liquid.hive, 'HIVE'),
+        hbd_balance: canonicalLiquid(liquid.hbd, 'HBD'),
         reward_hive_balance: rewards.rewardHive,
         reward_hbd_balance: rewards.rewardHbd,
         reward_vesting_balance: rewards.rewardVests,
@@ -452,6 +456,42 @@ function productReadService(publicKey) {
     },
     rewardSnapshot(account) {
       return structuredClone(rewardState.get(account) || null);
+    },
+    async observeSupportOperation(record) {
+      if (!lastSupport || !record.transactionId) return false;
+      return lastSupport.transactionId === record.transactionId
+        && JSON.stringify(lastSupport.operations) === JSON.stringify(record.operations);
+    },
+    applySupportOperation(value, transactionId) {
+      const sender = liquidState.get(value.from);
+      const recipient = liquidState.get(value.to);
+      assert.ok(sender, 'synthetic support sender must exist');
+      assert.ok(recipient, 'synthetic support recipient must exist');
+      assert.equal(value.memo, 'hivenues-support:v1');
+      const symbol = String(value.amount).endsWith(' HBD') ? 'HBD' : 'HIVE';
+      const units = parseLiquid(value.amount, symbol);
+      const field = symbol === 'HBD' ? 'hbd' : 'hive';
+      assert.ok(units > 0n);
+      assert.ok(sender[field] >= units);
+      sender[field] -= units;
+      recipient[field] += units;
+      const operations = [[
+        'transfer',
+        {
+          from: value.from,
+          to: value.to,
+          amount: value.amount,
+          memo: value.memo,
+        },
+      ]];
+      lastSupport = { transactionId, operations };
+    },
+    liquidSnapshot(account) {
+      const liquid = liquidState.get(account);
+      return liquid ? {
+        hive: canonicalLiquid(liquid.hive, 'HIVE'),
+        hbd: canonicalLiquid(liquid.hbd, 'HBD'),
+      } : null;
     },
     async observeContentOperation(record) {
       const [type, value] = record?.operations?.[0] || [];
