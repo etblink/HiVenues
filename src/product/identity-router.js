@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
 const { requireHiveAccount } = require('../http/validation');
 const {
   AuthorizationError,
@@ -57,15 +58,29 @@ function createHiVenuesIdentityRouter({
   fixedOrigin = '',
   secureCookie = false,
   context = IDENTITY_PROOF_CONTEXT,
+  attemptWindowMs = 60_000,
+  attemptLimit = 10,
 } = {}) {
   const router = express.Router();
+  const attemptLimiter = rateLimit({
+    windowMs: attemptWindowMs,
+    limit: attemptLimit,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => res.status(429).json({
+      error: {
+        code: 'IDENTITY_RATE_LIMITED',
+        message: 'Too many identity proof attempts; please try again shortly.',
+      },
+    }),
+  });
 
   router.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
   });
 
-  router.post('/challenge', (req, res) => {
+  router.post('/challenge', attemptLimiter, (req, res) => {
     try {
       const origin = assertSameOrigin(req, fixedOrigin);
       const active = requireIdentityServices(services);
@@ -77,7 +92,7 @@ function createHiVenuesIdentityRouter({
     }
   });
 
-  router.post('/verify', async (req, res) => {
+  router.post('/verify', attemptLimiter, async (req, res) => {
     try {
       const origin = assertSameOrigin(req, fixedOrigin);
       const active = requireIdentityServices(services);
