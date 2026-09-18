@@ -112,6 +112,16 @@ test('invalid recipient is rejected without any Working or Live mutation', async
   assert.match(response.text, /Value recipient is invalid/);
   assert.equal(JSON.stringify(store.snapshot(slug)), beforeWorking);
   assert.equal(JSON.stringify(store.publicSnapshot(slug)), beforeLive);
+
+  const overlong = await request(app)
+    .post('/candidate-c/studio/' + slug + '/value-recipient')
+    .set('HX-Request', 'true')
+    .type('form')
+    .send({ ...tokens(store, slug), valueRecipient: 'northline-support' })
+    .expect(400);
+  assert.match(overlong.text, /Value recipient is invalid/);
+  assert.equal(JSON.stringify(store.snapshot(slug)), beforeWorking);
+  assert.equal(JSON.stringify(store.publicSnapshot(slug)), beforeLive);
 });
 
 test('Tranche A configuration never creates a public support transfer control', async () => {
