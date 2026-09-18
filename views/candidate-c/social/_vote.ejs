@@ -1,0 +1,83 @@
+<%
+  const voteKey = item.author + '/' + item.permlink;
+  const currentVoteWeight = Object.prototype.hasOwnProperty.call(discussion.voteWeights || {}, voteKey)
+    ? discussion.voteWeights[voteKey]
+    : null;
+  const canVote = Boolean(
+    discussion.actor
+      && discussion.voteAvailable
+      && Number.isInteger(currentVoteWeight)
+  );
+  const initialPercent = currentVoteWeight
+    ? Math.max(1, Math.min(100, Math.abs(currentVoteWeight) / 100))
+    : 100;
+  const currentVoteLabel = currentVoteWeight === null
+    ? 'Current vote state unavailable'
+    : currentVoteWeight === 0
+      ? 'No current vote from @' + discussion.actor
+      : (currentVoteWeight > 0 ? '+' : '') + (currentVoteWeight / 100) + '% from @' + discussion.actor;
+%>
+
+<section class="cc-vote cc-vote--<%= graph.presentation.compositionFamily %>" aria-label="Hive reaction">
+  <div class="cc-vote__tally" aria-label="Canonical Hive vote totals">
+    <span title="Positive Hive votes"><span aria-hidden="true">↑</span> <%= item.positiveVotes %></span>
+    <span title="Negative Hive votes"><span aria-hidden="true">↓</span> <%= item.negativeVotes %></span>
+  </div>
+
+  <% if (canVote) { %>
+    <div
+      class="cc-vote__control"
+      data-hivenues-vote
+      data-vote-url="<%= voteEndpoint(item.author, item.permlink) %>"
+      data-vote-actor="<%= discussion.actor %>"
+      data-vote-current-weight="<%= currentVoteWeight %>"
+      data-vote-state="ready"
+    >
+      <div class="cc-vote__actions" role="group" aria-label="Choose Hive vote direction">
+        <button type="button" data-vote-direction="upvote"><%= votePresentation.positiveLabel %></button>
+        <% if (votePresentation.showNegativeAction) { %>
+          <button type="button" data-vote-direction="downvote"><%= votePresentation.negativeLabel %></button>
+        <% } %>
+      </div>
+
+      <label class="cc-vote__strength">
+        <span>Strength</span>
+        <input data-vote-percent type="range" min="1" max="100" step="1" value="<%= initialPercent %>">
+        <output data-vote-percent-output><%= initialPercent %>%</output>
+      </label>
+
+      <p class="cc-vote__current" data-vote-current><%= currentVoteLabel %></p>
+      <p class="cc-vote__truth">This is a real Hive vote through your own wallet. HiVenues waits for exact canonical vote-weight readback before calling it confirmed.</p>
+      <p class="cc-vote__status" data-vote-status role="status" aria-live="polite">Choose a direction when you are ready to review the exact consequence.</p>
+
+      <dialog class="cc-vote-review" data-vote-review aria-labelledby="cc-vote-review-title-<%= item.author %>-<%= item.permlink %>">
+        <form method="dialog">
+          <p class="cc-kicker">Before your wallet opens</p>
+          <h2 id="cc-vote-review-title-<%= item.author %>-<%= item.permlink %>">Review the exact Hive vote</h2>
+          <p data-vote-review-consequence></p>
+          <dl>
+            <div><dt>Verified account</dt><dd data-vote-review-account></dd></div>
+            <div><dt>Hive mechanic</dt><dd>vote</dd></div>
+            <div><dt>Target</dt><dd data-vote-review-target></dd></div>
+            <div><dt>Direction</dt><dd data-vote-review-direction></dd></div>
+            <div><dt>Strength</dt><dd data-vote-review-percent></dd></div>
+            <div><dt>Signed Hive weight</dt><dd data-vote-review-weight></dd></div>
+            <div><dt>Authority</dt><dd data-vote-review-authority></dd></div>
+          </dl>
+          <details>
+            <summary>Technical operation details</summary>
+            <p>Fingerprint: <code data-vote-review-fingerprint></code></p>
+            <pre data-vote-review-operations></pre>
+          </details>
+          <p>Your wallet—not HiVenues—will sign and broadcast this vote.</p>
+          <div class="cc-vote-review__actions">
+            <button type="button" data-vote-confirm>Continue to wallet</button>
+            <button type="button" data-vote-cancel>Cancel</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+  <% } else if (discussion.actor && discussion.voteIssue) { %>
+    <p class="cc-vote__status" role="status">Current vote state could not be confirmed safely, so HiVenues is not offering a vote action right now.</p>
+  <% } %>
+</section>
