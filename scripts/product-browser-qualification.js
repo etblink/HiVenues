@@ -581,6 +581,7 @@ async function runRelationshipJourneys(
     counters,
     origin,
     identityServices,
+    'paper-sparrow',
   );
   await installApprovalWallet(context, key, publicKey);
   const page = await context.newPage();
@@ -629,7 +630,7 @@ async function runRelationshipJourneys(
     await page.waitForFunction(() => (
       document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'subscribe'
     ));
-    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
+    assert.equal(await hiveReadService.isCommunityMember('paper-sparrow', COMMUNITY), false);
     await capture(page, axeSource, manifest, 'poster-community-unsubscribed');
 
     await page.goto(
@@ -714,6 +715,7 @@ async function runRelationshipProviderUnavailableEvidence(
     counters,
     origin,
     identityServices,
+    'blue-cup',
   );
   const page = await context.newPage();
   page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
@@ -731,7 +733,7 @@ async function runRelationshipProviderUnavailableEvidence(
     await page.locator('[data-participation-review][open]').waitFor();
     await page.locator('[data-participation-confirm]').click();
     await page.locator('[data-participation-state="provider-unavailable"]').waitFor();
-    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), false);
+    assert.equal(await hiveReadService.getFollowStatus('blue-cup', 'juniper-lane'), false);
     assert.match(
       await root.locator('[data-participation-status]').textContent(),
       /human-owned Hive wallet/i,
