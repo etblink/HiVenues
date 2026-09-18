@@ -10,7 +10,12 @@
   </header>
   <main class="cc-social-shell cc-social-hospitality-shell">
     <%- include('_member', {
-      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Your seat at the table', title: 'Your participation readiness',
+        body: 'A read-only view of the Hive resources and rewards connected to your own account.',
+        voting: 'Applause strength', capacity: 'Room to participate', basis: 'Your footing', rewards: 'Rewards waiting'
+      },
       followParticipationLabels: {
         kicker: 'Keep in touch',
         title: 'Stay connected',
@@ -34,7 +39,7 @@
       }
     }) %>
   </main>
-  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Public profile · wallet-owned follow</span></footer>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span><%= resourceState?.visible ? 'Your participation state · read-only' : 'Public profile · wallet-owned follow' %></span></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
 </body>

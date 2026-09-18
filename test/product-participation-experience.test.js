@@ -194,7 +194,7 @@ test('verified member relationship renders follow or unfollow only for another a
     .set('cookie', ownSession.cookie)
     .expect(200);
 
-  assert.match(ownProfile.text, /This is your own Hive profile/);
+  assert.match(ownProfile.text, /@etblink/);
   assert.doesNotMatch(ownProfile.text, /data-hivenues-participation/);
 });
 

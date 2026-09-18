@@ -35,12 +35,21 @@
     </dl>
   </section>
 
-  <%- include('_participation', {
+  <% if (!resourceState?.visible) { %>
+    <%- include('_participation', {
+      graph,
+      participation,
+      participationKind: 'follow',
+      participationLabels: followParticipationLabels,
+      socialHref
+    }) %>
+  <% } %>
+
+  <%- include('_resource-state', {
     graph,
-    participation,
-    participationKind: 'follow',
-    participationLabels: followParticipationLabels,
-    socialHref
+    resourceState,
+    resourceLabels,
+    formatCommunityTime
   }) %>
 
   <% if (member.posts.length) { %>

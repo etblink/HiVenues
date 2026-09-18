@@ -125,6 +125,80 @@ function voteExperience(graph) {
   });
 }
 
+function validPercent(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 100;
+}
+
+function validNonNegativeNumber(value) {
+  return Number.isFinite(value) && value >= 0;
+}
+
+function validResourceRewardSummary(value, account) {
+  return Boolean(
+    isRecord(value)
+      && value.account === account
+      && validPercent(value.votingPowerPercent)
+      && validPercent(value.resourceCreditsPercent)
+      && validNonNegativeNumber(value.hivePower)
+      && isRecord(value.rewards)
+      && validNonNegativeNumber(value.rewards.hive)
+      && validNonNegativeNumber(value.rewards.hbd)
+      && validNonNegativeNumber(value.rewards.hivePower)
+      && validNonNegativeNumber(value.rewards.vestingShares)
+      && typeof value.hasClaimableRewards === 'boolean'
+      && Number.isFinite(Date.parse(value.displayedAt)),
+  );
+}
+
+async function readPersonalResourceRewardState(hiveReads, account, viewer) {
+  const visible = Boolean(viewer && viewer === account);
+  const base = {
+    visible,
+    status: visible ? 'unavailable' : 'hidden',
+    issue: visible ? 'provider-not-configured' : null,
+    account,
+    votingPowerPercent: null,
+    resourceCreditsPercent: null,
+    hivePower: null,
+    rewards: null,
+    hasClaimableRewards: false,
+    displayedAt: null,
+  };
+  if (!visible) return Object.freeze(base);
+  if (!hiveReads || typeof hiveReads.getWallet !== 'function') return Object.freeze(base);
+
+  let wallet;
+  try {
+    wallet = await hiveReads.getWallet(account);
+  } catch {
+    return Object.freeze({ ...base, issue: 'resource-state-unavailable' });
+  }
+  if (!validResourceRewardSummary(wallet, account)) {
+    return Object.freeze({
+      ...base,
+      status: 'degraded',
+      issue: 'resource-state-invalid',
+    });
+  }
+
+  return Object.freeze({
+    ...base,
+    status: 'ready',
+    issue: null,
+    votingPowerPercent: wallet.votingPowerPercent,
+    resourceCreditsPercent: wallet.resourceCreditsPercent,
+    hivePower: wallet.hivePower,
+    rewards: Object.freeze({
+      hive: wallet.rewards.hive,
+      hbd: wallet.rewards.hbd,
+      hivePower: wallet.rewards.hivePower,
+      vestingShares: wallet.rewards.vestingShares,
+    }),
+    hasClaimableRewards: wallet.hasClaimableRewards,
+    displayedAt: wallet.displayedAt,
+  });
+}
+
 function hasContentReadContract(service) {
   return Boolean(
     service
@@ -584,12 +658,16 @@ function createCandidateCSocialReadRouter({
     const binding = bindings.get(req.params.slug);
     const member = await readMember(hiveReadService, binding, account);
     if (member.status === 'missing') return res.sendStatus(404);
-    const participation = await readFollowRelationship(
-      hiveReadService,
-      account,
-      verifiedViewer(res),
-      participationCapability(res),
-    );
+    const viewer = verifiedViewer(res);
+    const [participation, resourceState] = await Promise.all([
+      readFollowRelationship(
+        hiveReadService,
+        account,
+        viewer,
+        participationCapability(res),
+      ),
+      readPersonalResourceRewardState(hiveReadService, account, viewer),
+    ]);
 
     const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
@@ -601,6 +679,7 @@ function createCandidateCSocialReadRouter({
       ...view,
       member,
       participation,
+      resourceState,
       hostHref,
       communityHref,
       socialHref,
@@ -694,6 +773,7 @@ module.exports = {
   readCommunityRelationship,
   readDiscussion,
   readFollowRelationship,
+  readPersonalResourceRewardState,
   voteExperience,
   readMember,
   readSocialHub,

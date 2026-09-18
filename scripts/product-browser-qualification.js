@@ -242,6 +242,26 @@ function productReadService(publicKey) {
         profileImage: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E',
       }]));
     },
+    async getWallet(account) {
+      return {
+        account,
+        displayedAt: '2026-09-18T12:00:00.000Z',
+        liquidHive: 12.345,
+        liquidHbd: 6.789,
+        hivePower: 550,
+        resourceCreditsPercent: 60,
+        votingPowerPercent: 70,
+        beerSegmentsFilled: 7,
+        milestone: { name: 'Synthetic', progressPercent: 10, hasNextLevel: true, max: 1000 },
+        rewards: {
+          hive: 1,
+          hbd: 0.5,
+          hivePower: 0.5,
+          vestingShares: 1000,
+        },
+        hasClaimableRewards: true,
+      };
+    },
     async getProfile(account) {
       return {
         name: account,
@@ -1090,6 +1110,82 @@ async function approvePendingVote(page, hiveReadService, counters) {
   return { ...pending, transactionId };
 }
 
+async function runResourceRewardEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  const cases = [
+    {
+      slug: 'northline-hall',
+      family: 'poster',
+      title: 'Your participation energy',
+      metaphor: 'Raise-a-glass strength',
+    },
+    {
+      slug: 'nova-ashby',
+      family: 'editorial',
+      title: 'Your participation capacity',
+      metaphor: 'Recommendation strength',
+    },
+    {
+      slug: 'harbor-and-hearth',
+      family: 'hospitality',
+      title: 'Your participation readiness',
+      metaphor: 'Applause strength',
+    },
+  ];
+
+  try {
+    for (const item of cases) {
+      for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          origin + '/candidate-c/' + item.slug + '/community/people/etblink',
+          { waitUntil: 'networkidle' },
+        );
+        const resource = page.locator('.cc-resource-state').first();
+        await resource.waitFor();
+        assert.match(await resource.textContent(), new RegExp(item.title));
+        assert.match(await resource.textContent(), new RegExp(item.metaphor));
+        assert.match(await resource.textContent(), /70\.0%/);
+        assert.match(await resource.textContent(), /60\.0%/);
+        assert.match(await resource.textContent(), /550\.000 HP/);
+        assert.match(await resource.textContent(), /Resource Credits \(RC\)/);
+        assert.match(await resource.textContent(), /Claimable rewards/);
+        assert.match(await resource.textContent(), /This view is read-only/);
+        assert.equal(
+          await resource.locator('button, input[type="submit"], [role="button"]').count(),
+          0,
+        );
+        await capture(
+          page,
+          axeSource,
+          manifest,
+          item.family + '-resource-reward-' + viewportName,
+        );
+      }
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 async function runVotePolicyStudioEvidence(
   browser,
   axeSource,
@@ -1598,6 +1694,7 @@ async function main() {
       'vote-review',
       'vote-wallet-pending',
       'vote-canonical-confirmation',
+      'three-direction-resource-reward-owner-state',
     ],
   };
 
@@ -1644,6 +1741,14 @@ async function main() {
       counters,
       identityServices,
       hiveReadService,
+    );
+    await runResourceRewardEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
     );
     await runVotePolicyStudioEvidence(
       browser,
@@ -1825,7 +1930,7 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 56);
+  assert.equal(manifest.summary.screenshotCount, 62);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
