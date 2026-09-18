@@ -16,6 +16,7 @@ const {
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
 const { CandidateCStore } = require('../src/candidate-c/store');
+const { seedCandidateCHosts } = require('../src/candidate-c/fixtures');
 
 const OUTPUT_ROOT = process.env.HIVENUES_PRODUCT_BROWSER_ROOT
   || path.join('artifacts', 'product-browser', 'participation');
@@ -84,7 +85,10 @@ function browserContentRecord({
   };
 }
 
-function normalizeBrowserContent(raw, replyCount = 0) {
+function normalizeBrowserContent(raw, replyCount = 0, voteRecords = []) {
+  const votes = voteRecords.filter(
+    (item) => item.author === raw.author && item.permlink === raw.permlink && item.weight !== 0,
+  );
   return {
     author: raw.author,
     permlink: raw.permlink,
@@ -97,8 +101,8 @@ function normalizeBrowserContent(raw, replyCount = 0) {
     primaryImage: '',
     created: raw.created || '2026-09-18T01:00:00',
     updated: '',
-    positiveVotes: 0,
-    negativeVotes: 0,
+    positiveVotes: votes.filter((item) => item.weight > 0).length,
+    negativeVotes: votes.filter((item) => item.weight < 0).length,
     replyCount,
     payout: 0,
     depth: raw.parentAuthor ? 1 : 0,
@@ -110,8 +114,11 @@ function productReadService(publicKey) {
   const followState = new Set();
   const communityState = new Set();
   const contentRecords = new Map();
+  const voteState = new Map();
   const followKey = (follower, following) => follower + '->' + following;
   const communityKey = (account, community) => account + '->' + community;
+  const voteKey = (voter, author, permlink) => voter + '->' + author + '/' + permlink;
+  const voteRecords = () => Array.from(voteState.values());
 
   const seedRoot = browserContentRecord({
     author: 'etblink',
@@ -132,6 +139,12 @@ function productReadService(publicKey) {
   });
   contentRecords.set(contentKey(seedRoot.author, seedRoot.permlink), seedRoot);
   contentRecords.set(contentKey(seedReply.author, seedReply.permlink), seedReply);
+  voteState.set(voteKey('external-reader', seedRoot.author, seedRoot.permlink), {
+    voter: 'external-reader',
+    author: seedRoot.author,
+    permlink: seedRoot.permlink,
+    weight: -2500,
+  });
 
   function roots() {
     return Array.from(contentRecords.values())
@@ -185,6 +198,7 @@ function productReadService(publicKey) {
       const items = roots().map((item) => normalizeBrowserContent(
         item,
         commentsFor(item).length,
+        voteRecords(),
       ));
       return {
         items,
@@ -227,7 +241,7 @@ function productReadService(publicKey) {
       return {
         items: roots()
           .filter((item) => !account || item.author === account)
-          .map((item) => normalizeBrowserContent(item, commentsFor(item).length)),
+          .map((item) => normalizeBrowserContent(item, commentsFor(item).length, voteRecords())),
         profiles: {},
         nextCursor: null,
       };
@@ -284,13 +298,37 @@ function productReadService(publicKey) {
       }
       const comments = commentsFor(root);
       return {
-        post: normalizeBrowserContent(root, comments.length),
-        comments: comments.map((item) => normalizeBrowserContent(item, 0)),
+        post: normalizeBrowserContent(root, comments.length, voteRecords()),
+        comments: comments.map((item) => normalizeBrowserContent(item, 0, voteRecords())),
         profiles: Object.fromEntries(
           Array.from(new Set([root.author, ...comments.map((item) => item.author)]))
             .map((name) => [name, { name, displayName: name }]),
         ),
       };
+    },
+    async getVoteWeight(voter, author, permlink) {
+      if (!contentRecords.has(contentKey(author, permlink))) return null;
+      return voteState.get(voteKey(voter, author, permlink))?.weight || 0;
+    },
+    async observeVoteOperation(record) {
+      const [type, value] = record?.operations?.[0] || [];
+      if (type !== 'vote' || !value) return false;
+      return (await this.getVoteWeight(value.voter, value.author, value.permlink)) === Number(value.weight);
+    },
+    applyVoteOperation(value) {
+      assert.equal(contentRecords.has(contentKey(value.author, value.permlink)), true);
+      const weight = Number(value.weight);
+      assert.equal(Number.isInteger(weight), true);
+      assert.ok(weight >= -10000 && weight <= 10000);
+      voteState.set(voteKey(value.voter, value.author, value.permlink), {
+        voter: value.voter,
+        author: value.author,
+        permlink: value.permlink,
+        weight,
+      });
+    },
+    voteSnapshot() {
+      return voteRecords().map((item) => structuredClone(item));
     },
     async observeContentOperation(record) {
       const [type, value] = record?.operations?.[0] || [];
@@ -357,6 +395,27 @@ function applyAuthorizedRelationshipOperation(hiveReadService, account, operatio
   });
   return crypto.createHash('sha1')
     .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
+    .digest('hex');
+}
+
+
+function applyAuthorizedVoteOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'vote');
+  assert.equal(value.voter, account);
+  assert.equal(typeof value.author, 'string');
+  assert.equal(typeof value.permlink, 'string');
+  assert.equal(Number.isInteger(value.weight), true);
+  assert.ok(value.weight >= -10000 && value.weight <= 10000);
+  hiveReadService.applyVoteOperation(value);
+  counters.voteBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+  });
+  return crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.voteBroadcasts.length]))
     .digest('hex');
 }
 
@@ -442,8 +501,9 @@ async function pageAudit(page, axeSource, label) {
       .map((node) => ({
         text: (node.textContent || node.value || '').trim(),
         tag: node.tagName,
+        authorizedVote: Boolean(node.closest('[data-hivenues-vote]')),
       }))
-      .filter((item) => held.test(item.text));
+      .filter((item) => held.test(item.text) && !item.authorizedVote);
     const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
       .map((root) => ({
         action: root.dataset.participationAction || '',
@@ -462,7 +522,28 @@ async function pageAudit(page, axeSource, label) {
     const invalidContent = content.filter(
       (item) => !['post', 'update', 'reply'].includes(item.mode),
     );
-    return { unauthorized, relationship, invalidRelationship, content, invalidContent };
+    const vote = Array.from(document.querySelectorAll('[data-hivenues-vote]'))
+      .map((root) => ({
+        actor: root.dataset.voteActor || '',
+        url: root.dataset.voteUrl || '',
+        directions: Array.from(root.querySelectorAll('[data-vote-direction]'))
+          .map((button) => button.dataset.voteDirection || ''),
+      }));
+    const invalidVote = vote.filter((item) => (
+      !item.actor
+      || !/\/participation\/[^/]+\/votes\//.test(item.url)
+      || !item.directions.includes('upvote')
+      || item.directions.some((direction) => !['upvote', 'downvote'].includes(direction))
+    ));
+    return {
+      unauthorized,
+      relationship,
+      invalidRelationship,
+      content,
+      invalidContent,
+      vote,
+      invalidVote,
+    };
   });
   const accessibility = await page.evaluate(async () => {
     const result = await window.axe.run(document, {
@@ -485,6 +566,7 @@ async function pageAudit(page, axeSource, label) {
   assert.deepEqual(controls.unauthorized, [], label + ': unauthorized held-write controls');
   assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
   assert.deepEqual(controls.invalidContent, [], label + ': invalid content controls');
+  assert.deepEqual(controls.invalidVote, [], label + ': invalid vote controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -1185,7 +1267,17 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
 }
 
 async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
-  const store = new CandidateCStore();
+  const browserHosts = seedCandidateCHosts();
+  const posterHost = browserHosts.find((host) => host.identity.slug === 'northline-hall');
+  posterHost.bindings.hive.showNegativeVoteAction = true;
+  posterHost.voice.terms.downvote_hive = 'Not for this room';
+  const editorialHost = browserHosts.find((host) => host.identity.slug === 'nova-ashby');
+  editorialHost.bindings.hive.showNegativeVoteAction = false;
+  editorialHost.voice.terms.downvote_hive = 'Push back';
+  const hospitalityHost = browserHosts.find((host) => host.identity.slug === 'harbor-and-hearth');
+  hospitalityHost.bindings.hive.showNegativeVoteAction = true;
+  hospitalityHost.voice.terms.downvote_hive = 'Not for this table';
+  const store = new CandidateCStore({ hosts: browserHosts });
   const before = store.diagnostics();
   const hiveReadService = productReadService(publicKey);
   const app = createHiVenuesApp({
@@ -1253,6 +1345,7 @@ async function main() {
     consoleErrors: [],
     walletBroadcasts: [],
     contentBroadcasts: [],
+    voteBroadcasts: [],
   };
   const manifest = {
     qualification: 'hivenues-product-browser-participation',
@@ -1283,6 +1376,11 @@ async function main() {
       'reply',
       'content-wallet-cancelled',
       'content-wallet-unavailable',
+      'vote-enabled-desktop-mobile',
+      'vote-hidden-desktop-mobile',
+      'vote-review',
+      'vote-wallet-pending',
+      'vote-canonical-confirmation',
     ],
   };
 
@@ -1387,7 +1485,7 @@ async function main() {
   assert.equal(mutatingIdentityPaths.has('/identity/verify'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/disconnect'), true);
   assert.equal(
-    observedPaths.some((value) => /\/(vote|payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)),
+    observedPaths.some((value) => /\/(payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)),
     false,
     'browser invoked a held mutation path',
   );
@@ -1447,7 +1545,8 @@ async function main() {
       (sum, item) => sum
         + item.controls.unauthorized.length
         + item.controls.invalidRelationship.length
-        + item.controls.invalidContent.length,
+        + item.controls.invalidContent.length
+        + item.controls.invalidVote.length,
       0,
     ),
     externalRequests: counters.externalRequests.length,
@@ -1455,6 +1554,7 @@ async function main() {
     authorityRpcCalls: hiveReadService.rpcPool.calls.length,
     authorizedRelationshipBroadcasts: counters.walletBroadcasts.length,
     authorizedContentBroadcasts: counters.contentBroadcasts.length,
+    authorizedVoteBroadcasts: counters.voteBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
