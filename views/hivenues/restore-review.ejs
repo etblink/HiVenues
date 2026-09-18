@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/release">Back to History</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+
+    <p class="cc-kicker">History · restore</p>
+    <h1>Use Version <%= selectedRelease.draftRevision %> as your working version?</h1>
+    <p class="cc-task__dek">This does <strong>not</strong> roll the live website back. It copies the selected historical website version into Studio as a new working version. You can review or edit it, and nothing changes for visitors until you explicitly publish another website release.</p>
+
+    <div class="cc-review-grid">
+      <section class="cc-review-card">
+        <p class="cc-kicker">Your current working version</p>
+        <h2>Version <%= revision %> · <%= family.label %></h2>
+        <p><strong><%= graph.facts.tagline %></strong></p>
+        <p><%= graph.facts.summary %></p>
+        <p><%= graph.activities.length %> Activity · <%= graph.offers.length %> Offer</p>
+      </section>
+      <section class="cc-review-card">
+        <p class="cc-kicker">Historical version you selected</p>
+        <h2>Version <%= selectedRelease.draftRevision %> · <%= selectedRelease.snapshot.presentation.compositionFamily %></h2>
+        <p><strong><%= selectedRelease.snapshot.facts.tagline %></strong></p>
+        <p><%= selectedRelease.snapshot.facts.summary %></p>
+        <p><%= selectedRelease.snapshot.activities.length %> Activity · <%= selectedRelease.snapshot.offers.length %> Offer</p>
+      </section>
+    </div>
+
+    <section class="cc-consequence-card" style="margin-top:1.2rem">
+      <h2>Live site stays where it is</h2>
+      <p><%= release ? `Visitors keep seeing Version ${release.draftRevision}${release.kind === 'urgent' ? ' with its urgent update' : ''}.` : 'There is no live website version yet.' %></p>
+      <p>Restoring changes Studio only. Publishing is always a separate decision.</p>
+      <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/releases/<%= selectedRelease.id %>/restore" style="margin-top:1rem">
+        <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+        <button class="cc-button cc-button--ink" type="submit">Use this as working version</button>
+      </form>
+    </section>
+
+    <details style="margin-top:1.2rem">
+      <summary>Technical details</summary>
+      <p>Historical release <code><%= selectedRelease.id %></code></p>
+      <p>Content digest <code><%= selectedRelease.digest %></code></p>
+    </details>
+  </main>
+</body>
+</html>

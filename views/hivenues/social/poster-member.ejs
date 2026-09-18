@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css"></head>
+<body class="cc-public cc-poster cc-social cc-social--poster cc-member" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-poster-nav cc-social-nav">
+    <a class="cc-wordmark" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community"><a href="<%= communityHref %>">Board</a><a href="<%= socialHref %>">Updates & people</a><a href="<%= hostHref %>">Room</a></nav>
+  </header>
+  <main class="cc-social-shell cc-social-poster-shell">
+    <%- include('_member', {
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Your place in the room', title: 'Your participation energy',
+        body: 'A look at the Hive capacity and rewards behind your own participation here.',
+        voting: 'Raise-a-glass strength', capacity: 'Room to participate', basis: 'Your footing', rewards: 'Waiting for you',
+        claimKicker: 'Ready when you are', claimAction: 'Collect rewards'
+      },
+      followParticipationLabels: {
+        kicker: 'Stay connected',
+        title: 'Keep up with this person',
+        body: 'Change whether your verified Hive account follows this person. The exact follow operation is reviewed before your wallet opens.',
+        identifyTitle: 'Put your name to the wall first',
+        identifyAction: 'Prove identity',
+        unavailableTitle: 'Follow status is unavailable',
+        currentLabel: 'Your Hive follow status',
+        currentYes: 'Following this account',
+        currentNo: 'Not following this account',
+        join: 'Follow on Hive',
+        leave: 'Stop following',
+        ready: 'Review the exact Hive follow change before your wallet opens.'
+      },
+      memberLabels: {
+        state: 'Profile signal', identity: 'Seen around this place',
+        memberYes: 'Connected to this community on Hive.', memberNo: 'Not currently subscribed to this community on Hive.',
+        postsKicker: 'Pinned from this person', postsTitle: 'Recent stories',
+        connectionsKicker: 'Public connections', connectionsTitle: 'Who circles this person',
+        relatedKicker: 'Also on the wall', relatedTitle: 'Other people in recent notes'
+      }
+    }) %>
+  </main>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p><%= resourceState?.visible ? (claimRewardsEndpoint && resourceState.hasClaimableRewards ? 'Your Hive participation state · rewards ready' : 'Your Hive participation state · read-only') : 'Public profile · wallet-owned follow' %></p></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
+  <% if (claimRewardsEndpoint && resourceState?.hasClaimableRewards) { %><script src="/js/hivenues-reward-claim.js" defer></script><% } %>
+</body>
+</html>

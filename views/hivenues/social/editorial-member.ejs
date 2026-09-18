@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css"></head>
+<body class="cc-public cc-editorial cc-social cc-social--editorial cc-member" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-editorial-nav cc-social-nav">
+    <a class="cc-editorial-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community"><a href="<%= communityHref %>">Correspondence</a><a href="<%= socialHref %>">Dispatches</a><a href="<%= hostHref %>">Index</a></nav>
+  </header>
+  <main class="cc-social-shell cc-social-editorial-shell">
+    <%- include('_member', {
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Reader account', title: 'Your participation capacity',
+        body: 'Current Hive capacity and rewards, translated into this publication without turning the page into a wallet dashboard.',
+        voting: 'Recommendation strength', capacity: 'Room to participate', basis: 'Protocol footing', rewards: 'Rewards on record',
+        claimKicker: 'Account action', claimAction: 'Claim rewards'
+      },
+      followParticipationLabels: {
+        kicker: 'Reader network',
+        title: 'Follow this contributor',
+        body: 'Add or remove this Hive account from your own public following list through your wallet.',
+        identifyTitle: 'Verify your reader identity first',
+        identifyAction: 'Verify identity',
+        unavailableTitle: 'Follow status is unavailable',
+        currentLabel: 'Hive follow status',
+        currentYes: 'Following',
+        currentNo: 'Not following',
+        join: 'Follow contributor',
+        leave: 'Unfollow contributor',
+        ready: 'Review the exact Hive follow operation before your wallet opens.'
+      },
+      memberLabels: {
+        state: 'Profile status', identity: 'Contributor profile',
+        memberYes: 'Listed as connected to this Hive community.', memberNo: 'Not currently listed as subscribed to this Hive community.',
+        postsKicker: 'Selected record', postsTitle: 'Recent publications',
+        connectionsKicker: 'Network index', connectionsTitle: 'Public connections',
+        relatedKicker: 'Same issue', relatedTitle: 'Other recent contributors'
+      }
+    }) %>
+  </main>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span><%= resourceState?.visible ? (claimRewardsEndpoint && resourceState.hasClaimableRewards ? 'Personal Hive state / rewards ready' : 'Personal Hive state / read-only') : 'Public profile / wallet-owned follow' %></span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
+  <% if (claimRewardsEndpoint && resourceState?.hasClaimableRewards) { %><script src="/js/hivenues-reward-claim.js" defer></script><% } %>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Site · Look</p>
+    <h1>Choose the accent that belongs to the host.</h1>
+    <p class="cc-task__dek">Direction controls the larger composition. Accent changes emphasis and color character without forcing a different structural layout.</p>
+    <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/brand">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <fieldset class="cc-field" style="border:0;padding:0">
+        <legend>Accent</legend>
+        <div class="cc-choice-grid">
+          <% accents.forEach((accent) => { %>
+            <label class="cc-choice">
+              <input type="radio" name="accent" value="<%= accent.value %>" <%= graph.presentation.accent.toLowerCase() === accent.value ? 'checked' : '' %>>
+              <span aria-hidden="true" style="display:block;height:34px;border-radius:9px;background:<%= accent.value %>;border:1px solid rgba(0,0,0,.12)"></span>
+              <strong><%= accent.label %></strong>
+              <small><code><%= accent.value %></code></small>
+            </label>
+          <% }) %>
+        </div>
+      </fieldset>
+      <button class="cc-button cc-button--ink" type="submit">Save accent to draft</button>
+    </form>
+  </main>
+</body>
+</html>

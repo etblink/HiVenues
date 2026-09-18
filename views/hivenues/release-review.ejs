@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <%
+    const liveSnapshot = release ? release.snapshot : null;
+    const releaseChanges = [];
+    const territoryCounts = (snapshot) => ({
+      stories: snapshot && snapshot.schemaVersion === 2 ? snapshot.stories.length : 0,
+      people: snapshot && snapshot.schemaVersion === 2 ? snapshot.people.length : 0,
+      gallery: snapshot && snapshot.schemaVersion === 2 ? snapshot.gallery.mediaIds.length : 0,
+    });
+    const workingTerritory = territoryCounts(graph);
+    const liveTerritory = territoryCounts(liveSnapshot);
+    if (!liveSnapshot) {
+      releaseChanges.push('This will be the first live website version.');
+    } else {
+      if (graph.identity.displayName !== liveSnapshot.identity.displayName) releaseChanges.push('Public name changed.');
+      if (graph.facts.tagline !== liveSnapshot.facts.tagline) releaseChanges.push('Headline changed.');
+      if (graph.facts.summary !== liveSnapshot.facts.summary) releaseChanges.push('Public summary changed.');
+      if (graph.facts.contact !== liveSnapshot.facts.contact) releaseChanges.push('Public contact changed.');
+      if (graph.facts.presence.label !== liveSnapshot.facts.presence.label || graph.facts.presence.address !== liveSnapshot.facts.presence.address) releaseChanges.push('Visit / presence details changed.');
+      if (graph.intent.purpose !== liveSnapshot.intent.purpose || graph.intent.presenceMaterial !== liveSnapshot.intent.presenceMaterial || graph.intent.participation !== liveSnapshot.intent.participation) releaseChanges.push('Public story or visitor invitation changed.');
+      if (graph.presentation.compositionFamily !== liveSnapshot.presentation.compositionFamily) releaseChanges.push('Visual Direction changed.');
+      if (graph.presentation.accent !== liveSnapshot.presentation.accent) releaseChanges.push('Accent changed.');
+      if (JSON.stringify(graph.presentation.recipe || null) !== JSON.stringify(liveSnapshot.presentation.recipe || null)) releaseChanges.push('Direction recipe changed.');
+      if (JSON.stringify(graph.activities) !== JSON.stringify(liveSnapshot.activities)) releaseChanges.push('Activities changed.');
+      if (JSON.stringify(graph.offers) !== JSON.stringify(liveSnapshot.offers)) releaseChanges.push('Offerings changed.');
+      if (JSON.stringify(graph.media) !== JSON.stringify(liveSnapshot.media)) releaseChanges.push('Media or image focus changed.');
+      if (JSON.stringify(graph.voice) !== JSON.stringify(liveSnapshot.voice)) releaseChanges.push('Visitor-facing action wording changed.');
+      const workingStories = graph.schemaVersion === 2 ? graph.stories : [];
+      const liveStories = liveSnapshot.schemaVersion === 2 ? liveSnapshot.stories : [];
+      if (JSON.stringify(workingStories) !== JSON.stringify(liveStories)) releaseChanges.push('Stories and Updates changed.');
+      const workingPeople = graph.schemaVersion === 2 ? graph.people : [];
+      const livePeople = liveSnapshot.schemaVersion === 2 ? liveSnapshot.people : [];
+      if (JSON.stringify(workingPeople) !== JSON.stringify(livePeople)) releaseChanges.push('Public profiles changed.');
+      const workingGallery = graph.schemaVersion === 2 ? graph.gallery : null;
+      const liveGallery = liveSnapshot.schemaVersion === 2 ? liveSnapshot.gallery : null;
+      if (JSON.stringify(workingGallery) !== JSON.stringify(liveGallery)) releaseChanges.push('Gallery changed.');
+      const workingNavigation = graph.schemaVersion === 2 ? graph.navigation : null;
+      const liveNavigation = liveSnapshot.schemaVersion === 2 ? liveSnapshot.navigation : null;
+      if (JSON.stringify(workingNavigation) !== JSON.stringify(liveNavigation)) releaseChanges.push('Visitor navigation changed.');
+    }
+  %>
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Review release</p>
+    <h1>Choose what becomes the live website.</h1>
+    <p class="cc-task__dek">Working Version <%= revision %> is what you are editing now. Publishing preserves that website version and makes it visitor-facing here. It does not broadcast to Hive, request a signature, move value, upload media to an external provider, deploy production, or touch DNS.</p>
+
+    <div class="cc-review-grid">
+      <section class="cc-review-card">
+        <p class="cc-kicker">Working version</p>
+        <h2>Version <%= revision %> · <%= family.label %></h2>
+        <p><strong><%= graph.facts.tagline %></strong></p>
+        <p><%= graph.facts.summary %></p>
+        <p><%= activities.length %> Activity · <%= graph.offers.length %> Offer · <%= graph.media.length %> Media asset</p>
+        <% if (graph.schemaVersion === 2) { %>
+          <p><%= workingTerritory.stories %> Story / Update · <%= workingTerritory.people %> Profile · <%= workingTerritory.gallery %> Gallery item</p>
+        <% } %>
+      </section>
+      <section class="cc-review-card">
+        <p class="cc-kicker">Currently live</p>
+        <h2><%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No release' %></h2>
+        <% if (release) { %>
+          <p><strong><%= release.snapshot.facts.tagline %></strong></p>
+          <p><%= release.snapshot.facts.summary %></p>
+          <% if (release.snapshot.schemaVersion === 2) { %>
+            <p><%= liveTerritory.stories %> Story / Update · <%= liveTerritory.people %> Profile · <%= liveTerritory.gallery %> Gallery item</p>
+          <% } %>
+        <% } else { %>
+          <p>Nothing is live yet.</p>
+        <% } %>
+      </section>
+    </div>
+
+    <section class="cc-review-card" style="margin-top:1.2rem">
+      <p class="cc-kicker">What will change</p>
+      <h2>Release impact</h2>
+      <% if (releaseChanges.length) { %>
+        <ul><% releaseChanges.forEach((change) => { %><li><%= change %></li><% }) %></ul>
+      <% } else { %>
+        <p>No visitor-facing difference was detected from the current live website.</p>
+      <% } %>
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Open complete draft preview</a>
+    </section>
+
+    <section class="cc-consequence-card" style="margin-top:1.2rem">
+      <h2>Website consequence</h2>
+      <div class="cc-consequence-truth">Publish Working Version <%= revision %> as the next preserved live website version. Your later Studio edits will remain unpublished until another explicit Release.</div>
+      <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/release" style="margin-top:1rem">
+        <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+        <button class="cc-button cc-button--ink" type="submit">Publish website release</button>
+      </form>
+      <details style="margin-top:1rem">
+        <summary>Technical details</summary>
+        <p>Working content digest <code><%= draftDigest %></code></p>
+        <% if (release) { %><p>Current live release <code><%= release.id %></code> · digest <code><%= release.digest %></code></p><% } %>
+      </details>
+    </section>
+
+    <section class="cc-review-card cc-review-card--urgent-entry" style="margin-top:1.2rem" aria-labelledby="cc-urgent-entry">
+      <p class="cc-kicker">Need to change the live site right now?</p>
+      <h2 id="cc-urgent-entry">Urgent update</h2>
+      <p>Cancel or update one activity’s status straight from the live site, without releasing the rest of your working version.</p>
+      <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/urgent">Start an urgent update</a>
+    </section>
+
+    <section style="margin-top:3rem">
+      <p class="cc-kicker">History</p>
+      <h2>Earlier website versions</h2>
+      <p>Restoring an earlier version changes Studio only. The live website stays where it is until you explicitly publish again.</p>
+      <div class="cc-release-list">
+        <% releases.slice().reverse().forEach((item) => { %>
+          <article class="cc-release-row">
+            <div>
+              <strong>Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong>
+              <% if (item.kind === 'urgent') { %><br><small>Urgent status change published from the live site, not from the working version.</small><% } %>
+              <br><small><%= item.snapshot.facts.tagline %> · <%= item.snapshot.presentation.compositionFamily %></small>
+              <details>
+                <summary>Technical details</summary>
+                <p>Release <code><%= item.id %></code></p>
+                <p>Content digest <code><%= item.digest %></code></p>
+                <% if (item.kind === 'urgent') { %>
+                  <p>Based on live release <code><%= item.baseReleaseId %></code></p>
+                  <p>Changed <code><%= item.changedPaths.join(', ') %></code></p>
+                <% } %>
+              </details>
+            </div>
+            <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/releases/<%= item.id %>/restore">Review restore</a>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

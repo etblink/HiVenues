@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+
+    <p class="cc-kicker">Activity · schedule</p>
+    <h1>Reschedule <%= activity.title %>.</h1>
+    <p class="cc-task__dek">These are local times in <strong><%= graph.identity.timezone %></strong>. Saving changes only the working version; visitors keep seeing the released schedule until you explicitly release the website.</p>
+
+    <% if (errors.length) { %>
+      <section class="cc-conflict" role="alert" aria-live="polite">
+        <strong>Check the schedule.</strong>
+        <ul><% errors.forEach((error) => { %><li><%= error %></li><% }) %></ul>
+      </section>
+    <% } %>
+
+    <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity/<%= activity.id %>/schedule">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <div class="cc-field">
+        <label for="cc-schedule-start">Starts</label>
+        <input id="cc-schedule-start" type="datetime-local" name="startsLocal" value="<%= values.startsLocal %>" required>
+      </div>
+      <div class="cc-field">
+        <label for="cc-schedule-end">Ends</label>
+        <input id="cc-schedule-end" type="datetime-local" name="endsLocal" value="<%= values.endsLocal %>" required>
+      </div>
+      <section class="cc-consequence-card">
+        <h2>What changes</h2>
+        <p>The same Activity keeps its identity, page, media and visitor actions. Only its start and end time change in your working version. A later website release updates the public page and calendar download.</p>
+      </section>
+      <button class="cc-button cc-button--ink" type="submit">Save schedule to working version</button>
+    </form>
+  </main>
+</body>
+</html>

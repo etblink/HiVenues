@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+<%
+  const updates = isTerritoryV2 ? graph.stories.filter((story) => story.kind === 'update') : [];
+  const longStories = isTerritoryV2 ? graph.stories.filter((story) => story.kind !== 'update') : [];
+%>
+  <main class="cc-task cc-territory-hub">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+
+    <header class="cc-territory-hero">
+      <div>
+        <p class="cc-kicker">Territory</p>
+        <h1>Content &amp; structure</h1>
+        <p class="cc-territory-hero__copy">Shape the public parts of <strong><%= graph.identity.displayName %></strong> beyond its home page. Everything here stays in Working until an explicit Release.</p>
+      </div>
+      <aside class="cc-territory-state" aria-label="Territory publication state">
+        <div>
+          <strong>Working, not live</strong>
+          <p>Review the whole host as a visitor before publishing this version.</p>
+        </div>
+        <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener"><%- include('_icon', { name: 'preview' }) %> Open draft preview</a>
+      </aside>
+    </header>
+
+    <% if (upgraded) { %>
+      <div class="cc-studio-notice" role="status"><strong>Territory pages enabled in Working.</strong> The live Release is unchanged. Add real host content below, review it in Preview, then Release when ready.</div>
+    <% } else if (saved) { %>
+      <div class="cc-studio-notice" role="status"><strong>Saved to Working.</strong> Preview the territory before releasing.</div>
+    <% } %>
+
+    <% if (!isTerritoryV2) { %>
+      <section class="cc-territory-card cc-territory-card--wide">
+        <div class="cc-territory-card__head">
+          <div class="cc-territory-card__title">
+            <p class="cc-kicker">One host · richer territory</p>
+            <h2>Enable stories, Updates, people and gallery authoring.</h2>
+            <p>This upgrades only the current Working graph. It does not publish, alter stable host identity, invent content or people, or change the current live Release.</p>
+          </div>
+          <span class="cc-territory-card__icon"><%- include('_icon', { name: 'spark' }) %></span>
+        </div>
+        <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/territory-content/enable">
+          <input type="hidden" name="expectedRevision" value="<%= revision %>">
+          <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+          <button class="cc-button cc-button--ink" type="submit">Enable territory content in Working</button>
+        </form>
+      </section>
+    <% } else { %>
+      <div class="cc-territory-grid">
+        <section class="cc-territory-card">
+          <div class="cc-territory-card__head">
+            <div class="cc-territory-card__title">
+              <p class="cc-kicker">Updates</p>
+              <h2>Quick signals</h2>
+              <p>Short notices, images and reactions without long-form ceremony.</p>
+            </div>
+            <span class="cc-territory-card__icon"><%- include('_icon', { name: 'update' }) %></span>
+          </div>
+          <span class="cc-territory-card__metric"><%= updates.length %> Update<%= updates.length === 1 ? '' : 's' %></span>
+          <% if (updates.length) { %>
+            <ul class="cc-territory-card__items">
+              <% updates.slice(0, 4).forEach((update) => { %>
+                <li class="cc-territory-item"><a href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/update/<%= update.id %>"><%= update.title %></a><small>Update</small></li>
+              <% }) %>
+            </ul>
+          <% } else { %><p class="cc-territory-empty">No Updates yet. Nothing is fabricated for visitors.</p><% } %>
+          <div class="cc-territory-actions">
+            <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/update/new"><%- include('_icon', { name: 'add' }) %> Write an Update</a>
+          </div>
+        </section>
+
+        <section class="cc-territory-card">
+          <div class="cc-territory-card__head">
+            <div class="cc-territory-card__title">
+              <p class="cc-kicker">Stories</p>
+              <h2>Dispatches &amp; essays</h2>
+              <p>Longer host-owned content with stable public identity.</p>
+            </div>
+            <span class="cc-territory-card__icon"><%- include('_icon', { name: 'story' }) %></span>
+          </div>
+          <span class="cc-territory-card__metric"><%= longStories.length %> <%= longStories.length === 1 ? 'Story' : 'Stories' %></span>
+          <% if (longStories.length) { %>
+            <ul class="cc-territory-card__items">
+              <% longStories.slice(0, 4).forEach((story) => { %>
+                <li class="cc-territory-item"><a href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/story/<%= story.id %>"><%= story.title %></a><small><%= story.kind %></small></li>
+              <% }) %>
+            </ul>
+          <% } else { %><p class="cc-territory-empty">No long-form stories yet. Nothing is fabricated for visitors.</p><% } %>
+          <div class="cc-territory-actions">
+            <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/story/new"><%- include('_icon', { name: 'add' }) %> Add story</a>
+          </div>
+        </section>
+
+        <section class="cc-territory-card">
+          <div class="cc-territory-card__head">
+            <div class="cc-territory-card__title">
+              <p class="cc-kicker">People</p>
+              <h2>Host profiles</h2>
+              <p>Public identities that Stories and Updates can credit.</p>
+            </div>
+            <span class="cc-territory-card__icon"><%- include('_icon', { name: 'people' }) %></span>
+          </div>
+          <span class="cc-territory-card__metric"><%= graph.people.length %> Profile<%= graph.people.length === 1 ? '' : 's' %></span>
+          <% if (graph.people.length) { %>
+            <ul class="cc-territory-card__items">
+              <% graph.people.slice(0, 4).forEach((profile) => { %>
+                <li class="cc-territory-item"><a href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/profile/<%= profile.id %>"><%= profile.displayName %></a><small><%= profile.role || 'Public profile' %></small></li>
+              <% }) %>
+            </ul>
+          <% } else { %><p class="cc-territory-empty">No people yet. Add only identities the host intends to publish.</p><% } %>
+          <div class="cc-territory-actions">
+            <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/profile/new"><%- include('_icon', { name: 'add' }) %> Add person</a>
+          </div>
+        </section>
+
+        <section class="cc-territory-card">
+          <div class="cc-territory-card__head">
+            <div class="cc-territory-card__title">
+              <p class="cc-kicker">Gallery</p>
+              <h2><%= graph.gallery.title %></h2>
+              <p>Curated only from media already admitted to this host.</p>
+            </div>
+            <span class="cc-territory-card__icon"><%- include('_icon', { name: 'gallery' }) %></span>
+          </div>
+          <span class="cc-territory-card__metric"><%= graph.gallery.mediaIds.length %> selected media item<%= graph.gallery.mediaIds.length === 1 ? '' : 's' %></span>
+          <div class="cc-territory-actions">
+            <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/gallery">Edit gallery</a>
+            <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/media-library"><%- include('_icon', { name: 'media' }) %> Open Media library</a>
+          </div>
+        </section>
+
+        <section class="cc-territory-card cc-territory-card--wide">
+          <div class="cc-territory-card__head">
+            <div class="cc-territory-card__title">
+              <p class="cc-kicker">Navigation</p>
+              <h2>Visitor route</h2>
+              <p>Labels and priority shape how available semantic surfaces are presented. Empty route families stay absent until real content exists.</p>
+            </div>
+            <span class="cc-territory-card__icon"><%- include('_icon', { name: 'navigation' }) %></span>
+          </div>
+          <ol class="cc-territory-routes" aria-label="Current visitor route priority">
+            <% graph.navigation.priorities.forEach((role) => { %><li class="cc-territory-route"><strong><%= graph.navigation.labels[role] || role %></strong><small><%= role === 'about-visit' ? 'about & visit' : role %></small></li><% }) %>
+          </ol>
+          <div class="cc-territory-actions">
+            <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/territory-content/navigation">Edit navigation</a>
+          </div>
+        </section>
+      </div>
+    <% } %>
+  </main>
+</body>
+</html>
