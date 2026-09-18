@@ -317,14 +317,18 @@
               csrfToken: session.csrfToken,
             },
           );
-          setState(root, observation.state === 'observed' ? 'confirmed' : 'pending', observation.message);
           if (observation.state === 'observed') {
             keepLocked = true;
+            setState(
+              root,
+              'confirmed',
+              'Confirmed on Hive. ' + preflight.summary.amount
+                + ' was sent to @' + preflight.summary.recipient + '.',
+            );
             setBusy(root, false, { lock: true });
-            await this.wait(350);
-            this.reload();
             return;
           }
+          setState(root, 'pending', observation.message);
         }
 
         keepLocked = true;
