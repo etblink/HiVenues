@@ -126,5 +126,5 @@
 
   initCreator();
   initStudio();
-  window.CandidateCStudio = inventory;
+  window.HiVenuesStudio = inventory;
 })();

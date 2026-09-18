@@ -133,7 +133,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .cc-art--editorial .cc-art__mark { border-radius: 0; width: 28%; left: 55%; top: 18%; border-color: rgba(36,32,57,.45); box-shadow: 18px 18px 0 rgba(255,255,255,.3); }
 .cc-art--editorial .cc-art__route { left: 18%; bottom: 25%; background: rgba(36,32,57,.68); }
 
-/* Candidate C chooser */
+/* HiVenues chooser */
 .cc-index-body { background: #ece8de; }
 .cc-index { max-width: 1180px; margin: 0 auto; padding: 7rem 2rem; }
 .cc-index > h1 { max-width: 900px; margin: 0; font-family: Georgia, serif; font-size: clamp(3rem, 7vw, 6.7rem); line-height: .92; letter-spacing: -.055em; }

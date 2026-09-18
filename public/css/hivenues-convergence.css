@@ -1,6 +1,6 @@
-/* Candidate C / #272 — presentation-layer convergence.
+/* HiVenues / #272 — presentation-layer convergence.
  *
- * This stylesheet intentionally sits after the qualified Candidate C styles.
+ * This stylesheet intentionally sits after the qualified HiVenues styles.
  * It changes Studio hierarchy and interaction geometry without redefining the
  * canonical host graph, persistence, Release, media, or consequence semantics.
  */
@@ -313,7 +313,7 @@
     0 0 0 1px rgba(255, 255, 255, 0.025) inset;
 }
 
-#candidate-canvas-slot {
+#hivenuesanvas-slot {
   min-height: inherit;
 }
 
