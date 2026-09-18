@@ -950,7 +950,7 @@
   letter-spacing:-.025em;
 }
 
-.cc-social--poster .cc-content-composer button {
+.cc-social--poster .cc-content-composer__fields > button {
   border-color:var(--cc-night-line);
   text-transform:uppercase;
   letter-spacing:.035em;
@@ -977,7 +977,7 @@
   font-family:Georgia,serif;
 }
 
-.cc-social--editorial .cc-content-composer button {
+.cc-social--editorial .cc-content-composer__fields > button {
   background:#29243b;
   color:#f1eff7;
 }
@@ -1001,7 +1001,7 @@
   font-family:Georgia,serif;
 }
 
-.cc-social--hospitality .cc-content-composer button {
+.cc-social--hospitality .cc-content-composer__fields > button {
   border-color:rgba(45,37,31,.32);
   border-radius:999px;
   background:#2d251f;
