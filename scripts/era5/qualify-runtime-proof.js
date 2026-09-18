@@ -17,13 +17,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForFile(file, timeoutMs = 15000) {
+async function waitForReady(file, child, output, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (child.exitCode !== null) {
+      throw new Error(
+        'Runtime exited before readiness with code ' + child.exitCode
+        + '\\nstdout:\\n' + output.stdout
+        + '\\nstderr:\\n' + output.stderr
+      );
+    }
     await sleep(100);
   }
-  throw new Error('Timed out waiting for runtime readiness.');
+  throw new Error(
+    'Timed out waiting for runtime readiness.'
+    + '\\nstdout:\\n' + output.stdout
+    + '\\nstderr:\\n' + output.stderr
+  );
 }
 
 function waitForExit(child, timeoutMs = 10000) {
@@ -41,7 +52,7 @@ function digest(file) {
 }
 
 async function launch({ runtime, bootstrap, cwd, env, readyFile, shutdownFile }) {
-  return spawn(runtime, [
+  const child = spawn(runtime, [
     bootstrap,
     '--no-open',
     '--port', '0',
@@ -53,6 +64,10 @@ async function launch({ runtime, bootstrap, cwd, env, readyFile, shutdownFile })
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+  const output = { stdout: '', stderr: '' };
+  child.stdout.on('data', (chunk) => { output.stdout += chunk.toString(); });
+  child.stderr.on('data', (chunk) => { output.stderr += chunk.toString(); });
+  return { child, output };
 }
 
 async function main() {
@@ -70,8 +85,9 @@ async function main() {
   const ready1 = path.join(temp, 'ready-1.json');
   const stop1 = path.join(temp, 'stop-1');
 
-  const first = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready1, shutdownFile: stop1 });
-  const info1 = await waitForFile(ready1);
+  const firstLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready1, shutdownFile: stop1 });
+  const first = firstLaunch.child;
+  const info1 = await waitForReady(ready1, first, firstLaunch.output);
   assert.equal(path.resolve(info1.appRoot), path.resolve(bundle, 'app'));
   assert.ok(path.resolve(info1.dataRoot).startsWith(path.resolve(localAppData)));
   assert.ok(path.resolve(info1.statePath).startsWith(path.resolve(localAppData)));
@@ -85,12 +101,11 @@ async function main() {
 
   const ready2 = path.join(temp, 'ready-2.json');
   const stop2 = path.join(temp, 'stop-2');
-  const second = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready2, shutdownFile: stop2 });
-  let secondErr = '';
-  second.stderr.on('data', (chunk) => { secondErr += chunk.toString(); });
+  const secondLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready2, shutdownFile: stop2 });
+  const second = secondLaunch.child;
   const secondExit = await waitForExit(second);
   assert.equal(secondExit.code, 73);
-  assert.match(secondErr, /HIVENUES_ALREADY_RUNNING/);
+  assert.match(secondLaunch.output.stderr, /HIVENUES_ALREADY_RUNNING/);
   assert.equal(fs.existsSync(ready2), false);
 
   fs.writeFileSync(stop1, 'stop\n');
@@ -99,8 +114,9 @@ async function main() {
 
   const ready3 = path.join(temp, 'ready-3.json');
   const stop3 = path.join(temp, 'stop-3');
-  const third = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready3, shutdownFile: stop3 });
-  const info3 = await waitForFile(ready3);
+  const thirdLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready3, shutdownFile: stop3 });
+  const third = thirdLaunch.child;
+  const info3 = await waitForReady(ready3, third, thirdLaunch.output);
   assert.equal(info3.statePath, info1.statePath);
   assert.equal(digest(info3.statePath), firstDigest);
   const response3 = await fetch(info3.url);
