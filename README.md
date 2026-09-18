@@ -128,9 +128,9 @@ See `docs/CURRENT_ARCHITECTURE.md` and `docs/HIVENUES_RENDERING_AUTHORING_ARCHIT
 
 Era 4 is complete and **Era 5 — Product Distribution is active** under issue **#323**.
 
-Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher, including provenance, diagnostics, dynamic port selection, single-instance behavior, graceful close/relaunch, and durable state below the per-user application-data root.
+Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher, including provenance, diagnostics, dynamic port selection, single-instance behavior, graceful close/relaunch, and durable state below the per-user application-data root. Tranche 2 now provides a versioned Windows x64 distributable with exact provenance/checksums, byte-for-byte double-build reproducibility, and installed-runtime/native-launcher qualification from the extracted ZIP.
 
-The next bounded work is **Tranche 2**: produce a versioned Windows x64 distributable with exact provenance/checksums, then qualify the ordinary installer/update/uninstall boundary without changing the server-owned product architecture.
+The next bounded work is **Tranche 3 — clean-machine qualification**: layer an ordinary Windows installer / supported package flow over that frozen distributable, prove install/launch/create-edit-release/relaunch persistence on a clean supported machine, qualify update/uninstall preservation, and accept the Windows signing/reputation strategy required for Era-5 exit.
 
 Still held unless separately authorized: live-value qualification, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra, and unrelated framework replacement.
 

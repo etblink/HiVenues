@@ -143,4 +143,4 @@ Remaining items are primarily repository administration rather than product-code
 
 These should be handled opportunistically or by bounded maintenance issues when they create concrete ambiguity, risk, or cost. They do not outrank Era-5 distribution work merely because they are old.
 
-The installed-runtime and native-launcher boundary is now proven and product-owned. The next architectural task is Era-5 Tranche 2: turn that qualified runtime into a versioned distributable/installable Windows artifact while preserving all frozen Era-0–4 contracts.
+The installed-runtime, native-launcher, and reproducible Windows x64 distributable boundaries are now proven and product-owned. The next architectural task is Era-5 Tranche 3: qualify the ordinary Windows install/update/uninstall lifecycle on a clean supported machine, including durable-work preservation and the accepted signing/reputation boundary, while preserving all frozen Era-0–4 contracts.

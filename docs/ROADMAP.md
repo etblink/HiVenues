@@ -10,15 +10,15 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-Era 4 remains frozen. Era 5 Tranches 0–1 have now established and productized the Windows installed-runtime boundary:
+Era 4 remains frozen. Era 5 Tranches 0–2 have now established the Windows installed-runtime boundary through a reproducible versioned distributable:
 
 ```text
-CANONICAL_MAIN = ab035f1359ae4d31ed6cb06a4717999f71cd6513
-CANONICAL_TREE = cb8cbe18f78110636b984ef6dd46724e5e4327e3
-POST_MERGE_CI = #1368 / PASS
-TRANCHE_1_PR_HEAD_RUNTIME_PROOF = #10 / PASS
-TRANCHE_1_PR_HEAD_PRODUCT_BROWSER = #91 / PASS
-POST_MERGE_PRODUCT_BROWSER = #75 / PASS
+CANONICAL_MAIN = 3488d4c758f2ac7d23a5fe0191959c10b8203a37
+CANONICAL_TREE = 1a8c0667b430fc71be1610c551e36e37c8704a04
+POST_MERGE_CI = #1376 / PASS
+TRANCHE_2_PR_HEAD_CI = #1375 / PASS
+TRANCHE_2_PR_HEAD_RUNTIME_PROOF = #16 / PASS
+TRANCHE_2_PR_HEAD_WINDOWS_DISTRIBUTABLE = #2 / PASS
 
 ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
 ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE
@@ -30,7 +30,8 @@ ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
 ERA 5 TRANCHE 0 = COMPLETE / FROZEN
 ERA 5 TRANCHE 1 = COMPLETE / QUALIFIED
-NEXT BOUNDED WORK = TRANCHE 2 — VERSIONED WINDOWS DISTRIBUTABLE
+ERA 5 TRANCHE 2 = COMPLETE / FROZEN
+NEXT BOUNDED WORK = TRANCHE 3 — CLEAN-MACHINE QUALIFICATION
 ACTIVE ERA-5 CHARTER = #323
 LIVE VALUE QUALIFICATION = HELD
 PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
@@ -82,14 +83,18 @@ The frozen roadmap exit gate is:
 
 The first practical target is Windows. Distribution may package the existing loopback server architecture; it does not justify a SPA rewrite.
 
-Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. The next bounded Tranche-2 work is:
+Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. Tranche 2 now supplies a versioned Windows x64 ZIP from exact source with embedded provenance, SHA-256 sidecars, byte-for-byte double-build reproducibility, ordinary Windows extraction, and full installed-runtime/native-launcher qualification from the extracted artifact.
 
-- produce a versioned Windows x64 artifact from exact source;
-- publish exact build provenance and SHA-256 checksums;
-- prove deterministic/reproducible artifact construction where practical;
-- select and qualify the ordinary installer/update/uninstall boundary;
-- preserve user workspace/media across update and uninstall semantics;
-- establish the accepted signing/reputation strategy before Era-5 exit.
+The next bounded work is **Tranche 3 — clean-machine qualification**:
+
+- select and qualify the ordinary Windows installer / supported package flow;
+- obtain and install HiVenues on a clean supported Windows environment without source checkout or developer tooling;
+- launch Studio through the normal application entry;
+- create, edit, and release a synthetic host through ordinary product workflows;
+- close and relaunch while preserving durable host, media, and release state;
+- verify update and uninstall semantics do not silently destroy user work;
+- verify install/launch performs no production deployment, DNS/VPS mutation, or live Hive value movement;
+- establish the explicitly accepted Windows signing/reputation strategy required before Era-5 exit.
 
 Era 5 does not authorize production hosting/deployment, account-creation onboarding, new commerce classes, Fourth Street work, or independent Astra.
 
@@ -145,7 +150,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–1 complete and Tranche 2 next.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–2 complete and Tranche 3 clean-machine qualification next.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
