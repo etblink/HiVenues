@@ -1,0 +1,46 @@
+name: Era 5 runtime proof
+
+on:
+  pull_request:
+    paths:
+      - 'src/product/**'
+      - 'scripts/era5/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/era5-runtime-proof.yml'
+      - 'docs/HIVENUES_ERA5_WINDOWS_PACKAGING_DECISION_0_1_0.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-runtime-proof:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install locked build dependencies
+        run: npm ci --ignore-scripts --no-fund
+      - name: Resolve source tree
+        id: source
+        shell: pwsh
+        run: |
+          "tree=$(git rev-parse 'HEAD^{tree}')" >> $env:GITHUB_OUTPUT
+      - name: Build private-runtime proof
+        shell: pwsh
+        run: |
+          node scripts/era5/build-runtime-proof.js --output "$env:RUNNER_TEMP\hivenues-runtime-proof" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}"
+      - name: Qualify from unrelated working directory and app-owned data
+        shell: pwsh
+        run: |
+          node scripts/era5/qualify-runtime-proof.js --bundle "$env:RUNNER_TEMP\hivenues-runtime-proof"
