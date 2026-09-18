@@ -459,8 +459,11 @@ function productReadService(publicKey) {
     },
     async observeSupportOperation(record) {
       if (!lastSupport || !record.transactionId) return false;
-      return lastSupport.transactionId === record.transactionId
+      const exact = lastSupport.transactionId === record.transactionId
         && JSON.stringify(lastSupport.operations) === JSON.stringify(record.operations);
+      if (!exact) return false;
+      lastSupport.observations += 1;
+      return lastSupport.observations >= 2;
     },
     applySupportOperation(value, transactionId) {
       const sender = liquidState.get(value.from);
@@ -484,7 +487,7 @@ function productReadService(publicKey) {
           memo: value.memo,
         },
       ]];
-      lastSupport = { transactionId, operations };
+      lastSupport = { transactionId, operations, observations: 0 };
     },
     liquidSnapshot(account) {
       const liquid = liquidState.get(account);
@@ -576,6 +579,28 @@ function applyAuthorizedRewardClaimOperation(hiveReadService, account, operation
     .digest('hex');
   hiveReadService.applyRewardClaimOperation(value, transactionId);
   counters.rewardClaimBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+    transactionId,
+  });
+  return transactionId;
+}
+
+
+function applyAuthorizedSupportOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'transfer');
+  assert.equal(value.from, account);
+  assert.equal(value.to, 'northline-pay');
+  assert.match(value.amount, /^\d+\.\d{3} (HIVE|HBD)$/);
+  assert.equal(value.memo, 'hivenues-support:v1');
+  const transactionId = crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.supportBroadcasts.length + 1]))
+    .digest('hex');
+  hiveReadService.applySupportOperation(value, transactionId);
+  counters.supportBroadcasts.push({
     account,
     operations: structuredClone(operations),
     transactionId,
@@ -688,11 +713,13 @@ async function pageAudit(page, axeSource, label) {
         tag: node.tagName,
         authorizedVote: Boolean(node.closest('[data-hivenues-vote]')),
         authorizedRewardClaim: Boolean(node.closest('[data-hivenues-reward-claim]')),
+        authorizedSupport: Boolean(node.closest('[data-hivenues-support]')),
       }))
       .filter((item) => (
         held.test(item.text)
         && !item.authorizedVote
         && !item.authorizedRewardClaim
+        && !item.authorizedSupport
       ));
     const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
       .map((root) => ({
@@ -736,6 +763,22 @@ async function pageAudit(page, axeSource, label) {
       || !/^\/participation\/[^/]+\/rewards\/claim$/.test(item.url)
       || item.buttons !== 1
     ));
+    const support = Array.from(document.querySelectorAll('[data-hivenues-support]'))
+      .map((root) => ({
+        actor: root.dataset.supportActor || '',
+        recipient: root.dataset.supportRecipient || '',
+        url: root.dataset.supportUrl || '',
+        forms: root.querySelectorAll('[data-support-form]').length,
+        assets: Array.from(root.querySelectorAll('[data-support-asset] option'))
+          .map((option) => option.value),
+      }));
+    const invalidSupport = support.filter((item) => (
+      !item.actor
+      || !item.recipient
+      || !/^\/participation\/[^/]+\/support$/.test(item.url)
+      || item.forms !== 1
+      || JSON.stringify(item.assets) !== JSON.stringify(['HIVE', 'HBD'])
+    ));
     return {
       unauthorized,
       relationship,
@@ -746,6 +789,8 @@ async function pageAudit(page, axeSource, label) {
       invalidVote,
       rewardClaim,
       invalidRewardClaim,
+      support,
+      invalidSupport,
     };
   });
   const accessibility = await page.evaluate(async () => {
@@ -771,6 +816,7 @@ async function pageAudit(page, axeSource, label) {
   assert.deepEqual(controls.invalidContent, [], label + ': invalid content controls');
   assert.deepEqual(controls.invalidVote, [], label + ': invalid vote controls');
   assert.deepEqual(controls.invalidRewardClaim, [], label + ': invalid reward claim controls');
+  assert.deepEqual(controls.invalidSupport, [], label + ': invalid direct-support controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -1299,6 +1345,27 @@ async function approvePendingRewardClaim(page, hiveReadService, counters) {
   return { ...pending, transactionId };
 }
 
+async function approvePendingSupport(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Active');
+  assert.equal(pending.operations.length, 1);
+  assert.equal(pending.operations[0][0], 'transfer');
+  const transactionId = applyAuthorizedSupportOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
 async function runResourceRewardEvidence(
   browser,
   axeSource,
@@ -1482,14 +1549,16 @@ async function runValueRecipientStudioEvidence(
     await page.getByRole('button', { name: 'Support & value' }).click();
     const inspector = page.locator('#candidate-inspector');
     await inspector.getByText('Choose who receives direct support.').waitFor();
-    assert.equal(await inspector.locator('input[name="valueRecipient"]').inputValue(), '');
+    assert.equal(await inspector.locator('input[name="valueRecipient"]').inputValue(), 'northline-pay');
     assert.match(await inspector.textContent(), /separate money-recipient role/i);
     assert.match(await inspector.textContent(), /No private key is stored here/i);
     assert.match(await inspector.textContent(), /Working version only/i);
     await capture(page, axeSource, manifest, 'poster-studio-value-recipient-desktop');
 
     const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
-    await inspector.locator('input[name="valueRecipient"]').fill('northline-pay');
+    const releasedRecipient = store.publicSnapshot('northline-hall').draft.bindings.hive.valueRecipient;
+    assert.equal(releasedRecipient, 'northline-pay');
+    await inspector.locator('input[name="valueRecipient"]').fill('northline-alt');
     const saved = page.waitForResponse((response) => (
       response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/candidate-c/studio/northline-hall/value-recipient'
@@ -1499,15 +1568,15 @@ async function runValueRecipientStudioEvidence(
     await inspector.locator('input[name="valueRecipient"]').waitFor();
     assert.equal(
       await inspector.locator('input[name="valueRecipient"]').inputValue(),
-      'northline-pay',
+      'northline-alt',
     );
     assert.equal(
       store.snapshot('northline-hall').draft.bindings.hive.valueRecipient,
-      'northline-pay',
+      'northline-alt',
     );
     assert.equal(
-      Object.hasOwn(store.publicSnapshot('northline-hall').draft.bindings.hive, 'valueRecipient'),
-      false,
+      store.publicSnapshot('northline-hall').draft.bindings.hive.valueRecipient,
+      'northline-pay',
     );
     assert.equal(store.publicSnapshot('northline-hall').draftDigest, liveBefore);
 
