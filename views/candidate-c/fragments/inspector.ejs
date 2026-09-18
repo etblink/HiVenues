@@ -149,6 +149,32 @@
     </form>
   <% } %>
 
+  <% if (selected === 'participation') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Participation</p>
+    <h2>Choose whether this site shows a downvote action.</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/participation" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/participation" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <fieldset class="cc-field" style="border:0;padding:0">
+        <legend>Negative-vote action</legend>
+        <label>
+          <input type="radio" name="showNegativeVoteAction" value="hide" <%= graph.bindings.hive.showNegativeVoteAction === true ? '' : 'checked' %>>
+          Hide the downvote action on this HiVenue
+        </label>
+        <label>
+          <input type="radio" name="showNegativeVoteAction" value="show" <%= graph.bindings.hive.showNegativeVoteAction === true ? 'checked' : '' %>>
+          Show a downvote action alongside the positive vote
+        </label>
+      </fieldset>
+      <div class="cc-consequence-truth">
+        <strong>This changes HiVenues presentation, not Hive protocol.</strong><br>
+        Hiding the action does not make downvotes impossible on Hive. People may still downvote this public content through another compatible Hive client, and HiVenues will continue to show canonical negative-vote state truthfully.
+      </div>
+      <p class="cc-inspector-help">This becomes visitor-facing only after you release the working version.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save participation setting</button></div>
+    </form>
+  <% } %>
+
   <% if (selected === 'connect') { %>
     <p class="cc-studio-inspector__eyebrow">Site · Connect</p>
     <h2>Where should visitors reach you?</h2>
