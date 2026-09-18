@@ -1,6 +1,6 @@
 # HiVenues Era 5 — Windows Packaging Decision 0.1.0
 
-Status: **CANDIDATE — freezes only after the Tranche-0 proof is green**
+Status: **FROZEN — Tranche-0 Windows runtime proof accepted 2026-09-18**
 
 Governing issue: #323
 
@@ -105,6 +105,34 @@ This decision does not authorize:
 - a SPA rewrite;
 - Electron or another desktop framework without new evidence.
 
-## Freeze rule
+## Accepted Tranche-0 proof
 
-Change **CANDIDATE** to **FROZEN** only after the exact-head Windows runtime proof is green and the proof output is recorded in the PR.
+The candidate architecture was accepted after **Era 5 runtime proof #5** passed on Windows x64.
+
+Exact proof input:
+
+```text
+SOURCE_SHA  = bdb2b95d97372dd81b47093ee9861d6bc2778d5c
+SOURCE_TREE = c025174bd59eeddaf318757060032a761c40fa97
+NODE        = v24.19.0
+RUNTIME     = runtime/node.exe
+APP         = app/
+```
+
+Observed installed-style qualification:
+
+- private runtime bundle built successfully with production-only dependencies;
+- launch succeeded from an unrelated current working directory;
+- data root resolved beneath the supplied Windows `LOCALAPPDATA`;
+- first Studio URL: `http://127.0.0.1:50137/hivenues`;
+- simultaneous second launch was rejected by the application-data instance lock;
+- graceful shutdown released the lock;
+- relaunch succeeded on a newly selected loopback port: `http://127.0.0.1:50139/hivenues`;
+- the state file persisted with the identical SHA-256 digest:
+  `db5d2a6f0d4283261de8a8705b24b6eab03500d71f292988e38504fc5922c1f4`.
+
+The selected architecture is therefore **FROZEN for Era 5 Tranche 1**:
+
+> thin Windows launcher boundary + private Node runtime + ordinary packaged HiVenues app tree + system browser + application-owned user data.
+
+This freeze does not select the final installer technology or signing provider. Those remain downstream Era-5 packaging decisions.
