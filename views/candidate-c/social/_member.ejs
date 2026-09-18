@@ -35,13 +35,15 @@
     </dl>
   </section>
 
-  <%- include('_participation', {
-    graph,
-    participation,
-    participationKind: 'follow',
-    participationLabels: followParticipationLabels,
-    socialHref
-  }) %>
+  <% if (!resourceState?.visible) { %>
+    <%- include('_participation', {
+      graph,
+      participation,
+      participationKind: 'follow',
+      participationLabels: followParticipationLabels,
+      socialHref
+    }) %>
+  <% } %>
 
   <%- include('_resource-state', {
     graph,
