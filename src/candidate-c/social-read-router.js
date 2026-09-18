@@ -115,6 +115,10 @@ function rewardClaimCapability(res) {
   return Boolean(res.locals?.hivenuesRewardClaimAvailable);
 }
 
+function supportCapability(res) {
+  return Boolean(res.locals?.hivenuesSupportAvailable);
+}
+
 function voteExperience(graph) {
   const family = graph.presentation.compositionFamily;
   const negativeDefaults = {
@@ -604,6 +608,30 @@ function createCandidateCSocialReadRouter({
   const router = express.Router();
   const bindings = normalizeBindings(socialBindings);
 
+  router.get('/:slug/support', async (req, res) => {
+    const snapshot = store.publicSnapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    const view = buildViewModel(snapshot);
+    const recipient = safeAccount(view.graph.bindings.hive.valueRecipient);
+    if (!recipient) return res.sendStatus(404);
+
+    const hostHref = '/candidate-c/' + encodeURIComponent(view.graph.identity.slug);
+    const supportEndpoint = supportCapability(res)
+      ? '/participation/' + encodeURIComponent(view.graph.identity.slug) + '/support'
+      : null;
+
+    res.set('Cache-Control', 'no-store');
+    return res.render('candidate-c/support', {
+      pageTitle: (view.graph.voice.terms.support_hive || 'Support this host')
+        + ' — ' + view.graph.identity.displayName,
+      ...view,
+      hostHref,
+      recipient,
+      supportEndpoint,
+      verifiedAccount: verifiedViewer(res),
+    });
+  });
+
   router.get('/:slug/community/updates', async (req, res) => {
     const snapshot = store.publicSnapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
@@ -785,6 +813,7 @@ module.exports = {
   readDiscussion,
   readFollowRelationship,
   readPersonalResourceRewardState,
+  supportCapability,
   voteExperience,
   readMember,
   readSocialHub,
