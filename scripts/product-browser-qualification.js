@@ -380,9 +380,6 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
 async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   const store = new CandidateCStore();
   const before = store.diagnostics();
-  const beforePublicSnapshots = Object.fromEntries(
-    HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
-  );
   const hiveReadService = productReadService(publicKey);
   const app = createHiVenuesApp({
     store,
@@ -426,6 +423,9 @@ async function main() {
   const publicKey = key.createPublic().toString();
   const store = new CandidateCStore();
   const before = store.diagnostics();
+  const beforePublicSnapshots = Object.fromEntries(
+    HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
+  );
   const hiveReadService = productReadService(publicKey);
   const identityServices = createHiVenuesIdentityServices({
     hiveReadService,
