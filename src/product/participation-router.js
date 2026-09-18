@@ -523,21 +523,20 @@ function createHiVenuesParticipationRouter({
         });
       }
 
+      const support = buildDirectSupport({
+        account: identity.account,
+        recipient,
+        amount: req.body?.amount,
+        asset: req.body?.asset,
+        senderRecord,
+        recipientRecord,
+      });
       const envelope = contextualEnvelope(
-        buildDirectSupport({
-          account: identity.account,
-          recipient,
-          amount: req.body?.amount,
-          asset: req.body?.asset,
-          senderRecord,
-          recipientRecord,
-        }),
+        support,
         snapshot,
         {
-          consequence: '@' + identity.account + ' will send '
-            + String(req.body?.amount || '').trim() + ' '
-            + String(req.body?.asset || '').trim().toUpperCase()
-            + ' directly to @' + recipient
+          consequence: '@' + support.summary.sender + ' will send '
+            + support.summary.amount + ' directly to @' + support.summary.recipient
             + ' as support for ' + snapshot.draft.identity.displayName + '.',
           irreversible: 'HiVenues cannot reverse a confirmed Hive transfer.',
           purchaseTruth: 'This is direct support, not proof of a purchase, order, donation deduction, or fulfillment.',
