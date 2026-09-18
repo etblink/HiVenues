@@ -5,12 +5,13 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 function parseArgs(argv) {
-  const out = { output: '', sourceSha: 'UNKNOWN', sourceTree: 'UNKNOWN' };
+  const out = { output: '', sourceSha: 'UNKNOWN', sourceTree: 'UNKNOWN', launcher: '' };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--output') out.output = path.resolve(argv[++i] || '');
     else if (arg === '--source-sha') out.sourceSha = String(argv[++i] || 'UNKNOWN');
     else if (arg === '--source-tree') out.sourceTree = String(argv[++i] || 'UNKNOWN');
+    else if (arg === '--launcher') out.launcher = path.resolve(argv[++i] || '');
     else throw new Error('Unknown build proof argument: ' + arg);
   }
   if (!out.output) throw new Error('--output is required.');
@@ -34,10 +35,10 @@ function main() {
   for (const item of ['package.json', 'package-lock.json']) {
     fs.copyFileSync(path.join(root, item), path.join(appRoot, item));
   }
-  fs.mkdirSync(path.join(appRoot, 'scripts', 'era5'), { recursive: true });
+  fs.mkdirSync(path.join(appRoot, 'scripts'), { recursive: true });
   fs.copyFileSync(
-    path.join(root, 'scripts', 'era5', 'installed-bootstrap.js'),
-    path.join(appRoot, 'scripts', 'era5', 'installed-bootstrap.js')
+    path.join(root, 'scripts', 'hivenues-installed.js'),
+    path.join(appRoot, 'scripts', 'hivenues-installed.js')
   );
 
   const install = process.platform === 'win32'
@@ -59,7 +60,7 @@ function main() {
   if (install.status !== 0) {
     process.stderr.write(install.stdout || '');
     process.stderr.write(install.stderr || '');
-    if (install.error) process.stderr.write(String(install.error.stack || install.error) + '\\n');
+    if (install.error) process.stderr.write(String(install.error.stack || install.error) + '\n');
     throw new Error('Production dependency installation failed for the runtime proof.');
   }
 
@@ -67,16 +68,24 @@ function main() {
   fs.copyFileSync(process.execPath, path.join(runtimeRoot, runtimeName));
   if (process.platform !== 'win32') fs.chmodSync(path.join(runtimeRoot, runtimeName), 0o755);
 
+  if (options.launcher) {
+    if (!fs.existsSync(options.launcher)) throw new Error('Launcher path does not exist: ' + options.launcher);
+    fs.copyFileSync(options.launcher, path.join(options.output, 'HiVenues Studio.exe'));
+  }
+
+  const packageRecord = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const manifest = {
-    proofVersion: 1,
+    proofVersion: 2,
     sourceSha: options.sourceSha,
     sourceTree: options.sourceTree,
     nodeVersion: process.version,
+    packageVersion: packageRecord.version,
     platform: process.platform,
     arch: process.arch,
     layout: {
       runtime: `runtime/${runtimeName}`,
       app: 'app/',
+      launcher: options.launcher ? 'HiVenues Studio.exe' : null,
     },
   };
   fs.writeFileSync(

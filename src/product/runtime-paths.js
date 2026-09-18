@@ -30,11 +30,14 @@ function resolveInstalledDataRoot({
 
 function resolveInstalledPaths(options = {}) {
   const dataRoot = resolveInstalledDataRoot(options);
+  const diagnosticsRoot = path.join(dataRoot, 'diagnostics');
   return Object.freeze({
     dataRoot,
     statePath: path.join(dataRoot, 'workspace', 'state.json'),
     mediaRoot: path.join(dataRoot, 'media'),
-    diagnosticsRoot: path.join(dataRoot, 'diagnostics'),
+    diagnosticsRoot,
+    runtimeDiagnosticsPath: path.join(diagnosticsRoot, 'runtime.json'),
+    currentUrlPath: path.join(diagnosticsRoot, 'current-url.txt'),
     instanceLockPath: path.join(dataRoot, 'runtime.lock'),
   });
 }

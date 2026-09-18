@@ -20,20 +20,20 @@ function sleep(ms) {
 async function waitForReady(file, child, output, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
     if (child.exitCode !== null) {
       throw new Error(
         'Runtime exited before readiness with code ' + child.exitCode
-        + '\\nstdout:\\n' + output.stdout
-        + '\\nstderr:\\n' + output.stderr
+        + '\nstdout:\n' + output.stdout
+        + '\nstderr:\n' + output.stderr
       );
     }
     await sleep(100);
   }
   throw new Error(
     'Timed out waiting for runtime readiness.'
-    + '\\nstdout:\\n' + output.stdout
-    + '\\nstderr:\\n' + output.stderr
+    + '\nstdout:\n' + output.stdout
+    + '\nstderr:\n' + output.stderr
   );
 }
 
@@ -51,12 +51,12 @@ function digest(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
-async function launch({ runtime, bootstrap, cwd, env, readyFile, shutdownFile }) {
+function launch({ runtime, script, cwd, env, readyFile, shutdownFile }) {
   const child = spawn(runtime, [
-    bootstrap,
+    script,
     '--no-open',
     '--port', '0',
-    '--ready-file', readyFile,
+    '--ready-url-file', readyFile,
     '--shutdown-file', shutdownFile,
   ], {
     cwd,
@@ -70,38 +70,68 @@ async function launch({ runtime, bootstrap, cwd, env, readyFile, shutdownFile })
   return { child, output };
 }
 
+async function readRuntime(paths, expectedUrl, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(paths.runtimeDiagnosticsPath)) {
+      const record = JSON.parse(fs.readFileSync(paths.runtimeDiagnosticsPath, 'utf8'));
+      if (record.status === 'running' && (!expectedUrl || record.url === expectedUrl)) return record;
+    }
+    await sleep(100);
+  }
+  throw new Error('Timed out waiting for running runtime diagnostics.');
+}
+
+async function waitForAbsent(file, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!fs.existsSync(file)) return;
+    await sleep(100);
+  }
+  throw new Error('Timed out waiting for runtime marker removal: ' + file);
+}
+
 async function main() {
   const { bundle } = parseArgs(process.argv.slice(2));
   const runtime = path.join(bundle, 'runtime', process.platform === 'win32' ? 'node.exe' : 'node');
-  const bootstrap = path.join(bundle, 'app', 'scripts', 'era5', 'installed-bootstrap.js');
+  const script = path.join(bundle, 'app', 'scripts', 'hivenues-installed.js');
+  const launcher = path.join(bundle, 'HiVenues Studio.exe');
   assert.ok(fs.existsSync(runtime), 'private runtime is present');
-  assert.ok(fs.existsSync(bootstrap), 'installed bootstrap is present');
+  assert.ok(fs.existsSync(script), 'installed runtime entry is present');
+  if (process.platform === 'win32') assert.ok(fs.existsSync(launcher), 'native Windows launcher is present');
 
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era5-proof-'));
   const unrelatedCwd = path.join(temp, 'unrelated-cwd');
   const localAppData = path.join(temp, 'LocalAppData');
   fs.mkdirSync(unrelatedCwd, { recursive: true });
   const env = { ...process.env, LOCALAPPDATA: localAppData };
-  const ready1 = path.join(temp, 'ready-1.json');
+  const dataRoot = path.join(localAppData, 'HiVenues Studio');
+  const runtimePaths = {
+    runtimeDiagnosticsPath: path.join(dataRoot, 'diagnostics', 'runtime.json'),
+    currentUrlPath: path.join(dataRoot, 'diagnostics', 'current-url.txt'),
+  };
+  const ready1 = path.join(temp, 'ready-1.txt');
   const stop1 = path.join(temp, 'stop-1');
 
-  const firstLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready1, shutdownFile: stop1 });
+  const firstLaunch = launch({ runtime, script, cwd: unrelatedCwd, env, readyFile: ready1, shutdownFile: stop1 });
   const first = firstLaunch.child;
-  const info1 = await waitForReady(ready1, first, firstLaunch.output);
+  const url1 = await waitForReady(ready1, first, firstLaunch.output);
+  const info1 = await readRuntime(runtimePaths, url1);
   assert.equal(path.resolve(info1.appRoot), path.resolve(bundle, 'app'));
   assert.ok(path.resolve(info1.dataRoot).startsWith(path.resolve(localAppData)));
   assert.ok(path.resolve(info1.statePath).startsWith(path.resolve(localAppData)));
   assert.ok(path.resolve(info1.mediaRoot).startsWith(path.resolve(localAppData)));
+  assert.equal(fs.readFileSync(runtimePaths.currentUrlPath, 'utf8').trim(), url1);
   assert.ok(fs.existsSync(info1.statePath));
 
-  const response = await fetch(info1.url);
+  const response = await fetch(url1);
   assert.equal(response.status, 200);
   assert.match(await response.text(), /HiVenues/);
   const firstDigest = digest(info1.statePath);
 
-  const ready2 = path.join(temp, 'ready-2.json');
+  const ready2 = path.join(temp, 'ready-2.txt');
   const stop2 = path.join(temp, 'stop-2');
-  const secondLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready2, shutdownFile: stop2 });
+  const secondLaunch = launch({ runtime, script, cwd: unrelatedCwd, env, readyFile: ready2, shutdownFile: stop2 });
   const second = secondLaunch.child;
   const secondExit = await waitForExit(second);
   assert.equal(secondExit.code, 73);
@@ -111,27 +141,67 @@ async function main() {
   fs.writeFileSync(stop1, 'stop\n');
   const firstExit = await waitForExit(first);
   assert.equal(firstExit.code, 0);
+  assert.equal(fs.existsSync(runtimePaths.currentUrlPath), false);
 
-  const ready3 = path.join(temp, 'ready-3.json');
+  const ready3 = path.join(temp, 'ready-3.txt');
   const stop3 = path.join(temp, 'stop-3');
-  const thirdLaunch = await launch({ runtime, bootstrap, cwd: unrelatedCwd, env, readyFile: ready3, shutdownFile: stop3 });
+  const thirdLaunch = launch({ runtime, script, cwd: unrelatedCwd, env, readyFile: ready3, shutdownFile: stop3 });
   const third = thirdLaunch.child;
-  const info3 = await waitForReady(ready3, third, thirdLaunch.output);
+  const url3 = await waitForReady(ready3, third, thirdLaunch.output);
+  const info3 = await readRuntime(runtimePaths, url3);
   assert.equal(info3.statePath, info1.statePath);
   assert.equal(digest(info3.statePath), firstDigest);
-  const response3 = await fetch(info3.url);
+  const response3 = await fetch(url3);
   assert.equal(response3.status, 200);
   fs.writeFileSync(stop3, 'stop\n');
   const thirdExit = await waitForExit(third);
   assert.equal(thirdExit.code, 0);
+
+  let launcherUrl = null;
+  if (process.platform === 'win32') {
+    const launcherStop = path.join(temp, 'launcher-stop');
+    const launcherRun = spawn(launcher, ['--no-open', '--shutdown-file', launcherStop], {
+      cwd: unrelatedCwd,
+      env,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    const launcherExit = await waitForExit(launcherRun);
+    assert.equal(launcherExit.code, 0);
+
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline && !fs.existsSync(runtimePaths.currentUrlPath)) await sleep(100);
+    assert.ok(fs.existsSync(runtimePaths.currentUrlPath), 'native launcher publishes a current Studio URL');
+    launcherUrl = fs.readFileSync(runtimePaths.currentUrlPath, 'utf8').trim();
+    const launcherInfo = await readRuntime(runtimePaths, launcherUrl);
+    assert.equal(launcherInfo.statePath, info1.statePath);
+    assert.equal(digest(launcherInfo.statePath), firstDigest);
+    const launcherResponse = await fetch(launcherUrl);
+    assert.equal(launcherResponse.status, 200);
+
+    const secondLauncher = spawn(launcher, ['--no-open'], {
+      cwd: unrelatedCwd,
+      env,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    const secondLauncherExit = await waitForExit(secondLauncher);
+    assert.equal(secondLauncherExit.code, 0);
+    const afterSecondLauncher = await readRuntime(runtimePaths, launcherUrl);
+    assert.equal(afterSecondLauncher.pid, launcherInfo.pid);
+
+    fs.writeFileSync(launcherStop, 'stop\n');
+    await waitForAbsent(runtimePaths.currentUrlPath);
+  }
 
   process.stdout.write(JSON.stringify({
     result: 'PASS',
     runtime,
     appRoot: info1.appRoot,
     dataRoot: info1.dataRoot,
-    firstUrl: info1.url,
-    relaunchUrl: info3.url,
+    firstUrl: url1,
+    relaunchUrl: url3,
+    launcherUrl,
     stateDigest: firstDigest,
     provenance: info1.provenance,
   }, null, 2) + '\n');
