@@ -421,6 +421,41 @@ async function installApprovalWallet(context, key, publicKey) {
   });
 }
 
+async function inspectPendingRelationship(page) {
+  return page.evaluate(() => ({
+    account: window.__relationshipApproval?.account || '',
+    authority: window.__relationshipApproval?.authority || '',
+    operations: window.__relationshipApproval?.operations || [],
+  }));
+}
+
+async function approvePendingRelationship(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Posting');
+  const transactionId = applyAuthorizedRelationshipOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
+async function rejectPendingRelationship(page, code = 'KEYCHAIN_CANCELLED') {
+  await page.evaluate((value) => {
+    const error = new Error('Synthetic wallet rejection');
+    error.code = value;
+    window.__rejectRelationshipApproval(error);
+  }, code);
+}
+
 async function runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey) {
   const context = await createTrackedContext(browser, counters);
   await installApprovalWallet(context, key, publicKey);
