@@ -1033,3 +1033,247 @@
     font-size:clamp(2rem,11vw,3.5rem);
   }
 }
+
+
+/* Era 4 voting: canonical vote truth, with Direction-specific host presentation. */
+.cc-vote {
+  display:grid;
+  gap:.7rem;
+  margin-top:1rem;
+  padding-top:.85rem;
+  border-top:1px solid currentColor;
+}
+
+.cc-vote__tally {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.85rem;
+  font-size:.82rem;
+  font-weight:800;
+  opacity:.78;
+}
+
+.cc-vote__control {
+  display:grid;
+  gap:.75rem;
+}
+
+.cc-vote__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.55rem;
+}
+
+.cc-vote__actions button {
+  appearance:none;
+  border:1px solid currentColor;
+  padding:.62rem .85rem;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.cc-vote__actions button:disabled {
+  cursor:not-allowed;
+  opacity:.55;
+}
+
+.cc-vote__strength {
+  display:grid;
+  grid-template-columns:auto minmax(7rem,1fr) auto;
+  align-items:center;
+  gap:.7rem;
+  max-width:28rem;
+  font-size:.82rem;
+  font-weight:750;
+}
+
+.cc-vote__strength input {
+  width:100%;
+  accent-color:var(--cc-accent,currentColor);
+}
+
+.cc-vote__current,
+.cc-vote__truth,
+.cc-vote__status {
+  margin:0;
+  max-width:68ch;
+}
+
+.cc-vote__current {
+  font-size:.82rem;
+  font-weight:800;
+}
+
+.cc-vote__truth,
+.cc-vote__status {
+  font-size:.78rem;
+  line-height:1.5;
+  opacity:.78;
+}
+
+.cc-vote-review {
+  width:min(42rem,calc(100vw - 2rem));
+  max-height:calc(100vh - 2rem);
+  padding:0;
+  border:1px solid #37312d;
+  border-radius:1rem;
+  background:#fffdf8;
+  color:#211d1a;
+  box-shadow:0 28px 80px rgba(0,0,0,.32);
+}
+
+.cc-vote-review::backdrop {
+  background:rgba(8,7,7,.72);
+}
+
+.cc-vote-review form {
+  display:grid;
+  gap:1rem;
+  padding:clamp(1rem,4vw,1.6rem);
+}
+
+.cc-vote-review h2,
+.cc-vote-review p {
+  margin:0;
+}
+
+.cc-vote-review dl {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.7rem 1rem;
+  margin:0;
+}
+
+.cc-vote-review dl > div {
+  display:grid;
+  gap:.2rem;
+  padding:.65rem 0;
+  border-top:1px solid rgba(33,29,26,.18);
+}
+
+.cc-vote-review dt {
+  font-size:.72rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.cc-vote-review dd {
+  margin:0;
+  overflow-wrap:anywhere;
+}
+
+.cc-vote-review pre {
+  max-height:14rem;
+  overflow:auto;
+  padding:.75rem;
+  background:#f1ece4;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.cc-vote-review__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+}
+
+.cc-vote-review__actions button {
+  appearance:none;
+  border:1px solid #211d1a;
+  border-radius:.5rem;
+  padding:.7rem .95rem;
+  background:#fffdf8;
+  color:#211d1a;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.cc-vote-review__actions [data-vote-confirm] {
+  background:#211d1a;
+  color:#fffdf8;
+}
+
+/* Poster: reaction reads like a stamped show-of-support card. */
+.cc-social--poster .cc-vote {
+  border-top-color:var(--cc-night-line);
+}
+
+.cc-social--poster .cc-vote__actions button {
+  border-color:var(--cc-night-line);
+  background:rgba(255,255,255,.035);
+  color:inherit;
+  text-transform:uppercase;
+  letter-spacing:.045em;
+}
+
+.cc-social--poster .cc-vote__actions [data-vote-direction="upvote"] {
+  box-shadow:3px 3px 0 rgba(255,255,255,.08);
+}
+
+.cc-social--poster .cc-vote__actions [data-vote-direction="downvote"] {
+  border-style:dashed;
+}
+
+/* Editorial: recommendation behaves like an editorial judgment, not a social toolbar. */
+.cc-social--editorial .cc-vote {
+  border-top:3px double rgba(41,36,59,.4);
+  padding-top:1rem;
+}
+
+.cc-social--editorial .cc-vote__actions button {
+  border:0;
+  border-bottom:2px solid currentColor;
+  padding:.35rem .1rem .25rem;
+  background:transparent;
+  color:inherit;
+  font-family:Georgia,serif;
+  font-size:1rem;
+}
+
+.cc-social--editorial .cc-vote__actions [data-vote-direction="downvote"] {
+  border-bottom-style:dotted;
+  opacity:.82;
+}
+
+/* Hospitality: reaction feels like a small table gesture. */
+.cc-social--hospitality .cc-vote {
+  border-top-color:rgba(45,37,31,.18);
+}
+
+.cc-social--hospitality .cc-vote__actions button {
+  border-color:rgba(45,37,31,.3);
+  border-radius:999px;
+  background:#fffaf1;
+  color:#2d251f;
+}
+
+.cc-social--hospitality .cc-vote__actions [data-vote-direction="upvote"] {
+  background:#2d251f;
+  color:#fffaf1;
+}
+
+.cc-social--hospitality .cc-vote__actions [data-vote-direction="downvote"] {
+  background:transparent;
+}
+
+@media (max-width:760px) {
+  .cc-vote__strength {
+    grid-template-columns:1fr auto;
+  }
+
+  .cc-vote__strength input {
+    grid-column:1 / -1;
+  }
+
+  .cc-vote__actions button,
+  .cc-vote-review__actions button {
+    width:100%;
+  }
+
+  .cc-vote-review dl {
+    grid-template-columns:1fr;
+  }
+}

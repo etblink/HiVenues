@@ -36,6 +36,7 @@
     <% if (post.primaryImage) { %><img class="cc-discussion-image" src="<%= post.primaryImage %>" alt=""><% } %>
     <div class="cc-social-richtext cc-discussion-body"><%- post.bodyHtml %></div>
     <p class="cc-social-meta"><%= post.replyCount %> <%= post.replyCount === 1 ? 'response' : 'responses' %></p>
+    <%- include('_vote', { graph, discussion, item: post, voteEndpoint, votePresentation }) %>
   </article>
 
   <% if (discussion.updateRecord && actor === post.author) { %>
@@ -87,6 +88,7 @@
           <% if (commentTime) { %><span><%= commentTime %></span><% } %>
         </div>
         <div class="cc-social-richtext"><%- item.bodyHtml %></div>
+        <%- include('_vote', { graph, discussion, item, voteEndpoint, votePresentation }) %>
         <% if (canWriteContent) { %>
           <details class="cc-content-task cc-content-task--reply">
             <summary><%= discussionLabels.replyToResponse %></summary>

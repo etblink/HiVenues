@@ -311,6 +311,27 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
     return mutationResponse(req, res, store, req.params.slug, result, `voice:${req.body.mechanicId}`);
   });
 
+  router.post('/studio/:slug/participation', (req, res) => {
+    const value = String(req.body.showNegativeVoteAction || '');
+    if (!['show', 'hide'].includes(value)) return res.status(400).send('Choose whether HiVenues should show a negative-vote action.');
+    const showNegativeVoteAction = value === 'show';
+    const result = canonicalDraftMutation(store, req.params.slug, req, 'edit-participation-policy', (draft) => {
+      draft.bindings.hive.showNegativeVoteAction = showNegativeVoteAction;
+      if (showNegativeVoteAction && !draft.voice.terms.downvote_hive) {
+        const defaults = {
+          poster: 'Not for this room',
+          editorial: 'Push back',
+          hospitality: 'Not for this table',
+        };
+        draft.voice.terms.downvote_hive = defaults[draft.presentation.compositionFamily] || 'Downvote';
+      }
+    }, [
+      'bindings.hive.showNegativeVoteAction',
+      ...(showNegativeVoteAction ? ['voice.terms.downvote_hive'] : []),
+    ]);
+    return mutationResponse(req, res, store, req.params.slug, result, 'participation');
+  });
+
   router.post('/studio/:slug/connect', (req, res) => {
     const contact = String(req.body.contact || '').trim();
     if (!contact) return res.status(400).send('Contact is required.');

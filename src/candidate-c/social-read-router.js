@@ -107,6 +107,24 @@ function contentCapability(res) {
   return Boolean(res.locals?.hivenuesContentAvailable);
 }
 
+function voteCapability(res) {
+  return Boolean(res.locals?.hivenuesVoteAvailable);
+}
+
+function voteExperience(graph) {
+  const family = graph.presentation.compositionFamily;
+  const negativeDefaults = {
+    poster: 'Not for this room',
+    editorial: 'Push back',
+    hospitality: 'Not for this table',
+  };
+  return Object.freeze({
+    positiveLabel: graph.voice.terms.applaud_hive || 'Vote',
+    negativeLabel: graph.voice.terms.downvote_hive || negativeDefaults[family] || 'Downvote',
+    showNegativeAction: graph.bindings.hive.showNegativeVoteAction === true,
+  });
+}
+
 function hasContentReadContract(service) {
   return Boolean(
     service
@@ -115,12 +133,23 @@ function hasContentReadContract(service) {
   );
 }
 
-async function readDiscussion(hiveReads, binding, author, permlink, viewer, available) {
+async function readDiscussion(
+  hiveReads,
+  binding,
+  author,
+  permlink,
+  viewer,
+  contentAvailable,
+  voteAvailable,
+) {
   const base = {
     status: 'unavailable',
     issue: null,
     actor: viewer || null,
-    available: Boolean(available),
+    available: Boolean(contentAvailable),
+    voteAvailable: false,
+    voteIssue: null,
+    voteWeights: Object.freeze({}),
     post: null,
     comments: Object.freeze([]),
     profiles: Object.freeze({}),
@@ -151,7 +180,7 @@ async function readDiscussion(hiveReads, binding, author, permlink, viewer, avai
   let updateRecord = null;
   let status = 'ready';
   let issue = null;
-  if (viewer === author && available) {
+  if (viewer === author && contentAvailable) {
     try {
       updateRecord = await hiveReads.getContentRecord(author, permlink);
       if (
@@ -171,10 +200,37 @@ async function readDiscussion(hiveReads, binding, author, permlink, viewer, avai
     }
   }
 
+  let currentVoteAvailable = Boolean(
+    voteAvailable
+      && viewer
+      && typeof hiveReads.getVoteWeight === 'function',
+  );
+  let voteIssue = null;
+  const voteWeights = {};
+  if (currentVoteAvailable) {
+    const targets = [discussion.post, ...discussion.comments];
+    const results = await Promise.allSettled(targets.map(async (item) => {
+      const weight = await hiveReads.getVoteWeight(viewer, item.author, item.permlink);
+      if (!Number.isInteger(weight) || weight < -10000 || weight > 10000) {
+        throw new Error('Invalid canonical vote weight');
+      }
+      return { key: item.author + '/' + item.permlink, weight };
+    }));
+    if (results.some((result) => result.status === 'rejected')) {
+      currentVoteAvailable = false;
+      voteIssue = 'vote-state-unavailable';
+    } else {
+      for (const result of results) voteWeights[result.value.key] = result.value.weight;
+    }
+  }
+
   return Object.freeze({
     ...base,
     status,
     issue,
+    voteAvailable: currentVoteAvailable,
+    voteIssue,
+    voteWeights: Object.freeze(voteWeights),
     post: discussion.post,
     comments: Object.freeze(discussion.comments),
     profiles: Object.freeze(discussion.profiles || {}),
@@ -579,6 +635,7 @@ function createCandidateCSocialReadRouter({
       permlink,
       verifiedViewer(res),
       contentCapability(res),
+      voteCapability(res),
     );
     if (discussion.status === 'missing') return res.sendStatus(404);
 
@@ -596,6 +653,14 @@ function createCandidateCSocialReadRouter({
       + '/' + encodeURIComponent(parentPermlink)
     );
 
+    const voteBase = '/participation/' + encodeURIComponent(view.graph.identity.slug)
+      + '/votes/' + encodeURIComponent(author) + '/' + encodeURIComponent(permlink);
+    const voteEndpoint = (targetAuthor, targetPermlink) => (
+      voteBase + '/' + encodeURIComponent(targetAuthor)
+      + '/' + encodeURIComponent(targetPermlink)
+    );
+    const votePresentation = voteExperience(view.graph);
+
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: (discussion.post?.title || 'Discussion') + ' — ' + view.graph.identity.displayName,
@@ -608,6 +673,8 @@ function createCandidateCSocialReadRouter({
       discussionHref,
       contentUpdateEndpoint,
       contentReplyEndpoint,
+      voteEndpoint,
+      votePresentation,
       formatCommunityTime,
     });
   });
@@ -627,6 +694,7 @@ module.exports = {
   readCommunityRelationship,
   readDiscussion,
   readFollowRelationship,
+  voteExperience,
   readMember,
   readSocialHub,
   socialState,

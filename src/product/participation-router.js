@@ -458,11 +458,22 @@ function createHiVenuesParticipationRouter({
           throw new NotFoundError('Vote target is not part of this canonical discussion');
         }
 
+        const requestedDirection = String(req.body?.direction || '').trim().toLowerCase();
+        if (
+          requestedDirection === 'downvote'
+          && snapshot.draft.bindings.hive.showNegativeVoteAction !== true
+        ) {
+          throw new AuthorizationError(
+            'This HiVenue does not offer a downvote action. Hive itself may still accept downvotes through another compatible client.',
+            { code: 'NEGATIVE_VOTE_ACTION_HIDDEN' },
+          );
+        }
+
         const envelope = buildVote({
           account: identity.account,
           author: targetAuthor,
           permlink: targetPermlink,
-          direction: req.body?.direction,
+          direction: requestedDirection,
           percent: req.body?.percent,
         });
         const currentWeight = await active.hiveReadService.getVoteWeight(
