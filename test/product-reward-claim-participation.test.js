@@ -200,6 +200,35 @@ test('reward claim remains pending until dedicated exact transaction observation
   assert.equal(reads.calls.some((call) => call.method === 'observeSocialOperation'), false);
 });
 
+test('a later identical reward amount can be prepared after the earlier exact claim is canonically observed', async () => {
+  const reads = rewardReads({ observations: [true] });
+  const { app, identityServices } = fixture({ hiveReadService: reads });
+  const verified = session(identityServices);
+
+  const first = await mutate(
+    request(app).post('/participation/northline-hall/rewards/claim'),
+    verified,
+  ).send({}).expect(201);
+
+  await mutate(
+    request(app).post('/participation/preflight/' + first.body.id + '/accepted'),
+    verified,
+  ).send({ transactionId: 'd'.repeat(40) }).expect(200);
+
+  const observed = await mutate(
+    request(app).post('/participation/preflight/' + first.body.id + '/observe'),
+    verified,
+  ).send({}).expect(200);
+  assert.equal(observed.body.state, 'observed');
+
+  const later = await mutate(
+    request(app).post('/participation/northline-hall/rewards/claim'),
+    verified,
+  ).send({}).expect(201);
+  assert.notEqual(later.body.id, first.body.id);
+  assert.deepEqual(later.body.operations, first.body.operations);
+});
+
 test('duplicate reward intent and incomplete provider fail closed', async () => {
   const ordinary = fixture();
   const verified = session(ordinary.identityServices);
