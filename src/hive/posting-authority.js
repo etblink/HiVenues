@@ -29,6 +29,29 @@ class PostingAuthorityVerifier {
     return this.#authoritySatisfied(account, publicKey, cache, visited, 0);
   }
 
+  async isDirectKeyAuthorized(accountValue, publicKey) {
+    const account = requireHiveAccount(accountValue);
+    const rawAccount = await this.#getAccount(account, new Map());
+    if (!rawAccount) {
+      throw new AuthenticationError('The claimed Hive account does not exist', {
+        code: 'AUTH_ACCOUNT_NOT_FOUND',
+      });
+    }
+
+    const authority = normalizedAuthority(rawAccount.posting);
+    if (!authority) return false;
+
+    let weight = 0;
+    for (const entry of authority.keyAuths) {
+      const [authorizedKey, rawWeight] = Array.isArray(entry) ? entry : [];
+      const keyWeight = Number(rawWeight);
+      if (authorizedKey === publicKey && Number.isSafeInteger(keyWeight) && keyWeight > 0) {
+        weight += keyWeight;
+      }
+    }
+    return weight >= authority.threshold;
+  }
+
   async isDirectAccountAuthorized(authorValue, signerValue) {
     const author = requireHiveAccount(authorValue, 'Merchant author');
     const signer = requireHiveAccount(signerValue, 'Delegated signer');

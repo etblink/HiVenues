@@ -32,16 +32,29 @@ function parseCookies(headerValue = '') {
 }
 
 class ChallengeStore {
-  constructor({ ttlMs, origin, now = Date.now, random = randomToken }) {
+  constructor({
+    ttlMs,
+    origin = '',
+    heading = 'Hive-Bar verified sign-in',
+    purpose = 'Create a server-verified session only; no Hive transaction is authorized.',
+    now = Date.now,
+    random = randomToken,
+  }) {
     this.ttlMs = ttlMs;
     this.origin = origin;
+    this.heading = heading;
+    this.purpose = purpose;
     this.now = now;
     this.random = random;
     this.challenges = new Map();
   }
 
-  issue(account) {
+  issue(account, { origin = this.origin, context = '' } = {}) {
     this.prune();
+    const scopedOrigin = String(origin || '').trim();
+    if (!scopedOrigin) throw new TypeError('Identity challenge origin is required');
+    const scopedContext = String(context || '').trim();
+
     const id = this.random(24);
     const nonce = this.random(32);
     const issuedAtMs = this.now();
@@ -49,20 +62,38 @@ class ChallengeStore {
     const issuedAt = new Date(issuedAtMs).toISOString();
     const expiresAt = new Date(expiresAtMs).toISOString();
     const message = [
-      'Hive-Bar verified sign-in',
+      this.heading,
       `Account: @${account}`,
-      `Origin: ${this.origin}`,
+      `Origin: ${scopedOrigin}`,
+      ...(scopedContext ? [`Context: ${scopedContext}`] : []),
       `Nonce: ${nonce}`,
       `Issued: ${issuedAt}`,
       `Expires: ${expiresAt}`,
-      'Purpose: Create a server-verified session only; no Hive transaction is authorized.',
+      `Purpose: ${this.purpose}`,
     ].join(' | ');
-    const challenge = { id, account, message, issuedAt, expiresAt, expiresAtMs };
+    const challenge = {
+      id,
+      account,
+      message,
+      origin: scopedOrigin,
+      context: scopedContext,
+      issuedAt,
+      expiresAt,
+      expiresAtMs,
+    };
     this.challenges.set(id, challenge);
-    return { id, account, message, issuedAt, expiresAt };
+    return {
+      id,
+      account,
+      message,
+      origin: scopedOrigin,
+      context: scopedContext,
+      issuedAt,
+      expiresAt,
+    };
   }
 
-  consume(id, account) {
+  consume(id, account, { origin = null, context = null } = {}) {
     const challengeId = String(id || '');
     const challenge = this.challenges.get(challengeId);
     this.challenges.delete(challengeId);
@@ -80,6 +111,16 @@ class ChallengeStore {
     if (challenge.account !== account) {
       throw new AuthenticationError('The signed account does not match the sign-in challenge', {
         code: 'AUTH_ACCOUNT_MISMATCH',
+      });
+    }
+    if (origin !== null && challenge.origin !== origin) {
+      throw new AuthenticationError('The identity proof origin does not match the issued challenge', {
+        code: 'AUTH_ORIGIN_MISMATCH',
+      });
+    }
+    if (context !== null && challenge.context !== context) {
+      throw new AuthenticationError('The identity proof context does not match the issued challenge', {
+        code: 'AUTH_CONTEXT_MISMATCH',
       });
     }
 
