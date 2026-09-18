@@ -1,6 +1,8 @@
 'use strict';
 
-const { COMMUNITY_PATTERN, HIVE_ACCOUNT_PATTERN } = require('../config');
+const { HIVE_ACCOUNT_PATTERN } = require('../hive/account-name');
+
+const COMMUNITY_PATTERN = /^hive-[0-9]{3,12}$/;
 const { ValidationError } = require('../lib/errors');
 
 const PERMLINK_PATTERN = /^[a-z0-9][a-z0-9-]{0,255}$/;
