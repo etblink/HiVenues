@@ -57,6 +57,11 @@ function socialBindings() {
 
 function productReadService(publicKey) {
   const rpcCalls = [];
+  const followState = new Set();
+  const communityState = new Set();
+  const followKey = (follower, following) => follower + '->' + following;
+  const communityKey = (account, community) => account + '->' + community;
+
   return {
     rpcPool: {
       calls: rpcCalls,
@@ -113,7 +118,35 @@ function productReadService(publicKey) {
     async getFollowing() {
       return { items: [], nextCursor: null };
     },
-    async isCommunityMember() {
+    async getFollowStatus(follower, following) {
+      return followState.has(followKey(follower, following));
+    },
+    async isCommunityMember(account, community) {
+      return communityState.has(communityKey(account, community));
+    },
+    setFollowState(follower, following, value) {
+      const key = followKey(follower, following);
+      if (value) followState.add(key);
+      else followState.delete(key);
+    },
+    setCommunityState(account, community, value) {
+      const key = communityKey(account, community);
+      if (value) communityState.add(key);
+      else communityState.delete(key);
+    },
+    async observeSocialOperation(record) {
+      const operation = record?.operations?.[0];
+      const [type, value] = Array.isArray(operation) ? operation : [];
+      if (type === 'custom_json' && value?.id === 'follow') {
+        const [, payload] = JSON.parse(value.json);
+        const following = Array.isArray(payload?.what) && payload.what.includes('blog');
+        return followState.has(followKey(payload.follower, payload.following)) === following;
+      }
+      if (type === 'custom_json' && value?.id === 'community') {
+        const [action, payload] = JSON.parse(value.json);
+        const subscribed = action === 'subscribe';
+        return communityState.has(communityKey(record.account, payload.community)) === subscribed;
+      }
       return false;
     },
   };
