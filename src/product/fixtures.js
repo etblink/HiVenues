@@ -245,7 +245,7 @@ const harbor = validateHostGraph({
       asset: {
         version: 1,
         storage: 'repo-local',
-        path: '/studio/media/harbor-hearth-table.svg',
+        path: '/hivenues/media/harbor-hearth-table.svg',
         mime: 'image/svg+xml',
         bytes: 4110,
         width: 1600,

@@ -85,7 +85,7 @@ const activityLifecycles = Object.freeze({
 const admittedAssetSchema = z.object({
   version: z.literal(1),
   storage: z.literal('repo-local'),
-  path: z.string().regex(/^\/studio\/media\/[A-Za-z0-9._/-]+$/),
+  path: z.string().regex(/^\/hivenues\/media\/[A-Za-z0-9._/-]+$/),
   mime: z.enum(['image/svg+xml', 'image/jpeg', 'image/png', 'image/webp', 'video/mp4']),
   bytes: z.number().int().positive(),
   width: z.number().int().positive(),
