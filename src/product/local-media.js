@@ -117,7 +117,7 @@ function parseMultipartForm(body, contentType) {
 }
 
 function defaultLocalMediaRoot() {
-  return path.join(__dirname, '..', '..', 'public', 'studio', 'media', 'local');
+  return path.join(__dirname, '..', '..', 'public', 'hivenues', 'media', 'local');
 }
 
 function persistLocalImage({ slug, buffer, inspection, mediaRoot = defaultLocalMediaRoot() }) {
@@ -131,7 +131,7 @@ function persistLocalImage({ slug, buffer, inspection, mediaRoot = defaultLocalM
   return {
     target,
     existed,
-    publicPath: `/studio/media/local/${encodeURIComponent(slug)}/${filename}`,
+    publicPath: `/hivenues/media/local/${encodeURIComponent(slug)}/${filename}`,
     root,
   };
 }

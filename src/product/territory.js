@@ -3,16 +3,16 @@
 const { validateHostGraph } = require('./model');
 
 const surfaceRegistry = Object.freeze({
-  home: Object.freeze({ role: 'home', kind: 'singleton', defaultLabel: 'Home', path: (graph) => `/studio/${graph.identity.slug}` }),
-  'activities-index': Object.freeze({ role: 'activities-index', kind: 'index', navigationRole: 'activities', defaultLabel: 'Activities', path: (graph) => `/studio/${graph.identity.slug}/activities` }),
-  'activity-detail': Object.freeze({ role: 'activity-detail', kind: 'detail', navigationRole: 'activities', path: (graph, item) => `/studio/${graph.identity.slug}/activities/${item.slug}` }),
-  offers: Object.freeze({ role: 'offers', kind: 'index', navigationRole: 'offers', defaultLabel: 'Offers', path: (graph) => `/studio/${graph.identity.slug}/offers` }),
-  'stories-index': Object.freeze({ role: 'stories-index', kind: 'index', navigationRole: 'stories', defaultLabel: 'Stories', path: (graph) => `/studio/${graph.identity.slug}/stories` }),
-  'story-detail': Object.freeze({ role: 'story-detail', kind: 'detail', navigationRole: 'stories', path: (graph, item) => `/studio/${graph.identity.slug}/stories/${item.slug}` }),
-  gallery: Object.freeze({ role: 'gallery', kind: 'index', navigationRole: 'gallery', defaultLabel: 'Gallery', path: (graph) => `/studio/${graph.identity.slug}/gallery` }),
-  'people-index': Object.freeze({ role: 'people-index', kind: 'index', navigationRole: 'people', defaultLabel: 'People', path: (graph) => `/studio/${graph.identity.slug}/people` }),
-  'profile-detail': Object.freeze({ role: 'profile-detail', kind: 'detail', navigationRole: 'people', path: (graph, item) => `/studio/${graph.identity.slug}/people/${item.slug}` }),
-  'about-visit': Object.freeze({ role: 'about-visit', kind: 'singleton', navigationRole: 'about-visit', defaultLabel: 'About & visit', path: (graph) => `/studio/${graph.identity.slug}/about` }),
+  home: Object.freeze({ role: 'home', kind: 'singleton', defaultLabel: 'Home', path: (graph) => `/hivenues/${graph.identity.slug}` }),
+  'activities-index': Object.freeze({ role: 'activities-index', kind: 'index', navigationRole: 'activities', defaultLabel: 'Activities', path: (graph) => `/hivenues/${graph.identity.slug}/activities` }),
+  'activity-detail': Object.freeze({ role: 'activity-detail', kind: 'detail', navigationRole: 'activities', path: (graph, item) => `/hivenues/${graph.identity.slug}/activities/${item.slug}` }),
+  offers: Object.freeze({ role: 'offers', kind: 'index', navigationRole: 'offers', defaultLabel: 'Offers', path: (graph) => `/hivenues/${graph.identity.slug}/offers` }),
+  'stories-index': Object.freeze({ role: 'stories-index', kind: 'index', navigationRole: 'stories', defaultLabel: 'Stories', path: (graph) => `/hivenues/${graph.identity.slug}/stories` }),
+  'story-detail': Object.freeze({ role: 'story-detail', kind: 'detail', navigationRole: 'stories', path: (graph, item) => `/hivenues/${graph.identity.slug}/stories/${item.slug}` }),
+  gallery: Object.freeze({ role: 'gallery', kind: 'index', navigationRole: 'gallery', defaultLabel: 'Gallery', path: (graph) => `/hivenues/${graph.identity.slug}/gallery` }),
+  'people-index': Object.freeze({ role: 'people-index', kind: 'index', navigationRole: 'people', defaultLabel: 'People', path: (graph) => `/hivenues/${graph.identity.slug}/people` }),
+  'profile-detail': Object.freeze({ role: 'profile-detail', kind: 'detail', navigationRole: 'people', path: (graph, item) => `/hivenues/${graph.identity.slug}/people/${item.slug}` }),
+  'about-visit': Object.freeze({ role: 'about-visit', kind: 'singleton', navigationRole: 'about-visit', defaultLabel: 'About & visit', path: (graph) => `/hivenues/${graph.identity.slug}/about` }),
 });
 
 const compositionRecipeRegistry = Object.freeze({
@@ -21,16 +21,16 @@ const compositionRecipeRegistry = Object.freeze({
     navigationOrder: Object.freeze(['home', 'activities', 'stories', 'gallery', 'offers', 'people', 'about-visit']),
     homeSections: Object.freeze(['hero', 'activities', 'stories', 'gallery', 'offers', 'about']),
     surfaceTemplates: Object.freeze({
-      home: 'studio/compositions/poster',
-      'activities-index': 'studio/territory/poster/surface',
-      'activity-detail': 'studio/compositions/poster-activity',
-      offers: 'studio/territory/poster/surface',
-      'stories-index': 'studio/territory/poster/surface',
-      'story-detail': 'studio/territory/poster/surface',
-      gallery: 'studio/territory/poster/surface',
-      'people-index': 'studio/territory/poster/surface',
-      'profile-detail': 'studio/territory/poster/surface',
-      'about-visit': 'studio/territory/poster/surface',
+      home: 'hivenues/compositions/poster',
+      'activities-index': 'hivenues/territory/poster/surface',
+      'activity-detail': 'hivenues/compositions/poster-activity',
+      offers: 'hivenues/territory/poster/surface',
+      'stories-index': 'hivenues/territory/poster/surface',
+      'story-detail': 'hivenues/territory/poster/surface',
+      gallery: 'hivenues/territory/poster/surface',
+      'people-index': 'hivenues/territory/poster/surface',
+      'profile-detail': 'hivenues/territory/poster/surface',
+      'about-visit': 'hivenues/territory/poster/surface',
     }),
   }),
   editorial: Object.freeze({
@@ -38,16 +38,16 @@ const compositionRecipeRegistry = Object.freeze({
     navigationOrder: Object.freeze(['home', 'stories', 'people', 'activities', 'gallery', 'offers', 'about-visit']),
     homeSections: Object.freeze(['hero', 'stories', 'people', 'activities', 'gallery', 'about', 'offers']),
     surfaceTemplates: Object.freeze({
-      home: 'studio/compositions/editorial',
-      'activities-index': 'studio/territory/editorial/surface',
-      'activity-detail': 'studio/compositions/editorial-activity',
-      offers: 'studio/territory/editorial/surface',
-      'stories-index': 'studio/territory/editorial/surface',
-      'story-detail': 'studio/territory/editorial/surface',
-      gallery: 'studio/territory/editorial/surface',
-      'people-index': 'studio/territory/editorial/surface',
-      'profile-detail': 'studio/territory/editorial/surface',
-      'about-visit': 'studio/territory/editorial/surface',
+      home: 'hivenues/compositions/editorial',
+      'activities-index': 'hivenues/territory/editorial/surface',
+      'activity-detail': 'hivenues/compositions/editorial-activity',
+      offers: 'hivenues/territory/editorial/surface',
+      'stories-index': 'hivenues/territory/editorial/surface',
+      'story-detail': 'hivenues/territory/editorial/surface',
+      gallery: 'hivenues/territory/editorial/surface',
+      'people-index': 'hivenues/territory/editorial/surface',
+      'profile-detail': 'hivenues/territory/editorial/surface',
+      'about-visit': 'hivenues/territory/editorial/surface',
     }),
   }),
   hospitality: Object.freeze({
@@ -55,16 +55,16 @@ const compositionRecipeRegistry = Object.freeze({
     navigationOrder: Object.freeze(['home', 'offers', 'activities', 'gallery', 'about-visit', 'stories', 'people']),
     homeSections: Object.freeze(['hero', 'offers', 'activities', 'gallery', 'about', 'stories', 'people']),
     surfaceTemplates: Object.freeze({
-      home: 'studio/compositions/hospitality',
-      'activities-index': 'studio/territory/hospitality/surface',
-      'activity-detail': 'studio/compositions/hospitality-activity',
-      offers: 'studio/territory/hospitality/surface',
-      'stories-index': 'studio/territory/hospitality/surface',
-      'story-detail': 'studio/territory/hospitality/surface',
-      gallery: 'studio/territory/hospitality/surface',
-      'people-index': 'studio/territory/hospitality/surface',
-      'profile-detail': 'studio/territory/hospitality/surface',
-      'about-visit': 'studio/territory/hospitality/surface',
+      home: 'hivenues/compositions/hospitality',
+      'activities-index': 'hivenues/territory/hospitality/surface',
+      'activity-detail': 'hivenues/compositions/hospitality-activity',
+      offers: 'hivenues/territory/hospitality/surface',
+      'stories-index': 'hivenues/territory/hospitality/surface',
+      'story-detail': 'hivenues/territory/hospitality/surface',
+      gallery: 'hivenues/territory/hospitality/surface',
+      'people-index': 'hivenues/territory/hospitality/surface',
+      'profile-detail': 'hivenues/territory/hospitality/surface',
+      'about-visit': 'hivenues/territory/hospitality/surface',
     }),
   }),
 });
@@ -135,7 +135,7 @@ function buildTerritoryProjection(inputGraph) {
 
 function rebaseTerritoryProjection(projection, basePath) {
   if (!projection) return null;
-  const publicBase = `/studio/${projection.hostSlug}`;
+  const publicBase = `/hivenues/${projection.hostSlug}`;
   const cleanBase = String(basePath || '').replace(/\/$/, '');
   if (!cleanBase || cleanBase === publicBase) return projection;
   const rebase = (path) => path.startsWith(publicBase) ? `${cleanBase}${path.slice(publicBase.length)}` : path;
