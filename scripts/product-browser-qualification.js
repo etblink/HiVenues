@@ -1108,7 +1108,7 @@ async function runVotePolicyStudioEvidence(
     for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
       await page.setViewportSize(viewport);
       await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
-      await page.locator('details:has(summary:text("Site")) > summary').click();
+      await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
       await page.locator('button[hx-get*="resource=participation"]').click();
       const inspector = page.locator('#candidate-inspector');
       await inspector.getByText('Choose whether this site shows a downvote action.').waitFor();
@@ -1231,7 +1231,10 @@ async function runVoteJourneys(
   async function cast(direction, percent, labelPrefix, expectedWeight) {
     const vote = page.locator('.cc-discussion-root [data-hivenues-vote]').first();
     await vote.waitFor();
-    await vote.locator('[data-vote-percent]').fill(String(percent));
+    await vote.locator('[data-vote-percent]').evaluate((input, value) => {
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, String(percent));
     await vote.locator('[data-vote-direction="' + direction + '"]').click();
 
     const dialog = vote.locator('[data-vote-review][open]');
