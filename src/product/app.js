@@ -11,6 +11,11 @@ const { createCandidateCOperatorRouter } = require('../candidate-c/operator-rout
 const { createCandidateCPreviewRouter } = require('../candidate-c/preview-router');
 const { buildViewModel } = require('../candidate-c/present');
 const { ProvisioningFileCandidateCStore } = require('../candidate-c/provisioning-file-store');
+const {
+  createHiVenuesIdentityServices,
+  identitySessionContext,
+} = require('./identity');
+const { createHiVenuesIdentityRouter } = require('./identity-router');
 
 const LOCAL_HOST = '127.0.0.1';
 const SESSION_COOKIE = 'hivenues_dogfood_session';
@@ -57,11 +62,27 @@ function createHiVenuesApp({
   discussionBindings = {},
   hiveReadService = null,
   socialBindings = {},
+  identityServices = null,
+  identityOrigin = '',
+  identityNow = Date.now,
+  identitySessionSecret = '',
+  identityChallengeTtlMs,
+  identitySessionTtlMs,
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
     throw new Error('CANDIDATE_C_DOGFOOD_ACCESS_SECRET must contain at least 32 characters in public-ingress mode.');
   }
+
+  const activeIdentityServices = identityServices === false
+    ? null
+    : identityServices || createHiVenuesIdentityServices({
+        hiveReadService,
+        sessionSecret: identitySessionSecret || undefined,
+        challengeTtlMs: identityChallengeTtlMs,
+        sessionTtlMs: identitySessionTtlMs,
+        now: identityNow,
+      });
 
   const app = express();
   const sessions = new Set();
@@ -71,6 +92,7 @@ function createHiVenuesApp({
   app.set('views', path.join(root, 'views'));
   app.set('view engine', 'ejs');
   app.use(express.raw({ type: 'multipart/form-data', limit: MAX_MULTIPART_BYTES }));
+  app.use(express.json({ type: 'application/json', limit: '16kb' }));
   app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
   // Convert parser ceilings into an ordinary product error instead of exposing
@@ -141,6 +163,13 @@ function createHiVenuesApp({
     });
     app.use(requireSameOrigin);
   }
+
+  app.use(identitySessionContext(activeIdentityServices?.sessionStore || null));
+  app.use('/identity', createHiVenuesIdentityRouter({
+    services: activeIdentityServices,
+    fixedOrigin: identityOrigin,
+    secureCookie: Boolean(publicIngress),
+  }));
 
   // Durable test workspaces may deliberately place local media outside the
   // repository public tree. Serve only that store-owned root, behind the same
