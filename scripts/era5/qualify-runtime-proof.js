@@ -70,23 +70,35 @@ function launch({ runtime, script, cwd, env, readyFile, shutdownFile }) {
   return { child, output };
 }
 
-async function readRuntime(paths, timeoutMs = 15000) {
+async function readRuntime(paths, expectedUrl, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (fs.existsSync(paths.runtimeDiagnosticsPath)) {
-      return JSON.parse(fs.readFileSync(paths.runtimeDiagnosticsPath, 'utf8'));
+      const record = JSON.parse(fs.readFileSync(paths.runtimeDiagnosticsPath, 'utf8'));
+      if (record.status === 'running' && (!expectedUrl || record.url === expectedUrl)) return record;
     }
     await sleep(100);
   }
-  throw new Error('Timed out waiting for runtime diagnostics.');
+  throw new Error('Timed out waiting for running runtime diagnostics.');
+}
+
+async function waitForAbsent(file, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!fs.existsSync(file)) return;
+    await sleep(100);
+  }
+  throw new Error('Timed out waiting for runtime marker removal: ' + file);
 }
 
 async function main() {
   const { bundle } = parseArgs(process.argv.slice(2));
   const runtime = path.join(bundle, 'runtime', process.platform === 'win32' ? 'node.exe' : 'node');
   const script = path.join(bundle, 'app', 'scripts', 'hivenues-installed.js');
+  const launcher = path.join(bundle, 'HiVenues Studio.exe');
   assert.ok(fs.existsSync(runtime), 'private runtime is present');
   assert.ok(fs.existsSync(script), 'installed runtime entry is present');
+  if (process.platform === 'win32') assert.ok(fs.existsSync(launcher), 'native Windows launcher is present');
 
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era5-proof-'));
   const unrelatedCwd = path.join(temp, 'unrelated-cwd');
@@ -104,7 +116,7 @@ async function main() {
   const firstLaunch = launch({ runtime, script, cwd: unrelatedCwd, env, readyFile: ready1, shutdownFile: stop1 });
   const first = firstLaunch.child;
   const url1 = await waitForReady(ready1, first, firstLaunch.output);
-  const info1 = await readRuntime(runtimePaths);
+  const info1 = await readRuntime(runtimePaths, url1);
   assert.equal(path.resolve(info1.appRoot), path.resolve(bundle, 'app'));
   assert.ok(path.resolve(info1.dataRoot).startsWith(path.resolve(localAppData)));
   assert.ok(path.resolve(info1.statePath).startsWith(path.resolve(localAppData)));
@@ -136,7 +148,7 @@ async function main() {
   const thirdLaunch = launch({ runtime, script, cwd: unrelatedCwd, env, readyFile: ready3, shutdownFile: stop3 });
   const third = thirdLaunch.child;
   const url3 = await waitForReady(ready3, third, thirdLaunch.output);
-  const info3 = await readRuntime(runtimePaths);
+  const info3 = await readRuntime(runtimePaths, url3);
   assert.equal(info3.statePath, info1.statePath);
   assert.equal(digest(info3.statePath), firstDigest);
   const response3 = await fetch(url3);
@@ -145,6 +157,43 @@ async function main() {
   const thirdExit = await waitForExit(third);
   assert.equal(thirdExit.code, 0);
 
+  let launcherUrl = null;
+  if (process.platform === 'win32') {
+    const launcherStop = path.join(temp, 'launcher-stop');
+    const launcherRun = spawn(launcher, ['--no-open', '--shutdown-file', launcherStop], {
+      cwd: unrelatedCwd,
+      env,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    const launcherExit = await waitForExit(launcherRun);
+    assert.equal(launcherExit.code, 0);
+
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline && !fs.existsSync(runtimePaths.currentUrlPath)) await sleep(100);
+    assert.ok(fs.existsSync(runtimePaths.currentUrlPath), 'native launcher publishes a current Studio URL');
+    launcherUrl = fs.readFileSync(runtimePaths.currentUrlPath, 'utf8').trim();
+    const launcherInfo = await readRuntime(runtimePaths, launcherUrl);
+    assert.equal(launcherInfo.statePath, info1.statePath);
+    assert.equal(digest(launcherInfo.statePath), firstDigest);
+    const launcherResponse = await fetch(launcherUrl);
+    assert.equal(launcherResponse.status, 200);
+
+    const secondLauncher = spawn(launcher, ['--no-open'], {
+      cwd: unrelatedCwd,
+      env,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    const secondLauncherExit = await waitForExit(secondLauncher);
+    assert.equal(secondLauncherExit.code, 0);
+    const afterSecondLauncher = await readRuntime(runtimePaths, launcherUrl);
+    assert.equal(afterSecondLauncher.pid, launcherInfo.pid);
+
+    fs.writeFileSync(launcherStop, 'stop\n');
+    await waitForAbsent(runtimePaths.currentUrlPath);
+  }
+
   process.stdout.write(JSON.stringify({
     result: 'PASS',
     runtime,
@@ -152,6 +201,7 @@ async function main() {
     dataRoot: info1.dataRoot,
     firstUrl: url1,
     relaunchUrl: url3,
+    launcherUrl,
     stateDigest: firstDigest,
     provenance: info1.provenance,
   }, null, 2) + '\n');
