@@ -53,7 +53,7 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-vote\.js/,
         `${relative}: ${tag}`,
       );
       if (/hivenues-identity/.test(tag)) {
@@ -75,6 +75,13 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
           relative,
           /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|discussion)\.ejs$/,
           `${relative}: content client escaped the social content surface`,
+        );
+      }
+      if (/hivenues-vote/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-discussion\.ejs$/,
+          `${relative}: vote client escaped the canonical discussion surface`,
         );
       }
       if (/keychain-adapter/.test(tag)) {
@@ -112,6 +119,7 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     );
     assert.match(discussion, /\/js\/keychain-adapter\.js/);
     assert.match(discussion, /\/js\/hivenues-content\.js/);
+    assert.match(discussion, /\/js\/hivenues-vote\.js/);
     assert.doesNotMatch(discussion, /\/js\/hivenues-identity\.js/);
     assert.doesNotMatch(discussion, /\/js\/hivenues-participation\.js/);
   }
