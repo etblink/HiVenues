@@ -98,6 +98,7 @@ static BOOL contains_no_open(const wchar_t *arguments) {
 static int open_existing_runtime(BOOL no_open) {
     wchar_t path[MAX_PATH * 4];
     wchar_t url[2048];
+    if (no_open) return 0;
     if (!current_url_path(path, _countof(path))) return fail_message(L"HiVenues Studio is already running, but its current URL could not be located.");
     if (!read_utf8_line(path, url, _countof(url))) return fail_message(L"HiVenues Studio is already running, but its current URL is not available yet.");
     if (!no_open && !open_url(url)) return fail_message(L"HiVenues Studio is running, but Windows could not open the Studio URL.");
