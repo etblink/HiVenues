@@ -34,6 +34,16 @@ const mechanicRegistry = Object.freeze({
     capability: 'hive-vote',
     degradedBehavior: 'Explain that Hive participation is not connected and do not attempt a write.',
   }),
+  downvote_hive: Object.freeze({
+    id: 'downvote_hive',
+    meaning: 'Cast a negative Hive vote on the host-selected social object.',
+    consequenceClass: 'signed-public-write',
+    movesValue: false,
+    public: true,
+    reversible: 'protocol-dependent',
+    capability: 'hive-vote',
+    degradedBehavior: 'Keep canonical negative-vote state readable even when this host does not present a downvote action.',
+  }),
   voting_capacity: Object.freeze({
     id: 'voting_capacity',
     meaning: 'Display voting-power capacity associated with a connected Hive identity.',
@@ -145,6 +155,9 @@ const bindingsSchema = z.object({
     state: z.enum(['disconnected', 'read-only', 'connected']),
     account: z.string().nullable(),
     communityId: z.string().nullable(),
+    // Optional so accepted historical HostGraph bytes remain byte-stable until
+    // an operator explicitly chooses this presentation policy.
+    showNegativeVoteAction: z.boolean().optional(),
   }),
   media: z.object({ state: z.enum(['local', 'degraded', 'connected']), provider: z.string().nullable() }),
 });
