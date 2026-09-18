@@ -569,6 +569,37 @@ class HiveReadService {
     }));
   }
 
+  async getVoteWeight(voterValue, authorValue, permlinkValue) {
+    const voter = requireHiveAccount(voterValue, 'Voter');
+    const author = requireHiveAccount(authorValue, 'Vote target author');
+    const permlink = requirePermlink(permlinkValue);
+    const raw = await this.rpcPool.call('bridge', 'get_post', { author, permlink });
+    if (raw?.author !== author || raw?.permlink !== permlink) return null;
+    const vote = Array.isArray(raw.active_votes)
+      ? raw.active_votes.find((item) => item?.voter === voter)
+      : null;
+    if (!vote) return 0;
+    const weight = Number(vote.percent);
+    return Number.isFinite(weight) ? weight : 0;
+  }
+
+  async observeVoteOperation(record) {
+    const operation = record?.operations?.find((item) => (
+      Array.isArray(item) && item[0] === 'vote'
+    ));
+    const value = operation?.[1];
+    if (!value) return false;
+    const voter = requireHiveAccount(value.voter, 'Operation voter');
+    const author = requireHiveAccount(value.author, 'Vote target author');
+    const permlink = requirePermlink(value.permlink);
+    const expectedWeight = Number(value.weight);
+    if (!Number.isInteger(expectedWeight) || expectedWeight < -10000 || expectedWeight > 10000) {
+      return false;
+    }
+    const currentWeight = await this.getVoteWeight(voter, author, permlink);
+    return currentWeight !== null && currentWeight === expectedWeight;
+  }
+
   async observeContentOperation(record) {
     const operation = record?.operations?.find((item) => (
       Array.isArray(item) && item[0] === 'comment'
@@ -604,14 +635,7 @@ class HiveReadService {
     }
 
     if (type === 'vote') {
-      const voter = requireHiveAccount(value?.voter, 'Operation voter');
-      const author = requireHiveAccount(value?.author, 'Vote target author');
-      const permlink = requirePermlink(value?.permlink);
-      const raw = await this.rpcPool.call('bridge', 'get_post', { author, permlink });
-      const vote = Array.isArray(raw?.active_votes)
-        ? raw.active_votes.find((item) => item?.voter === voter)
-        : null;
-      return Number(vote?.percent) === Number(value?.weight);
+      return this.observeVoteOperation(record);
     }
 
     if (type === 'custom_json' && value?.id === 'follow') {
