@@ -12,10 +12,20 @@ const {
 
 const DOGFOOD_HOST = LOCAL_HOST;
 
+function createDogfoodApp(options = {}) {
+  const identityServices = Object.prototype.hasOwnProperty.call(options, 'identityServices')
+    ? options.identityServices
+    : false;
+  return createHiVenuesApp({
+    ...options,
+    identityServices,
+  });
+}
+
 module.exports = {
   DOGFOOD_HOST,
   SESSION_COOKIE,
-  createDogfoodApp: createHiVenuesApp,
+  createDogfoodApp,
   requireSameOrigin,
   startDogfoodServer: startHiVenuesServer,
 };
