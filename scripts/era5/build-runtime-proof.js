@@ -40,15 +40,26 @@ function main() {
     path.join(appRoot, 'scripts', 'era5', 'installed-bootstrap.js')
   );
 
-  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const install = spawnSync(npm, ['ci', '--omit=dev', '--ignore-scripts', '--no-fund', '--no-audit'], {
-    cwd: appRoot,
-    encoding: 'utf8',
-    stdio: 'pipe',
-  });
+  const install = process.platform === 'win32'
+    ? spawnSync(process.env.ComSpec || 'cmd.exe', [
+        '/d',
+        '/s',
+        '/c',
+        'npm ci --omit=dev --ignore-scripts --no-fund --no-audit',
+      ], {
+        cwd: appRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+      })
+    : spawnSync('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-fund', '--no-audit'], {
+        cwd: appRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
   if (install.status !== 0) {
     process.stderr.write(install.stdout || '');
     process.stderr.write(install.stderr || '');
+    if (install.error) process.stderr.write(String(install.error.stack || install.error) + '\\n');
     throw new Error('Production dependency installation failed for the runtime proof.');
   }
 
