@@ -113,6 +113,10 @@ ERA 14 — BROADER RELEASE
 
 The boundaries between intermediate eras may be split or partially interleaved when dependency evidence makes that safer, but a major reordering of the product-validation logic requires an explicit roadmap revision.
 
+### Future deployment reference
+
+For future **Era 7 — Deployment Product** work, **Privex is the current preferred/reference VPS provider** because of its fit with the Hive ecosystem and interoperability. This is a current operational preference, not a product-model dependency: the deployment architecture must remain provider-neutral and preserve room for other adapters.
+
 ## Current hard boundary
 
 During Era 5, preserve all accepted Era-0–4 behavior while changing how the application is obtained and launched.
