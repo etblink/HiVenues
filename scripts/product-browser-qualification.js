@@ -1428,7 +1428,12 @@ async function runValueRecipientStudioEvidence(
 
     const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
     await inspector.locator('input[name="valueRecipient"]').fill('northline-support');
+    const saved = page.waitForResponse((response) => (
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/candidate-c/studio/northline-hall/value-recipient'
+    ));
     await inspector.getByRole('button', { name: 'Save value recipient' }).click();
+    assert.equal((await saved).status(), 200);
     await inspector.locator('input[name="valueRecipient"]').waitFor();
     assert.equal(
       await inspector.locator('input[name="valueRecipient"]').inputValue(),
