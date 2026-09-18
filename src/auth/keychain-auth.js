@@ -44,12 +44,12 @@ class KeychainAuthService {
     this.authorityVerifier = authorityVerifier;
   }
 
-  issueChallenge(account) {
-    return this.challengeStore.issue(account);
+  issueChallenge(account, options = {}) {
+    return this.challengeStore.issue(account, options);
   }
 
-  async verify({ challengeId, account, publicKey, signature }) {
-    const challenge = this.challengeStore.consume(challengeId, account);
+  async verify({ challengeId, account, publicKey, signature, origin = null, context = null }) {
+    const challenge = this.challengeStore.consume(challengeId, account, { origin, context });
     const signatureValid = await verifyCompactSignature({
       message: challenge.message,
       publicKey,
