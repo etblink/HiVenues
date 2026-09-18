@@ -9,7 +9,12 @@
   </header>
   <main class="cc-social-shell cc-social-editorial-shell">
     <%- include('_member', {
-      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Reader account', title: 'Your participation capacity',
+        body: 'Current Hive capacity and rewards, translated into this publication without turning the page into a wallet dashboard.',
+        voting: 'Recommendation strength', capacity: 'Room to participate', basis: 'Protocol footing', rewards: 'Rewards on record'
+      },
       followParticipationLabels: {
         kicker: 'Reader network',
         title: 'Follow this contributor',
