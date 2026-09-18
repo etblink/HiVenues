@@ -111,6 +111,10 @@ function voteCapability(res) {
   return Boolean(res.locals?.hivenuesVoteAvailable);
 }
 
+function rewardClaimCapability(res) {
+  return Boolean(res.locals?.hivenuesRewardClaimAvailable);
+}
+
 function voteExperience(graph) {
   const family = graph.presentation.compositionFamily;
   const negativeDefaults = {
@@ -673,6 +677,12 @@ function createCandidateCSocialReadRouter({
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (name) => `${communityHref}/people/${encodeURIComponent(name)}`;
+    const claimRewardsEndpoint = (
+      resourceState.visible
+      && rewardClaimCapability(res)
+    )
+      ? '/participation/' + encodeURIComponent(view.graph.identity.slug) + '/rewards/claim'
+      : null;
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: `${member.profile?.displayName || `@${account}`} — ${view.graph.identity.displayName}`,
@@ -680,6 +690,7 @@ function createCandidateCSocialReadRouter({
       member,
       participation,
       resourceState,
+      claimRewardsEndpoint,
       hostHref,
       communityHref,
       socialHref,
