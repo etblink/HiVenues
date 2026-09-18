@@ -21,6 +21,18 @@
     <%- include('_hub', {
       graph, hub, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['posts', 'threads', 'people'],
+      identityLabels: {
+        kicker: 'Reader identity',
+        title: 'Sign the register',
+        body: 'Prove which Hive account is yours when you want to participate here. The publication remains readable without identification.',
+        unavailableTitle: 'The register is temporarily closed',
+        verifiedLabel: 'Verified reader',
+        disconnect: 'Leave the register',
+        accountLabel: 'Hive account',
+        placeholder: 'reader-account',
+        action: 'Verify my identity',
+        ready: 'Identity is optional until a participation action actually needs it.'
+      },
       socialLabels: {
         state: 'Transmission status',
         community: 'Community context',
@@ -35,6 +47,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public social reads / read only</span></footer>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public reads / identity proof at participation boundary</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
 </body>
 </html>
