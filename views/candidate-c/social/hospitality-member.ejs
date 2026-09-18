@@ -10,7 +10,21 @@
   </header>
   <main class="cc-social-shell cc-social-hospitality-shell">
     <%- include('_member', {
-      graph, member, memberStateCopy, formatCommunityTime, memberHref,
+      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      followParticipationLabels: {
+        kicker: 'Keep in touch',
+        title: 'Stay connected',
+        body: 'Choose whether your Hive account follows this person after you leave the table.',
+        identifyTitle: 'Introduce yourself first',
+        identifyAction: 'Introduce myself',
+        unavailableTitle: 'Connection status is unavailable',
+        currentLabel: 'Your Hive follow status',
+        currentYes: 'You are following this person',
+        currentNo: 'You are not following this person',
+        join: 'Keep in touch',
+        leave: 'Stop following',
+        ready: 'Review the exact Hive follow change before your wallet opens.'
+      },
       memberLabels: {
         state: 'Guest profile status', identity: 'Around this table',
         memberYes: 'Connected to this community on Hive.', memberNo: 'Not currently subscribed to this community on Hive.',
@@ -20,6 +34,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Public profile context · read only</span></footer>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Public profile · wallet-owned follow</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>
