@@ -380,6 +380,9 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
 async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   const store = new CandidateCStore();
   const before = store.diagnostics();
+  const beforePublicSnapshots = Object.fromEntries(
+    HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
+  );
   const hiveReadService = productReadService(publicKey);
   const app = createHiVenuesApp({
     store,
@@ -467,7 +470,13 @@ async function main() {
   }
 
   assert.deepEqual(store.diagnostics(), before, 'identity browser journey mutated HostGraph diagnostics');
-  assert.equal(store.publicSnapshot('northline-hall').draft.identity, undefined);
+  for (const { slug } of HOSTS) {
+    assert.equal(
+      JSON.stringify(store.publicSnapshot(slug)),
+      beforePublicSnapshots[slug],
+      slug + ': identity browser journey mutated the public Host snapshot',
+    );
+  }
   assert.deepEqual(counters.externalRequests, [], 'unexpected external browser requests');
   assert.deepEqual(counters.consoleErrors, [], 'unexpected console/page errors');
 
