@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { requireHiveAccount } = require('../http/validation');
 const { activityLifecycles, disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, compositionRegistry, renderIcs } = require('./present');
 const { CandidateCStore } = require('./store');
@@ -330,6 +331,34 @@ function createCandidateCRouter({ store = new CandidateCStore() } = {}) {
       ...(showNegativeVoteAction ? ['voice.terms.downvote_hive'] : []),
     ]);
     return mutationResponse(req, res, store, req.params.slug, result, 'participation');
+  });
+
+  router.post('/studio/:slug/value-recipient', (req, res) => {
+    const raw = String(req.body.valueRecipient || '').trim();
+    let valueRecipient = null;
+    if (raw) {
+      try {
+        valueRecipient = requireHiveAccount(raw, 'Value recipient');
+      } catch (error) {
+        return res.status(400).send(error.message);
+      }
+    }
+
+    const result = canonicalDraftMutation(store, req.params.slug, req, 'edit-value-recipient', (draft) => {
+      draft.bindings.hive.valueRecipient = valueRecipient;
+      if (valueRecipient && !draft.voice.terms.support_hive) {
+        const defaults = {
+          poster: 'Support the room',
+          editorial: 'Support the work',
+          hospitality: 'Leave something for the house',
+        };
+        draft.voice.terms.support_hive = defaults[draft.presentation.compositionFamily] || 'Support this host';
+      }
+    }, [
+      'bindings.hive.valueRecipient',
+      ...(valueRecipient ? ['voice.terms.support_hive'] : []),
+    ]);
+    return mutationResponse(req, res, store, req.params.slug, result, 'value-recipient');
   });
 
   router.post('/studio/:slug/connect', (req, res) => {
