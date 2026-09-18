@@ -274,3 +274,30 @@ test('identity routes remain explicitly unavailable without a read-side authorit
     });
   });
 });
+
+
+test('identity proof attempts are rate-limited before provider work is attempted', async () => {
+  await withStore(async ({ store }) => {
+    const app = createHiVenuesApp({
+      store,
+      identityOrigin: ORIGIN,
+      identityServices: false,
+    });
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await request(app)
+        .post('/identity/challenge')
+        .set('origin', ORIGIN)
+        .send({ account: 'etblink' })
+        .expect(503);
+      assert.equal(response.body.error.code, 'IDENTITY_PROVIDER_UNAVAILABLE');
+    }
+
+    const limited = await request(app)
+      .post('/identity/challenge')
+      .set('origin', ORIGIN)
+      .send({ account: 'etblink' })
+      .expect(429);
+    assert.equal(limited.body.error.code, 'IDENTITY_RATE_LIMITED');
+  });
+});
