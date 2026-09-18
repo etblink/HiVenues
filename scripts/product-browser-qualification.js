@@ -373,6 +373,28 @@ async function installApprovalWallet(context, key, publicKey) {
     publicKey,
   }));
   await context.addInitScript(() => {
+    let keychainApi = null;
+    Object.defineProperty(window, 'HiVenuesKeychain', {
+      configurable: true,
+      get() {
+        return keychainApi;
+      },
+      set(api) {
+        class SyntheticRelationshipWallet extends api.KeychainAdapter {
+          async broadcast(args) {
+            window.__relationshipApproval = args;
+            return new Promise((resolve) => {
+              window.__resolveRelationshipApproval = resolve;
+            });
+          }
+        }
+        keychainApi = Object.freeze({
+          ...api,
+          KeychainAdapter: SyntheticRelationshipWallet,
+        });
+      },
+    });
+
     window.hive_keychain = {
       requestHandshake(callback) {
         callback({ success: true });
