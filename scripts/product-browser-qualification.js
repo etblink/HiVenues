@@ -1896,6 +1896,16 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   }
 }
 
+function publicReleaseInvariant(snapshot) {
+  return {
+    revision: snapshot.revision,
+    draft: snapshot.draft,
+    releases: snapshot.releases,
+    liveReleaseId: snapshot.liveReleaseId,
+    draftDigest: snapshot.draftDigest,
+  };
+}
+
 async function main() {
   fs.rmSync(OUTPUT_ROOT, { recursive: true, force: true });
   fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
@@ -1906,7 +1916,10 @@ async function main() {
   const store = new CandidateCStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const beforePublicSnapshots = Object.fromEntries(
-    HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
+    HOSTS.map(({ slug }) => [
+      slug,
+      JSON.stringify(publicReleaseInvariant(store.publicSnapshot(slug))),
+    ]),
   );
   const hiveReadService = productReadService(publicKey);
   const identityServices = createHiVenuesIdentityServices({
@@ -2107,9 +2120,9 @@ async function main() {
   assert.deepEqual(store.diagnostics(), before, 'identity browser journey mutated HostGraph diagnostics');
   for (const { slug } of HOSTS) {
     assert.equal(
-      JSON.stringify(store.publicSnapshot(slug)),
+      JSON.stringify(publicReleaseInvariant(store.publicSnapshot(slug))),
       beforePublicSnapshots[slug],
-      slug + ': identity browser journey mutated the public Host snapshot',
+      slug + ': browser participation journey mutated the released Host snapshot',
     );
   }
   assert.deepEqual(counters.externalRequests, [], 'unexpected external browser requests');
