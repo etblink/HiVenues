@@ -492,6 +492,9 @@ function createCandidateCSocialReadRouter({
     const discussionHref = (author, permlink) => (
       `${communityHref}/posts/${encodeURIComponent(author)}/${encodeURIComponent(permlink)}`
     );
+    const contentPostEndpoint = '/participation/'
+      + encodeURIComponent(view.graph.identity.slug)
+      + '/content/posts';
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: `Updates — ${view.graph.identity.displayName}`,
@@ -503,6 +506,7 @@ function createCandidateCSocialReadRouter({
       socialHref,
       memberHref,
       discussionHref,
+      contentPostEndpoint,
       hubStateCopy,
       formatCommunityTime,
     });
@@ -584,6 +588,13 @@ function createCandidateCSocialReadRouter({
     const memberHref = (account) => communityHref + '/people/' + encodeURIComponent(account);
     const discussionHref = communityHref + '/posts/' + encodeURIComponent(author)
       + '/' + encodeURIComponent(permlink);
+    const participationBase = '/participation/' + encodeURIComponent(view.graph.identity.slug)
+      + '/content/' + encodeURIComponent(author) + '/' + encodeURIComponent(permlink);
+    const contentUpdateEndpoint = participationBase + '/update';
+    const contentReplyEndpoint = (parentAuthor, parentPermlink) => (
+      participationBase + '/replies/' + encodeURIComponent(parentAuthor)
+      + '/' + encodeURIComponent(parentPermlink)
+    );
 
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
@@ -595,6 +606,8 @@ function createCandidateCSocialReadRouter({
       socialHref,
       memberHref,
       discussionHref,
+      contentUpdateEndpoint,
+      contentReplyEndpoint,
       formatCommunityTime,
     });
   });
