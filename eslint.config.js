@@ -46,10 +46,8 @@ module.exports = [
   {
     files: [
       'src/**/*.js',
-      'routes/**/*.js',
       'test/**/*.js',
       'scripts/**/*.js',
-      'index.js',
       'eslint.config.js',
     ],
     languageOptions: {
@@ -63,14 +61,6 @@ module.exports = [
       'no-implied-eval': 'error',
       'no-new-func': 'error',
       eqeqeq: ['error', 'always'],
-    },
-  },
-  {
-    files: ['scripts/candidate-c-era3-social-browser.js'],
-    languageOptions: {
-      globals: {
-        getComputedStyle: 'readonly',
-      },
     },
   },
   {

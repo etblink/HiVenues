@@ -15,7 +15,7 @@ ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 #301 — REPOSITORY / PRODUCT-CORE NORMALIZATION COMPLETE
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
-ERA 5 — PRODUCT DISTRIBUTION                  NEXT / ISSUE #323
+ERA 5 — PRODUCT DISTRIBUTION                  ACTIVE / ISSUE #323
 LIVE VALUE / PRODUCTION DEPLOYMENT            HELD
 ```
 
@@ -65,11 +65,12 @@ Git history remains the archive for superseded Candidate-C implementation and qu
 | `src/product/` | Canonical product implementation, domain modules, and application composition root. |
 | `views/hivenues/` | Canonical HiVenues Studio/Territory EJS surface. |
 | `public/` | Current browser assets, including HiVenues-owned CSS/JS/media namespaces. |
-| `src/hive/`, `src/auth/`, and other capability modules | Reusable shared infrastructure only where the current product actually consumes it. |
-| older server/venue/v2/V1/deployment paths | Unreleased historical implementation. No compatibility status; remove when not required by current product or an enduring qualification contract. |
+| `src/hive/`, `src/auth/`, `src/http/`, `src/lib/`, `src/social/`, `src/content/` | Small shared capability seams that are transitively consumed by the current product. |
 | `scripts/hivenues-studio.js` | Ordinary loopback local Studio launcher. |
+| `scripts/hivenues-installed.js` + `native/windows/` | Installed-runtime entry and minimal native Windows launcher. |
 | `scripts/product-browser-qualification.js` | Current end-to-end browser qualification for enduring product contracts. |
-| milestone-specific scripts/tests/docs | Delete when they no longer protect an enduring current contract; Git history is the archive. |
+| `scripts/era5/` | Current Windows distribution build/qualification tooling. |
+| Git history | Archive for deleted Candidate, milestone, venue/v1/v2, deployment, and superseded qualification implementation. |
 | `docs/HIVENUES_*DOCTRINE*` | Frozen product, journey, Hive, distribution, and architecture doctrine. |
 | `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` | Strategic execution roadmap. |
 | `docs/ROADMAP.md` | Current verified program marker. |
@@ -125,11 +126,11 @@ See `docs/CURRENT_ARCHITECTURE.md` and `docs/HIVENUES_RENDERING_AUTHORING_ARCHIT
 
 ## Next development boundary
 
-Era 4 is complete. The strategic next objective is **Era 5 — Product Distribution**, governed by issue **#323**.
+Era 4 is complete and **Era 5 — Product Distribution is active** under issue **#323**.
 
-The first distribution proof is a qualified Windows installation and launch path for the existing server-owned application: an ordinary user should be able to download, install, open, close, and relaunch HiVenues without Git, npm, a Node installation, Docker, a shell, manual environment configuration, or repository knowledge.
+Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher, including provenance, diagnostics, dynamic port selection, single-instance behavior, graceful close/relaunch, and durable state below the per-user application-data root.
 
-Packaging must preserve the canonical architecture rather than triggering a framework rewrite. The first work is a bounded packaging/runtime proof covering application-owned user-data paths, packaged asset resolution, loopback launch behavior, exact build provenance, clean-machine qualification, and a credible Windows signing/reputation strategy.
+The next bounded work is **Tranche 2**: produce a versioned Windows x64 distributable with exact provenance/checksums, then qualify the ordinary installer/update/uninstall boundary without changing the server-owned product architecture.
 
 Still held unless separately authorized: live-value qualification, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra, and unrelated framework replacement.
 

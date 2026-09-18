@@ -16,7 +16,7 @@
     "watch:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --watch",
     "smoke:live": "node scripts/live-read-smoke.js",
     "release:check:runtime": "node scripts/check-pinned-runtime.js",
-    "lint": "eslint src public/js test scripts index.js eslint.config.js --max-warnings=0",
+    "lint": "eslint src public/js test scripts eslint.config.js --max-warnings=0",
     "test": "node --test --test-concurrency=1 test/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 test/*.test.js",
     "check:secrets": "node scripts/check-secrets.js",

@@ -10,12 +10,14 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-Era 4 closed against canonical main after the Stage-6 direct-support merge:
+Era 4 remains frozen. Era 5 Tranches 0–1 have now established and productized the Windows installed-runtime boundary:
 
 ```text
-CANONICAL_MAIN = e5ffa008c1ccf74131df43b225f8ba8874f8355a
-CANONICAL_TREE = a23d0baae246fd81c13fe5d099e2262cf8050e0c
-POST_MERGE_CI = #1348 / PASS
+CANONICAL_MAIN = ab035f1359ae4d31ed6cb06a4717999f71cd6513
+CANONICAL_TREE = cb8cbe18f78110636b984ef6dd46724e5e4327e3
+POST_MERGE_CI = #1368 / PASS
+TRANCHE_1_PR_HEAD_RUNTIME_PROOF = #10 / PASS
+TRANCHE_1_PR_HEAD_PRODUCT_BROWSER = #91 / PASS
 POST_MERGE_PRODUCT_BROWSER = #75 / PASS
 
 ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
@@ -25,7 +27,10 @@ ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 
 #301 — REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION   COMPLETE
-NEXT OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
+ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
+ERA 5 TRANCHE 0 = COMPLETE / FROZEN
+ERA 5 TRANCHE 1 = COMPLETE / QUALIFIED
+NEXT BOUNDED WORK = TRANCHE 2 — VERSIONED WINDOWS DISTRIBUTABLE
 ACTIVE ERA-5 CHARTER = #323
 LIVE VALUE QUALIFICATION = HELD
 PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
@@ -60,16 +65,16 @@ The objective closed with:
 3. README, current architecture, current roadmap, and development instructions aligned;
 4. obsolete compatibility gates and milestone-only CI/test machinery substantially reduced;
 5. superseded development code explicitly denied backwards-compatibility status;
-6. remaining historical `candidate-c` naming classified as non-authoritative implementation debt rather than a second product line;
+6. the historical Candidate-C active namespace normalized away, with Git history retained as the archive;
 7. ordinary CI green on Windows and Ubuntu plus production dependency audits;
 8. exact recommended main-branch safeguards documented where the available integration cannot administer GitHub branch protection;
 9. a fresh exit audit confirming all 12 #301 repository questions can be answered from the repository without project archaeology.
 
 Remaining historical names, branches, scripts, or documents may be cleaned when concrete dependency evidence and maintenance value justify it. They do not independently reopen normalization.
 
-## Next objective — Era 5
+## Active objective — Era 5
 
-The next strategic era is **Product Distribution**, governed by **#323**.
+The active strategic era is **Product Distribution**, governed by **#323**.
 
 The frozen roadmap exit gate is:
 
@@ -77,16 +82,14 @@ The frozen roadmap exit gate is:
 
 The first practical target is Windows. Distribution may package the existing loopback server architecture; it does not justify a SPA rewrite.
 
-The bounded first work must prove or decide:
+Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. The next bounded Tranche-2 work is:
 
-- packaging technology for the current Node/server-rendered application;
-- application-owned user-data/workspace location rather than repository-relative defaults;
-- packaged EJS/static/dependency asset resolution;
-- ordinary launcher/browser-open behavior;
-- single-instance/port/shutdown behavior;
-- exact version/build provenance and checksums;
-- clean-machine install/launch/relaunch persistence;
-- a credible signing/reputation strategy for an ordinary Windows artifact.
+- produce a versioned Windows x64 artifact from exact source;
+- publish exact build provenance and SHA-256 checksums;
+- prove deterministic/reproducible artifact construction where practical;
+- select and qualify the ordinary installer/update/uninstall boundary;
+- preserve user workspace/media across update and uninstall semantics;
+- establish the accepted signing/reputation strategy before Era-5 exit.
 
 Era 5 does not authorize production hosting/deployment, account-creation onboarding, new commerce classes, Fourth Street work, or independent Astra.
 
@@ -138,7 +141,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is next under #323.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–1 complete and Tranche 2 next.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
