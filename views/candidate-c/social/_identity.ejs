@@ -6,7 +6,7 @@
     : (identityAvailable ? 'not-identified' : 'provider-unavailable');
 %>
 <section
-  class="cc-identity cc-identity--<%= graph.presentation.family %>"
+  class="cc-identity"
   data-hivenues-identity
   data-identity-state="<%= initialState %>"
   <% if (identity?.expiresAt) { %>data-identity-expires-at="<%= identity.expiresAt %>"<% } %>
