@@ -23,7 +23,7 @@ const {
 const { buildVote } = require('./vote-operations');
 const { buildRewardClaim } = require('./reward-operations');
 const { buildDirectSupport } = require('./support-operations');
-const { isSocialBinding } = require('../candidate-c/social-read-router');
+const { isSocialBinding } = require('./social-read-router');
 const { assertSameOrigin } = require('./identity-router');
 
 const TRANSACTION_ID_PATTERN = /^[0-9a-f]{40}$/i;
@@ -221,7 +221,7 @@ function createHiVenuesParticipationRouter({
   }
 
   function discussionHref(snapshot, author, permlink) {
-    return '/candidate-c/'
+    return '/hivenues/'
       + encodeURIComponent(snapshot.draft.identity.slug)
       + '/community/posts/'
       + encodeURIComponent(author)

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+</head>
+<%
+  const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
+  const sparseHost = !primaryActivity && graph.offers.length === 0;
+  const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
+  const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
+%>
+<body class="cc-public cc-hospitality <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Primary">
+      <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
+      <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
+      <% if (discoverableActivities.length) { %><a href="#more-activities">More dates</a><% } %>
+      <% if (!previewMode) { %><a href="<%= hostHref %>/community">Table talk</a><% } %>
+      <% if (!previewMode && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
+      <a href="#visit">Visit</a>
+    </nav>
+  </header>
+
+  <main>
+    <% graph.presentation.arrangement.forEach((section) => { %>
+      <% if (section === 'hero') { %>
+        <section class="cc-hospitality-hero" aria-labelledby="cc-hospitality-title">
+          <div class="cc-hospitality-hero__media">
+            <%- include('../_art', { media: heroMedia, graph }) %>
+            <% if (heroMedia.kind !== 'bootstrap-art' && heroMedia.provenance) { %><p class="cc-hospitality-caption"><%= heroMedia.provenance %></p><% } %>
+          </div>
+          <div class="cc-hospitality-hero__copy">
+            <p class="cc-kicker"><%= graph.identity.archetype %></p>
+            <h1 id="cc-hospitality-title"><%= graph.facts.tagline %></h1>
+            <p><%= graph.facts.summary %></p>
+            <div class="cc-hospitality-hero__actions">
+              <% if (graph.offers.length) { %><a class="cc-button cc-button--hospitality" href="#menu">See what’s offered</a><% } %>
+              <% if (primaryActivity) { %><a class="cc-link" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.lifecycle === 'scheduled' ? `See ${primaryActivity.title}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : 'Activity recap' %></a><% } %>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'offer' && graph.offers.length) { %>
+        <section class="cc-hospitality-menu" id="menu" aria-labelledby="cc-menu-title">
+          <header>
+            <p class="cc-kicker">From <%= graph.identity.displayName %></p>
+            <h2 id="cc-menu-title">Current offerings</h2>
+            <p><%= graph.intent.participation %></p>
+          </header>
+          <div class="cc-hospitality-menu__list">
+            <% graph.offers.forEach((offer) => { %>
+              <article class="cc-hospitality-dish">
+                <div>
+                  <% if (offer.category) { %><p class="cc-hospitality-dish__category"><%= offer.category %></p><% } %>
+                  <h3><%= offer.title %></h3>
+                  <p><%= offer.summary %></p>
+                </div>
+                <% if (offer.price) { %><strong><%= offer.price %></strong><% } %>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'story') { %>
+        <section class="cc-hospitality-story">
+          <p class="cc-hospitality-story__line"><%= graph.intent.presenceMaterial %></p>
+          <div>
+            <p class="cc-kicker">Why this place</p>
+            <p><%= graph.intent.purpose %></p>
+            <p><strong><%= graph.intent.participation %></strong></p>
+            <% if (!previewMode && graph.bindings.hive.valueRecipient) { %>
+              <p><a class="cc-link" href="<%= hostHref %>/support"><%= graph.voice.terms.support_hive || 'Leave something for the house' %></a></p>
+            <% } %>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (section === 'activity' && primaryActivity) { %>
+        <section class="cc-hospitality-table" id="table" aria-labelledby="cc-table-title">
+          <div class="cc-hospitality-table__date">
+            <span><%= primaryActivity.lifecycle === 'scheduled' ? 'NEXT' : primaryActivity.lifecycle === 'cancelled' ? 'UPDATE' : 'PAST' %></span>
+            <strong><%= new Date(primaryActivity.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: graph.identity.timezone }) %></strong>
+          </div>
+          <div>
+            <p class="cc-kicker"><%= primaryActivity.lifecycle === 'scheduled' ? `At ${graph.identity.displayName}` : primaryActivity.lifecycle === 'cancelled' ? 'Activity update' : `Previously at ${graph.identity.displayName}` %></p>
+            <h2 id="cc-table-title"><%= primaryActivity.title %></h2>
+            <%- include('../_status', { activity: primaryActivity }) %>
+            <p class="cc-time"><%= primaryActivity.humanTime %></p>
+            <p><%= primaryActivity.description %></p>
+          </div>
+          <div class="cc-hospitality-table__actions">
+            <a class="cc-button cc-button--hospitality" href="<%= activityHref(primaryActivity) %>"><%= primaryActivity.open ? graph.voice.terms.rsvp_local : 'Activity details' %></a>
+            <a class="cc-link" href="<%= calendarHref(primaryActivity) %>"><%= graph.voice.terms.calendar_ics %></a>
+          </div>
+        </section>
+
+        <% if (discoverableActivities.length) { %>
+          <section class="cc-hospitality-menu" id="more-activities" aria-labelledby="cc-more-activities-title">
+            <header>
+              <p class="cc-kicker">More from <%= graph.identity.displayName %></p>
+              <h2 id="cc-more-activities-title">Other dates & activities</h2>
+              <p>Keep exploring without losing what is still scheduled.</p>
+            </header>
+            <div class="cc-hospitality-menu__list">
+              <% discoverableActivities.forEach((activity) => { %>
+                <article class="cc-hospitality-dish">
+                  <div>
+                    <p class="cc-hospitality-dish__category"><%= activity.status.label %> · <%= activity.humanTime %></p>
+                    <h3><a class="cc-link" href="<%= activityHref(activity) %>"><%= activity.title %></a></h3>
+                    <p><%= activity.description %></p>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
+      <% } %>
+
+      <% if (section === 'details') { %>
+        <section class="cc-hospitality-visit" id="visit" aria-labelledby="cc-hospitality-visit-title">
+          <div>
+            <p class="cc-kicker"><%= graph.facts.presence.mode === 'online' ? 'Find us online' : 'Come by' %></p>
+            <h2 id="cc-hospitality-visit-title"><%= graph.facts.presence.label %></h2>
+            <% if (!graph.offers.length) { %><p><%= graph.intent.participation %></p><% } %>
+          </div>
+          <div class="cc-hospitality-visit__details">
+            <% if (graph.facts.presence.address) { %><p><strong>Find us</strong><br><%= graph.facts.presence.address %></p><% } %>
+            <p><strong>Contact</strong><br><% if (contact.href) { %><a href="<%= contact.href %>"><%= contact.label %></a><% } else { %><%= contact.label %><% } %></p>
+          </div>
+        </section>
+      <% } %>
+    <% }) %>
+  </main>
+
+  <footer class="cc-hospitality-footer">
+    <span><%= graph.identity.displayName %></span>
+    <span><%= graph.facts.presence.label %></span>
+  </footer>
+</body>
+</html>

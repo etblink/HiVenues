@@ -5,8 +5,8 @@ const test = require('node:test');
 const request = require('supertest');
 const { createHiVenuesApp } = require('../src/product/app');
 const { IDENTITY_COOKIE_NAME, createHiVenuesIdentityServices } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
-const { readPersonalResourceRewardState } = require('../src/candidate-c/social-read-router');
+const { HiVenuesStore } = require('../src/product/store');
+const { readPersonalResourceRewardState } = require('../src/product/social-read-router');
 
 const ORIGIN = 'http://hivenues.test';
 const COMMUNITY = 'hive-199299';
@@ -65,7 +65,7 @@ function reads({ walletFailure = false, invalidWallet = false } = {}) {
 }
 
 function fixture(options = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const hiveReadService = reads(options);
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: hiveReadService.rpcPool,
@@ -115,7 +115,7 @@ test('invalid or unavailable wallet state fails closed', async () => {
 test('Poster owner profile renders host-native resource/reward truth with no write control', async () => {
   const { app, identityServices, hiveReadService } = fixture();
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/people/paper-sparrow')
+    .get('/hivenues/northline-hall/community/people/paper-sparrow')
     .set('cookie', cookie(identityServices, 'paper-sparrow'))
     .expect(200);
 
@@ -141,7 +141,7 @@ test('Editorial and Hospitality keep the same protocol state under distinct host
   const owner = cookie(identityServices, 'paper-sparrow');
 
   const editorial = await request(app)
-    .get('/candidate-c/nova-ashby/community/people/paper-sparrow')
+    .get('/hivenues/nova-ashby/community/people/paper-sparrow')
     .set('cookie', owner)
     .expect(200);
   assert.match(editorial.text, /cc-resource-state--editorial/);
@@ -149,7 +149,7 @@ test('Editorial and Hospitality keep the same protocol state under distinct host
   assert.match(editorial.text, /Recommendation strength/);
 
   const hospitality = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/people/paper-sparrow')
+    .get('/hivenues/harbor-and-hearth/community/people/paper-sparrow')
     .set('cookie', owner)
     .expect(200);
   assert.match(hospitality.text, /cc-resource-state--hospitality/);
@@ -161,12 +161,12 @@ test('anonymous and other-member views stay profile-first rather than becoming w
   const { app, identityServices, hiveReadService } = fixture();
 
   const anonymous = await request(app)
-    .get('/candidate-c/northline-hall/community/people/paper-sparrow')
+    .get('/hivenues/northline-hall/community/people/paper-sparrow')
     .expect(200);
   assert.doesNotMatch(anonymous.text, /cc-resource-state/);
 
   const other = await request(app)
-    .get('/candidate-c/northline-hall/community/people/paper-sparrow')
+    .get('/hivenues/northline-hall/community/people/paper-sparrow')
     .set('cookie', cookie(identityServices, 'someone-else'))
     .expect(200);
   assert.doesNotMatch(other.text, /cc-resource-state/);
@@ -177,7 +177,7 @@ test('resource/reward rendering never mutates HostGraph', async () => {
   const { app, store, identityServices } = fixture();
   const before = JSON.stringify(store.publicSnapshot('northline-hall'));
   await request(app)
-    .get('/candidate-c/northline-hall/community/people/paper-sparrow')
+    .get('/hivenues/northline-hall/community/people/paper-sparrow')
     .set('cookie', cookie(identityServices, 'paper-sparrow'))
     .expect(200);
   assert.equal(JSON.stringify(store.publicSnapshot('northline-hall')), before);

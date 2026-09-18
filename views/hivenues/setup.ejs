@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Guided site shaping</p>
+    <h1>Shape the public story and its composition.</h1>
+    <p class="cc-task__dek">The three text fields below are visitor-facing copy, not private design notes. Direction changes the structural composition around the same canonical draft. Nothing becomes visitor-facing until you explicitly release the website.</p>
+
+    <div class="cc-setup-grid">
+      <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/setup">
+        <input type="hidden" name="expectedRevision" value="<%= revision %>">
+        <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+        <div class="cc-field">
+          <label for="cc-purpose">1 · Why this place exists</label>
+          <textarea id="cc-purpose" name="purpose" required><%= graph.intent.purpose %></textarea>
+          <small>Public story copy. Tell visitors what the place is for in ordinary language.</small>
+        </div>
+        <div class="cc-field">
+          <label for="cc-material">2 · Visitor-facing story / atmosphere</label>
+          <textarea id="cc-material" name="presenceMaterial" required><%= graph.intent.presenceMaterial %></textarea>
+          <small>This appears on the public site. Describe the real place and atmosphere; do not put internal art-direction instructions here.</small>
+        </div>
+        <fieldset class="cc-field" style="border:0;padding:0">
+          <legend>3 · Direction</legend>
+          <div class="cc-choice-grid">
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="poster" <%= graph.intent.direction === 'poster' ? 'checked' : '' %>>
+              <strong>Poster room</strong>
+              <span>Dense, tactile, event-led, nocturnal.</span>
+            </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="editorial" <%= graph.intent.direction === 'editorial' ? 'checked' : '' %>>
+              <strong>Editorial field notes</strong>
+              <span>Open, publication-like, media-led, quiet.</span>
+            </label>
+            <label class="cc-choice">
+              <input type="radio" name="direction" value="hospitality" <%= graph.intent.direction === 'hospitality' ? 'checked' : '' %>>
+              <strong>Hospitality table</strong>
+              <span>Image-led, menu-forward, warm, service-aware.</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="cc-field">
+          <label for="cc-participation">4 · Visitor invitation</label>
+          <textarea id="cc-participation" name="participation" required><%= graph.intent.participation %></textarea>
+          <small>Public copy describing useful next steps. The underlying mechanics remain truthful and separate.</small>
+        </div>
+        <button class="cc-button cc-button--ink" type="submit">Save story & direction to draft</button>
+      </form>
+
+      <section class="cc-direction-preview" aria-label="Current generated first draft">
+        <% if (family.id === 'poster') { %>
+          <%- include('compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+        <% } else if (family.id === 'editorial') { %>
+          <%- include('compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+        <% } else { %>
+          <%- include('compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+        <% } %>
+      </section>
+    </div>
+  </main>
+  <script src="/htmx/htmx.min.js" defer></script>
+</body>
+</html>

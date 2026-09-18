@@ -31,23 +31,18 @@ SVG FOR VECTOR UI / HOST-NATIVE VISUAL SEMANTICS
 
 `src/product/app.js` is the ordinary application composition root.
 
-It owns application assembly directly and composes the already-qualified Era-0–4 implementation still housed partly under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a **qualification shim** that delegates back to the canonical root so retained exact-head qualification callers preserve their exports while ordinary code has a single product-owned dependency direction.
+It owns application assembly directly and composes the qualified Era-0–4 implementation from product-owned modules under `src/product/`.
 
-New ordinary application code must use the product boundary or product-owned domain seams. Do not create new dependencies on `src/candidate-c/` merely because current internals still live there.
+The active Studio/Territory namespace is `/hivenues`; current templates live under `views/hivenues/`; current browser assets use HiVenues-owned names. The unreleased Candidate-C namespace has no compatibility status and is preserved only in Git history.
 
-### Historical naming debt
-
-Current internals still include `CandidateC*` identifiers, `/candidate-c` routes, candidate-c views/assets, and dogfood qualification endpoints. These are not durable product names and do not define architectural authority.
-
-They are now classified as **non-blocking maintenance debt**. Migrate or remove them only when a concrete product, safety, or maintenance requirement justifies the blast radius and the affected routes/state/assets can be requalified. Do not reopen a repository-normalization campaign merely to erase names from history.
+New ordinary application code must use the product boundary or an explicitly justified shared capability seam.
 
 ## Source classification
 
 ### 1. Active product
 
-- `src/product/` — canonical ordinary product boundary and application composition root;
-- the portions of `src/candidate-c/` consumed by that root — current qualified Studio/Territory implementation carrying historical naming debt;
-- current EJS views/assets and semantic renderers consumed by that implementation;
+- `src/product/` — canonical product implementation and application composition root;
+- `views/hivenues/` and HiVenues-owned public assets — current Studio/Territory rendering surface;
 - current HostGraph, Working/Live, Release/History, Territory, Studio, social/community participation, Hive consequence, reward-claim, and direct-support paths.
 
 Accepted Era-0–4 contracts remain controlling: server-owned canonical host state, durable identity, Working/Live separation, explicit Release, immutable history, working-only Restore, stale rejection, urgent isolation, restart persistence, multi-route Territory projection, materially distinct Directions, complete supported authoring, host-native social/community experience, human-owned wallet authority, pending-before-observed consequence semantics, provider-observed state outside HostGraph, and exact canonical confirmation for admitted Hive writes.
@@ -81,7 +76,7 @@ Do not create `legacy:*` commands or compatibility gates simply to keep unreleas
 
 Keep qualification tooling only when it protects an enduring current product contract that ordinary focused tests cannot adequately cover. One-off milestone screenshot campaigns, exact old release rehearsals, and superseded harnesses remain maintenance candidates.
 
-The historical Candidate-C dogfood app entry exists only as a qualification shim for retained qualification callers. Its ingress/provenance behavior remains part of the canonical composition root until a separately justified change proves those qualification surfaces can be renamed, replaced, or removed safely.
+Current qualification entrypoints are product-owned. Superseded milestone-specific browser campaigns and unreleased compatibility shims are not retained on the active tree merely for historical reproducibility; Git history preserves them.
 
 ### 5. Historical documentation
 
@@ -149,9 +144,7 @@ The #301 repository/product-core normalization exit audit passed on the green ca
 
 Remaining items are maintenance/admin debt rather than blockers to product progression:
 
-- historical `candidate-c` source/route/view/asset naming;
-- retained qualification scripts whose current value should be reassessed when touched;
-- historical scripts/docs/data with no ordinary command authority;
+- any still-unreferenced historical scripts/docs/data discovered outside the normalized product path;
 - merged branch deletion where repository tooling permits;
 - main-branch protection/ruleset configuration in GitHub administration.
 

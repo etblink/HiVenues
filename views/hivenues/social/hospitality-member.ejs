@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css"></head>
+<body class="cc-public cc-hospitality cc-social cc-social--hospitality cc-member" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-social-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Community"><a href="<%= communityHref %>">Table talk</a><a href="<%= socialHref %>">Notes & people</a><a href="<%= hostHref %>">House</a></nav>
+  </header>
+  <main class="cc-social-shell cc-social-hospitality-shell">
+    <%- include('_member', {
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Your seat at the table', title: 'Your participation readiness',
+        body: 'A view of the Hive resources and rewards connected to your own account.',
+        voting: 'Applause strength', capacity: 'Room to participate', basis: 'Your footing', rewards: 'Rewards waiting',
+        claimKicker: 'Bring them in', claimAction: 'Collect rewards'
+      },
+      followParticipationLabels: {
+        kicker: 'Keep in touch',
+        title: 'Stay connected',
+        body: 'Choose whether your Hive account follows this person after you leave the table.',
+        identifyTitle: 'Introduce yourself first',
+        identifyAction: 'Introduce myself',
+        unavailableTitle: 'Connection status is unavailable',
+        currentLabel: 'Your Hive follow status',
+        currentYes: 'You are following this person',
+        currentNo: 'You are not following this person',
+        join: 'Keep in touch',
+        leave: 'Stop following',
+        ready: 'Review the exact Hive follow change before your wallet opens.'
+      },
+      memberLabels: {
+        state: 'Guest profile status', identity: 'Around this table',
+        memberYes: 'Connected to this community on Hive.', memberNo: 'Not currently subscribed to this community on Hive.',
+        postsKicker: 'From this person', postsTitle: 'Stories they have shared',
+        connectionsKicker: 'People they know', connectionsTitle: 'Public connections',
+        relatedKicker: 'Also around the table', relatedTitle: 'Other people in recent notes'
+      }
+    }) %>
+  </main>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span><%= resourceState?.visible ? (claimRewardsEndpoint && resourceState.hasClaimableRewards ? 'Your participation state · rewards ready' : 'Your participation state · read-only') : 'Public profile · wallet-owned follow' %></span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
+  <% if (claimRewardsEndpoint && resourceState?.hasClaimableRewards) { %><script src="/js/hivenues-reward-claim.js" defer></script><% } %>
+</body>
+</html>

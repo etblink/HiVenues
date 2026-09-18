@@ -1,0 +1,157 @@
+'use strict';
+
+const { validateHostGraph } = require('./model');
+
+const surfaceRegistry = Object.freeze({
+  home: Object.freeze({ role: 'home', kind: 'singleton', defaultLabel: 'Home', path: (graph) => `/hivenues/${graph.identity.slug}` }),
+  'activities-index': Object.freeze({ role: 'activities-index', kind: 'index', navigationRole: 'activities', defaultLabel: 'Activities', path: (graph) => `/hivenues/${graph.identity.slug}/activities` }),
+  'activity-detail': Object.freeze({ role: 'activity-detail', kind: 'detail', navigationRole: 'activities', path: (graph, item) => `/hivenues/${graph.identity.slug}/activities/${item.slug}` }),
+  offers: Object.freeze({ role: 'offers', kind: 'index', navigationRole: 'offers', defaultLabel: 'Offers', path: (graph) => `/hivenues/${graph.identity.slug}/offers` }),
+  'stories-index': Object.freeze({ role: 'stories-index', kind: 'index', navigationRole: 'stories', defaultLabel: 'Stories', path: (graph) => `/hivenues/${graph.identity.slug}/stories` }),
+  'story-detail': Object.freeze({ role: 'story-detail', kind: 'detail', navigationRole: 'stories', path: (graph, item) => `/hivenues/${graph.identity.slug}/stories/${item.slug}` }),
+  gallery: Object.freeze({ role: 'gallery', kind: 'index', navigationRole: 'gallery', defaultLabel: 'Gallery', path: (graph) => `/hivenues/${graph.identity.slug}/gallery` }),
+  'people-index': Object.freeze({ role: 'people-index', kind: 'index', navigationRole: 'people', defaultLabel: 'People', path: (graph) => `/hivenues/${graph.identity.slug}/people` }),
+  'profile-detail': Object.freeze({ role: 'profile-detail', kind: 'detail', navigationRole: 'people', path: (graph, item) => `/hivenues/${graph.identity.slug}/people/${item.slug}` }),
+  'about-visit': Object.freeze({ role: 'about-visit', kind: 'singleton', navigationRole: 'about-visit', defaultLabel: 'About & visit', path: (graph) => `/hivenues/${graph.identity.slug}/about` }),
+});
+
+const compositionRecipeRegistry = Object.freeze({
+  poster: Object.freeze({
+    id: 'poster',
+    navigationOrder: Object.freeze(['home', 'activities', 'stories', 'gallery', 'offers', 'people', 'about-visit']),
+    homeSections: Object.freeze(['hero', 'activities', 'stories', 'gallery', 'offers', 'about']),
+    surfaceTemplates: Object.freeze({
+      home: 'hivenues/compositions/poster',
+      'activities-index': 'hivenues/territory/poster/surface',
+      'activity-detail': 'hivenues/compositions/poster-activity',
+      offers: 'hivenues/territory/poster/surface',
+      'stories-index': 'hivenues/territory/poster/surface',
+      'story-detail': 'hivenues/territory/poster/surface',
+      gallery: 'hivenues/territory/poster/surface',
+      'people-index': 'hivenues/territory/poster/surface',
+      'profile-detail': 'hivenues/territory/poster/surface',
+      'about-visit': 'hivenues/territory/poster/surface',
+    }),
+  }),
+  editorial: Object.freeze({
+    id: 'editorial',
+    navigationOrder: Object.freeze(['home', 'stories', 'people', 'activities', 'gallery', 'offers', 'about-visit']),
+    homeSections: Object.freeze(['hero', 'stories', 'people', 'activities', 'gallery', 'about', 'offers']),
+    surfaceTemplates: Object.freeze({
+      home: 'hivenues/compositions/editorial',
+      'activities-index': 'hivenues/territory/editorial/surface',
+      'activity-detail': 'hivenues/compositions/editorial-activity',
+      offers: 'hivenues/territory/editorial/surface',
+      'stories-index': 'hivenues/territory/editorial/surface',
+      'story-detail': 'hivenues/territory/editorial/surface',
+      gallery: 'hivenues/territory/editorial/surface',
+      'people-index': 'hivenues/territory/editorial/surface',
+      'profile-detail': 'hivenues/territory/editorial/surface',
+      'about-visit': 'hivenues/territory/editorial/surface',
+    }),
+  }),
+  hospitality: Object.freeze({
+    id: 'hospitality',
+    navigationOrder: Object.freeze(['home', 'offers', 'activities', 'gallery', 'about-visit', 'stories', 'people']),
+    homeSections: Object.freeze(['hero', 'offers', 'activities', 'gallery', 'about', 'stories', 'people']),
+    surfaceTemplates: Object.freeze({
+      home: 'hivenues/compositions/hospitality',
+      'activities-index': 'hivenues/territory/hospitality/surface',
+      'activity-detail': 'hivenues/compositions/hospitality-activity',
+      offers: 'hivenues/territory/hospitality/surface',
+      'stories-index': 'hivenues/territory/hospitality/surface',
+      'story-detail': 'hivenues/territory/hospitality/surface',
+      gallery: 'hivenues/territory/hospitality/surface',
+      'people-index': 'hivenues/territory/hospitality/surface',
+      'profile-detail': 'hivenues/territory/hospitality/surface',
+      'about-visit': 'hivenues/territory/hospitality/surface',
+    }),
+  }),
+});
+
+function labelFor(graph, navigationRole, fallback) {
+  if (graph.schemaVersion !== 2) return fallback;
+  return graph.navigation.labels[navigationRole] || fallback;
+}
+
+function detailSurface(graph, role, item, label) {
+  const definition = surfaceRegistry[role];
+  return Object.freeze({ role, kind: definition.kind, key: `${role}:${item.id}`, path: definition.path(graph, item), label, navigationRole: definition.navigationRole, resourceId: item.id, resourceSlug: item.slug });
+}
+
+function singletonSurface(graph, role, label) {
+  const definition = surfaceRegistry[role];
+  return Object.freeze({ role, kind: definition.kind, key: role, path: definition.path(graph), label, navigationRole: definition.navigationRole || 'home' });
+}
+
+function buildSurfaceInventory(graph) {
+  const surfaces = [singletonSurface(graph, 'home', labelFor(graph, 'home', 'Home'))];
+  if (graph.activities.length) {
+    surfaces.push(singletonSurface(graph, 'activities-index', labelFor(graph, 'activities', 'Activities')));
+    for (const activity of graph.activities) surfaces.push(detailSurface(graph, 'activity-detail', activity, activity.title));
+  }
+  if (graph.offers.length) surfaces.push(singletonSurface(graph, 'offers', labelFor(graph, 'offers', 'Offers')));
+  if (graph.schemaVersion === 2) {
+    if (graph.stories.length) {
+      surfaces.push(singletonSurface(graph, 'stories-index', labelFor(graph, 'stories', 'Stories')));
+      for (const story of graph.stories) surfaces.push(detailSurface(graph, 'story-detail', story, story.title));
+    }
+    if (graph.gallery.mediaIds.length) surfaces.push(singletonSurface(graph, 'gallery', labelFor(graph, 'gallery', graph.gallery.title)));
+    if (graph.people.length) {
+      surfaces.push(singletonSurface(graph, 'people-index', labelFor(graph, 'people', 'People')));
+      for (const profile of graph.people) surfaces.push(detailSurface(graph, 'profile-detail', profile, profile.displayName));
+    }
+  }
+  surfaces.push(singletonSurface(graph, 'about-visit', labelFor(graph, 'about-visit', graph.facts.presence.mode === 'online' ? 'About' : 'About & visit')));
+  return Object.freeze(surfaces);
+}
+
+function navigationEntryFor(graph, surfaces, navigationRole) {
+  if (navigationRole === 'home') return surfaces.find((surface) => surface.role === 'home') || null;
+  const roleMap = { activities: 'activities-index', stories: 'stories-index', offers: 'offers', gallery: 'gallery', people: 'people-index', 'about-visit': 'about-visit' };
+  const surfaceRole = roleMap[navigationRole];
+  if (!surfaceRole) return null;
+  return surfaces.find((surface) => surface.role === surfaceRole) || null;
+}
+
+function requestedNavigationOrder(graph, recipe) {
+  if (graph.schemaVersion !== 2) return recipe.navigationOrder;
+  const requested = graph.navigation.priorities;
+  return [...requested, ...recipe.navigationOrder.filter((role) => !requested.includes(role))];
+}
+
+function buildTerritoryProjection(inputGraph) {
+  const graph = validateHostGraph(inputGraph);
+  const recipe = compositionRecipeRegistry[graph.presentation.compositionFamily];
+  if (!recipe) throw new Error(`Unknown HiVenues composition family: ${graph.presentation.compositionFamily}`);
+  const surfaces = buildSurfaceInventory(graph);
+  const navigation = requestedNavigationOrder(graph, recipe)
+    .map((role) => navigationEntryFor(graph, surfaces, role))
+    .filter(Boolean)
+    .map((surface) => Object.freeze({ role: surface.navigationRole, surfaceRole: surface.role, path: surface.path, label: surface.label }));
+  const templates = Object.freeze(Object.fromEntries(surfaces.map((surface) => [surface.key, recipe.surfaceTemplates[surface.role]])));
+  return Object.freeze({ schemaVersion: 1, graphVersion: graph.schemaVersion, hostId: graph.identity.hostId, hostSlug: graph.identity.slug, familyId: recipe.id, homeSections: recipe.homeSections, surfaces, navigation: Object.freeze(navigation), templates });
+}
+
+function rebaseTerritoryProjection(projection, basePath) {
+  if (!projection) return null;
+  const publicBase = `/hivenues/${projection.hostSlug}`;
+  const cleanBase = String(basePath || '').replace(/\/$/, '');
+  if (!cleanBase || cleanBase === publicBase) return projection;
+  const rebase = (path) => path.startsWith(publicBase) ? `${cleanBase}${path.slice(publicBase.length)}` : path;
+  const surfaces = Object.freeze(projection.surfaces.map((surface) => Object.freeze({ ...surface, path: rebase(surface.path) })));
+  const navigation = Object.freeze(projection.navigation.map((entry) => Object.freeze({ ...entry, path: rebase(entry.path) })));
+  return Object.freeze({ ...projection, surfaces, navigation });
+}
+
+function findTerritorySurface(projection, role, resourceSlug = null) {
+  if (!projection || !Array.isArray(projection.surfaces)) return null;
+  return projection.surfaces.find((surface) => surface.role === role && (resourceSlug === null || surface.resourceSlug === resourceSlug)) || null;
+}
+
+function templateForSurface(projection, surface) {
+  if (!projection || !surface) return null;
+  return projection.templates[surface.key] || null;
+}
+
+module.exports = { buildTerritoryProjection, compositionRecipeRegistry, findTerritorySurface, rebaseTerritoryProjection, surfaceRegistry, templateForSurface };

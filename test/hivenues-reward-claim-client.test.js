@@ -34,7 +34,7 @@ function markup() {
 function createDom() {
   const dom = new JSDOM(markup(), {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/community/people/paper-sparrow',
+    url: 'http://hivenues.test/hivenues/northline-hall/community/people/paper-sparrow',
   });
   dom.window.eval(source);
   return dom;

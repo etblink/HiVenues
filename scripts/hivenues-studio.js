@@ -79,7 +79,7 @@ async function main() {
   console.log('HiVenues Studio');
   console.log(`Bind:   ${LOCAL_HOST}:${port}`);
   console.log(`State:  ${statePath}`);
-  console.log(`Studio:   http://${LOCAL_HOST}:${port}/candidate-c`);
+  console.log(`Studio:   http://${LOCAL_HOST}:${port}/hivenues`);
   console.log(`Identity: http://${LOCAL_HOST}:${port}/identity/session`);
   console.log('Hive:     public reads available; server signing/broadcast disabled');
   console.log('Mutating external effects: disabled');

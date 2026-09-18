@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css">
+</head>
+<body class="cc-public cc-hospitality cc-social cc-social--hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-social-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Community">
+      <a href="<%= communityHref %>">Table talk</a>
+      <a aria-current="page" href="<%= socialHref %>">Notes & people</a>
+      <a href="<%= hostHref %>">Back to the house</a>
+    </nav>
+  </header>
+  <main class="cc-social-shell cc-social-hospitality-shell">
+    <header class="cc-social-mast cc-social-mast--hospitality">
+      <p class="cc-kicker">From around <%= graph.identity.displayName %></p>
+      <h1>Notes from the table</h1>
+      <p>The people, quick notes, and longer stories that give this place continuity beyond a single visit.</p>
+    </header>
+    <%- include('_hub', {
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref, discussionHref, contentPostEndpoint,
+      socialOrder: ['people', 'threads', 'posts'],
+      identityLabels: {
+        kicker: 'At the table',
+        title: 'Introduce yourself',
+        body: 'If you want to take part as yourself, prove control of your Hive account. You can still look around without signing in.',
+        unavailableTitle: 'Introductions are unavailable right now',
+        verifiedLabel: 'Seated as',
+        disconnect: 'Leave the table',
+        accountLabel: 'Your Hive account',
+        placeholder: 'your-account',
+        action: 'Introduce myself',
+        ready: 'Nothing is posted or changed on Hive just by introducing yourself.'
+      },
+      communityParticipationLabels: {
+        kicker: 'Your place at the table',
+        title: 'Stay at the table',
+        body: 'Join or leave the host-bound Hive community through your own wallet.',
+        identifyTitle: 'Introduce yourself first',
+        identifyAction: 'Introduce myself',
+        unavailableTitle: 'The table status is unavailable',
+        currentLabel: 'Hive table connection',
+        currentYes: 'You are connected',
+        currentNo: 'You are not connected',
+        join: 'Join the table',
+        leave: 'Leave the table',
+        ready: 'Nothing changes until you review the exact Hive action and approve it in your wallet.'
+      },
+      contentPostLabels: {
+        kicker: 'Leave a note',
+        title: 'Share something with the table',
+        body: 'Write a public Hive post for this host-bound community in the language of the place.',
+        titleLabel: 'Title',
+        bodyLabel: 'Your note',
+        previewKicker: 'At the table',
+        previewTitleEmpty: 'Your title will appear here',
+        previewBodyEmpty: 'Your note will appear here.',
+        action: 'Review my note',
+        truth: 'Your own wallet publishes it only after you review exactly what will become public.',
+        ready: 'Nothing leaves the table while you are drafting.'
+      },
+      socialLabels: {
+        state: 'Table status',
+        community: 'The wider table',
+        threadsKicker: 'Passed around',
+        threadsTitle: 'Quick notes from the table',
+        postsKicker: 'From the house & community',
+        postsTitle: 'Stories to linger over',
+        peopleKicker: 'Around the table',
+        peopleTitle: 'People you may see here',
+        peopleBody: 'People appearing in recent public material or the community subscriber list.',
+        quiet: 'The table is quiet for the moment.'
+      }
+    }) %>
+  </main>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · wallet-owned participation</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
+  <script src="/js/hivenues-content.js" defer></script>
+</body>
+</html>

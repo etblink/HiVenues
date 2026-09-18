@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css">
+</head>
+<body class="cc-public cc-hospitality cc-social cc-social--hospitality cc-discussion" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-hospitality-nav cc-social-nav">
+    <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <p><%= graph.facts.presence.label %></p>
+    <nav aria-label="Community">
+      <a href="<%= communityHref %>">Table talk</a>
+      <a href="<%= socialHref %>">Notes & people</a>
+      <a aria-current="page" href="<%= discussionHref %>">Table note</a>
+    </nav>
+  </header>
+  <main class="cc-social-shell cc-social-hospitality-shell cc-discussion-shell cc-discussion-shell--hospitality">
+    <p class="cc-hospitality-route"><a href="<%= socialHref %>">← Back around the table</a></p>
+    <%- include('_discussion', {
+      graph, discussion, memberHref, contentUpdateEndpoint, contentReplyEndpoint, voteEndpoint, votePresentation, formatCommunityTime,
+      discussionLabels: {
+        state: 'Table note status',
+        unavailableTitle: 'This note is no longer at this table.',
+        unavailableBody: 'HiVenues could not verify it in the host-bound Hive community.',
+        rootKicker: 'A note worth lingering over',
+        updateSummary: 'Refresh my public note',
+        responsesKicker: 'Around the table',
+        responsesTitle: 'What people added',
+        noResponses: 'No one has added to this note yet.',
+        replyToResponse: 'Answer this person'
+      },
+      updateLabels: {
+        kicker: 'Freshen the note',
+        title: 'Update what you shared',
+        body: 'Revise your own public Hive note without changing who or where it belongs to.',
+        titleLabel: 'Title',
+        bodyLabel: 'Your note',
+        previewKicker: 'At the table',
+        previewTitleEmpty: 'Your title will appear here',
+        previewBodyEmpty: 'Your revised note will appear here.',
+        action: 'Review my update',
+        truth: 'The existing public note changes only through your wallet after review.',
+        ready: 'Keep editing until this says exactly what you want public.'
+      },
+      replyLabels: {
+        kicker: 'Join the conversation',
+        title: 'Add your note',
+        body: 'Reply publicly to the exact Hive post or response in front of you.',
+        titleLabel: '',
+        bodyLabel: 'What you want to add',
+        previewKicker: 'At the table',
+        previewTitleEmpty: '',
+        previewBodyEmpty: 'Your response will appear here.',
+        action: 'Review my response',
+        truth: 'Your wallet owns the public reply; HiVenues only prepares and confirms it.',
+        ready: 'Nothing leaves the table until you review it.'
+      }
+    }) %>
+  </main>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Public conversation · wallet-owned publishing</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-content.js" defer></script>
+  <script src="/js/hivenues-vote.js" defer></script>
+</body>
+</html>

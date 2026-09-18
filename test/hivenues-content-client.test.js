@@ -42,7 +42,7 @@ function markup(mode = 'post') {
 function createDom(mode = 'post') {
   const dom = new JSDOM(markup(mode), {
     runScripts: 'outside-only',
-    url: 'http://hivenues.test/candidate-c/northline-hall/community/updates',
+    url: 'http://hivenues.test/hivenues/northline-hall/community/updates',
   });
   dom.window.eval(source);
   return dom;
@@ -72,7 +72,7 @@ const preflight = Object.freeze({
   summary: {
     community: 'hive-199299',
     permlink: 'a-room-note-fixed',
-    discussionHref: '/candidate-c/northline-hall/community/posts/etblink/a-room-note-fixed',
+    discussionHref: '/hivenues/northline-hall/community/posts/etblink/a-room-note-fixed',
     consequence: '@etblink will publish a new public Hive post in hive-199299.',
   },
   state: 'prepared',

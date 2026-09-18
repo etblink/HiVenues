@@ -1,0 +1,272 @@
+<%
+  const selected = selectedResource || '';
+  const selectedActivityId = selected.startsWith('activity:') ? selected.slice('activity:'.length) : '';
+  const selectedActivity = activities.find((item) => item.id === selectedActivityId) || null;
+  const selectedOfferId = selected.startsWith('offer:') ? selected.slice('offer:'.length) : '';
+  const selectedOffer = graph.offers.find((item) => item.id === selectedOfferId) || null;
+  const selectedMechanic = selected.startsWith('voice:') ? selected.slice('voice:'.length) : '';
+  const selectedMediaId = selected.startsWith('media:') ? selected.slice('media:'.length) : '';
+  const selectedMedia = media.find((item) => item.id === selectedMediaId) || null;
+%>
+<aside id="candidate-inspector" class="cc-studio-inspector" data-open="<%= selected ? 'true' : 'false' %>" aria-label="Contextual editor">
+  <% if (selected) { %><button type="button" class="cc-link" data-close-inspector aria-label="Close editor">Close</button><% } %>
+  <% if (!selected) { %>
+    <p class="cc-studio-inspector__eyebrow">Context</p>
+    <h2>Choose something to shape.</h2>
+    <p class="cc-inspector-help">Edit what visitors see, then use Direction, Look, Voice, Connect, Media and History when you need more depth.</p>
+  <% } %>
+
+  <% if (selected === 'facts.tagline') { %>
+    <p class="cc-studio-inspector__eyebrow">Page · first impression</p>
+    <h2>What should visitors feel first?</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/tagline" hx-post="/hivenues/studio/<%= graph.identity.slug %>/tagline" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-tagline">Headline</label>
+      <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
+      <p class="cc-inspector-help">Saving updates your working version. Your live site stays unchanged until you release it.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save headline</button></div>
+    </form>
+  <% } %>
+
+  <% if (selectedActivity) { %>
+    <p class="cc-studio-inspector__eyebrow">Activities</p>
+    <h2>Edit this happening</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity" hx-post="/hivenues/studio/<%= graph.identity.slug %>/activity" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="activityId" value="<%= selectedActivity.id %>">
+      <label for="cc-activity-title">Title</label>
+      <input id="cc-activity-title" name="title" maxlength="120" value="<%= selectedActivity.title %>" required>
+      <label for="cc-activity-description">Description</label>
+      <textarea id="cc-activity-description" name="description" maxlength="1200" required><%= selectedActivity.description %></textarea>
+      <p class="cc-inspector-help">This remains the same activity even when you change the site’s visual direction.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save activity</button></div>
+    </form>
+
+    <div class="cc-live-note">
+      <p class="cc-studio-inspector__eyebrow">Schedule</p>
+      <p><strong><%= selectedActivity.humanTime %></strong><br><small><%= graph.identity.timezone %></small></p>
+      <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/activity/<%= selectedActivity.id %>/schedule">Edit start & end time</a>
+      <p class="cc-inspector-help">Schedule edits stay in the working version until the next website release.</p>
+    </div>
+
+    <form class="cc-inspector-form cc-inspector-form--status" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-post="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="activityId" value="<%= selectedActivity.id %>">
+      <label for="cc-activity-lifecycle">Status</label>
+      <select id="cc-activity-lifecycle" name="lifecycle" required>
+        <% Object.values(activityLifecycles).forEach((option) => { %>
+          <option value="<%= option.id %>" <%= selectedActivity.lifecycle === option.id ? 'selected' : '' %>><%= option.label %></option>
+        <% }) %>
+      </select>
+      <label for="cc-activity-status-note">Short note for visitors <span aria-hidden="true">·</span> optional</label>
+      <textarea id="cc-activity-status-note" name="statusNote" maxlength="240" rows="2" style="min-height:64px"><%= selectedActivity.statusNote || '' %></textarea>
+      <p class="cc-inspector-help">Saving changes your working version only. Visitors see it after the next release.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save status</button></div>
+    </form>
+
+    <div class="cc-live-note" data-live-activity-status>
+      <p class="cc-studio-inspector__eyebrow">On the live site</p>
+      <% if (selectedActivity.live) { %>
+        <p><strong><%= activityLifecycles[selectedActivity.live.lifecycle].label %></strong><% if (selectedActivity.live.statusNote) { %> · <%= selectedActivity.live.statusNote %><% } %></p>
+        <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= selectedActivity.id %>">Change the live status now</a>
+        <p class="cc-inspector-help">For cancellations and last-minute changes. Publishes only this status, straight from the live site, without releasing your other edits.</p>
+      <% } else { %>
+        <p>Not on the live site yet. Release your working version to publish it.</p>
+      <% } %>
+    </div>
+  <% } %>
+
+  <% if (selectedOffer) { %>
+    <p class="cc-studio-inspector__eyebrow">Offers</p>
+    <h2>Edit <%= selectedOffer.title %></h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/offer" hx-post="/hivenues/studio/<%= graph.identity.slug %>/offer" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="offerId" value="<%= selectedOffer.id %>">
+      <label for="cc-offer-title">Name</label>
+      <input id="cc-offer-title" name="title" value="<%= selectedOffer.title %>" required>
+      <label for="cc-offer-summary">Description</label>
+      <textarea id="cc-offer-summary" name="summary" required><%= selectedOffer.summary %></textarea>
+      <label for="cc-offer-category">Category <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-offer-category" name="category" value="<%= selectedOffer.category || '' %>">
+      <label for="cc-offer-price">Price or short detail <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-offer-price" name="price" value="<%= selectedOffer.price || '' %>">
+      <p class="cc-inspector-help">The same offer can be presented differently by each visual direction without becoming a different item.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save offer</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'look') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Look</p>
+    <h2>Set the accent.</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/look" hx-post="/hivenues/studio/<%= graph.identity.slug %>/look" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-look-accent">Accent</label>
+      <select id="cc-look-accent" name="accent" required>
+        <% lookAccents.forEach((accent) => { %>
+          <option value="<%= accent.value %>" <%= graph.presentation.accent.toLowerCase() === accent.value ? 'selected' : '' %>><%= accent.label %></option>
+        <% }) %>
+      </select>
+      <div aria-hidden="true" style="height:18px;border-radius:999px;background:<%= graph.presentation.accent %>"></div>
+      <p class="cc-inspector-help">The accent changes color emphasis while Direction controls the larger layout.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save look</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'voice') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Voice</p>
+    <h2>Use the host’s language.</h2>
+    <p class="cc-inspector-help">Choose a visitor gesture to rename. The words can fit the host; what the action actually does stays explicit.</p>
+    <div class="cc-release-list">
+      <% Object.entries(graph.voice.terms).forEach(([mechanicId, term]) => { %>
+        <div class="cc-release-row">
+          <div><strong><%= term %></strong><br><small><%= mechanicRegistry[mechanicId] ? mechanicRegistry[mechanicId].meaning : 'Visitor action' %></small></div>
+          <button type="button" class="cc-button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=voice:<%= mechanicId %>" hx-target="#candidate-inspector" hx-swap="outerHTML">Edit</button>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (selectedMechanic && graph.voice.terms[selectedMechanic]) { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Voice</p>
+    <h2>Rename this visitor gesture.</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/voice" hx-post="/hivenues/studio/<%= graph.identity.slug %>/voice" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="mechanicId" value="<%= selectedMechanic %>">
+      <label for="cc-voice-term">Visitor-facing words</label>
+      <input id="cc-voice-term" name="term" value="<%= graph.voice.terms[selectedMechanic] %>" required>
+      <div class="cc-consequence-truth">
+        <strong>What this action does</strong><br>
+        <%= mechanicRegistry[selectedMechanic].meaning %>
+      </div>
+      <p class="cc-inspector-help">Renaming an action never changes its consequence.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save wording</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'participation') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Participation</p>
+    <h2>Choose whether this site shows a downvote action.</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/participation" hx-post="/hivenues/studio/<%= graph.identity.slug %>/participation" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <fieldset class="cc-field" style="border:0;padding:0">
+        <legend>Negative-vote action</legend>
+        <label>
+          <input type="radio" name="showNegativeVoteAction" value="hide" <%= graph.bindings.hive.showNegativeVoteAction === true ? '' : 'checked' %>>
+          Hide the downvote action on this HiVenue
+        </label>
+        <label>
+          <input type="radio" name="showNegativeVoteAction" value="show" <%= graph.bindings.hive.showNegativeVoteAction === true ? 'checked' : '' %>>
+          Show a downvote action alongside the positive vote
+        </label>
+      </fieldset>
+      <div class="cc-consequence-truth">
+        <strong>This changes HiVenues presentation, not Hive protocol.</strong><br>
+        Hiding the action does not make downvotes impossible on Hive. People may still downvote this public content through another compatible Hive client, and HiVenues will continue to show canonical negative-vote state truthfully.
+      </div>
+      <p class="cc-inspector-help">This becomes visitor-facing only after you release the working version.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save participation setting</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'value-recipient') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Support & value</p>
+    <h2>Choose who receives direct support.</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/value-recipient" hx-post="/hivenues/studio/<%= graph.identity.slug %>/value-recipient" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-value-recipient">Hive value recipient <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-value-recipient" name="valueRecipient" value="<%= graph.bindings.hive.valueRecipient || '' %>" placeholder="host-account" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p class="cc-inspector-help">Hive account names are at most 16 characters; HiVenues validates the complete account-name rules when you save.</p>
+      <div class="cc-consequence-truth">
+        <strong>This is a separate money-recipient role.</strong><br>
+        HiVenues will not assume that the account used for host identity, publishing or community administration should also receive value. No private key is stored here.
+      </div>
+      <p class="cc-inspector-help">Saving changes your Working version only. The visitor-facing support capability will consume the released value recipient, never an unpublished Working-only value.</p>
+      <p class="cc-inspector-help">Leave this blank to disable the value-recipient binding. This configuration alone does not move money or create a live support transfer.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save value recipient</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'connect') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Connect</p>
+    <h2>Where should visitors reach you?</h2>
+    <form class="cc-inspector-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/connect" hx-post="/hivenues/studio/<%= graph.identity.slug %>/connect" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-contact">Contact</label>
+      <input id="cc-contact" type="text" name="contact" maxlength="240" value="<%= graph.facts.contact %>" placeholder="Email, phone number, https:// website, or short public contact text" required>
+      <div class="cc-consequence-truth">
+        <strong>This changes only the public contact.</strong><br>
+        Email, phone and HTTPS contacts become the corresponding visitor link; other accepted text remains plain text. This does not connect Hive, a media provider, payment or signing.
+      </div>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save contact</button></div>
+    </form>
+  <% } %>
+
+  <% if (selectedMedia) { %>
+    <p class="cc-studio-inspector__eyebrow">Page · Media</p>
+    <h2>Choose the visual focus.</h2>
+    <form class="cc-inspector-form" data-focal-form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/media" hx-post="/hivenues/studio/<%= graph.identity.slug %>/media" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="mediaId" value="<%= selectedMedia.id %>">
+      <div data-focal-preview style="--cc-fx:<%= selectedMedia.focal.x %>%;--cc-fy:<%= selectedMedia.focal.y %>%">
+        <%- include('../_art', { media: selectedMedia, graph }) %>
+      </div>
+      <label for="cc-focal-x">Horizontal focus</label>
+      <input id="cc-focal-x" data-focal-axis type="range" name="x" min="0" max="100" value="<%= selectedMedia.focal.x %>">
+      <label for="cc-focal-y">Vertical focus</label>
+      <input id="cc-focal-y" data-focal-axis type="range" name="y" min="0" max="100" value="<%= selectedMedia.focal.y %>">
+      <output data-focal-output><%= selectedMedia.focal.x %>% / <%= selectedMedia.focal.y %>%</output>
+      <p class="cc-inspector-help"><%= selectedMedia.provenance %> Moving the controls previews the crop; Save records the new focus.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save focal point</button></div>
+    </form>
+  <% } %>
+
+  <% if (selected === 'page.order') { %>
+    <p class="cc-studio-inspector__eyebrow">Page · structure</p>
+    <h2>Section order</h2>
+    <p class="cc-inspector-help">Use Up and Down when the page needs a different reading order. Each visual direction can interpret that order in its own way.</p>
+    <% graph.presentation.arrangement.forEach((section, index) => { %>
+      <div class="cc-release-row">
+        <div><strong><%= index + 1 %>. <%= section %></strong></div>
+        <div class="cc-inspector-actions">
+          <% if (index > 0) { %>
+            <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/move" hx-post="/hivenues/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+              <input type="hidden" name="sectionId" value="<%= section %>">
+              <input type="hidden" name="delta" value="-1">
+              <button class="cc-button" type="submit" aria-label="Move <%= section %> earlier">Up</button>
+            </form>
+          <% } %>
+          <% if (index < graph.presentation.arrangement.length - 1) { %>
+            <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/move" hx-post="/hivenues/studio/<%= graph.identity.slug %>/move" hx-target="#candidate-inspector" hx-swap="outerHTML">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+              <input type="hidden" name="sectionId" value="<%= section %>">
+              <input type="hidden" name="delta" value="1">
+              <button class="cc-button" type="submit" aria-label="Move <%= section %> later">Down</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (selected) { %>
+    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/undo" hx-post="/hivenues/studio/<%= graph.identity.slug %>/undo" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <input type="hidden" name="resource" value="<%= selected %>">
+      <button class="cc-link" type="submit">Undo last edit</button>
+    </form>
+  <% } %>
+</aside>

@@ -1,0 +1,11 @@
+<div id="draft-status" class="cc-draft-status" data-revision="<%= revision %>" hx-swap-oob="outerHTML">Version <%= revision %></div>
+<div id="hivenuesanvas-slot" hx-swap-oob="innerHTML">
+  <% if (family.id === 'poster') { %>
+    <%- include('../compositions/poster-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+  <% } else if (family.id === 'editorial') { %>
+    <%- include('../compositions/editorial-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+  <% } else { %>
+    <%- include('../compositions/hospitality-canvas', { graph, media, heroMedia, logoMedia, contact, primaryActivity, oob: false }) %>
+  <% } %>
+</div>
+<%- include('inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>

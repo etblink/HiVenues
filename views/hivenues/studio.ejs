@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-studio-body">
+  <div class="cc-studio-shell">
+    <header class="cc-studio-topbar">
+      <div class="cc-studio-brand">
+        <a class="cc-studio-brand__mark" href="/hivenues" aria-label="HiVenues home">H</a>
+        <div>
+          <strong><%= graph.identity.displayName %></strong>
+          <small>HiVenues Studio</small>
+        </div>
+      </div>
+      <div class="cc-studio-actions">
+        <div class="cc-studio-state-cluster" aria-label="Working state">
+          <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span>
+          <span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Working</span>
+        </div>
+        <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
+        <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/release">Release</a>
+      </div>
+    </header>
+
+    <% if (typeof releasedNotice === 'string' && releasedNotice) { %>
+      <div class="cc-studio-notice" role="status" data-released-notice>
+        <strong><%= releasedUrgent ? 'Live site updated.' : 'Website released.' %></strong>
+        <%= releasedUrgent ? 'The urgent status change is live. Your other working edits are still here, unpublished.' : 'Your working version is now what visitors see.' %>
+        <a class="cc-link" href="/hivenues/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open the live site</a>
+      </div>
+    <% } %>
+
+    <section class="cc-first-draft-reveal" data-first-draft-reveal hidden aria-labelledby="cc-first-draft-title">
+      <div class="cc-first-draft-reveal__card" role="dialog" aria-modal="true" aria-labelledby="cc-first-draft-title">
+        <p class="cc-first-draft-reveal__eyebrow">Your first working version</p>
+        <h1 id="cc-first-draft-title">Here is your place.</h1>
+        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is now one working host in HiVenues. This is the same place you will keep shaping below—not an exported template or a second website definition.</p>
+        <div class="cc-first-draft-reveal__facts" aria-label="First draft state">
+          <span><%= family.label %></span>
+          <span>Working version</span>
+          <span>Nothing is live yet</span>
+        </div>
+        <div class="cc-first-draft-reveal__actions">
+          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Open Studio</button>
+          <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">See visitor view</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="cc-studio-workspace">
+      <nav class="cc-studio-commandbar" aria-label="Shape your place">
+        <details>
+          <summary>Page</summary>
+          <div class="cc-studio-commandmenu">
+            <span class="cc-studio-commandmenu__label">Page</span>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=facts.tagline" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>First impression</button>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/content">Story & visit details</a>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/territory-content">Stories, people & gallery</a>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=page.order" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Page rhythm</button>
+          </div>
+        </details>
+
+        <details>
+          <summary>Activities</summary>
+          <div class="cc-studio-commandmenu">
+            <span class="cc-studio-commandmenu__label">Activities</span>
+            <% if (activities.length) { %>
+              <% activities.forEach((activity) => { %>
+                <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=activity:<%= activity.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= activity.title %></button>
+              <% }) %>
+            <% } else { %>
+              <span class="cc-studio-commandmenu__label">No activities yet</span>
+            <% } %>
+            <a class="cc-studio-commandmenu__add" href="/hivenues/studio/<%= graph.identity.slug %>/activity/new">+ Add activity</a>
+          </div>
+        </details>
+
+        <details>
+          <summary>Offers</summary>
+          <div class="cc-studio-commandmenu">
+            <span class="cc-studio-commandmenu__label">Offers</span>
+            <% if (graph.offers.length) { %>
+              <% graph.offers.forEach((offer) => { %>
+                <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=offer:<%= offer.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector><%= offer.title %></button>
+              <% }) %>
+            <% } else { %>
+              <span class="cc-studio-commandmenu__label">No offers yet</span>
+            <% } %>
+            <a class="cc-studio-commandmenu__add" href="/hivenues/studio/<%= graph.identity.slug %>/offer/new">+ Add offer</a>
+          </div>
+        </details>
+
+        <details>
+          <summary>Site</summary>
+          <div class="cc-studio-commandmenu">
+            <span class="cc-studio-commandmenu__label">Creative direction</span>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/direction">Direction</a>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=look" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Look</button>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/brand">Look settings</a>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
+            <span class="cc-studio-commandmenu__label">Participation & media</span>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=participation" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Participation</button>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=value-recipient" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Support & value</button>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Contact</button>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/release">History & release</a>
+          </div>
+        </details>
+      </nav>
+
+      <section class="cc-studio-stage" aria-label="Your place" data-review-stage data-review-mode="wide">
+        <div class="cc-studio-stage__toolbar">
+          <div class="cc-studio-stage__identity">
+            <strong><%= family.label %></strong>
+            <span>Working place</span>
+          </div>
+          <div class="cc-studio-stage__review">
+            <span class="cc-studio-stage__meta"><%= graph.facts.presence.label %></span>
+            <div class="cc-studio-review-toggle" role="group" aria-label="Canvas review width">
+              <button type="button" data-review-width="wide" aria-pressed="true">Wide</button>
+              <button type="button" data-review-width="narrow" aria-pressed="false">Narrow review</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-stage-device" data-review-device>
+          <div id="hivenuesanvas-slot">
+            <%- include('fragments/studio-canvas', { graph, family, activities, media, heroMedia, logoMedia, contact, primaryActivity, selectedReviewKey: 'canvas' }) %>
+          </div>
+        </div>
+      </section>
+
+      <%- include('fragments/inspector', { graph, family, activities, primaryActivity, media, revision, draftDigest, selectedResource, compositionRegistry, mechanicRegistry, lookAccents }) %>
+    </div>
+  </div>
+  <script src="/htmx/htmx.min.js" defer></script>
+  <script src="/js/hivenues-studio.js" defer></script>
+</body>
+</html>

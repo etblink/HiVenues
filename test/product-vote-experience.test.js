@@ -9,8 +9,8 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
-const { seedCandidateCHosts } = require('../src/candidate-c/fixtures');
+const { HiVenuesStore } = require('../src/product/store');
+const { seedHiVenuesHosts } = require('../src/product/fixtures');
 
 const ORIGIN = 'http://hivenues.test';
 const COMMUNITY = 'hive-199299';
@@ -58,7 +58,7 @@ const COMMENT = Object.freeze({
 });
 
 function hosts() {
-  const values = seedCandidateCHosts();
+  const values = seedHiVenuesHosts();
   const northline = values.find((host) => host.identity.slug === 'northline-hall');
   northline.bindings.hive.showNegativeVoteAction = true;
   northline.voice.terms.downvote_hive = 'Not for this room';
@@ -125,7 +125,7 @@ function reads({ voteFailure = false } = {}) {
 }
 
 function fixture(options = {}) {
-  const store = new CandidateCStore({ hosts: hosts() });
+  const store = new HiVenuesStore({ hosts: hosts() });
   const hiveReadService = reads(options);
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: hiveReadService.rpcPool,
@@ -149,7 +149,7 @@ function verified(identityServices) {
 test('Poster discussion presents host-native positive and enabled negative vote actions over exact canonical state', async () => {
   const { app, identityServices } = fixture();
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', verified(identityServices))
     .expect(200);
 
@@ -172,7 +172,7 @@ test('Poster discussion presents host-native positive and enabled negative vote 
 test('venue-hidden negative action stays absent while canonical negative-vote counts remain visible', async () => {
   const { app, identityServices } = fixture();
   const response = await request(app)
-    .get('/candidate-c/nova-ashby/community/posts/etblink/room-note')
+    .get('/hivenues/nova-ashby/community/posts/etblink/room-note')
     .set('cookie', verified(identityServices))
     .expect(200);
 
@@ -186,7 +186,7 @@ test('venue-hidden negative action stays absent while canonical negative-vote co
 test('Hospitality uses its own vote vocabulary and presentation while preserving one Hive vote mechanic', async () => {
   const { app, identityServices } = fixture();
   const response = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/posts/etblink/room-note')
+    .get('/hivenues/harbor-and-hearth/community/posts/etblink/room-note')
     .set('cookie', verified(identityServices))
     .expect(200);
 
@@ -199,7 +199,7 @@ test('Hospitality uses its own vote vocabulary and presentation while preserving
 test('anonymous visitors still see truthful positive and negative vote totals without a signing control', async () => {
   const { app } = fixture();
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .expect(200);
 
   assert.match(response.text, /title="Positive Hive votes"[^>]*>.*7/s);
@@ -210,7 +210,7 @@ test('anonymous visitors still see truthful positive and negative vote totals wi
 test('vote read failure suppresses vote actions without suppressing canonical public vote totals', async () => {
   const { app, identityServices } = fixture({ voteFailure: true });
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', verified(identityServices))
     .expect(200);
 
@@ -224,7 +224,7 @@ test('rendering vote state does not mutate the canonical HostGraph', async () =>
   const before = JSON.stringify(store.publicSnapshot('northline-hall'));
 
   await request(app)
-    .get('/candidate-c/northline-hall/community/posts/etblink/room-note')
+    .get('/hivenues/northline-hall/community/posts/etblink/room-note')
     .set('cookie', verified(identityServices))
     .expect(200);
 

@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDINGS = Object.freeze({
@@ -111,7 +111,7 @@ function hiveReads({
 }
 
 function fixture(options = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const readService = options.hiveReadService || hiveReads();
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: readService.rpcPool,
@@ -172,7 +172,7 @@ test('root post preflight derives author, community, permlink and metadata serve
   assert.equal(response.body.summary.permlink, 'a-room-note-fixed');
   assert.equal(
     response.body.summary.discussionHref,
-    '/candidate-c/northline-hall/community/posts/etblink/a-room-note-fixed',
+    '/hivenues/northline-hall/community/posts/etblink/a-room-note-fixed',
   );
   assert.deepEqual(response.body.operations, [[
     'comment',

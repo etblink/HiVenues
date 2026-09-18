@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HiVenues — HiVenues</title>
+  <link rel="stylesheet" href="/css/hivenues.css">
+  <link rel="stylesheet" href="/css/hivenues-hospitality.css">
+</head>
+<body class="cc-index-body">
+  <main class="cc-index">
+    <p class="cc-kicker">HiVenues · HiVenues</p>
+    <h1>A place of your own, with participation that can travel.</h1>
+    <p class="cc-index__intro"><%= typeof canCreate !== 'undefined' && canCreate ? 'Start a new host from real facts, or continue with an existing place.' : 'Three structurally different hosts, one canonical model. Choose a public territory or open its Studio.' %></p>
+    <% if (typeof canCreate !== 'undefined' && canCreate) { %>
+      <p><a class="cc-button cc-button--ink" href="/hivenues/new">Create a place</a></p>
+    <% } %>
+    <div class="cc-index__grid">
+      <% hosts.filter(Boolean).forEach((host) => { %>
+        <article class="cc-index-card cc-index-card--<%= host.family.id %>">
+          <p class="cc-kicker"><%= host.graph.identity.archetype %></p>
+          <h2><%= host.graph.identity.displayName %></h2>
+          <p><%= host.graph.facts.tagline %></p>
+          <div class="cc-index-card__actions">
+            <a class="cc-button" href="/hivenues/<%= host.graph.identity.slug %>">Visit site</a>
+            <a class="cc-link" href="/hivenues/studio/<%= host.graph.identity.slug %>">Open Studio</a>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </main>
+</body>
+</html>

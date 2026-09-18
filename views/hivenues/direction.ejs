@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Site · Direction</p>
+    <h1>Change the art direction, not the facts.</h1>
+    <p class="cc-task__dek">A Direction change is reviewed before it is applied. Your authored name, story, Activities, Offers, Media and visitor details stay with the host while the composition changes around them.</p>
+
+    <div class="cc-review-grid">
+      <% Object.values(compositionRegistry).forEach((option) => { %>
+        <section class="cc-review-card">
+          <p class="cc-kicker"><%= option.id === family.id ? 'Current direction' : 'Alternative' %></p>
+          <h2><%= option.label %></h2>
+          <p><%= option.description %></p>
+          <% if (option.id !== family.id) { %>
+            <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/direction/propose">
+              <input type="hidden" name="expectedRevision" value="<%= revision %>">
+              <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+              <input type="hidden" name="familyId" value="<%= option.id %>">
+              <button class="cc-button cc-button--ink" type="submit">Review this direction</button>
+            </form>
+          <% } else { %>
+            <span class="cc-draft-status">In use</span>
+          <% } %>
+        </section>
+      <% }) %>
+    </div>
+
+    <section class="cc-review-card" style="margin-top:1.2rem">
+      <h2>Your authored work stays with the host</h2>
+      <% if (manualPaths && manualPaths.length) { %>
+        <p><strong><%= manualPaths.length %> authored field<%= manualPaths.length === 1 ? '' : 's' %></strong> have been edited in Studio and remain protected through Direction changes.</p>
+        <details>
+          <summary>Technical details</summary>
+          <ul class="cc-preserved-list"><% manualPaths.forEach((path) => { %><li><code><%= path %></code></li><% }) %></ul>
+        </details>
+      <% } else { %>
+        <p>Your Host, Activity, Offer and Media identity remain intact when Direction changes, even before granular edits are recorded.</p>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>

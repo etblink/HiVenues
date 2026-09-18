@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SESSION_SECRET = 'hivenues-participation-foundation-secret-0001';
@@ -72,7 +72,7 @@ function identityServices() {
 }
 
 function fixture(options = {}) {
-  const store = options.store || new CandidateCStore();
+  const store = options.store || new HiVenuesStore();
   const hiveReadService = options.hiveReadService || readService();
   const identities = options.identityServices || identityServices();
   const app = createHiVenuesApp({
@@ -335,7 +335,7 @@ test('origin, CSRF, identity, host, profile, binding and transaction-id boundari
 });
 
 test('participation provider unavailability is explicit and cannot fabricate a preflight', async () => {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const identities = identityServices();
   const app = createHiVenuesApp({
     store,

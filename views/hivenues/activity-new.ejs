@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+<% const v = typeof values === 'object' && values ? values : {}; %>
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+    <p class="cc-kicker">Activities · Add</p>
+    <h1>Add a real happening when you actually have one.</h1>
+    <p class="cc-task__dek">This creates an Activity in the working draft only. It does not become visitor-facing until you release the website. Use the place timezone <strong><%= graph.identity.timezone %></strong>; HiVenues converts the local wall-clock time for you.</p>
+
+    <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check the activity facts.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
+
+    <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity/new">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <div class="cc-field"><label for="cc-new-activity-title">Title</label><input id="cc-new-activity-title" name="title" maxlength="120" required value="<%= v.title ?? '' %>"></div>
+      <div class="cc-field"><label for="cc-new-activity-description">Description</label><textarea id="cc-new-activity-description" name="description" maxlength="1200" required><%= v.description ?? '' %></textarea></div>
+      <div class="cc-field"><label for="cc-new-activity-start">Starts</label><input id="cc-new-activity-start" type="datetime-local" name="startsLocal" required value="<%= v.startsLocal ?? '' %>"></div>
+      <div class="cc-field"><label for="cc-new-activity-end">Ends</label><input id="cc-new-activity-end" type="datetime-local" name="endsLocal" required value="<%= v.endsLocal ?? '' %>"></div>
+      <div class="cc-consequence-truth"><strong>Location consequence</strong><br>This Activity inherits the host's current <%= graph.facts.presence.mode %> presence rather than asking you to re-enter or invent another venue.</div>
+      <button class="cc-button cc-button--ink" type="submit">Add activity to draft</button>
+    </form>
+  </main>
+</body>
+</html>

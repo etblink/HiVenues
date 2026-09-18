@@ -9,7 +9,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
+const { HiVenuesStore } = require('../src/product/store');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDING = Object.freeze({
@@ -98,7 +98,7 @@ function appWith({
   relationshipFailure = false,
   participationServices,
 } = {}) {
-  const store = new CandidateCStore();
+  const store = new HiVenuesStore();
   const hiveReadService = readService({ membership, following, relationshipFailure });
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: hiveReadService.rpcPool,
@@ -126,12 +126,12 @@ function verified(identityServices, account = 'etblink') {
 test('anonymous social hub explains identity requirement without rendering a write control', async () => {
   const { app } = appWith();
   const response = await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .expect(200);
 
   assert.match(response.text, /data-participation-surface/);
   assert.match(response.text, /Prove your Hive identity before changing this relationship/);
-  assert.match(response.text, /href="\/candidate-c\/northline-hall\/community\/updates#identity"/);
+  assert.match(response.text, /href="\/hivenues\/northline-hall\/community\/updates#identity"/);
   assert.doesNotMatch(response.text, /data-hivenues-participation/);
   assert.doesNotMatch(response.text, /data-participation-submit/);
 });
@@ -144,7 +144,7 @@ test('verified community relationship renders subscribe or unsubscribe from cano
     const { app, identityServices } = appWith({ membership });
     const session = verified(identityServices);
     const response = await request(app)
-      .get('/candidate-c/northline-hall/community/updates')
+      .get('/hivenues/northline-hall/community/updates')
       .set('cookie', session.cookie)
       .expect(200);
 
@@ -169,7 +169,7 @@ test('verified member relationship renders follow or unfollow only for another a
     const { app, identityServices } = appWith({ following });
     const session = verified(identityServices);
     const response = await request(app)
-      .get('/candidate-c/northline-hall/community/people/juniper-lane')
+      .get('/hivenues/northline-hall/community/people/juniper-lane')
       .set('cookie', session.cookie)
       .expect(200);
 
@@ -190,7 +190,7 @@ test('verified member relationship renders follow or unfollow only for another a
   const own = appWith({ following: false });
   const ownSession = verified(own.identityServices, 'etblink');
   const ownProfile = await request(own.app)
-    .get('/candidate-c/northline-hall/community/people/etblink')
+    .get('/hivenues/northline-hall/community/people/etblink')
     .set('cookie', ownSession.cookie)
     .expect(200);
 
@@ -203,14 +203,14 @@ test('relationship read failure suppresses the action rather than guessing state
   const session = verified(identityServices);
 
   const hub = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/updates')
+    .get('/hivenues/harbor-and-hearth/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
   assert.match(hub.text, /cannot confirm its current Hive state/);
   assert.doesNotMatch(hub.text, /data-hivenues-participation/);
 
   const member = await request(app)
-    .get('/candidate-c/harbor-and-hearth/community/people/juniper-lane')
+    .get('/hivenues/harbor-and-hearth/community/people/juniper-lane')
     .set('cookie', session.cookie)
     .expect(200);
   assert.match(member.text, /cannot confirm its current Hive state/);
@@ -221,7 +221,7 @@ test('disabled participation provider leaves identity/read surfaces useful but s
   const { app, identityServices } = appWith({ participationServices: false });
   const session = verified(identityServices);
   const response = await request(app)
-    .get('/candidate-c/nova-ashby/community/updates')
+    .get('/hivenues/nova-ashby/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
 
@@ -238,11 +238,11 @@ test('relationship controls do not mutate HostGraph simply by rendering', async 
   );
 
   await request(app)
-    .get('/candidate-c/northline-hall/community/updates')
+    .get('/hivenues/northline-hall/community/updates')
     .set('cookie', session.cookie)
     .expect(200);
   await request(app)
-    .get('/candidate-c/northline-hall/community/people/juniper-lane')
+    .get('/hivenues/northline-hall/community/people/juniper-lane')
     .set('cookie', session.cookie)
     .expect(200);
 
