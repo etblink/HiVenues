@@ -178,6 +178,10 @@ function createHiVenuesApp({
   }
 
   app.use(identitySessionContext(activeIdentityServices?.sessionStore || null));
+  app.use((_req, res, next) => {
+    res.locals.hivenuesParticipationAvailable = Boolean(activeParticipationServices);
+    next();
+  });
   app.use('/identity', createHiVenuesIdentityRouter({
     services: activeIdentityServices,
     fixedOrigin: identityOrigin,
