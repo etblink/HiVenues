@@ -21,6 +21,7 @@ const {
   createContentPermlink,
 } = require('./content-operations');
 const { buildVote } = require('./vote-operations');
+const { buildRewardClaim } = require('./reward-operations');
 const { isSocialBinding } = require('../candidate-c/social-read-router');
 const { assertSameOrigin } = require('./identity-router');
 
@@ -161,6 +162,18 @@ function createHiVenuesParticipationRouter({
     ) {
       throw new FeatureUnavailableError('Hive vote participation is temporarily unavailable', {
         code: 'VOTE_PROVIDER_UNAVAILABLE',
+      });
+    }
+    return active;
+  }
+
+  function requireRewardClaimReadContract(active) {
+    if (
+      typeof active.hiveReadService.getAccountRecord !== 'function'
+      || typeof active.hiveReadService.observeRewardClaimOperation !== 'function'
+    ) {
+      throw new FeatureUnavailableError('Hive reward claiming is temporarily unavailable', {
+        code: 'REWARD_CLAIM_PROVIDER_UNAVAILABLE',
       });
     }
     return active;
@@ -440,6 +453,38 @@ function createHiVenuesParticipationRouter({
     },
   );
 
+  router.post('/:slug/rewards/claim', async (req, res) => {
+    try {
+      const { identity, active: rawActive } = protect(req);
+      const active = requireRewardClaimReadContract(rawActive);
+      const snapshot = liveHost(store, req.params.slug);
+      const accountRecord = await active.hiveReadService.getAccountRecord(identity.account);
+      const envelope = contextualEnvelope(
+        buildRewardClaim({
+          account: identity.account,
+          accountRecord,
+        }),
+        snapshot,
+        {
+          consequence: '@' + identity.account
+            + ' will claim the exact current Hive rewards shown below into the same Hive account.',
+        },
+      );
+      const preflight = active.preflightStore.create({
+        sessionId: identity.id,
+        envelope,
+        signer: identity.account,
+      });
+      return res.status(201).json({
+        ...preflight,
+        message: participationMessage(preflight),
+      });
+    } catch (error) {
+      return sendParticipationError(res, error);
+    }
+  });
+
+
   router.post(
     '/:slug/votes/:rootAuthor/:rootPermlink/:targetAuthor/:targetPermlink',
     async (req, res) => {
@@ -559,6 +604,9 @@ function createHiVenuesParticipationRouter({
         observed = await requireContentReadContract(active).hiveReadService.observeContentOperation(record);
       } else if (record.action === 'vote') {
         observed = await requireVoteReadContract(active).hiveReadService.observeVoteOperation(record);
+      } else if (record.action === 'claim-rewards') {
+        observed = await requireRewardClaimReadContract(active)
+          .hiveReadService.observeRewardClaimOperation(record);
       } else {
         observed = await active.hiveReadService.observeSocialOperation(record);
       }

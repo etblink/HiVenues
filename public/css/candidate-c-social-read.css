@@ -1386,6 +1386,139 @@
   opacity:.72;
 }
 
+
+.cc-reward-claim {
+  display:grid;
+  gap:.7rem;
+  padding-top:.85rem;
+  border-top:1px solid currentColor;
+}
+
+.cc-reward-claim__action {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:1rem;
+}
+
+.cc-reward-claim__action > div {
+  display:grid;
+  gap:.28rem;
+  max-width:56ch;
+}
+
+.cc-reward-claim__action p,
+.cc-reward-claim__status {
+  margin:0;
+}
+
+.cc-reward-claim__action button {
+  flex:0 0 auto;
+  appearance:none;
+  border:1px solid currentColor;
+  padding:.68rem .95rem;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.cc-reward-claim__action button:disabled {
+  cursor:not-allowed;
+  opacity:.55;
+}
+
+.cc-reward-claim__status {
+  font-size:.78rem;
+  line-height:1.45;
+  opacity:.8;
+}
+
+.cc-reward-review {
+  width:min(44rem,calc(100vw - 2rem));
+  max-height:calc(100vh - 2rem);
+  padding:0;
+  border:1px solid #37312d;
+  border-radius:1rem;
+  background:#fffdf8;
+  color:#211d1a;
+  box-shadow:0 28px 80px rgba(0,0,0,.32);
+}
+
+.cc-reward-review::backdrop {
+  background:rgba(8,7,7,.72);
+}
+
+.cc-reward-review form {
+  display:grid;
+  gap:1rem;
+  padding:clamp(1rem,4vw,1.6rem);
+}
+
+.cc-reward-review h2,
+.cc-reward-review p {
+  margin:0;
+}
+
+.cc-reward-review dl {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.7rem 1rem;
+  margin:0;
+}
+
+.cc-reward-review dl > div {
+  display:grid;
+  gap:.2rem;
+  padding:.65rem 0;
+  border-top:1px solid rgba(33,29,26,.18);
+}
+
+.cc-reward-review dt {
+  font-size:.72rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.cc-reward-review dd {
+  margin:0;
+  overflow-wrap:anywhere;
+}
+
+.cc-reward-review pre {
+  max-height:14rem;
+  overflow:auto;
+  padding:.75rem;
+  background:#f1ece4;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.cc-reward-review__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+}
+
+.cc-reward-review__actions button {
+  appearance:none;
+  border:1px solid #211d1a;
+  border-radius:.5rem;
+  padding:.7rem .95rem;
+  background:#fffdf8;
+  color:#211d1a;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.cc-reward-review__actions [data-reward-confirm] {
+  background:#211d1a;
+  color:#fffdf8;
+}
+
 /* Poster: a stamped participation card. */
 .cc-social--poster .cc-resource-state {
   border-color:var(--cc-night-line);
@@ -1400,6 +1533,14 @@
 
 .cc-social--poster .cc-resource-state__metaphor {
   letter-spacing:.07em;
+}
+
+.cc-social--poster .cc-reward-claim__action button {
+  border-color:var(--cc-night-line);
+  background:rgba(255,255,255,.04);
+  box-shadow:3px 3px 0 rgba(255,255,255,.08);
+  text-transform:uppercase;
+  letter-spacing:.04em;
 }
 
 /* Editorial: restrained account ledger inside the publication. */
@@ -1422,6 +1563,12 @@
   font-family:Georgia,serif;
 }
 
+.cc-social--editorial .cc-reward-claim__action button {
+  border-width:0 0 2px;
+  padding:.35rem .1rem .25rem;
+  font-family:Georgia,serif;
+}
+
 /* Hospitality: warm personal check-in rather than wallet chrome. */
 .cc-social--hospitality .cc-resource-state {
   border-color:rgba(45,37,31,.2);
@@ -1436,9 +1583,30 @@
   background:rgba(255,255,255,.42);
 }
 
+.cc-social--hospitality .cc-reward-claim__action button {
+  border-color:rgba(45,37,31,.3);
+  border-radius:999px;
+  background:#2d251f;
+  color:#fffaf1;
+}
+
 @media (max-width:760px) {
   .cc-resource-state__grid,
   .cc-resource-state__rewards dl {
+    grid-template-columns:1fr;
+  }
+
+  .cc-reward-claim__action {
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .cc-reward-claim__action button,
+  .cc-reward-review__actions button {
+    width:100%;
+  }
+
+  .cc-reward-review dl {
     grid-template-columns:1fr;
   }
 }

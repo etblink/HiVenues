@@ -13,7 +13,8 @@
       resourceLabels: {
         kicker: 'Reader account', title: 'Your participation capacity',
         body: 'Current Hive capacity and rewards, translated into this publication without turning the page into a wallet dashboard.',
-        voting: 'Recommendation strength', capacity: 'Room to participate', basis: 'Protocol footing', rewards: 'Rewards on record'
+        voting: 'Recommendation strength', capacity: 'Room to participate', basis: 'Protocol footing', rewards: 'Rewards on record',
+        claimKicker: 'Account action', claimAction: 'Claim rewards'
       },
       followParticipationLabels: {
         kicker: 'Reader network',
@@ -38,8 +39,9 @@
       }
     }) %>
   </main>
-  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span><%= resourceState?.visible ? 'Personal Hive state / read-only' : 'Public profile / wallet-owned follow' %></span></footer>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span><%= resourceState?.visible ? (claimRewardsEndpoint && resourceState.hasClaimableRewards ? 'Personal Hive state / rewards ready' : 'Personal Hive state / read-only') : 'Public profile / wallet-owned follow' %></span></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
+  <% if (claimRewardsEndpoint && resourceState?.hasClaimableRewards) { %><script src="/js/hivenues-reward-claim.js" defer></script><% } %>
 </body>
 </html>

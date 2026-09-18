@@ -483,6 +483,10 @@ class HiveReadService {
     };
   }
 
+  async observeRewardClaimOperation(record) {
+    return this.observeExactTransaction(record);
+  }
+
   async observeM4Operation(record) {
     return this.observeExactTransaction(record);
   }

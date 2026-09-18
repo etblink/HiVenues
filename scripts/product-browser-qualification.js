@@ -131,6 +131,15 @@ function productReadService(publicKey) {
   const communityState = new Set();
   const contentRecords = new Map();
   const voteState = new Map();
+  const rewardState = new Map([[
+    'etblink',
+    {
+      rewardHive: '1.000 HIVE',
+      rewardHbd: '0.500 HBD',
+      rewardVests: '1000.000000 VESTS',
+      lastClaim: null,
+    },
+  ]]);
   const followKey = (follower, following) => follower + '->' + following;
   const communityKey = (account, community) => account + '->' + community;
   const voteKey = (voter, author, permlink) => voter + '->' + author + '/' + permlink;
@@ -243,6 +252,16 @@ function productReadService(publicKey) {
       }]));
     },
     async getWallet(account) {
+      const rewards = rewardState.get(account) || {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: null,
+      };
+      const hive = Number.parseFloat(rewards.rewardHive);
+      const hbd = Number.parseFloat(rewards.rewardHbd);
+      const vestingShares = Number.parseFloat(rewards.rewardVests);
+      const hasClaimableRewards = hive > 0 || hbd > 0 || vestingShares > 0;
       return {
         account,
         displayedAt: '2026-09-18T12:00:00.000Z',
@@ -254,12 +273,26 @@ function productReadService(publicKey) {
         beerSegmentsFilled: 7,
         milestone: { name: 'Synthetic', progressPercent: 10, hasNextLevel: true, max: 1000 },
         rewards: {
-          hive: 1,
-          hbd: 0.5,
-          hivePower: 0.5,
-          vestingShares: 1000,
+          hive,
+          hbd,
+          hivePower: hasClaimableRewards ? 0.5 : 0,
+          vestingShares,
         },
-        hasClaimableRewards: true,
+        hasClaimableRewards,
+      };
+    },
+    async getAccountRecord(account) {
+      const rewards = rewardState.get(account) || {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: null,
+      };
+      return {
+        name: account,
+        reward_hive_balance: rewards.rewardHive,
+        reward_hbd_balance: rewards.rewardHbd,
+        reward_vesting_balance: rewards.rewardVests,
       };
     },
     async getProfile(account) {
@@ -366,6 +399,38 @@ function productReadService(publicKey) {
     voteSnapshot() {
       return voteRecords().map((item) => structuredClone(item));
     },
+    async observeRewardClaimOperation(record) {
+      const rewards = rewardState.get(record.account);
+      const lastClaim = rewards?.lastClaim;
+      if (!lastClaim || !record.transactionId) return false;
+      return lastClaim.transactionId === record.transactionId
+        && JSON.stringify(lastClaim.operations) === JSON.stringify(record.operations);
+    },
+    applyRewardClaimOperation(value, transactionId) {
+      const rewards = rewardState.get(value.account);
+      assert.ok(rewards, 'synthetic reward account must exist');
+      assert.equal(value.reward_hive, rewards.rewardHive);
+      assert.equal(value.reward_hbd, rewards.rewardHbd);
+      assert.equal(value.reward_vests, rewards.rewardVests);
+      const operations = [[
+        'claim_reward_balance',
+        {
+          account: value.account,
+          reward_hive: value.reward_hive,
+          reward_hbd: value.reward_hbd,
+          reward_vests: value.reward_vests,
+        },
+      ]];
+      rewardState.set(value.account, {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: { transactionId, operations },
+      });
+    },
+    rewardSnapshot(account) {
+      return structuredClone(rewardState.get(account) || null);
+    },
     async observeContentOperation(record) {
       const [type, value] = record?.operations?.[0] || [];
       if (type !== 'comment' || !value) return false;
@@ -432,6 +497,28 @@ function applyAuthorizedRelationshipOperation(hiveReadService, account, operatio
   return crypto.createHash('sha1')
     .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
     .digest('hex');
+}
+
+
+function applyAuthorizedRewardClaimOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'claim_reward_balance');
+  assert.equal(value.account, account);
+  assert.match(value.reward_hive, /^\d+\.\d{3} HIVE$/);
+  assert.match(value.reward_hbd, /^\d+\.\d{3} HBD$/);
+  assert.match(value.reward_vests, /^\d+\.\d{6} VESTS$/);
+  const transactionId = crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.rewardClaimBroadcasts.length + 1]))
+    .digest('hex');
+  hiveReadService.applyRewardClaimOperation(value, transactionId);
+  counters.rewardClaimBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+    transactionId,
+  });
+  return transactionId;
 }
 
 
@@ -538,8 +625,13 @@ async function pageAudit(page, axeSource, label) {
         text: (node.textContent || node.value || '').trim(),
         tag: node.tagName,
         authorizedVote: Boolean(node.closest('[data-hivenues-vote]')),
+        authorizedRewardClaim: Boolean(node.closest('[data-hivenues-reward-claim]')),
       }))
-      .filter((item) => held.test(item.text) && !item.authorizedVote);
+      .filter((item) => (
+        held.test(item.text)
+        && !item.authorizedVote
+        && !item.authorizedRewardClaim
+      ));
     const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
       .map((root) => ({
         action: root.dataset.participationAction || '',
@@ -571,6 +663,17 @@ async function pageAudit(page, axeSource, label) {
       || !item.directions.includes('upvote')
       || item.directions.some((direction) => !['upvote', 'downvote'].includes(direction))
     ));
+    const rewardClaim = Array.from(document.querySelectorAll('[data-hivenues-reward-claim]'))
+      .map((root) => ({
+        actor: root.dataset.rewardActor || '',
+        url: root.dataset.rewardUrl || '',
+        buttons: root.querySelectorAll('[data-reward-submit]').length,
+      }));
+    const invalidRewardClaim = rewardClaim.filter((item) => (
+      !item.actor
+      || !/^\/participation\/[^/]+\/rewards\/claim$/.test(item.url)
+      || item.buttons !== 1
+    ));
     return {
       unauthorized,
       relationship,
@@ -579,6 +682,8 @@ async function pageAudit(page, axeSource, label) {
       invalidContent,
       vote,
       invalidVote,
+      rewardClaim,
+      invalidRewardClaim,
     };
   });
   const accessibility = await page.evaluate(async () => {
@@ -603,6 +708,7 @@ async function pageAudit(page, axeSource, label) {
   assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
   assert.deepEqual(controls.invalidContent, [], label + ': invalid content controls');
   assert.deepEqual(controls.invalidVote, [], label + ': invalid vote controls');
+  assert.deepEqual(controls.invalidRewardClaim, [], label + ': invalid reward claim controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -1110,6 +1216,27 @@ async function approvePendingVote(page, hiveReadService, counters) {
   return { ...pending, transactionId };
 }
 
+async function approvePendingRewardClaim(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Posting');
+  assert.equal(pending.operations.length, 1);
+  assert.equal(pending.operations[0][0], 'claim_reward_balance');
+  const transactionId = applyAuthorizedRewardClaimOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
 async function runResourceRewardEvidence(
   browser,
   axeSource,
@@ -1136,18 +1263,21 @@ async function runResourceRewardEvidence(
       family: 'poster',
       title: 'Your participation energy',
       metaphor: 'Raise-a-glass strength',
+      claimAction: 'Collect rewards',
     },
     {
       slug: 'nova-ashby',
       family: 'editorial',
       title: 'Your participation capacity',
       metaphor: 'Recommendation strength',
+      claimAction: 'Claim rewards',
     },
     {
       slug: 'harbor-and-hearth',
       family: 'hospitality',
       title: 'Your participation readiness',
       metaphor: 'Applause strength',
+      claimAction: 'Collect rewards',
     },
   ];
 
@@ -1168,10 +1298,17 @@ async function runResourceRewardEvidence(
         assert.match(await resource.textContent(), /550\.000 HP/);
         assert.match(await resource.textContent(), /Resource Credits \(RC\)/);
         assert.match(await resource.textContent(), /Claimable rewards/);
-        assert.match(await resource.textContent(), /This view is read-only/);
+        assert.match(
+          await resource.locator('[data-reward-submit]').textContent(),
+          new RegExp(item.claimAction),
+        );
+        assert.match(
+          await resource.textContent(),
+          /only available change here is claiming these exact pending rewards/i,
+        );
         assert.equal(
-          await resource.locator('button, input[type="submit"], [role="button"]').count(),
-          0,
+          await resource.locator('[data-reward-submit]').count(),
+          1,
         );
         await capture(
           page,
@@ -1181,6 +1318,81 @@ async function runResourceRewardEvidence(
         );
       }
     }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRewardClaimJourney(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(
+      origin + '/candidate-c/northline-hall/community/people/etblink',
+      { waitUntil: 'networkidle' },
+    );
+    const root = page.locator('[data-hivenues-reward-claim]').first();
+    await root.waitFor();
+    assert.equal(await root.locator('[data-reward-submit]').textContent(), 'Collect rewards');
+
+    await root.locator('[data-reward-submit]').click();
+    const dialog = root.locator('[data-reward-review][open]');
+    await dialog.waitFor();
+    assert.equal(await root.getAttribute('data-reward-state'), 'review');
+    assert.equal(await dialog.locator('[data-reward-review-account]').textContent(), '@etblink');
+    assert.equal(await dialog.locator('[data-reward-review-hive]').textContent(), '1.000 HIVE');
+    assert.equal(await dialog.locator('[data-reward-review-hbd]').textContent(), '0.500 HBD');
+    assert.equal(
+      await dialog.locator('[data-reward-review-vests]').textContent(),
+      '1000.000000 VESTS',
+    );
+    assert.equal(await dialog.locator('[data-reward-review-authority]').textContent(), 'Posting');
+    assert.match(
+      await dialog.locator('[data-reward-review-operations]').textContent(),
+      /claim_reward_balance/,
+    );
+    await capture(page, axeSource, manifest, 'poster-reward-claim-review');
+
+    await dialog.locator('[data-reward-confirm]').click();
+    await page.locator('[data-reward-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, 'poster-reward-claim-awaiting-wallet');
+
+    const reload = page.waitForEvent('load');
+    await approvePendingRewardClaim(page, hiveReadService, counters);
+    await reload;
+    await page.waitForLoadState('networkidle');
+
+    const resource = page.locator('.cc-resource-state').first();
+    await resource.waitFor();
+    assert.equal(await resource.locator('[data-hivenues-reward-claim]').count(), 0);
+    assert.match(await resource.textContent(), /No claimable Hive rewards are waiting right now/);
+    assert.match(await resource.textContent(), /This resource view is read-only/);
+    const rewardSnapshot = hiveReadService.rewardSnapshot('etblink');
+    assert.equal(rewardSnapshot.rewardHive, '0.000 HIVE');
+    assert.equal(rewardSnapshot.rewardHbd, '0.000 HBD');
+    assert.equal(rewardSnapshot.rewardVests, '0.000000 VESTS');
+    await capture(page, axeSource, manifest, 'poster-reward-claim-confirmed');
   } finally {
     await context.close();
   }
@@ -1659,6 +1871,7 @@ async function main() {
     walletBroadcasts: [],
     contentBroadcasts: [],
     voteBroadcasts: [],
+    rewardClaimBroadcasts: [],
   };
   const manifest = {
     qualification: 'hivenues-product-browser-participation',
@@ -1695,6 +1908,9 @@ async function main() {
       'vote-wallet-pending',
       'vote-canonical-confirmation',
       'three-direction-resource-reward-owner-state',
+      'reward-claim-review',
+      'reward-claim-wallet-pending',
+      'reward-claim-canonical-confirmation',
     ],
   };
 
@@ -1749,6 +1965,17 @@ async function main() {
       manifest,
       counters,
       identityServices,
+    );
+    await runRewardClaimJourney(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
     );
     await runVotePolicyStudioEvidence(
       browser,
@@ -1832,9 +2059,13 @@ async function main() {
   assert.equal(mutatingIdentityPaths.has('/identity/challenge'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/verify'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/disconnect'), true);
-  assert.equal(
-    observedPaths.some((value) => /\/(payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)),
-    false,
+  const unauthorizedHeldMutationPaths = observedPaths.filter((value) => (
+    /\/(payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)
+    && !/^\/participation\/[^/]+\/rewards\/claim$/.test(value)
+  ));
+  assert.deepEqual(
+    unauthorizedHeldMutationPaths,
+    [],
     'browser invoked a held mutation path',
   );
   assert.equal(
@@ -1851,6 +2082,11 @@ async function main() {
     observedPaths.some((value) => /\/participation\/[^/]+\/votes\/[^/]+\/[^/]+\/[^/]+\/[^/]+$/.test(value)),
     true,
     'browser never exercised vote participation',
+  );
+  assert.equal(
+    observedPaths.some((value) => /^\/participation\/[^/]+\/rewards\/claim$/.test(value)),
+    true,
+    'browser never exercised reward claiming',
   );
   assert.equal(counters.walletBroadcasts.length, 4);
   assert.deepEqual(
@@ -1887,6 +2123,17 @@ async function main() {
     counters.voteBroadcasts.map((entry) => entry.operations[0][1].voter),
     ['etblink', 'etblink'],
   );
+  assert.equal(counters.rewardClaimBroadcasts.length, 1);
+  assert.deepEqual(counters.rewardClaimBroadcasts[0].operations, [[
+    'claim_reward_balance',
+    {
+      account: 'etblink',
+      reward_hive: '1.000 HIVE',
+      reward_hbd: '0.500 HBD',
+      reward_vests: '1000.000000 VESTS',
+    },
+  ]]);
+  assert.match(counters.rewardClaimBroadcasts[0].transactionId, /^[0-9a-f]{40}$/);
   assert.equal(
     hiveReadService.voteSnapshot().some((item) => (
       item.voter === 'external-reader'
@@ -1918,7 +2165,8 @@ async function main() {
         + item.controls.unauthorized.length
         + item.controls.invalidRelationship.length
         + item.controls.invalidContent.length
-        + item.controls.invalidVote.length,
+        + item.controls.invalidVote.length
+        + item.controls.invalidRewardClaim.length,
       0,
     ),
     externalRequests: counters.externalRequests.length,
@@ -1927,10 +2175,11 @@ async function main() {
     authorizedRelationshipBroadcasts: counters.walletBroadcasts.length,
     authorizedContentBroadcasts: counters.contentBroadcasts.length,
     authorizedVoteBroadcasts: counters.voteBroadcasts.length,
+    authorizedRewardClaimBroadcasts: counters.rewardClaimBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 62);
+  assert.equal(manifest.summary.screenshotCount, 65);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
@@ -1940,6 +2189,7 @@ async function main() {
   assert.equal(manifest.summary.authorizedRelationshipBroadcasts, 4);
   assert.equal(manifest.summary.authorizedContentBroadcasts, 3);
   assert.equal(manifest.summary.authorizedVoteBroadcasts, 2);
+  assert.equal(manifest.summary.authorizedRewardClaimBroadcasts, 1);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),

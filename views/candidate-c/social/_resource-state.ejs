@@ -52,10 +52,54 @@
             <summary>Protocol reward detail</summary>
             <p><%= resourceState.rewards.vestingShares.toFixed(6) %> VESTS are currently represented in the Hive Power reward figure above.</p>
           </details>
+          <% if (claimRewardsEndpoint) { %>
+            <div
+              class="cc-reward-claim"
+              data-hivenues-reward-claim
+              data-reward-url="<%= claimRewardsEndpoint %>"
+              data-reward-actor="<%= resourceState.account %>"
+              data-reward-state="ready"
+            >
+              <div class="cc-reward-claim__action">
+                <div>
+                  <p class="cc-resource-state__metaphor"><%= resourceLabels.claimKicker %></p>
+                  <p>Claiming moves the exact current pending rewards into your own Hive account. It does not send them to another account.</p>
+                </div>
+                <button type="button" data-reward-submit><%= resourceLabels.claimAction %></button>
+              </div>
+              <p class="cc-reward-claim__status" data-reward-status role="status" aria-live="polite">Review the exact current rewards before your wallet opens.</p>
+
+              <dialog class="cc-reward-review" data-reward-review aria-labelledby="cc-reward-review-title">
+                <form method="dialog">
+                  <p class="cc-kicker">Before your wallet opens</p>
+                  <h2 id="cc-reward-review-title">Review the exact Hive reward claim</h2>
+                  <p data-reward-review-consequence></p>
+                  <dl>
+                    <div><dt>Verified account</dt><dd data-reward-review-account></dd></div>
+                    <div><dt>Hive mechanic</dt><dd>claim_reward_balance</dd></div>
+                    <div><dt>Pending HIVE</dt><dd data-reward-review-hive></dd></div>
+                    <div><dt>Pending HBD</dt><dd data-reward-review-hbd></dd></div>
+                    <div><dt>Pending vesting reward</dt><dd data-reward-review-vests></dd></div>
+                    <div><dt>Authority</dt><dd data-reward-review-authority></dd></div>
+                  </dl>
+                  <p>These exact current pending rewards will be claimed into the same Hive account. New rewards that arrive later are not part of this reviewed operation.</p>
+                  <details>
+                    <summary>Technical operation details</summary>
+                    <p>Fingerprint: <code data-reward-review-fingerprint></code></p>
+                    <pre data-reward-review-operations></pre>
+                  </details>
+                  <div class="cc-reward-review__actions">
+                    <button type="button" data-reward-confirm>Continue to wallet</button>
+                    <button type="button" data-reward-cancel>Cancel</button>
+                  </div>
+                </form>
+              </dialog>
+            </div>
+          <% } %>
         <% } else { %>
           <p class="cc-resource-state__empty">No claimable Hive rewards are waiting right now.</p>
         <% } %>
-        <p class="cc-resource-state__truth">This view is read-only. HiVenues is not offering reward claims, transfers, RC delegation, or other value or resource changes here.</p>
+        <p class="cc-resource-state__truth"><% if (claimRewardsEndpoint && resourceState.hasClaimableRewards) { %>The only available change here is claiming these exact pending rewards into your own Hive account. <% } else { %>This resource view is read-only. <% } %>Transfers, payments, RC delegation, power changes, savings and other value actions are not available here.</p>
       </section>
 
       <p class="cc-resource-state__timestamp">

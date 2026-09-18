@@ -129,9 +129,10 @@ test('Poster owner profile renders host-native resource/reward truth with no wri
   assert.match(response.text, /Resource Credits \(RC\)/);
   assert.match(response.text, /Claimable rewards/);
   assert.match(response.text, /1000\.000000 VESTS/);
-  assert.match(response.text, /This view is read-only/);
+  assert.match(response.text, /This resource view is read-only/);
+  assert.doesNotMatch(response.text, /data-hivenues-reward-claim/);
   assert.doesNotMatch(response.text, /data-m4-action="claim-rewards"/);
-  assert.doesNotMatch(response.text, /Review reward claim/);
+  assert.doesNotMatch(response.text, /Review the exact Hive reward claim/);
   assert.equal(hiveReadService.calls.length, 1);
 });
 

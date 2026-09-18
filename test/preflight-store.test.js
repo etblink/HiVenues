@@ -61,6 +61,19 @@ test('binds preflights to a session and records acceptance before observation', 
   assert.ok(observed.observedAt);
 });
 
+test('canonical observation releases the duplicate guard while preserving the observed record', () => {
+  let id = 0;
+  const store = new PreflightStore({ ttlMs: 300_000, random: () => `preflight-${++id}` });
+  const first = store.create({ sessionId: 'session-1', envelope });
+  store.markAccepted(first.id, 'session-1', 'b'.repeat(40));
+  const observed = store.markObserved(first.id, 'session-1', true);
+  assert.equal(observed.state, 'observed');
+
+  const later = store.create({ sessionId: 'session-1', envelope });
+  assert.equal(later.id, 'preflight-2');
+  assert.equal(store.get(first.id, 'session-1').state, 'observed');
+});
+
 test('expires preflights and releases their duplicate keys', () => {
   let now = 1_000;
   let id = 0;
