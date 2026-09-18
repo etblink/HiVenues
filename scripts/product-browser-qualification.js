@@ -1427,7 +1427,7 @@ async function runValueRecipientStudioEvidence(
     await capture(page, axeSource, manifest, 'poster-studio-value-recipient-desktop');
 
     const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
-    await inspector.locator('input[name="valueRecipient"]').fill('northline-support');
+    await inspector.locator('input[name="valueRecipient"]').fill('northline-pay');
     const saved = page.waitForResponse((response) => (
       response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/candidate-c/studio/northline-hall/value-recipient'
@@ -1437,11 +1437,11 @@ async function runValueRecipientStudioEvidence(
     await inspector.locator('input[name="valueRecipient"]').waitFor();
     assert.equal(
       await inspector.locator('input[name="valueRecipient"]').inputValue(),
-      'northline-support',
+      'northline-pay',
     );
     assert.equal(
       store.snapshot('northline-hall').draft.bindings.hive.valueRecipient,
-      'northline-support',
+      'northline-pay',
     );
     assert.equal(
       Object.hasOwn(store.publicSnapshot('northline-hall').draft.bindings.hive, 'valueRecipient'),
