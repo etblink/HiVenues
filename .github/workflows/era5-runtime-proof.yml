@@ -11,6 +11,7 @@ on:
       - 'package-lock.json'
       - '.github/workflows/era5-runtime-proof.yml'
       - 'docs/HIVENUES_ERA5_WINDOWS_PACKAGING_DECISION_0_1_0.md'
+      - 'docs/HIVENUES_ERA5_WINDOWS_DISTRIBUTABLE_0_1_0.md'
   workflow_dispatch:
 
 permissions:

@@ -1,6 +1,6 @@
 # HiVenues Era 5 — Windows Distributable 0.1.0
 
-Status: **CANDIDATE — freezes after exact-head reproducibility and extracted-artifact qualification are green**
+Status: **FROZEN — Tranche-2 reproducible Windows x64 distributable accepted 2026-09-18**
 
 Governing issue: #323
 
@@ -84,12 +84,36 @@ This artifact does not yet select:
 
 Those decisions must be layered on top of this qualified distributable without moving workspace/media into the installation tree or changing the server-owned product architecture.
 
-## Freeze rule
+## Accepted Tranche-2 evidence
 
-Promote this document to **FROZEN** only after the exact PR head passes:
+The distributable contract was accepted after the exact implementation head passed:
 
-- normal Windows/Ubuntu CI;
-- Product Browser where triggered;
-- Era-5 runtime proof;
-- Era-5 Windows distributable double-build reproducibility;
-- extracted-artifact installed-runtime qualification.
+```text
+SOURCE_SHA  = c420985ff6c6e3b9bc8c573e614f3b9b511f1989
+SOURCE_TREE = 7f6960ce04e51eeee315fd37476d3f93e8a6d571
+
+CI                         = #1374 / PASS
+ERA_5_RUNTIME_PROOF        = #15 / PASS
+WINDOWS_DISTRIBUTABLE      = #1 / PASS
+```
+
+Reproducibility evidence:
+
+```text
+ARCHIVE_A_SHA256  = e86d4d9f67863592b24714fd534ab494da29bd26643e280c9f7af7f7cbb2840e
+ARCHIVE_B_SHA256  = e86d4d9f67863592b24714fd534ab494da29bd26643e280c9f7af7f7cbb2840e
+
+LAUNCHER_A_SHA256 = c0023a8d6bd368127533a0b72a8e3c5becd1a46aeb3f7fc17481e90b7c0cc240
+LAUNCHER_B_SHA256 = c0023a8d6bd368127533a0b72a8e3c5becd1a46aeb3f7fc17481e90b7c0cc240
+```
+
+Qualified artifact:
+
+```text
+HiVenues-Studio-1.0.0-windows-x64.zip
+GitHub Actions artifact ID = 10572611417
+```
+
+The workflow extracted the exact ZIP using ordinary Windows archive tooling and the extracted bundle passed the installed-runtime/native-launcher qualification.
+
+This freezes the **unsigned reproducible distributable boundary** for downstream Era-5 installer/signing work. It does not authorize broad release or treat the unsigned ZIP as a production installer.
