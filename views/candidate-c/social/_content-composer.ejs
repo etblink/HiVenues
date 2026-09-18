@@ -67,8 +67,16 @@
         <div><dt>Public target</dt><dd data-content-review-target></dd></div>
         <div><dt>Permlink</dt><dd data-content-review-permlink></dd></div>
       </dl>
+      <% if (contentMode === 'update') { %>
+        <section class="cc-content-review__public cc-content-review__public--before">
+          <p class="cc-kicker">Currently public</p>
+          <h3><%= contentTitle %></h3>
+          <p><%= contentBody %></p>
+        </section>
+      <% } %>
       <% if (contentMode === 'post' || contentMode === 'update') { %>
         <section class="cc-content-review__public">
+          <% if (contentMode === 'update') { %><p class="cc-kicker">After this update</p><% } %>
           <h3 data-content-review-title-text></h3>
           <p data-content-review-body-text></p>
         </section>
