@@ -191,8 +191,14 @@ test('one real-Hive-shaped read service becomes three host-native social hubs', 
     assert.match(response.text, /Juniper Lane/);
     assert.match(response.text, /Paper Sparrow/);
     assert.match(response.text, /People connected/);
-    assert.doesNotMatch(response.text, /<form\b/i);
-    assert.doesNotMatch(response.text, /<button\b/i);
+    assert.match(response.text, /data-hivenues-identity/);
+    assert.match(response.text, /data-identity-form/);
+    assert.match(response.text, /fresh identity message only/);
+    assert.match(response.text, /never receives your private key/);
+    assert.doesNotMatch(
+      response.text,
+      />\s*(Follow|Unfollow|Subscribe|Unsubscribe|Vote|Upvote|Downvote|Post|Publish|Reply|Comment|Pay|Send)\s*</i,
+    );
     assert.doesNotMatch(response.text, /Hive dashboard/i);
   }
 
