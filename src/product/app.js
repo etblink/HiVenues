@@ -187,6 +187,12 @@ function createHiVenuesApp({
       && typeof activeParticipationServices.hiveReadService?.getPostWithComments === 'function'
       && typeof activeParticipationServices.hiveReadService?.observeContentOperation === 'function',
     );
+    res.locals.hivenuesVoteAvailable = Boolean(
+      activeParticipationServices
+      && typeof activeParticipationServices.hiveReadService?.getPostWithComments === 'function'
+      && typeof activeParticipationServices.hiveReadService?.getVoteWeight === 'function'
+      && typeof activeParticipationServices.hiveReadService?.observeVoteOperation === 'function',
+    );
     next();
   });
   app.use('/identity', createHiVenuesIdentityRouter({
