@@ -182,7 +182,8 @@
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <label for="cc-value-recipient">Hive value recipient <span aria-hidden="true">·</span> optional</label>
-      <input id="cc-value-recipient" name="valueRecipient" value="<%= graph.bindings.hive.valueRecipient || '' %>" placeholder="host-account" autocomplete="off">
+      <input id="cc-value-recipient" name="valueRecipient" value="<%= graph.bindings.hive.valueRecipient || '' %>" placeholder="host-account" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p class="cc-inspector-help">Hive account names are at most 16 characters; HiVenues validates the complete account-name rules when you save.</p>
       <div class="cc-consequence-truth">
         <strong>This is a separate money-recipient role.</strong><br>
         HiVenues will not assume that the account used for host identity, publishing or community administration should also receive value. No private key is stored here.
