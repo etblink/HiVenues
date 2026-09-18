@@ -64,14 +64,20 @@ function qualificationHosts() {
   const posterHost = hosts.find((host) => host.identity.slug === 'northline-hall');
   posterHost.bindings.hive.showNegativeVoteAction = true;
   posterHost.voice.terms.downvote_hive = 'Not for this room';
+  posterHost.bindings.hive.valueRecipient = 'northline-pay';
+  posterHost.voice.terms.support_hive = 'Support the room';
 
   const editorialHost = hosts.find((host) => host.identity.slug === 'nova-ashby');
   editorialHost.bindings.hive.showNegativeVoteAction = false;
   editorialHost.voice.terms.downvote_hive = 'Push back';
+  editorialHost.bindings.hive.valueRecipient = 'nova-pay';
+  editorialHost.voice.terms.support_hive = 'Support the work';
 
   const hospitalityHost = hosts.find((host) => host.identity.slug === 'harbor-and-hearth');
   hospitalityHost.bindings.hive.showNegativeVoteAction = true;
   hospitalityHost.voice.terms.downvote_hive = 'Not for this table';
+  hospitalityHost.bindings.hive.valueRecipient = 'harbor-pay';
+  hospitalityHost.voice.terms.support_hive = 'Leave something for the house';
   return hosts;
 }
 
@@ -140,6 +146,22 @@ function productReadService(publicKey) {
       lastClaim: null,
     },
   ]]);
+  const liquidState = new Map([
+    ['etblink', { hive: 12_345n, hbd: 6_789n }],
+    ['northline-pay', { hive: 500n, hbd: 250n }],
+    ['nova-pay', { hive: 100n, hbd: 100n }],
+    ['harbor-pay', { hive: 300n, hbd: 300n }],
+  ]);
+  let lastSupport = null;
+  const canonicalLiquid = (units, symbol) => (
+    (units / 1000n).toString() + '.' + (units % 1000n).toString().padStart(3, '0') + ' ' + symbol
+  );
+  const parseLiquid = (value, symbol) => {
+    const match = /^(0|[1-9][0-9]*)\.([0-9]{3}) (HIVE|HBD)$/.exec(String(value || ''));
+    assert.ok(match, 'synthetic liquid asset must be canonical');
+    assert.equal(match[3], symbol);
+    return BigInt(match[1]) * 1000n + BigInt(match[2]);
+  };
   const followKey = (follower, following) => follower + '->' + following;
   const communityKey = (account, community) => account + '->' + community;
   const voteKey = (voter, author, permlink) => voter + '->' + author + '/' + permlink;
