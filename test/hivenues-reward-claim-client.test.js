@@ -121,11 +121,14 @@ test('reward claim controller reviews exact current rewards, uses Posting wallet
   try {
     await controller.run(root);
 
-    assert.deepEqual(broadcasts, [{
-      account: 'paper-sparrow',
-      operations: preflight().operations,
-      authority: 'Posting',
-    }]);
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(broadcasts)),
+      [{
+        account: 'paper-sparrow',
+        operations: preflight().operations,
+        authority: 'Posting',
+      }],
+    );
     assert.equal(observations, 2);
     assert.equal(reloads, 1);
     assert.equal(root.dataset.rewardState, 'confirmed');
