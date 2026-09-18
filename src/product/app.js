@@ -198,6 +198,11 @@ function createHiVenuesApp({
       && typeof activeParticipationServices.hiveReadService?.getAccountRecord === 'function'
       && typeof activeParticipationServices.hiveReadService?.observeRewardClaimOperation === 'function',
     );
+    res.locals.hivenuesSupportAvailable = Boolean(
+      activeParticipationServices
+      && typeof activeParticipationServices.hiveReadService?.getAccountRecord === 'function'
+      && typeof activeParticipationServices.hiveReadService?.observeSupportOperation === 'function',
+    );
     next();
   });
   app.use('/identity', createHiVenuesIdentityRouter({
