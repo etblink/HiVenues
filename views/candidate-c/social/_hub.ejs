@@ -11,6 +11,8 @@
 <% } %>
 
 <% if (showMaterial) { %>
+  <%- include('_identity', { graph, identityLabels, hivenuesIdentityAvailable, hivenuesIdentity }) %>
+
   <% if (hub.community) { %>
     <section class="cc-social-community-card" aria-labelledby="cc-social-community-title">
       <div>
