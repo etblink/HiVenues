@@ -17,7 +17,7 @@
   <main class="cc-social-shell cc-social-hospitality-shell cc-discussion-shell cc-discussion-shell--hospitality">
     <p class="cc-hospitality-route"><a href="<%= socialHref %>">← Back around the table</a></p>
     <%- include('_discussion', {
-      graph, discussion, memberHref, contentUpdateEndpoint, contentReplyEndpoint, formatCommunityTime,
+      graph, discussion, memberHref, contentUpdateEndpoint, contentReplyEndpoint, voteEndpoint, votePresentation, formatCommunityTime,
       discussionLabels: {
         state: 'Table note status',
         unavailableTitle: 'This note is no longer at this table.',
@@ -60,5 +60,6 @@
   <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Public conversation · wallet-owned publishing</span></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-content.js" defer></script>
+  <script src="/js/hivenues-vote.js" defer></script>
 </body>
 </html>
