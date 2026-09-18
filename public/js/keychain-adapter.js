@@ -254,5 +254,9 @@
     }
   }
 
-  global.HiveBarKeychain = Object.freeze({ KeychainAdapter, KeychainError });
+  const api = Object.freeze({ KeychainAdapter, KeychainError });
+  global.HiVenuesKeychain = api;
+  // Preserve the historical runtime global for callers that still use the same
+  // adapter. HiVenues product surfaces use the product-named alias above.
+  global.HiveBarKeychain = api;
 })(window);
