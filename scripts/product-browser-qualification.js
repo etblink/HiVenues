@@ -1069,6 +1069,214 @@ async function approvePendingContent(page, hiveReadService, counters) {
   return { ...pending, transactionId };
 }
 
+async function approvePendingVote(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Posting');
+  assert.equal(pending.operations.length, 1);
+  assert.equal(pending.operations[0][0], 'vote');
+  const transactionId = applyAuthorizedVoteOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
+async function runVotePolicyStudioEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+      await page.setViewportSize(viewport);
+      await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
+      await page.locator('details:has(summary:text("Site")) > summary').click();
+      await page.locator('button[hx-get*="resource=participation"]').click();
+      const inspector = page.locator('#candidate-inspector');
+      await inspector.getByText('Choose whether this site shows a downvote action.').waitFor();
+      assert.equal(
+        await inspector.locator('input[name="showNegativeVoteAction"][value="show"]').isChecked(),
+        true,
+      );
+      assert.match(await inspector.textContent(), /does not make downvotes impossible on Hive/i);
+      assert.match(await inspector.textContent(), /another compatible Hive client/i);
+      await capture(
+        page,
+        axeSource,
+        manifest,
+        'poster-studio-vote-policy-' + viewportName,
+      );
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runVotePresentationEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  const cases = [
+    {
+      slug: 'northline-hall',
+      family: 'poster',
+      negativeShown: true,
+      positiveLabel: 'Raise a glass',
+      negativeLabel: 'Not for this room',
+    },
+    {
+      slug: 'nova-ashby',
+      family: 'editorial',
+      negativeShown: false,
+      positiveLabel: 'Send a spark',
+      negativeLabel: 'Push back',
+    },
+  ];
+
+  try {
+    for (const item of cases) {
+      for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          origin + '/candidate-c/' + item.slug + '/community/posts/etblink/room-note',
+          { waitUntil: 'networkidle' },
+        );
+        const vote = page.locator('.cc-discussion-root [data-hivenues-vote]').first();
+        await vote.waitFor();
+        assert.equal(await vote.locator('[data-vote-direction="upvote"]').textContent(), item.positiveLabel);
+        assert.equal(await vote.locator('[data-vote-direction="downvote"]').count(), item.negativeShown ? 1 : 0);
+        if (item.negativeShown) {
+          assert.equal(
+            await vote.locator('[data-vote-direction="downvote"]').textContent(),
+            item.negativeLabel,
+          );
+        } else {
+          assert.doesNotMatch(await vote.textContent(), new RegExp(item.negativeLabel, 'i'));
+        }
+        assert.equal(
+          await page.locator('.cc-discussion-root [title="Negative Hive votes"]').first().textContent(),
+          '↓ 1',
+        );
+        await capture(
+          page,
+          axeSource,
+          manifest,
+          item.family + '-vote-' + (item.negativeShown ? 'enabled-' : 'hidden-') + viewportName,
+        );
+      }
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runVoteJourneys(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  async function cast(direction, percent, labelPrefix, expectedWeight) {
+    const vote = page.locator('.cc-discussion-root [data-hivenues-vote]').first();
+    await vote.waitFor();
+    await vote.locator('[data-vote-percent]').fill(String(percent));
+    await vote.locator('[data-vote-direction="' + direction + '"]').click();
+
+    const dialog = vote.locator('[data-vote-review][open]');
+    await dialog.waitFor();
+    assert.equal(await vote.getAttribute('data-vote-state'), 'review');
+    assert.equal(await dialog.locator('[data-vote-review-account]').textContent(), '@etblink');
+    assert.equal(await dialog.locator('[data-vote-review-direction]').textContent(), direction);
+    assert.equal(await dialog.locator('[data-vote-review-percent]').textContent(), percent + '%');
+    assert.equal(
+      Number(await dialog.locator('[data-vote-review-weight]').textContent()),
+      expectedWeight,
+    );
+    assert.equal(await dialog.locator('[data-vote-review-authority]').textContent(), 'Posting');
+    assert.match(await dialog.locator('[data-vote-review-operations]').textContent(), /"vote"/);
+    await capture(page, axeSource, manifest, labelPrefix + '-review');
+
+    await dialog.locator('[data-vote-confirm]').click();
+    await page.locator('[data-vote-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, labelPrefix + '-awaiting-wallet');
+
+    const reload = page.waitForEvent('load');
+    await approvePendingVote(page, hiveReadService, counters);
+    await reload;
+    await page.waitForLoadState('networkidle');
+    const refreshed = page.locator('.cc-discussion-root [data-hivenues-vote]').first();
+    await refreshed.waitFor();
+    assert.match(
+      await refreshed.locator('[data-vote-current]').textContent(),
+      new RegExp((expectedWeight > 0 ? '\\+' : '') + (expectedWeight / 100) + '% from @etblink'),
+    );
+    await capture(page, axeSource, manifest, labelPrefix + '-confirmed');
+  }
+
+  try {
+    await page.goto(
+      origin + '/candidate-c/northline-hall/community/posts/etblink/room-note',
+      { waitUntil: 'networkidle' },
+    );
+    await cast('upvote', 42, 'poster-vote-upvote', 4200);
+    await cast('downvote', 37, 'poster-vote-downvote', -3700);
+  } finally {
+    await context.close();
+  }
+}
+
 async function runContentJourneys(
   browser,
   axeSource,
@@ -1434,6 +1642,32 @@ async function main() {
       identityServices,
       hiveReadService,
     );
+    await runVotePolicyStudioEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+    );
+    await runVotePresentationEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+    );
+    await runVoteJourneys(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
     await runContentJourneys(
       browser,
       axeSource,
@@ -1505,6 +1739,11 @@ async function main() {
     true,
     'browser never exercised follow participation',
   );
+  assert.equal(
+    observedPaths.some((value) => /\/participation\/[^/]+\/votes\/[^/]+\/[^/]+\/[^/]+\/[^/]+$/.test(value)),
+    true,
+    'browser never exercised vote participation',
+  );
   assert.equal(counters.walletBroadcasts.length, 4);
   assert.deepEqual(
     counters.walletBroadcasts.map((entry) => {
@@ -1530,6 +1769,25 @@ async function main() {
         : 'post';
     }),
     ['post', 'update', 'reply'],
+  );
+  assert.equal(counters.voteBroadcasts.length, 2);
+  assert.deepEqual(
+    counters.voteBroadcasts.map((entry) => entry.operations[0][1].weight),
+    [4200, -3700],
+  );
+  assert.deepEqual(
+    counters.voteBroadcasts.map((entry) => entry.operations[0][1].voter),
+    ['etblink', 'etblink'],
+  );
+  assert.equal(
+    hiveReadService.voteSnapshot().some((item) => (
+      item.voter === 'external-reader'
+      && item.author === 'etblink'
+      && item.permlink === 'room-note'
+      && item.weight === -2500
+    )),
+    true,
+    'canonical external negative vote disappeared from synthetic Hive state',
   );
   assert.equal(
     hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment/.test(call.method)),
@@ -1564,7 +1822,7 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 44);
+  assert.equal(manifest.summary.screenshotCount, 56);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
@@ -1573,6 +1831,7 @@ async function main() {
   assert.equal(manifest.summary.unexpectedConsoleErrors, 0);
   assert.equal(manifest.summary.authorizedRelationshipBroadcasts, 4);
   assert.equal(manifest.summary.authorizedContentBroadcasts, 3);
+  assert.equal(manifest.summary.authorizedVoteBroadcasts, 2);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),
