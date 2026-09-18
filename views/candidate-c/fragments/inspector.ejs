@@ -175,6 +175,25 @@
     </form>
   <% } %>
 
+  <% if (selected === 'value-recipient') { %>
+    <p class="cc-studio-inspector__eyebrow">Site · Support & value</p>
+    <h2>Choose who receives direct support.</h2>
+    <form class="cc-inspector-form" method="post" action="/candidate-c/studio/<%= graph.identity.slug %>/value-recipient" hx-post="/candidate-c/studio/<%= graph.identity.slug %>/value-recipient" hx-target="#candidate-inspector" hx-swap="outerHTML">
+      <input type="hidden" name="expectedRevision" value="<%= revision %>">
+      <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label for="cc-value-recipient">Hive value recipient <span aria-hidden="true">·</span> optional</label>
+      <input id="cc-value-recipient" name="valueRecipient" value="<%= graph.bindings.hive.valueRecipient || '' %>" placeholder="host-account" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <p class="cc-inspector-help">Hive account names are at most 16 characters; HiVenues validates the complete account-name rules when you save.</p>
+      <div class="cc-consequence-truth">
+        <strong>This is a separate money-recipient role.</strong><br>
+        HiVenues will not assume that the account used for host identity, publishing or community administration should also receive value. No private key is stored here.
+      </div>
+      <p class="cc-inspector-help">Saving changes your Working version only. The visitor-facing support capability will consume the released value recipient, never an unpublished Working-only value.</p>
+      <p class="cc-inspector-help">Leave this blank to disable the value-recipient binding. This configuration alone does not move money or create a live support transfer.</p>
+      <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save value recipient</button></div>
+    </form>
+  <% } %>
+
   <% if (selected === 'connect') { %>
     <p class="cc-studio-inspector__eyebrow">Site · Connect</p>
     <h2>Where should visitors reach you?</h2>

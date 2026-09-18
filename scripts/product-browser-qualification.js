@@ -1398,6 +1398,64 @@ async function runRewardClaimJourney(
   }
 }
 
+async function runValueRecipientStudioEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  store,
+) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.setViewportSize(DESKTOP);
+    await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
+    await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
+    await page.getByRole('button', { name: 'Support & value' }).click();
+    const inspector = page.locator('#candidate-inspector');
+    await inspector.getByText('Choose who receives direct support.').waitFor();
+    assert.equal(await inspector.locator('input[name="valueRecipient"]').inputValue(), '');
+    assert.match(await inspector.textContent(), /separate money-recipient role/i);
+    assert.match(await inspector.textContent(), /No private key is stored here/i);
+    assert.match(await inspector.textContent(), /Working version only/i);
+    await capture(page, axeSource, manifest, 'poster-studio-value-recipient-desktop');
+
+    const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
+    await inspector.locator('input[name="valueRecipient"]').fill('northline-pay');
+    const saved = page.waitForResponse((response) => (
+      response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/candidate-c/studio/northline-hall/value-recipient'
+    ));
+    await inspector.getByRole('button', { name: 'Save value recipient' }).click();
+    assert.equal((await saved).status(), 200);
+    await inspector.locator('input[name="valueRecipient"]').waitFor();
+    assert.equal(
+      await inspector.locator('input[name="valueRecipient"]').inputValue(),
+      'northline-pay',
+    );
+    assert.equal(
+      store.snapshot('northline-hall').draft.bindings.hive.valueRecipient,
+      'northline-pay',
+    );
+    assert.equal(
+      Object.hasOwn(store.publicSnapshot('northline-hall').draft.bindings.hive, 'valueRecipient'),
+      false,
+    );
+    assert.equal(store.publicSnapshot('northline-hall').draftDigest, liveBefore);
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'poster-studio-value-recipient-mobile390');
+  } finally {
+    await context.close();
+  }
+}
+
 async function runVotePolicyStudioEvidence(
   browser,
   axeSource,
@@ -1838,6 +1896,16 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   }
 }
 
+function publicReleaseInvariant(snapshot) {
+  return {
+    revision: snapshot.revision,
+    draft: snapshot.draft,
+    releases: snapshot.releases,
+    liveReleaseId: snapshot.liveReleaseId,
+    draftDigest: snapshot.draftDigest,
+  };
+}
+
 async function main() {
   fs.rmSync(OUTPUT_ROOT, { recursive: true, force: true });
   fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
@@ -1848,7 +1916,10 @@ async function main() {
   const store = new CandidateCStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const beforePublicSnapshots = Object.fromEntries(
-    HOSTS.map(({ slug }) => [slug, JSON.stringify(store.publicSnapshot(slug))]),
+    HOSTS.map(({ slug }) => [
+      slug,
+      JSON.stringify(publicReleaseInvariant(store.publicSnapshot(slug))),
+    ]),
   );
   const hiveReadService = productReadService(publicKey);
   const identityServices = createHiVenuesIdentityServices({
@@ -1908,6 +1979,7 @@ async function main() {
       'vote-wallet-pending',
       'vote-canonical-confirmation',
       'three-direction-resource-reward-owner-state',
+      'studio-value-recipient-working-only',
       'reward-claim-review',
       'reward-claim-wallet-pending',
       'reward-claim-canonical-confirmation',
@@ -1977,6 +2049,14 @@ async function main() {
       key,
       publicKey,
     );
+    await runValueRecipientStudioEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      store,
+    );
     await runVotePolicyStudioEvidence(
       browser,
       axeSource,
@@ -2040,9 +2120,9 @@ async function main() {
   assert.deepEqual(store.diagnostics(), before, 'identity browser journey mutated HostGraph diagnostics');
   for (const { slug } of HOSTS) {
     assert.equal(
-      JSON.stringify(store.publicSnapshot(slug)),
+      JSON.stringify(publicReleaseInvariant(store.publicSnapshot(slug))),
       beforePublicSnapshots[slug],
-      slug + ': identity browser journey mutated the public Host snapshot',
+      slug + ': browser participation journey mutated the released Host snapshot',
     );
   }
   assert.deepEqual(counters.externalRequests, [], 'unexpected external browser requests');
@@ -2179,7 +2259,7 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 65);
+  assert.equal(manifest.summary.screenshotCount, 67);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);

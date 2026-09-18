@@ -144,6 +144,7 @@ test('Workstream F: every Studio edit response is one targeted swap plus exactly
     ['offer', { offerId: 'offer-harbor-carrots-001', title: 'Measured', summary: 'Measured.' }],
     ['look', { accent: '#244653' }],
     ['voice', { mechanicId: 'rsvp_local', term: 'Measured' }],
+    ['value-recipient', { valueRecipient: 'harbor-pay' }],
     ['connect', { contact: 'measured@example.test' }],
     ['media', { mediaId: 'media-harbor-table-001', x: 10, y: 90 }],
     ['move', { sectionId: 'hero', delta: 1 }],
