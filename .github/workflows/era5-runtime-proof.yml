@@ -35,7 +35,7 @@ jobs:
         id: source
         shell: pwsh
         run: |
-          "tree=$(git rev-parse HEAD^{tree})" >> $env:GITHUB_OUTPUT
+          "tree=$(git rev-parse 'HEAD^{tree}')" >> $env:GITHUB_OUTPUT
       - name: Build private-runtime proof
         shell: pwsh
         run: |

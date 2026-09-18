@@ -105,10 +105,11 @@ function provenance() {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const installed = resolveInstalledPaths();
-  const releaseInstance = acquireInstanceLock(installed.instanceLockPath);
+  let releaseInstance = () => {};
   let server;
   let timer;
   try {
+    releaseInstance = acquireInstanceLock(installed.instanceLockPath);
     const store = createHiVenuesStore({
       statePath: installed.statePath,
       mediaRoot: installed.mediaRoot,
