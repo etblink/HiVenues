@@ -48,15 +48,15 @@ test('Studio value-recipient edit is Working-only until Release and creates host
     .type('form')
     .send({
       ...tokens(store, slug),
-      valueRecipient: 'northline-support',
+      valueRecipient: 'northline-pay',
     })
     .expect(200);
 
-  assert.match(response.text, /northline-support/);
+  assert.match(response.text, /northline-pay/);
   assert.match(response.text, /separate money-recipient role/i);
 
   const working = store.snapshot(slug);
-  assert.equal(working.draft.bindings.hive.valueRecipient, 'northline-support');
+  assert.equal(working.draft.bindings.hive.valueRecipient, 'northline-pay');
   assert.equal(working.draft.voice.terms.support_hive, 'Support the room');
 
   const stillLive = store.publicSnapshot(slug);
@@ -67,7 +67,7 @@ test('Studio value-recipient edit is Working-only until Release and creates host
   const released = store.createRelease(slug, working.revision, working.draftDigest);
   assert.equal(released.ok, true);
   const live = store.publicSnapshot(slug);
-  assert.equal(live.draft.bindings.hive.valueRecipient, 'northline-support');
+  assert.equal(live.draft.bindings.hive.valueRecipient, 'northline-pay');
   assert.equal(live.draft.voice.terms.support_hive, 'Support the room');
 });
 
@@ -79,7 +79,7 @@ test('clearing value recipient disables the binding in Working without silently 
     .post('/candidate-c/studio/' + slug + '/value-recipient')
     .set('HX-Request', 'true')
     .type('form')
-    .send({ ...tokens(store, slug), valueRecipient: 'northline-support' })
+    .send({ ...tokens(store, slug), valueRecipient: 'northline-pay' })
     .expect(200);
   let working = store.snapshot(slug);
   assert.equal(store.createRelease(slug, working.revision, working.draftDigest).ok, true);
@@ -93,7 +93,7 @@ test('clearing value recipient disables the binding in Working without silently 
 
   working = store.snapshot(slug);
   assert.equal(working.draft.bindings.hive.valueRecipient, null);
-  assert.equal(store.publicSnapshot(slug).draft.bindings.hive.valueRecipient, 'northline-support');
+  assert.equal(store.publicSnapshot(slug).draft.bindings.hive.valueRecipient, 'northline-pay');
 });
 
 test('invalid recipient is rejected without any Working or Live mutation', async () => {
@@ -122,7 +122,7 @@ test('Tranche A configuration never creates a public support transfer control', 
     .post('/candidate-c/studio/' + slug + '/value-recipient')
     .set('HX-Request', 'true')
     .type('form')
-    .send({ ...tokens(store, slug), valueRecipient: 'northline-support' })
+    .send({ ...tokens(store, slug), valueRecipient: 'northline-pay' })
     .expect(200);
 
   const working = store.snapshot(slug);
