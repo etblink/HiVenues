@@ -46,9 +46,9 @@
     <section class="cc-content-preview" aria-live="polite">
       <p class="cc-kicker"><%= labels.previewKicker %></p>
       <% if (contentMode === 'post' || contentMode === 'update') { %>
-        <h3 data-content-preview-title><%= contentTitle || labels.previewTitleEmpty %></h3>
+        <h3 data-content-preview-title data-empty="<%= labels.previewTitleEmpty %>"><%= contentTitle || labels.previewTitleEmpty %></h3>
       <% } %>
-      <p data-content-preview-body><%= contentBody || labels.previewBodyEmpty %></p>
+      <p data-content-preview-body data-empty="<%= labels.previewBodyEmpty %>"><%= contentBody || labels.previewBodyEmpty %></p>
     </section>
 
     <button type="submit" data-content-submit><%= labels.action %></button>
