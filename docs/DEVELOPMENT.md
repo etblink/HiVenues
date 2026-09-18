@@ -122,14 +122,14 @@ When releases begin, preserve exact source commit/tree provenance, CI/qualificat
 
 Consult `docs/CURRENT_ARCHITECTURE.md`.
 
-- `src/product/` is the canonical ordinary product boundary and application composition root;
-- `src/candidate-c/` contains current qualified Era-0–3 implementation internals carrying historical naming debt; new ordinary features should not deepen that naming by default;
+- `src/product/` contains the canonical product implementation and application composition root;
+- `views/hivenues/` and HiVenues-owned public assets contain the current Studio/Territory presentation surface;
 - shared infrastructure belongs behind product-owned seams only when currently consumed;
 - superseded development code has no compatibility status;
 - qualification tooling stays only when it protects an enduring current contract;
 - provider-specific identifiers/state must not become canonical HostGraph identity.
 
-Do not create Candidate D, a second HostGraph, a provider-specific product model, or a client-side durable host mirror.
+Do not create a parallel product line, a second HostGraph, a provider-specific product model, or a client-side durable host mirror.
 
 ## Current authorization boundary
 
