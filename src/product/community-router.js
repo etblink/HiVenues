@@ -5,9 +5,9 @@ const { buildViewModel } = require('./present');
 const { READ_MODEL_SCHEMA_VERSION } = require('./social-discussion');
 
 const COMMUNITY_TEMPLATES = Object.freeze({
-  poster: 'studio/community/poster',
-  editorial: 'studio/community/editorial',
-  hospitality: 'studio/community/hospitality',
+  poster: 'hivenues/community/poster',
+  editorial: 'hivenues/community/editorial',
+  hospitality: 'hivenues/community/hospitality',
 });
 
 function normalizeBindings(bindings) {
@@ -141,7 +141,7 @@ function createHiVenuesCommunityRouter({
       }
     }
 
-    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/hivenues/${encodeURIComponent(view.graph.identity.slug)}`;
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: `Community — ${view.graph.identity.displayName}`,

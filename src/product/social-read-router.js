@@ -7,19 +7,19 @@ const { buildViewModel } = require('./present');
 
 const SOCIAL_TEMPLATES = Object.freeze({
   poster: Object.freeze({
-    hub: 'studio/social/poster-hub',
-    member: 'studio/social/poster-member',
-    discussion: 'studio/social/poster-discussion',
+    hub: 'hivenues/social/poster-hub',
+    member: 'hivenues/social/poster-member',
+    discussion: 'hivenues/social/poster-discussion',
   }),
   editorial: Object.freeze({
-    hub: 'studio/social/editorial-hub',
-    member: 'studio/social/editorial-member',
-    discussion: 'studio/social/editorial-discussion',
+    hub: 'hivenues/social/editorial-hub',
+    member: 'hivenues/social/editorial-member',
+    discussion: 'hivenues/social/editorial-discussion',
   }),
   hospitality: Object.freeze({
-    hub: 'studio/social/hospitality-hub',
-    member: 'studio/social/hospitality-member',
-    discussion: 'studio/social/hospitality-discussion',
+    hub: 'hivenues/social/hospitality-hub',
+    member: 'hivenues/social/hospitality-member',
+    discussion: 'hivenues/social/hospitality-discussion',
   }),
 });
 
@@ -615,13 +615,13 @@ function createHiVenuesSocialReadRouter({
     const recipient = safeAccount(view.graph.bindings.hive.valueRecipient);
     if (!recipient) return res.sendStatus(404);
 
-    const hostHref = '/studio/' + encodeURIComponent(view.graph.identity.slug);
+    const hostHref = '/hivenues/' + encodeURIComponent(view.graph.identity.slug);
     const supportEndpoint = supportCapability(res)
       ? '/participation/' + encodeURIComponent(view.graph.identity.slug) + '/support'
       : null;
 
     res.set('Cache-Control', 'no-store');
-    return res.render('studio/support', {
+    return res.render('hivenues/support', {
       pageTitle: (view.graph.voice.terms.support_hive || 'Support this host')
         + ' — ' + view.graph.identity.displayName,
       ...view,
@@ -647,7 +647,7 @@ function createHiVenuesSocialReadRouter({
       verifiedViewer(res),
       participationCapability(res),
     );
-    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/hivenues/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (account) => `${communityHref}/people/${encodeURIComponent(account)}`;
@@ -701,7 +701,7 @@ function createHiVenuesSocialReadRouter({
       readPersonalResourceRewardState(hiveReadService, account, viewer),
     ]);
 
-    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/hivenues/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (name) => `${communityHref}/people/${encodeURIComponent(name)}`;
@@ -757,7 +757,7 @@ function createHiVenuesSocialReadRouter({
     );
     if (discussion.status === 'missing') return res.sendStatus(404);
 
-    const hostHref = '/studio/' + encodeURIComponent(view.graph.identity.slug);
+    const hostHref = '/hivenues/' + encodeURIComponent(view.graph.identity.slug);
     const communityHref = hostHref + '/community';
     const socialHref = communityHref + '/updates';
     const memberHref = (account) => communityHref + '/people/' + encodeURIComponent(account);
