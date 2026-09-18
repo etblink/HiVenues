@@ -9,7 +9,12 @@
   </header>
   <main class="cc-social-shell cc-social-poster-shell">
     <%- include('_member', {
-      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      resourceLabels: {
+        kicker: 'Your place in the room', title: 'Your participation energy',
+        body: 'A read-only look at the Hive capacity and rewards behind your own participation here.',
+        voting: 'Raise-a-glass strength', capacity: 'Room to participate', basis: 'Your footing', rewards: 'Waiting for you'
+      },
       followParticipationLabels: {
         kicker: 'Stay connected',
         title: 'Keep up with this person',
