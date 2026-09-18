@@ -11,7 +11,10 @@ const {
   createHiVenuesApp,
   startHiVenuesServer,
 } = require('../src/product/app');
-const { createHiVenuesIdentityServices } = require('../src/product/identity');
+const {
+  IDENTITY_COOKIE_NAME,
+  createHiVenuesIdentityServices,
+} = require('../src/product/identity');
 const { CandidateCStore } = require('../src/candidate-c/store');
 
 const OUTPUT_ROOT = process.env.HIVENUES_PRODUCT_BROWSER_ROOT
@@ -103,7 +106,7 @@ function productReadService(publicKey) {
         name: account,
         displayName: account,
         about: '',
-        profileImage: '',
+        profileImage: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E',
         followerCount: 0,
         followingCount: 0,
         postCount: 0,
@@ -150,6 +153,59 @@ function productReadService(publicKey) {
       return false;
     },
   };
+}
+
+function applyAuthorizedRelationshipOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'custom_json');
+  assert.deepEqual(value.required_auths, []);
+  assert.deepEqual(value.required_posting_auths, [account]);
+
+  if (value.id === 'follow') {
+    const [action, payload] = JSON.parse(value.json);
+    assert.equal(action, 'follow');
+    assert.equal(payload.follower, account);
+    assert.equal(typeof payload.following, 'string');
+    const following = Array.isArray(payload.what) && payload.what.includes('blog');
+    hiveReadService.setFollowState(account, payload.following, following);
+  } else if (value.id === 'community') {
+    const [action, payload] = JSON.parse(value.json);
+    assert.ok(['subscribe', 'unsubscribe'].includes(action));
+    assert.equal(payload.community, COMMUNITY);
+    hiveReadService.setCommunityState(account, payload.community, action === 'subscribe');
+  } else {
+    assert.fail('unauthorized wallet operation id: ' + String(value.id));
+  }
+
+  counters.walletBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+  });
+  return crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
+    .digest('hex');
+}
+
+async function createAuthenticatedContext(
+  browser,
+  counters,
+  origin,
+  identityServices,
+  account = 'etblink',
+  viewport = DESKTOP,
+) {
+  const context = await createTrackedContext(browser, counters, viewport);
+  const { token } = identityServices.sessionStore.create(account);
+  await context.addCookies([{
+    name: IDENTITY_COOKIE_NAME,
+    value: token,
+    url: origin,
+    httpOnly: true,
+    sameSite: 'Strict',
+  }]);
+  return context;
 }
 
 function sha256File(filePath) {
