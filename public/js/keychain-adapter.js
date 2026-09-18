@@ -159,6 +159,20 @@
                 reject(responseError(response));
                 return;
               }
+              const responseAccount =
+                response.data?.username ||
+                response.result?.username ||
+                response.result?.account ||
+                null;
+              if (responseAccount && responseAccount !== account) {
+                reject(
+                  new KeychainError(
+                    'KEYCHAIN_ACCOUNT_MISMATCH',
+                    'Keychain returned a broadcast response for a different account.',
+                  ),
+                );
+                return;
+              }
               const transactionId =
                 response.result?.id ||
                 response.result?.tx_id ||
