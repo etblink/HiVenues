@@ -504,6 +504,244 @@ async function runApprovalEvidence(browser, axeSource, origin, manifest, counter
   }
 }
 
+async function runRelationshipDirectionEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const host of HOSTS) {
+      for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          origin + '/candidate-c/' + host.slug + '/community/updates',
+          { waitUntil: 'networkidle' },
+        );
+        const control = page.locator('[data-hivenues-participation]');
+        await control.waitFor();
+        assert.equal(await control.getAttribute('data-participation-action'), 'subscribe');
+        assert.equal(await control.getAttribute('data-participation-target'), COMMUNITY);
+        await capture(
+          page,
+          axeSource,
+          manifest,
+          host.family + '-' + viewportName + '-community-ready',
+        );
+      }
+
+      await page.setViewportSize(DESKTOP);
+      await page.goto(
+        origin + '/candidate-c/' + host.slug + '/community/people/juniper-lane',
+        { waitUntil: 'networkidle' },
+      );
+      const follow = page.locator('[data-hivenues-participation]');
+      await follow.waitFor();
+      assert.equal(await follow.getAttribute('data-participation-action'), 'follow');
+      assert.equal(await follow.getAttribute('data-participation-target'), 'juniper-lane');
+      await capture(
+        page,
+        axeSource,
+        manifest,
+        host.family + '-desktop-follow-ready',
+      );
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipJourneys(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  async function reviewAndApprove(expectedAction, expectedId, labelPrefix) {
+    const root = page.locator('[data-hivenues-participation]');
+    assert.equal(await root.getAttribute('data-participation-action'), expectedAction);
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    assert.equal(await root.getAttribute('data-participation-state'), 'review');
+    const reviewText = await page.locator('[data-participation-review]').textContent();
+    assert.match(reviewText, /Verified account/);
+    assert.match(reviewText, new RegExp(expectedAction));
+    assert.match(reviewText, /Posting|Technical operation details/i);
+    await capture(page, axeSource, manifest, labelPrefix + '-review');
+
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, labelPrefix + '-awaiting-wallet');
+
+    const pending = await inspectPendingRelationship(page);
+    assert.equal(pending.account, 'etblink');
+    assert.equal(pending.authority, 'Posting');
+    assert.equal(pending.operations.length, 1);
+    assert.equal(pending.operations[0][0], 'custom_json');
+    assert.equal(pending.operations[0][1].id, expectedId);
+    return approvePendingRelationship(page, hiveReadService, counters);
+  }
+
+  try {
+    await page.goto(origin + '/candidate-c/northline-hall/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    await reviewAndApprove('subscribe', 'community', 'poster-community-subscribe');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'unsubscribe'
+    ));
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), true);
+    await capture(page, axeSource, manifest, 'poster-community-subscribed');
+
+    await reviewAndApprove('unsubscribe', 'community', 'poster-community-unsubscribe');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'subscribe'
+    ));
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
+    await capture(page, axeSource, manifest, 'poster-community-unsubscribed');
+
+    await page.goto(
+      origin + '/candidate-c/northline-hall/community/people/juniper-lane',
+      { waitUntil: 'networkidle' },
+    );
+    await reviewAndApprove('follow', 'follow', 'poster-follow');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'unfollow'
+    ));
+    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), true);
+    await capture(page, axeSource, manifest, 'poster-follow-confirmed');
+
+    await reviewAndApprove('unfollow', 'follow', 'poster-unfollow');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'follow'
+    ));
+    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), false);
+    await capture(page, axeSource, manifest, 'poster-unfollow-confirmed');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipCancellationEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    const root = page.locator('[data-hivenues-participation]');
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="awaiting-wallet"]').waitFor();
+    await rejectPendingRelationship(page);
+    await page.locator('[data-participation-state="cancelled"]').waitFor();
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
+    assert.match(
+      await root.locator('[data-participation-status]').textContent(),
+      /Nothing was broadcast/,
+    );
+    await capture(page, axeSource, manifest, 'editorial-community-wallet-cancelled');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipProviderUnavailableEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(
+      origin + '/candidate-c/harbor-and-hearth/community/people/juniper-lane',
+      { waitUntil: 'networkidle' },
+    );
+    const root = page.locator('[data-hivenues-participation]');
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="provider-unavailable"]').waitFor();
+    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), false);
+    assert.match(
+      await root.locator('[data-participation-status]').textContent(),
+      /human-owned Hive wallet/i,
+    );
+    await capture(page, axeSource, manifest, 'hospitality-follow-wallet-unavailable');
+  } finally {
+    await context.close();
+  }
+}
+
 async function runCancellationEvidence(browser, axeSource, origin, manifest, counters) {
   const context = await createTrackedContext(browser, counters);
   await context.addInitScript(() => {
