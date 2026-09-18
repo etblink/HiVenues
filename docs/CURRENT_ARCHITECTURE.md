@@ -31,7 +31,7 @@ SVG FOR VECTOR UI / HOST-NATIVE VISUAL SEMANTICS
 
 `src/product/app.js` is the ordinary application composition root.
 
-It owns application assembly directly and composes the already-qualified Era-0–3 implementation still housed partly under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a **qualification shim** that delegates back to the canonical root so retained exact-head qualification callers preserve their exports while ordinary code has a single product-owned dependency direction.
+It owns application assembly directly and composes the already-qualified Era-0–4 implementation still housed partly under `src/candidate-c/`. The historical `src/candidate-c/dogfood-app.js` entry is a **qualification shim** that delegates back to the canonical root so retained exact-head qualification callers preserve their exports while ordinary code has a single product-owned dependency direction.
 
 New ordinary application code must use the product boundary or product-owned domain seams. Do not create new dependencies on `src/candidate-c/` merely because current internals still live there.
 
@@ -48,9 +48,9 @@ They are now classified as **non-blocking maintenance debt**. Migrate or remove 
 - `src/product/` — canonical ordinary product boundary and application composition root;
 - the portions of `src/candidate-c/` consumed by that root — current qualified Studio/Territory implementation carrying historical naming debt;
 - current EJS views/assets and semantic renderers consumed by that implementation;
-- current HostGraph, Working/Live, Release/History, Territory, Studio, and read-only social/community paths.
+- current HostGraph, Working/Live, Release/History, Territory, Studio, social/community participation, Hive consequence, reward-claim, and direct-support paths.
 
-Accepted Era-0–3 contracts remain controlling: server-owned canonical host state, durable identity, Working/Live separation, explicit Release, immutable history, working-only Restore, stale rejection, urgent isolation, restart persistence, multi-route Territory projection, materially distinct Directions, complete supported authoring, and host-native read-only social/community experience.
+Accepted Era-0–4 contracts remain controlling: server-owned canonical host state, durable identity, Working/Live separation, explicit Release, immutable history, working-only Restore, stale rejection, urgent isolation, restart persistence, multi-route Territory projection, materially distinct Directions, complete supported authoring, host-native social/community experience, human-owned wallet authority, pending-before-observed consequence semantics, provider-observed state outside HostGraph, and exact canonical confirmation for admitted Hive writes.
 
 ### 2. Shared infrastructure
 
@@ -115,7 +115,7 @@ Working Preview navigation must remain in Working Preview; Live routes must rema
 
 ## Hive boundary
 
-Era 3 admits real/provider-realistic **read-side** Hive/community state. Era 4 is the next strategic era, but consequential writes remain unauthorized until a bounded Era-4 charter admits a concrete slice.
+Era 4 admits bounded real Hive-backed participation through product-owned consequence seams: identity proof, follow/community actions, content/reply, vote, personal resource/reward reads, exact reward claiming, and synthetic direct host support.
 
 ```text
 MECHANIC         = exact consequence
@@ -124,9 +124,11 @@ PRESENTATION     = Direction/composition-specific visual form
 PROVIDER BINDING = external execution/state source
 ```
 
-HiVenues must not custody customer private keys. Future consequential writes require explicit human-owned wallet authority and truthful reconciliation/read-back before confirmed success where observable.
+HiVenues does not custody customer private keys. Admitted writes require explicit human-owned wallet authority. Wallet/provider acceptance is pending, not confirmed success; confirmation requires the consequence-specific canonical read-back/observation contract.
 
-Observed Hive state does not become HostGraph state merely because it is rendered inside the host world.
+Observed Hive state, rewards, balances and transaction receipts do not become HostGraph state merely because they are rendered inside the host world.
+
+Era 5 distribution must package these contracts unchanged. Installation/launch consequences are a new local application boundary, not authority to broaden Hive writes.
 
 ## Adding or changing product code
 
@@ -153,6 +155,6 @@ Remaining items are maintenance/admin debt rather than blockers to product progr
 - merged branch deletion where repository tooling permits;
 - main-branch protection/ruleset configuration in GitHub administration.
 
-These should be handled opportunistically or by bounded maintenance issues when they create concrete ambiguity, risk, or cost. They do not outrank Era-4 roadmap work merely because they are old.
+These should be handled opportunistically or by bounded maintenance issues when they create concrete ambiguity, risk, or cost. They do not outrank Era-5 distribution work merely because they are old.
 
-The next architectural task is therefore not a namespace cleanup. It is to define the first bounded Era-4 participation slice while preserving all frozen Era-0–3 contracts.
+The next architectural task is therefore not a namespace cleanup or another adjacent Hive feature. It is to package the existing server-owned product behind an ordinary install/launch boundary while preserving all frozen Era-0–4 contracts.
