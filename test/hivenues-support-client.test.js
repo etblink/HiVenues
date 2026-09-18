@@ -140,8 +140,13 @@ test('support controller reviews exact consequence, uses Active wallet and waits
       }],
     );
     assert.equal(observations, 2);
-    assert.equal(reloads, 1);
+    assert.equal(reloads, 0);
     assert.equal(root.dataset.supportState, 'confirmed');
+    assert.equal(root.querySelector('[data-support-submit]').disabled, true);
+    assert.match(
+      root.querySelector('[data-support-status]').textContent,
+      /Confirmed on Hive\. 1\.250 HIVE was sent to @northline-pay\./,
+    );
 
     const prepared = calls.find((call) => call.url === root.dataset.supportUrl);
     assert.equal(prepared.options.headers['x-csrf-token'], 'csrf-1');
