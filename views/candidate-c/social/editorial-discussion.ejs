@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/candidate-c-social-read.css">
+</head>
+<body class="cc-public cc-editorial cc-social cc-social--editorial cc-discussion" style="--cc-accent:<%= graph.presentation.accent %>">
+  <header class="cc-editorial-nav cc-social-nav">
+    <a class="cc-editorial-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
+    <nav aria-label="Community">
+      <a href="<%= communityHref %>">Correspondence</a>
+      <a href="<%= socialHref %>">Dispatches & people</a>
+      <a aria-current="page" href="<%= discussionHref %>">Dispatch</a>
+    </nav>
+  </header>
+  <main class="cc-social-shell cc-social-editorial-shell cc-discussion-shell cc-discussion-shell--editorial">
+    <p class="cc-editorial-index"><a href="<%= socialHref %>">COMMUNITY / CURRENT / BACK TO INDEX</a></p>
+    <%- include('_discussion', {
+      graph, discussion, memberHref, contentUpdateEndpoint, contentReplyEndpoint, formatCommunityTime,
+      discussionLabels: {
+        state: 'Dispatch status',
+        unavailableTitle: 'This dispatch is not in the current host index.',
+        unavailableBody: 'HiVenues could not verify its canonical community identity.',
+        rootKicker: 'Dispatch',
+        updateSummary: 'Edit my published dispatch',
+        responsesKicker: 'Correspondence',
+        responsesTitle: 'Responses & marginalia',
+        noResponses: 'No public correspondence has been filed yet.',
+        replyToResponse: 'Respond to this note'
+      },
+      updateLabels: {
+        kicker: 'Revision desk',
+        title: 'Prepare a corrected edition',
+        body: 'Revise your own published Hive post while preserving its canonical identity.',
+        titleLabel: 'Headline',
+        bodyLabel: 'Dispatch body',
+        previewKicker: 'Proof',
+        previewTitleEmpty: 'Untitled proof',
+        previewBodyEmpty: 'Your revised dispatch will appear here.',
+        action: 'Review corrected edition',
+        truth: 'The existing public item changes only after exact review and wallet approval.',
+        ready: 'This proof is private to the browser until you continue.'
+      },
+      replyLabels: {
+        kicker: 'Correspondence',
+        title: 'File a response',
+        body: 'Write a public Hive reply to the exact item shown here.',
+        titleLabel: '',
+        bodyLabel: 'Response',
+        previewKicker: 'Proof',
+        previewTitleEmpty: '',
+        previewBodyEmpty: 'Your response proof will appear here.',
+        action: 'Review response',
+        truth: 'HiVenues revalidates the parent before preparing the public operation.',
+        ready: 'Draft freely; nothing has been submitted.'
+      }
+    }) %>
+  </main>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public dispatch / wallet-owned publication</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-content.js" defer></script>
+</body>
+</html>
