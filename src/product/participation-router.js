@@ -22,6 +22,7 @@ const {
 } = require('./content-operations');
 const { buildVote } = require('./vote-operations');
 const { buildRewardClaim } = require('./reward-operations');
+const { buildDirectSupport } = require('./support-operations');
 const { isSocialBinding } = require('../candidate-c/social-read-router');
 const { assertSameOrigin } = require('./identity-router');
 
@@ -174,6 +175,18 @@ function createHiVenuesParticipationRouter({
     ) {
       throw new FeatureUnavailableError('Hive reward claiming is temporarily unavailable', {
         code: 'REWARD_CLAIM_PROVIDER_UNAVAILABLE',
+      });
+    }
+    return active;
+  }
+
+  function requireSupportReadContract(active) {
+    if (
+      typeof active.hiveReadService.getAccountRecord !== 'function'
+      || typeof active.hiveReadService.observeSupportOperation !== 'function'
+    ) {
+      throw new FeatureUnavailableError('Direct Hive support is temporarily unavailable', {
+        code: 'SUPPORT_PROVIDER_UNAVAILABLE',
       });
     }
     return active;
@@ -485,6 +498,67 @@ function createHiVenuesParticipationRouter({
   });
 
 
+  router.post('/:slug/support', async (req, res) => {
+    try {
+      const { identity, active: rawActive } = protect(req);
+      const active = requireSupportReadContract(rawActive);
+      const snapshot = liveHost(store, req.params.slug);
+      const recipient = snapshot.draft.bindings.hive.valueRecipient;
+      if (!recipient) {
+        throw new FeatureUnavailableError('This host has not released a Hive value recipient', {
+          code: 'SUPPORT_NOT_CONFIGURED',
+        });
+      }
+
+      let senderRecord;
+      let recipientRecord;
+      try {
+        [senderRecord, recipientRecord] = await Promise.all([
+          active.hiveReadService.getAccountRecord(identity.account),
+          active.hiveReadService.getAccountRecord(recipient),
+        ]);
+      } catch {
+        throw new FeatureUnavailableError('Current support account state could not be verified on Hive', {
+          code: 'SUPPORT_ACCOUNT_STATE_UNAVAILABLE',
+        });
+      }
+
+      const envelope = contextualEnvelope(
+        buildDirectSupport({
+          account: identity.account,
+          recipient,
+          amount: req.body?.amount,
+          asset: req.body?.asset,
+          senderRecord,
+          recipientRecord,
+        }),
+        snapshot,
+        {
+          consequence: '@' + identity.account + ' will send '
+            + String(req.body?.amount || '').trim() + ' '
+            + String(req.body?.asset || '').trim().toUpperCase()
+            + ' directly to @' + recipient
+            + ' as support for ' + snapshot.draft.identity.displayName + '.',
+          irreversible: 'HiVenues cannot reverse a confirmed Hive transfer.',
+          purchaseTruth: 'This is direct support, not proof of a purchase, order, donation deduction, or fulfillment.',
+        },
+      );
+
+      const preflight = active.preflightStore.create({
+        sessionId: identity.id,
+        envelope,
+        signer: identity.account,
+      });
+      return res.status(201).json({
+        ...preflight,
+        message: participationMessage(preflight),
+      });
+    } catch (error) {
+      return sendParticipationError(res, error);
+    }
+  });
+
+
   router.post(
     '/:slug/votes/:rootAuthor/:rootPermlink/:targetAuthor/:targetPermlink',
     async (req, res) => {
@@ -607,6 +681,9 @@ function createHiVenuesParticipationRouter({
       } else if (record.action === 'claim-rewards') {
         observed = await requireRewardClaimReadContract(active)
           .hiveReadService.observeRewardClaimOperation(record);
+      } else if (record.action === 'support-host') {
+        observed = await requireSupportReadContract(active)
+          .hiveReadService.observeSupportOperation(record);
       } else {
         observed = await active.hiveReadService.observeSocialOperation(record);
       }
