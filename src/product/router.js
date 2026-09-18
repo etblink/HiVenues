@@ -30,7 +30,7 @@ function currentDigest(req) {
 function renderConflict(req, res, actualRevision) {
   res.status(409);
   if (isHtmx(req)) {
-    return res.render('studio/fragments/conflict', { actualRevision });
+    return res.render('hivenues/fragments/conflict', { actualRevision });
   }
   return res.status(409).send('A newer version exists. Reload before saving this change.');
 }
@@ -100,9 +100,9 @@ function mutationFailure(req, res, result) {
 function mutationResponse(req, res, store, slug, result, selectedResource) {
   if (!result.ok) return mutationFailure(req, res, result);
   if (isHtmx(req)) {
-    return res.render('studio/fragments/studio-update', candidateLocals(result.snapshot, selectedResource));
+    return res.render('hivenues/fragments/studio-update', candidateLocals(result.snapshot, selectedResource));
   }
-  return res.redirect(303, `/studio/studio/${encodeURIComponent(slug)}`);
+  return res.redirect(303, `/hivenues/studio/${encodeURIComponent(slug)}`);
 }
 
 function canonicalDraftMutation(store, slug, req, label, mutator, manualPaths) {
@@ -125,7 +125,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
 
   router.get('/', (req, res) => {
     const hosts = store.list().map((slug) => buildViewModel(store.publicSnapshot(slug)));
-    res.render('studio/index', {
+    res.render('hivenues/index', {
       pageTitle: 'HiVenues — HiVenues',
       hosts,
     });
@@ -134,7 +134,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.get('/studio/:slug/setup', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/setup', {
+    return res.render('hivenues/setup', {
       pageTitle: `Shape ${snapshot.draft.identity.displayName} — HiVenues`,
       ...candidateLocals(snapshot),
     });
@@ -143,7 +143,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.post('/studio/:slug/setup', (req, res) => {
     const result = store.completeSetup(req.params.slug, req.body, currentRevision(req), currentDigest(req));
     if (!result.ok) return mutationFailure(req, res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/preview', (req, res) => {
@@ -160,7 +160,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.get('/studio/:slug/direction', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/direction', {
+    return res.render('hivenues/direction', {
       pageTitle: `Direction — ${snapshot.draft.identity.displayName}`,
       ...candidateLocals(snapshot),
     });
@@ -170,7 +170,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
     const releasedNotice = typeof req.query.released === 'string' ? req.query.released : '';
-    return res.render('studio/studio', {
+    return res.render('hivenues/studio', {
       pageTitle: `${snapshot.draft.identity.displayName} Studio — HiVenues`,
       ...candidateLocals(snapshot),
       releasedNotice: snapshot.releases.some((item) => item.id === releasedNotice) ? releasedNotice : '',
@@ -181,7 +181,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.get('/studio/:slug/inspect', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/fragments/inspector', candidateLocals(snapshot, String(req.query.resource || '')));
+    return res.render('hivenues/fragments/inspector', candidateLocals(snapshot, String(req.query.resource || '')));
   });
 
   router.post('/studio/:slug/tagline', (req, res) => {
@@ -219,7 +219,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
     const requested = String(req.query.activity || '');
     const activity = liveActivities.find((item) => item.id === requested) || liveActivities[0] || null;
     const draftActivity = requested ? snapshot.draft.activities.find((item) => item.id === requested) : null;
-    return res.render('studio/urgent-compose', {
+    return res.render('hivenues/urgent-compose', {
       pageTitle: `Urgent update — ${snapshot.draft.identity.displayName}`,
       ...view,
       liveActivities,
@@ -237,17 +237,17 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
       statusNote: req.body.statusNote,
     });
     if (!result.ok && result.reason === 'URGENT_NO_CHANGE') {
-      return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/urgent?activity=${encodeURIComponent(String(req.body.activityId || ''))}&nochange=1`);
+      return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/urgent?activity=${encodeURIComponent(String(req.body.activityId || ''))}&nochange=1`);
     }
     if (!result.ok) return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send(result.reason);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/urgent/${encodeURIComponent(result.operation.id)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/urgent/${encodeURIComponent(result.operation.id)}`);
   });
 
   router.get('/studio/:slug/urgent/:operationId', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     const operation = store.urgentOperation(req.params.slug, req.params.operationId);
     if (!snapshot || !operation) return res.sendStatus(404);
-    return res.render('studio/urgent-review', {
+    return res.render('hivenues/urgent-review', {
       pageTitle: `Review urgent update — ${snapshot.draft.identity.displayName}`,
       ...urgentReviewLocals(snapshot, operation),
       failure: null,
@@ -263,12 +263,12 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
       currentDigest(req)
     );
     if (result.ok) {
-      return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}&urgent=1`);
+      return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}&urgent=1`);
     }
     if (result.reason === 'NOT_FOUND' || result.reason === 'URGENT_NOT_FOUND') return res.sendStatus(404);
     const snapshot = store.snapshot(req.params.slug);
     const operation = store.urgentOperation(req.params.slug, req.params.operationId);
-    return res.status(409).render('studio/urgent-review', {
+    return res.status(409).render('hivenues/urgent-review', {
       pageTitle: `Review urgent update — ${snapshot.draft.identity.displayName}`,
       ...urgentReviewLocals(snapshot, operation),
       failure: result,
@@ -388,7 +388,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.post('/studio/:slug/direction/propose', (req, res) => {
     const result = store.proposeDirection(req.params.slug, req.body.familyId, currentRevision(req), currentDigest(req));
     if (!result.ok) return mutationFailure(req, res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/direction/${encodeURIComponent(result.proposal.id)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/direction/${encodeURIComponent(result.proposal.id)}`);
   });
 
   router.get('/studio/:slug/direction/:proposalId', (req, res) => {
@@ -399,7 +399,7 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
     proposedGraph.presentation.compositionFamily = proposal.familyId;
     proposedGraph.intent.direction = proposal.familyId;
     const proposedSnapshot = { ...snapshot, draft: proposedGraph };
-    return res.render('studio/direction-review', {
+    return res.render('hivenues/direction-review', {
       pageTitle: `Review direction — ${snapshot.draft.identity.displayName}`,
       proposal,
       current: candidateLocals(snapshot),
@@ -410,13 +410,13 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
     const result = store.applyDirection(req.params.slug, req.params.proposalId, currentRevision(req), currentDigest(req));
     if (!result.ok) return mutationFailure(req, res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/release', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/release-review', {
+    return res.render('hivenues/release-review', {
       pageTitle: `Review release — ${snapshot.draft.identity.displayName}`,
       ...candidateLocals(snapshot),
     });
@@ -425,13 +425,13 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   router.post('/studio/:slug/release', (req, res) => {
     const result = store.createRelease(req.params.slug, currentRevision(req), currentDigest(req));
     if (!result.ok) return mutationFailure(req, res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}?released=${encodeURIComponent(result.release.id)}`);
   });
 
   router.post('/studio/:slug/releases/:releaseId/restore', (req, res) => {
     const result = store.restoreRelease(req.params.slug, req.params.releaseId, currentRevision(req), currentDigest(req));
     if (!result.ok) return mutationFailure(req, res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/:slug/activities/:activitySlug/calendar.ics', (req, res) => {
@@ -452,26 +452,26 @@ function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
     if (activity.lifecycle !== 'scheduled') {
       res.status(409);
       if (isHtmx(req)) {
-        return res.render('studio/fragments/rsvp-closed', { activity, status: activityLifecycles[activity.lifecycle] });
+        return res.render('hivenues/fragments/rsvp-closed', { activity, status: activityLifecycles[activity.lifecycle] });
       }
       return res.send('This activity is no longer taking RSVPs.');
     }
     const result = store.recordRsvp(req.params.slug, activity.id, req.body.name);
     if (!result.ok) return res.status(400).send(result.reason);
     if (isHtmx(req)) {
-      return res.render('studio/fragments/rsvp-receipt', {
+      return res.render('hivenues/fragments/rsvp-receipt', {
         term: snapshot.draft.voice.terms.rsvp_local,
         activity,
       });
     }
-    return res.redirect(303, `/studio/${encodeURIComponent(req.params.slug)}/activities/${encodeURIComponent(activity.slug)}?rsvp=recorded`);
+    return res.redirect(303, `/hivenues/${encodeURIComponent(req.params.slug)}/activities/${encodeURIComponent(activity.slug)}?rsvp=recorded`);
   });
 
   router.get('/:slug/consequence/:mechanicId', (req, res) => {
     const snapshot = store.publicSnapshot(req.params.slug);
     const mechanic = mechanicRegistry[req.params.mechanicId];
     if (!snapshot || !mechanic) return res.sendStatus(404);
-    return res.render('studio/consequence', {
+    return res.render('hivenues/consequence', {
       pageTitle: `${snapshot.draft.voice.terms[mechanic.id] || mechanic.id} — ${snapshot.draft.identity.displayName}`,
       ...candidateLocals(snapshot),
       mechanic,

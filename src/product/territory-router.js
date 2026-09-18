@@ -5,7 +5,7 @@ const { buildViewModel, mediaFor } = require('./present');
 const { buildTerritoryProjection, findTerritorySurface, rebaseTerritoryProjection, templateForSurface } = require('./territory');
 
 function previewBase(graph) {
-  return `/studio/studio/${encodeURIComponent(graph.identity.slug)}/preview`;
+  return `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`;
 }
 
 function territoryLocals(snapshot, { draftPreview = false } = {}) {

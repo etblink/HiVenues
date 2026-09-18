@@ -40,7 +40,7 @@ const LOOK_ACCENTS = Object.freeze([
 ]);
 
 function renderNewHost(res, { status = 200, values = EMPTY_FORM, errors = [], reason = '' } = {}) {
-  return res.status(status).render('studio/new-host', {
+  return res.status(status).render('hivenues/new-host', {
     pageTitle: 'Create a place — HiVenues',
     values: { ...EMPTY_FORM, ...values },
     errors,
@@ -102,7 +102,7 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
 
   router.get('/', (req, res) => {
     const hosts = store.list().map((slug) => buildViewModel(store.publicSnapshot(slug)));
-    return res.render('studio/index', {
+    return res.render('hivenues/index', {
       pageTitle: 'HiVenues — HiVenues',
       hosts,
       canCreate: true,
@@ -130,13 +130,13 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       });
     }
 
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(result.slug)}?created=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(result.slug)}?created=1`);
   });
 
   router.get('/studio/:slug/content', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/content-editor', {
+    return res.render('hivenues/content-editor', {
       pageTitle: `Content & visit — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       errors: [],
@@ -160,7 +160,7 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
     if (address.length > 300) errors.push({ path: 'address', message: 'Address must be 300 characters or fewer.' });
     if (snapshot.draft.facts.presence.mode !== 'online' && !address) errors.push({ path: 'address', message: 'A physical or hybrid place needs an address.' });
     if (errors.length) {
-      return res.status(400).render('studio/content-editor', {
+      return res.status(400).render('hivenues/content-editor', {
         pageTitle: `Content & visit — ${snapshot.draft.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -191,13 +191,13 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       'intent.participation',
     ]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/content?saved=1`);
   });
 
   router.get('/studio/:slug/activity/new', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/activity-new', {
+    return res.render('hivenues/activity-new', {
       pageTitle: `Add activity — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       values: {},
@@ -226,7 +226,7 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       }
     }
     if (errors.length) {
-      return res.status(400).render('studio/activity-new', {
+      return res.status(400).render('hivenues/activity-new', {
         pageTitle: `Add activity — ${graph.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -251,13 +251,13 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       });
     }, [`activities.${activityId}`]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/offer/new', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/offer-new', {
+    return res.render('hivenues/offer-new', {
       pageTitle: `Add offering — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       values: {},
@@ -276,7 +276,7 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
     if (category.length > 120) errors.push({ path: 'category', message: 'Category must be 120 characters or fewer.' });
     if (price.length > 80) errors.push({ path: 'price', message: 'Price/detail must be 80 characters or fewer.' });
     if (errors.length) {
-      return res.status(400).render('studio/offer-new', {
+      return res.status(400).render('hivenues/offer-new', {
         pageTitle: `Add offering — ${snapshot.draft.identity.displayName}`,
         ...buildViewModel(snapshot),
         values: req.body,
@@ -288,13 +288,13 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       draft.offers.push({ id: offerId, title, summary, ...(category ? { category } : {}), ...(price ? { price } : {}) });
     }, [`offers.${offerId}`]);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/brand', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/brand-editor', {
+    return res.render('hivenues/brand-editor', {
       pageTitle: `Look — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       accents: LOOK_ACCENTS,
@@ -308,13 +308,13 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       draft.presentation.accent = accent;
     }, ['presentation.accent']);
     if (!result.ok) return renderMutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/media-library', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/media-library', {
+    return res.render('hivenues/media-library', {
       pageTitle: `Media — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
     });
@@ -337,7 +337,7 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
       mediaRole: result.mediaRole,
       mediaId: result.mediaId,
       asset: result.asset,
-      redirect: `/studio/studio/${encodeURIComponent(req.params.slug)}/media-library`,
+      redirect: `/hivenues/studio/${encodeURIComponent(req.params.slug)}/media-library`,
     });
   });
 

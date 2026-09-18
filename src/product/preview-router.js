@@ -10,7 +10,7 @@ function previewLocals(snapshot) {
 }
 
 function previewActivityPath(slug, activitySlug) {
-  return `/studio/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
+  return `/hivenues/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
 }
 
 function topLevelReviewSurface(view, key) {
@@ -35,9 +35,9 @@ function createHiVenuesPreviewRouter({ store } = {}) {
 
     if (requested === 'canvas') {
       if (req.get('HX-Request') !== 'true') {
-        return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+        return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
       }
-      return res.render('studio/fragments/studio-canvas', {
+      return res.render('hivenues/fragments/studio-canvas', {
         ...view,
         selectedReviewKey: 'canvas',
       });
@@ -46,7 +46,7 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     const surface = topLevelReviewSurface(view, requested);
     if (!surface) return res.status(400).send('UNKNOWN_STUDIO_REVIEW_SURFACE');
     if (req.get('HX-Request') !== 'true') return res.redirect(303, surface.path);
-    return res.render('studio/fragments/territory-review', {
+    return res.render('hivenues/fragments/territory-review', {
       ...view,
       surface,
       selectedReviewKey: surface.key,
@@ -74,7 +74,7 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
     if (!activity) return res.sendStatus(404);
-    const publicActivityPath = `/studio/${snapshot.draft.identity.slug}/activities/${activity.slug}`;
+    const publicActivityPath = `/hivenues/${snapshot.draft.identity.slug}/activities/${activity.slug}`;
     const draftActivityPath = previewActivityPath(snapshot.draft.identity.slug, activity.slug);
     const calendar = renderIcs(snapshot.draft, activity).replace(`URL:${publicActivityPath}`, `URL:${draftActivityPath}`);
     res.type('text/calendar; charset=utf-8');
@@ -87,7 +87,7 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     const snapshot = store.snapshot(req.params.slug);
     const mechanic = mechanicRegistry[req.params.mechanicId];
     if (!snapshot || !mechanic) return res.sendStatus(404);
-    return res.render('studio/consequence', {
+    return res.render('hivenues/consequence', {
       pageTitle: `${snapshot.draft.voice.terms[mechanic.id] || mechanic.id} — ${snapshot.draft.identity.displayName} — draft preview`,
       ...previewLocals(snapshot),
       mechanic,

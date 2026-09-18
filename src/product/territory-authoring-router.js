@@ -246,7 +246,7 @@ function profileLinkRows(profile, minimumRows = 2) {
 }
 
 function renderStoryForm(res, snapshot, { status = 200, story = null, values = null, errors = [] } = {}) {
-  return res.status(status).render('studio/territory-story-form', authoringLocals(snapshot, {
+  return res.status(status).render('hivenues/territory-story-form', authoringLocals(snapshot, {
     pageTitle: `${story ? 'Edit story' : 'Add story'} — ${snapshot.draft.identity.displayName}`,
     story,
     values: values || storyValues(story, snapshot.draft),
@@ -255,7 +255,7 @@ function renderStoryForm(res, snapshot, { status = 200, story = null, values = n
 }
 
 function renderProfileForm(res, snapshot, { status = 200, profile = null, values = null, errors = [], linkRows = null } = {}) {
-  return res.status(status).render('studio/territory-profile-form', authoringLocals(snapshot, {
+  return res.status(status).render('hivenues/territory-profile-form', authoringLocals(snapshot, {
     pageTitle: `${profile ? 'Edit person' : 'Add person'} — ${snapshot.draft.identity.displayName}`,
     profile,
     values: values || profile || {},
@@ -279,7 +279,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
   router.get('/studio/:slug/territory-content', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('studio/territory-content', authoringLocals(snapshot, {
+    return res.render('hivenues/territory-content', authoringLocals(snapshot, {
       pageTitle: `Territory content — ${snapshot.draft.identity.displayName}`,
       upgraded: req.query.upgraded === '1',
       saved: req.query.saved === '1',
@@ -290,7 +290,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
     if (snapshot.draft.schemaVersion === 2) {
-      return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content`);
+      return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content`);
     }
     const result = draftMutation(store, req.params.slug, req.body, 'enable-territory-v2', (draft) => {
       const upgraded = upgradeGraphToV2(draft);
@@ -298,7 +298,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       Object.assign(draft, upgraded);
     }, ['schemaVersion', 'stories', 'people', 'gallery', 'navigation', 'presentation.recipe']);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?upgraded=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?upgraded=1`);
   });
 
   router.get('/studio/:slug/territory-content/story/new', (req, res) => {
@@ -330,7 +330,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       });
     }, [`stories.${storyId}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/story/:storyId', (req, res) => {
@@ -369,7 +369,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       `stories.${story.id}.mediaIds`,
     ]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.post('/studio/:slug/territory-content/story/:storyId/delete', (req, res) => {
@@ -382,7 +382,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       draft.stories = draft.stories.filter((item) => item.id !== story.id);
     }, [`stories.${story.id}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/profile/new', (req, res) => {
@@ -412,7 +412,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       });
     }, [`people.${profileId}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/profile/:profileId', (req, res) => {
@@ -447,7 +447,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       `people.${profile.id}.links`,
     ]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.post('/studio/:slug/territory-content/profile/:profileId/delete', (req, res) => {
@@ -464,14 +464,14 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       draft.people = draft.people.filter((item) => item.id !== profile.id);
     }, [`people.${profile.id}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/gallery', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
     if (!requireV2(snapshot, res)) return undefined;
-    return res.render('studio/territory-gallery-form', authoringLocals(snapshot, { pageTitle: `Gallery — ${snapshot.draft.identity.displayName}`, values: snapshot.draft.gallery, errors: [] }));
+    return res.render('hivenues/territory-gallery-form', authoringLocals(snapshot, { pageTitle: `Gallery — ${snapshot.draft.identity.displayName}`, values: snapshot.draft.gallery, errors: [] }));
   });
 
   router.post('/studio/:slug/territory-content/gallery', (req, res) => {
@@ -490,7 +490,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
     const mediaIds = selected.map((item) => item.mediaId);
     if (mediaIds.length > 60) errors.push({ path: 'mediaIds', message: 'Choose no more than 60 media items.' });
     if (errors.length) {
-      return res.status(400).render('studio/territory-gallery-form', authoringLocals(snapshot, {
+      return res.status(400).render('hivenues/territory-gallery-form', authoringLocals(snapshot, {
         pageTitle: `Gallery — ${snapshot.draft.identity.displayName}`,
         values: { title, summary, mediaIds },
         errors,
@@ -502,7 +502,7 @@ function createHiVenuesTerritoryAuthoringRouter({ store }) {
       draft.gallery.mediaIds = mediaIds;
     }, ['gallery.title', 'gallery.summary', 'gallery.mediaIds']);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   return router;

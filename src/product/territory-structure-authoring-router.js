@@ -194,7 +194,7 @@ function updateValues(update, graph) {
 }
 
 function renderUpdateForm(res, snapshot, { status = 200, update = null, values = null, errors = [] } = {}) {
-  return res.status(status).render('studio/territory-update-form', {
+  return res.status(status).render('hivenues/territory-update-form', {
     pageTitle: `${update ? 'Edit Update' : 'Write an Update'} — ${snapshot.draft.identity.displayName}`,
     ...buildViewModel(snapshot),
     update,
@@ -245,7 +245,7 @@ function parseNavigationInput(body, graph) {
 }
 
 function renderNavigationForm(res, snapshot, { status = 200, values = null, errors = [] } = {}) {
-  return res.status(status).render('studio/territory-navigation-form', {
+  return res.status(status).render('hivenues/territory-navigation-form', {
     pageTitle: `Navigation — ${snapshot.draft.identity.displayName}`,
     ...buildViewModel(snapshot),
     navigationRows: navigationRows(snapshot.draft, values),
@@ -285,7 +285,7 @@ function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
       });
     }, [`stories.${updateId}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/update/:updateId', (req, res) => {
@@ -320,7 +320,7 @@ function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
       `stories.${update.id}.mediaIds`,
     ]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.post('/studio/:slug/territory-content/update/:updateId/delete', (req, res) => {
@@ -333,7 +333,7 @@ function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
       draft.stories = draft.stories.filter((item) => item.id !== update.id);
     }, [`stories.${update.id}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/navigation', (req, res) => {
@@ -354,7 +354,7 @@ function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
       draft.navigation.labels = parsed.value.labels;
     }, ['navigation.priorities', 'navigation.labels']);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   // Territory v2 Direction changes carry their bounded presentation recipe as
@@ -363,7 +363,7 @@ function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
   router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
     const result = applyDirectionWithTerritoryRecipe(store, req.params.slug, req.params.proposalId, req.body);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   return router;
