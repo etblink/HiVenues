@@ -1836,6 +1836,20 @@
   color:#fffdf8;
 }
 
+/* The review dialog is a neutral consequence surface. Direction-level support
+   button treatments must not erase its confirm/cancel contrast. */
+.cc-support-page .cc-support-action .cc-support-review__actions button {
+  border:1px solid #211d1a;
+  border-radius:.5rem;
+  background:#fffdf8;
+  color:#211d1a;
+}
+.cc-support-page .cc-support-action .cc-support-review__actions [data-support-confirm] {
+  border-color:#211d1a;
+  background:#211d1a;
+  color:#fffdf8;
+}
+
 /* Poster: support reads like a benefit card pinned to the room wall. */
 .cc-support-page--poster {
   background:var(--cc-night);
