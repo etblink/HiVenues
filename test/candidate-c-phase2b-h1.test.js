@@ -53,7 +53,7 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js/,
         `${relative}: ${tag}`,
       );
       if (/hivenues-identity/.test(tag)) {
@@ -63,11 +63,25 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
           `${relative}: identity client escaped the social identity surface`,
         );
       }
-      if (/keychain-adapter|hivenues-participation/.test(tag)) {
+      if (/hivenues-participation/.test(tag)) {
         assert.match(
           relative,
           /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|member)\.ejs$/,
           `${relative}: relationship client escaped the social participation surface`,
+        );
+      }
+      if (/hivenues-content/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|discussion)\.ejs$/,
+          `${relative}: content client escaped the social content surface`,
+        );
+      }
+      if (/keychain-adapter/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|member|discussion)\.ejs$/,
+          `${relative}: signer client escaped an admitted human-wallet surface`,
         );
       }
     }
@@ -81,6 +95,7 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     assert.match(hub, /\/js\/keychain-adapter\.js/);
     assert.match(hub, /\/js\/hivenues-identity\.js/);
     assert.match(hub, /\/js\/hivenues-participation\.js/);
+    assert.match(hub, /\/js\/hivenues-content\.js/);
 
     const member = fs.readFileSync(
       path.join(ROOT, 'views', 'candidate-c', 'social', `${family}-member.ejs`),
@@ -89,6 +104,16 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     assert.match(member, /\/js\/keychain-adapter\.js/);
     assert.match(member, /\/js\/hivenues-participation\.js/);
     assert.doesNotMatch(member, /\/js\/hivenues-identity\.js/);
+    assert.doesNotMatch(member, /\/js\/hivenues-content\.js/);
+
+    const discussion = fs.readFileSync(
+      path.join(ROOT, 'views', 'candidate-c', 'social', `${family}-discussion.ejs`),
+      'utf8',
+    );
+    assert.match(discussion, /\/js\/keychain-adapter\.js/);
+    assert.match(discussion, /\/js\/hivenues-content\.js/);
+    assert.doesNotMatch(discussion, /\/js\/hivenues-identity\.js/);
+    assert.doesNotMatch(discussion, /\/js\/hivenues-participation\.js/);
   }
 });
 
