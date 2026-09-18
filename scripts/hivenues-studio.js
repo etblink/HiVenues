@@ -7,6 +7,7 @@ const {
   createHiVenuesStore,
   startHiVenuesServer,
 } = require('../src/product/app');
+const { createHiVenuesHiveReadService } = require('../src/product/hive-read');
 
 const DEFAULT_STATE_PATH = path.join(__dirname, '..', 'data', 'hivenues-dev-state.json');
 
@@ -66,15 +67,22 @@ async function main() {
   const store = createHiVenuesStore({ statePath });
   // Initialize or validate durable local state before the listener opens.
   store.list();
-  const app = createHiVenuesApp({ store });
+  const hiveReadService = createHiVenuesHiveReadService();
+  const app = createHiVenuesApp({
+    store,
+    hiveReadService,
+    identityOrigin: `http://${LOCAL_HOST}:${options.port}`,
+  });
   const server = await startHiVenuesServer(app, { port: options.port });
   const port = server.address().port;
 
   console.log('HiVenues Studio');
   console.log(`Bind:   ${LOCAL_HOST}:${port}`);
   console.log(`State:  ${statePath}`);
-  console.log(`Studio: http://${LOCAL_HOST}:${port}/candidate-c`);
-  console.log('External effects: disabled');
+  console.log(`Studio:   http://${LOCAL_HOST}:${port}/candidate-c`);
+  console.log(`Identity: http://${LOCAL_HOST}:${port}/identity/session`);
+  console.log('Hive:     public reads available; server signing/broadcast disabled');
+  console.log('Mutating external effects: disabled');
 
   let closing = false;
   const close = () => {
