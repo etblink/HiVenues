@@ -24,7 +24,8 @@
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "audit:prod:ci": "node scripts/run-npm-audit-ci.js",
     "check:deterministic": "npm run check:secrets && npm run lint && npm run build && npm test",
-    "check": "npm run check:deterministic && npm run audit:prod:ci"
+    "check": "npm run check:deterministic && npm run audit:prod:ci",
+    "test:browser": "node scripts/product-browser-qualification.js"
   },
   "dependencies": {
     "@zxing/browser": "0.2.1",
