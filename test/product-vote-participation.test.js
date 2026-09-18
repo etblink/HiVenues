@@ -10,6 +10,7 @@ const {
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
 const { CandidateCStore } = require('../src/candidate-c/store');
+const { seedCandidateCHosts } = require('../src/candidate-c/fixtures');
 
 const ORIGIN = 'http://hivenues.test';
 const SOCIAL_BINDINGS = Object.freeze({
@@ -118,7 +119,13 @@ function voteReads({
 }
 
 function fixture(options = {}) {
-  const store = new CandidateCStore();
+  let hosts;
+  if (options.showNegativeVoteAction === true) {
+    hosts = seedCandidateCHosts();
+    const host = hosts.find((item) => item.identity.slug === 'northline-hall');
+    host.bindings.hive.showNegativeVoteAction = true;
+  }
+  const store = new CandidateCStore(hosts ? { hosts } : undefined);
   const readService = options.hiveReadService || voteReads();
   const identityServices = createHiVenuesIdentityServices({
     rpcPool: readService.rpcPool,
@@ -201,8 +208,8 @@ test('vote preflight derives voter from verified identity and target from canoni
   assert.equal(JSON.stringify(store.publicSnapshot('northline-hall')), before);
 });
 
-test('negative vote is explicit and never encoded as a hidden negative percentage', async () => {
-  const { app, identityServices } = fixture();
+test('negative vote is explicit when the venue presents it and never encoded as a hidden negative percentage', async () => {
+  const { app, identityServices } = fixture({ showNegativeVoteAction: true });
   const verified = session(identityServices);
 
   const response = await mutate(
@@ -218,6 +225,24 @@ test('negative vote is explicit and never encoded as a hidden negative percentag
   assert.equal(response.body.summary.percent, 37);
   assert.equal(response.body.summary.weight, -3700);
   assert.equal(response.body.operations[0][1].weight, -3700);
+});
+
+test('hidden negative-vote action is enforced by HiVenues without claiming a Hive protocol ban', async () => {
+  const { app, identityServices } = fixture();
+  const verified = session(identityServices);
+
+  const response = await mutate(
+    request(app).post(
+      '/participation/northline-hall/votes/etblink/existing-note/etblink/existing-note',
+    ),
+    verified,
+  )
+    .send({ direction: 'downvote', percent: 37 })
+    .expect(403);
+
+  assert.equal(response.body.error.code, 'NEGATIVE_VOTE_ACTION_HIDDEN');
+  assert.match(response.body.error.message, /does not offer a downvote action/i);
+  assert.match(response.body.error.message, /another compatible client/i);
 });
 
 test('vote target outside the canonical host discussion fails before preflight', async () => {
