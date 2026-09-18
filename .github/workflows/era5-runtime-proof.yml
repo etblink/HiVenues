@@ -42,10 +42,10 @@ jobs:
         shell: pwsh
         run: |
           ./scripts/era5/build-windows-launcher.ps1 -Output "$env:RUNNER_TEMP\hivenues-launcher\HiVenues Studio.exe"
-      - name: Build private-runtime proof
+      - name: Build qualified Windows bundle
         shell: pwsh
         run: |
-          node scripts/era5/build-runtime-proof.js --output "$env:RUNNER_TEMP\hivenues-runtime-proof" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}" --launcher "$env:RUNNER_TEMP\hivenues-launcher\HiVenues Studio.exe"
+          node scripts/era5/build-windows-bundle.js --output "$env:RUNNER_TEMP\hivenues-runtime-proof" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}" --launcher "$env:RUNNER_TEMP\hivenues-launcher\HiVenues Studio.exe"
       - name: Qualify from unrelated working directory and app-owned data
         shell: pwsh
         run: |

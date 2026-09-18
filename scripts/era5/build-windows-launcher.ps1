@@ -32,7 +32,7 @@ $command = @"
 @echo off
 call "$vsdev" -arch=amd64 -host_arch=amd64 >nul
 if errorlevel 1 exit /b %errorlevel%
-cl.exe /nologo /O2 /W4 /WX /MT /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /Fo:"$object" /Fe:"$output" "$source" /link /SUBSYSTEM:WINDOWS shell32.lib ole32.lib user32.lib
+cl.exe /nologo /O2 /W4 /WX /MT /utf-8 /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /Fo:"$object" /Fe:"$output" "$source" /link /SUBSYSTEM:WINDOWS /Brepro shell32.lib ole32.lib user32.lib
 "@
 
 try {
