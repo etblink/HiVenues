@@ -1090,6 +1090,7 @@
 
 .cc-vote__strength input {
   width:100%;
+  accent-color:var(--cc-accent,currentColor);
 }
 
 .cc-vote__current,
