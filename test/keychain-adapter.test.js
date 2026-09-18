@@ -279,3 +279,42 @@ test('distinguishes cancellation, locked Keychain, account mismatch, and absence
   );
   assert.equal(await rejectedCode(null), 'KEYCHAIN_UNAVAILABLE');
 });
+
+
+test('rejects a broadcast response that names a different Hive account', async () => {
+  const dom = browserWith({
+    requestHandshake(callback) {
+      callback({ success: true });
+    },
+    requestBroadcast(_account, _operations, _authority, callback) {
+      callback({
+        success: true,
+        result: { id: 'abc123', username: 'someone-else' },
+      });
+    },
+  });
+  try {
+    const adapter = new dom.window.HiveBarKeychain.KeychainAdapter({ timeoutMs: 100 });
+    await assert.rejects(
+      adapter.broadcast({
+        account: 'etblink',
+        operations: [[
+          'custom_json',
+          {
+            required_auths: [],
+            required_posting_auths: ['etblink'],
+            id: 'follow',
+            json: '["follow",{"follower":"etblink","following":"barfriend","what":["blog"]}]',
+          },
+        ]],
+        authority: 'Posting',
+      }),
+      (error) => (
+        error.code === 'KEYCHAIN_ACCOUNT_MISMATCH'
+        && /different account/.test(error.message)
+      ),
+    );
+  } finally {
+    dom.window.close();
+  }
+});

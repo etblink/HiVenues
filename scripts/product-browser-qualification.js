@@ -11,11 +11,14 @@ const {
   createHiVenuesApp,
   startHiVenuesServer,
 } = require('../src/product/app');
-const { createHiVenuesIdentityServices } = require('../src/product/identity');
+const {
+  IDENTITY_COOKIE_NAME,
+  createHiVenuesIdentityServices,
+} = require('../src/product/identity');
 const { CandidateCStore } = require('../src/candidate-c/store');
 
 const OUTPUT_ROOT = process.env.HIVENUES_PRODUCT_BROWSER_ROOT
-  || path.join('artifacts', 'product-browser', 'identity');
+  || path.join('artifacts', 'product-browser', 'participation');
 const EXACT_SHA = process.env.HIVENUES_PRODUCT_BROWSER_EXACT_SHA || 'LOCAL_UNBOUND';
 const EXACT_TREE = process.env.HIVENUES_PRODUCT_BROWSER_EXACT_TREE || 'LOCAL_UNBOUND';
 const COMMUNITY = 'hive-199299';
@@ -57,6 +60,11 @@ function socialBindings() {
 
 function productReadService(publicKey) {
   const rpcCalls = [];
+  const followState = new Set();
+  const communityState = new Set();
+  const followKey = (follower, following) => follower + '->' + following;
+  const communityKey = (account, community) => account + '->' + community;
+
   return {
     rpcPool: {
       calls: rpcCalls,
@@ -98,7 +106,7 @@ function productReadService(publicKey) {
         name: account,
         displayName: account,
         about: '',
-        profileImage: '',
+        profileImage: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E',
         followerCount: 0,
         followingCount: 0,
         postCount: 0,
@@ -113,10 +121,91 @@ function productReadService(publicKey) {
     async getFollowing() {
       return { items: [], nextCursor: null };
     },
-    async isCommunityMember() {
+    async getFollowStatus(follower, following) {
+      return followState.has(followKey(follower, following));
+    },
+    async isCommunityMember(account, community) {
+      return communityState.has(communityKey(account, community));
+    },
+    setFollowState(follower, following, value) {
+      const key = followKey(follower, following);
+      if (value) followState.add(key);
+      else followState.delete(key);
+    },
+    setCommunityState(account, community, value) {
+      const key = communityKey(account, community);
+      if (value) communityState.add(key);
+      else communityState.delete(key);
+    },
+    async observeSocialOperation(record) {
+      const operation = record?.operations?.[0];
+      const [type, value] = Array.isArray(operation) ? operation : [];
+      if (type === 'custom_json' && value?.id === 'follow') {
+        const [, payload] = JSON.parse(value.json);
+        const following = Array.isArray(payload?.what) && payload.what.includes('blog');
+        return followState.has(followKey(payload.follower, payload.following)) === following;
+      }
+      if (type === 'custom_json' && value?.id === 'community') {
+        const [action, payload] = JSON.parse(value.json);
+        const subscribed = action === 'subscribe';
+        return communityState.has(communityKey(record.account, payload.community)) === subscribed;
+      }
       return false;
     },
   };
+}
+
+function applyAuthorizedRelationshipOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'custom_json');
+  assert.deepEqual(value.required_auths, []);
+  assert.deepEqual(value.required_posting_auths, [account]);
+
+  if (value.id === 'follow') {
+    const [action, payload] = JSON.parse(value.json);
+    assert.equal(action, 'follow');
+    assert.equal(payload.follower, account);
+    assert.equal(typeof payload.following, 'string');
+    const following = Array.isArray(payload.what) && payload.what.includes('blog');
+    hiveReadService.setFollowState(account, payload.following, following);
+  } else if (value.id === 'community') {
+    const [action, payload] = JSON.parse(value.json);
+    assert.ok(['subscribe', 'unsubscribe'].includes(action));
+    assert.equal(payload.community, COMMUNITY);
+    hiveReadService.setCommunityState(account, payload.community, action === 'subscribe');
+  } else {
+    assert.fail('unauthorized wallet operation id: ' + String(value.id));
+  }
+
+  counters.walletBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+  });
+  return crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
+    .digest('hex');
+}
+
+async function createAuthenticatedContext(
+  browser,
+  counters,
+  origin,
+  identityServices,
+  account = 'etblink',
+  viewport = DESKTOP,
+) {
+  const context = await createTrackedContext(browser, counters, viewport);
+  const { token } = identityServices.sessionStore.create(account);
+  await context.addCookies([{
+    name: IDENTITY_COOKIE_NAME,
+    value: token,
+    url: origin,
+    httpOnly: true,
+    sameSite: 'Strict',
+  }]);
+  return context;
 }
 
 function sha256File(filePath) {
@@ -156,13 +245,23 @@ async function pageAudit(page, axeSource, label) {
       .length,
   }));
   const controls = await page.evaluate(() => {
-    const forbidden = /\b(follow|unfollow|subscribe|unsubscribe|vote|upvote|downvote|post|publish|reply|comment|pay|send)\b/i;
-    return Array.from(document.querySelectorAll('a, button, input[type="submit"], [role="button"]'))
+    const held = /\b(vote|upvote|downvote|post|publish|reply|comment|pay|send|tip|transfer)\b/i;
+    const unauthorized = Array.from(document.querySelectorAll('a, button, input[type="submit"], [role="button"]'))
       .map((node) => ({
         text: (node.textContent || node.value || '').trim(),
         tag: node.tagName,
       }))
-      .filter((item) => forbidden.test(item.text));
+      .filter((item) => held.test(item.text));
+    const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
+      .map((root) => ({
+        action: root.dataset.participationAction || '',
+        target: root.dataset.participationTarget || '',
+        button: root.querySelector('[data-participation-submit]')?.textContent?.trim() || '',
+      }));
+    const invalidRelationship = relationship.filter(
+      (item) => !['follow', 'unfollow', 'subscribe', 'unsubscribe'].includes(item.action),
+    );
+    return { unauthorized, relationship, invalidRelationship };
   });
   const accessibility = await page.evaluate(async () => {
     const result = await window.axe.run(document, {
@@ -182,7 +281,8 @@ async function pageAudit(page, axeSource, label) {
 
   assert.equal(geometry.overflow, false, label + ': horizontal overflow');
   assert.equal(geometry.incompleteImages, 0, label + ': incomplete images');
-  assert.deepEqual(controls, [], label + ': unauthorized write-like controls');
+  assert.deepEqual(controls.unauthorized, [], label + ': unauthorized held-write controls');
+  assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -273,6 +373,29 @@ async function installApprovalWallet(context, key, publicKey) {
     publicKey,
   }));
   await context.addInitScript(() => {
+    let keychainApi = null;
+    Object.defineProperty(window, 'HiVenuesKeychain', {
+      configurable: true,
+      get() {
+        return keychainApi;
+      },
+      set(api) {
+        class SyntheticRelationshipWallet extends api.KeychainAdapter {
+          async broadcast(args) {
+            window.__relationshipApproval = args;
+            return new Promise((resolve, reject) => {
+              window.__resolveRelationshipApproval = resolve;
+              window.__rejectRelationshipApproval = reject;
+            });
+          }
+        }
+        keychainApi = Object.freeze({
+          ...api,
+          KeychainAdapter: SyntheticRelationshipWallet,
+        });
+      },
+    });
+
     window.hive_keychain = {
       requestHandshake(callback) {
         callback({ success: true });
@@ -296,6 +419,41 @@ async function installApprovalWallet(context, key, publicKey) {
       });
     };
   });
+}
+
+async function inspectPendingRelationship(page) {
+  return page.evaluate(() => ({
+    account: window.__relationshipApproval?.account || '',
+    authority: window.__relationshipApproval?.authority || '',
+    operations: window.__relationshipApproval?.operations || [],
+  }));
+}
+
+async function approvePendingRelationship(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Posting');
+  const transactionId = applyAuthorizedRelationshipOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
+async function rejectPendingRelationship(page, code = 'KEYCHAIN_CANCELLED') {
+  await page.evaluate((value) => {
+    const error = new Error('Synthetic wallet rejection');
+    error.code = value;
+    window.__rejectRelationshipApproval(error);
+  }, code);
 }
 
 async function runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey) {
@@ -341,6 +499,246 @@ async function runApprovalEvidence(browser, axeSource, origin, manifest, counter
       await page.locator('.cc-identity').textContent(),
       /Public browsing stays open whether or not you identify yourself/,
     );
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipDirectionEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const host of HOSTS) {
+      for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          origin + '/candidate-c/' + host.slug + '/community/updates',
+          { waitUntil: 'networkidle' },
+        );
+        const control = page.locator('[data-hivenues-participation]');
+        await control.waitFor();
+        assert.equal(await control.getAttribute('data-participation-action'), 'subscribe');
+        assert.equal(await control.getAttribute('data-participation-target'), COMMUNITY);
+        await capture(
+          page,
+          axeSource,
+          manifest,
+          host.family + '-' + viewportName + '-community-ready',
+        );
+      }
+
+      await page.setViewportSize(DESKTOP);
+      await page.goto(
+        origin + '/candidate-c/' + host.slug + '/community/people/juniper-lane',
+        { waitUntil: 'networkidle' },
+      );
+      const follow = page.locator('[data-hivenues-participation]');
+      await follow.waitFor();
+      assert.equal(await follow.getAttribute('data-participation-action'), 'follow');
+      assert.equal(await follow.getAttribute('data-participation-target'), 'juniper-lane');
+      await capture(
+        page,
+        axeSource,
+        manifest,
+        host.family + '-desktop-follow-ready',
+      );
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipJourneys(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  async function reviewAndApprove(expectedAction, expectedId, labelPrefix) {
+    const root = page.locator('[data-hivenues-participation]');
+    assert.equal(await root.getAttribute('data-participation-action'), expectedAction);
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    assert.equal(await root.getAttribute('data-participation-state'), 'review');
+    const reviewText = await page.locator('[data-participation-review]').textContent();
+    assert.match(reviewText, /Verified account/);
+    assert.match(reviewText, new RegExp(expectedAction));
+    assert.match(reviewText, /Posting|Technical operation details/i);
+    await capture(page, axeSource, manifest, labelPrefix + '-review');
+
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, labelPrefix + '-awaiting-wallet');
+
+    const pending = await inspectPendingRelationship(page);
+    assert.equal(pending.account, 'etblink');
+    assert.equal(pending.authority, 'Posting');
+    assert.equal(pending.operations.length, 1);
+    assert.equal(pending.operations[0][0], 'custom_json');
+    assert.equal(pending.operations[0][1].id, expectedId);
+    return approvePendingRelationship(page, hiveReadService, counters);
+  }
+
+  try {
+    await page.goto(origin + '/candidate-c/northline-hall/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    await reviewAndApprove('subscribe', 'community', 'poster-community-subscribe');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'unsubscribe'
+    ));
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), true);
+    await capture(page, axeSource, manifest, 'poster-community-subscribed');
+
+    await reviewAndApprove('unsubscribe', 'community', 'poster-community-unsubscribe');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'subscribe'
+    ));
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
+    await capture(page, axeSource, manifest, 'poster-community-unsubscribed');
+
+    await page.goto(
+      origin + '/candidate-c/northline-hall/community/people/juniper-lane',
+      { waitUntil: 'networkidle' },
+    );
+    await reviewAndApprove('follow', 'follow', 'poster-follow');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'unfollow'
+    ));
+    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), true);
+    await capture(page, axeSource, manifest, 'poster-follow-confirmed');
+
+    await reviewAndApprove('unfollow', 'follow', 'poster-unfollow');
+    await page.waitForFunction(() => (
+      document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'follow'
+    ));
+    assert.equal(await hiveReadService.getFollowStatus('etblink', 'juniper-lane'), false);
+    await capture(page, axeSource, manifest, 'poster-unfollow-confirmed');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipCancellationEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+    'paper-sparrow',
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    const root = page.locator('[data-hivenues-participation]');
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="awaiting-wallet"]').waitFor();
+    await rejectPendingRelationship(page);
+    await page.locator('[data-participation-state="cancelled"]').waitFor();
+    assert.equal(await hiveReadService.isCommunityMember('paper-sparrow', COMMUNITY), false);
+    assert.match(
+      await root.locator('[data-participation-status]').textContent(),
+      /Nothing was broadcast/,
+    );
+    await capture(page, axeSource, manifest, 'editorial-community-wallet-cancelled');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runRelationshipProviderUnavailableEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+    'blue-cup',
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(
+      origin + '/candidate-c/harbor-and-hearth/community/people/juniper-lane',
+      { waitUntil: 'networkidle' },
+    );
+    const root = page.locator('[data-hivenues-participation]');
+    await root.locator('[data-participation-submit]').click();
+    await page.locator('[data-participation-review][open]').waitFor();
+    await page.locator('[data-participation-confirm]').click();
+    await page.locator('[data-participation-state="provider-unavailable"]').waitFor();
+    assert.equal(await hiveReadService.getFollowStatus('blue-cup', 'juniper-lane'), false);
+    assert.match(
+      await root.locator('[data-participation-status]').textContent(),
+      /(Hive Keychain was not found|human-owned Hive wallet)/i,
+    );
+    await capture(page, axeSource, manifest, 'hospitality-follow-wallet-unavailable');
   } finally {
     await context.close();
   }
@@ -440,9 +838,14 @@ async function main() {
   const server = await startHiVenuesServer(app, { port: 0 });
   const origin = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ headless: true });
-  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const counters = {
+    requests: [],
+    externalRequests: [],
+    consoleErrors: [],
+    walletBroadcasts: [],
+  };
   const manifest = {
-    qualification: 'hivenues-product-browser-identity',
+    qualification: 'hivenues-product-browser-participation',
     candidate: EXACT_SHA,
     tree: EXACT_TREE,
     synthetic: true,
@@ -456,6 +859,14 @@ async function main() {
       'disconnect',
       'wallet-cancelled',
       'provider-unavailable',
+      'three-direction-community-controls',
+      'three-direction-follow-controls',
+      'community-subscribe',
+      'community-unsubscribe',
+      'follow',
+      'unfollow',
+      'relationship-wallet-cancelled',
+      'relationship-wallet-unavailable',
     ],
   };
 
@@ -464,6 +875,45 @@ async function main() {
     await runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey);
     await runCancellationEvidence(browser, axeSource, origin, manifest, counters);
     await runUnavailableEvidence(browser, axeSource, publicKey, manifest);
+    await runRelationshipDirectionEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+    );
+    await runRelationshipJourneys(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runRelationshipCancellationEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runRelationshipProviderUnavailableEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+    );
   } finally {
     await browser.close();
     await stopServer(server);
@@ -492,9 +942,29 @@ async function main() {
   assert.equal(mutatingIdentityPaths.has('/identity/verify'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/disconnect'), true);
   assert.equal(
-    observedPaths.some((value) => /\/(follow|subscribe|vote|post|reply|payment|broadcast)\b/i.test(value)),
+    observedPaths.some((value) => /\/(vote|post|reply|payment|pay|send|transfer|broadcast)\b/i.test(value)),
     false,
-    'browser invoked an unauthorized mutation path',
+    'browser invoked a held mutation path',
+  );
+  assert.equal(
+    observedPaths.some((value) => /\/participation\/[^/]+\/community\/(subscribe|unsubscribe)$/.test(value)),
+    true,
+    'browser never exercised community participation',
+  );
+  assert.equal(
+    observedPaths.some((value) => /\/participation\/[^/]+\/people\/[^/]+\/(follow|unfollow)$/.test(value)),
+    true,
+    'browser never exercised follow participation',
+  );
+  assert.equal(counters.walletBroadcasts.length, 4);
+  assert.deepEqual(
+    counters.walletBroadcasts.map((entry) => {
+      const operation = entry.operations[0][1];
+      return operation.id === 'community'
+        ? JSON.parse(operation.json)[0]
+        : (JSON.parse(operation.json)[1].what.length ? 'follow' : 'unfollow');
+    }),
+    ['subscribe', 'unsubscribe', 'follow', 'unfollow'],
   );
   assert.equal(
     hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment/.test(call.method)),
@@ -512,20 +982,25 @@ async function main() {
     ),
     horizontalOverflowFindings: manifest.audits.filter((item) => item.geometry.overflow).length,
     incompleteImageFindings: manifest.audits.filter((item) => item.geometry.incompleteImages > 0).length,
-    unauthorizedWriteLikeControls: manifest.audits.reduce((sum, item) => sum + item.controls.length, 0),
+    unauthorizedWriteLikeControls: manifest.audits.reduce(
+      (sum, item) => sum + item.controls.unauthorized.length + item.controls.invalidRelationship.length,
+      0,
+    ),
     externalRequests: counters.externalRequests.length,
     unexpectedConsoleErrors: counters.consoleErrors.length,
     authorityRpcCalls: hiveReadService.rpcPool.calls.length,
+    authorizedRelationshipBroadcasts: counters.walletBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 10);
+  assert.equal(manifest.summary.screenshotCount, 33);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
   assert.equal(manifest.summary.unauthorizedWriteLikeControls, 0);
   assert.equal(manifest.summary.externalRequests, 0);
   assert.equal(manifest.summary.unexpectedConsoleErrors, 0);
+  assert.equal(manifest.summary.authorizedRelationshipBroadcasts, 4);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),

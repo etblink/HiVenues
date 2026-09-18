@@ -35,6 +35,13 @@
       <dl class="cc-social-community-facts">
         <div><dt>People connected</dt><dd><%= hub.community.subscriberCount.toLocaleString('en-US') %></dd></div>
       </dl>
+      <%- include('_participation', {
+        graph,
+        participation,
+        participationKind: 'community',
+        participationLabels: communityParticipationLabels,
+        socialHref
+      }) %>
     </section>
   <% } %>
 

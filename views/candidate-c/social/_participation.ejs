@@ -1,0 +1,85 @@
+<%
+  const isCommunity = participationKind === 'community';
+  const isFollow = participationKind === 'follow';
+  const issue = participation?.issue || null;
+  const actor = participation?.actor || null;
+  const target = isCommunity ? participation?.community : participation?.target;
+  const confirmed = isCommunity ? participation?.subscribed : participation?.following;
+  const action = isCommunity
+    ? (confirmed ? 'unsubscribe' : 'subscribe')
+    : (confirmed ? 'unfollow' : 'follow');
+  const endpoint = isCommunity
+    ? '/participation/' + encodeURIComponent(graph.identity.slug) + '/community/' + action
+    : '/participation/' + encodeURIComponent(graph.identity.slug)
+      + '/people/' + encodeURIComponent(target || '') + '/' + action;
+  const actionLabel = confirmed ? participationLabels.leave : participationLabels.join;
+%>
+
+<section class="cc-participation cc-participation--<%= participationKind %>" data-participation-surface>
+  <div class="cc-participation__copy">
+    <p class="cc-kicker"><%= participationLabels.kicker %></p>
+    <h3><%= participationLabels.title %></h3>
+    <p><%= participationLabels.body %></p>
+  </div>
+
+  <% if (issue === 'identity-required') { %>
+    <div class="cc-participation__state">
+      <strong><%= participationLabels.identifyTitle %></strong>
+      <p>Prove your Hive identity before changing this relationship. Public browsing remains available without signing in.</p>
+      <a class="cc-participation__link" href="<%= socialHref %>#identity"><%= participationLabels.identifyAction %></a>
+    </div>
+  <% } else if (issue === 'participation-unavailable' || issue === 'relationship-read-unavailable' || issue === 'relationship-read-invalid' || issue === 'binding-invalid') { %>
+    <div class="cc-participation__state" role="status">
+      <strong><%= participationLabels.unavailableTitle %></strong>
+      <p>This relationship cannot be changed safely right now because HiVenues cannot confirm its current Hive state.</p>
+    </div>
+  <% } else if (issue === 'self-target') { %>
+    <div class="cc-participation__state">
+      <strong>This is your own Hive profile.</strong>
+      <p>HiVenues does not offer a follow action for your own account.</p>
+    </div>
+  <% } else if (actor && target && typeof confirmed === 'boolean') { %>
+    <div
+      class="cc-participation__form"
+      data-hivenues-participation
+      data-participation-url="<%= endpoint %>"
+      data-participation-action="<%= action %>"
+      data-participation-actor="<%= actor %>"
+      data-participation-target="<%= target %>"
+      data-participation-state="ready"
+    >
+      <div>
+        <span><%= participationLabels.currentLabel %></span>
+        <strong><%= confirmed ? participationLabels.currentYes : participationLabels.currentNo %></strong>
+      </div>
+      <button type="button" data-participation-submit><%= actionLabel %></button>
+      <p class="cc-participation__truth">
+        This changes a real Hive relationship through your own wallet. HiVenues will not call it confirmed until Hive readback matches the requested state.
+      </p>
+      <p class="cc-participation__status" data-participation-status role="status" aria-live="polite"><%= participationLabels.ready %></p>
+
+      <dialog class="cc-participation-review" data-participation-review aria-labelledby="cc-participation-review-title">
+        <form method="dialog">
+          <p class="cc-kicker">Before your wallet opens</p>
+          <h2 id="cc-participation-review-title">Review the exact Hive consequence</h2>
+          <p data-participation-consequence></p>
+          <dl>
+            <div><dt>Verified account</dt><dd data-participation-review-account></dd></div>
+            <div><dt>Hive mechanic</dt><dd data-participation-review-action></dd></div>
+            <div><dt>Target</dt><dd data-participation-review-target></dd></div>
+          </dl>
+          <details>
+            <summary>Technical operation details</summary>
+            <p>Fingerprint: <code data-participation-review-fingerprint></code></p>
+            <pre data-participation-review-operations></pre>
+          </details>
+          <p>Your wallet—not HiVenues—will sign and broadcast this operation.</p>
+          <div class="cc-participation-review__actions">
+            <button type="button" data-participation-confirm>Continue to wallet</button>
+            <button type="button" data-participation-cancel>Cancel</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+  <% } %>
+</section>

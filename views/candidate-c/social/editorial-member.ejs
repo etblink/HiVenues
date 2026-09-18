@@ -9,7 +9,21 @@
   </header>
   <main class="cc-social-shell cc-social-editorial-shell">
     <%- include('_member', {
-      graph, member, memberStateCopy, formatCommunityTime, memberHref,
+      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      followParticipationLabels: {
+        kicker: 'Reader network',
+        title: 'Follow this contributor',
+        body: 'Add or remove this Hive account from your own public following list through your wallet.',
+        identifyTitle: 'Verify your reader identity first',
+        identifyAction: 'Verify identity',
+        unavailableTitle: 'Follow status is unavailable',
+        currentLabel: 'Hive follow status',
+        currentYes: 'Following',
+        currentNo: 'Not following',
+        join: 'Follow contributor',
+        leave: 'Unfollow contributor',
+        ready: 'Review the exact Hive follow operation before your wallet opens.'
+      },
       memberLabels: {
         state: 'Profile status', identity: 'Contributor profile',
         memberYes: 'Listed as connected to this Hive community.', memberNo: 'Not currently listed as subscribed to this Hive community.',
@@ -19,6 +33,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public profile / read only</span></footer>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public profile / wallet-owned follow</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>

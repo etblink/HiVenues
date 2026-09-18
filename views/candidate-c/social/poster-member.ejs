@@ -9,7 +9,21 @@
   </header>
   <main class="cc-social-shell cc-social-poster-shell">
     <%- include('_member', {
-      graph, member, memberStateCopy, formatCommunityTime, memberHref,
+      graph, member, participation, memberStateCopy, formatCommunityTime, memberHref, socialHref,
+      followParticipationLabels: {
+        kicker: 'Stay connected',
+        title: 'Keep up with this person',
+        body: 'Change whether your verified Hive account follows this person. The exact follow operation is reviewed before your wallet opens.',
+        identifyTitle: 'Put your name to the wall first',
+        identifyAction: 'Prove identity',
+        unavailableTitle: 'Follow status is unavailable',
+        currentLabel: 'Your Hive follow status',
+        currentYes: 'Following this account',
+        currentNo: 'Not following this account',
+        join: 'Follow on Hive',
+        leave: 'Stop following',
+        ready: 'Review the exact Hive follow change before your wallet opens.'
+      },
       memberLabels: {
         state: 'Profile signal', identity: 'Seen around this place',
         memberYes: 'Connected to this community on Hive.', memberNo: 'Not currently subscribed to this community on Hive.',
@@ -19,6 +33,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public profile context · read only</p></footer>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public profile · wallet-owned follow</p></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>

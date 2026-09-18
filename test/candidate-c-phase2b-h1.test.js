@@ -53,14 +53,21 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/candidate-c-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js/,
         `${relative}: ${tag}`,
       );
-      if (/keychain-adapter|hivenues-identity/.test(tag)) {
+      if (/hivenues-identity/.test(tag)) {
         assert.match(
           relative,
           /^views\/candidate-c\/social\/(poster|editorial|hospitality)-hub\.ejs$/,
-          `${relative}: identity client escaped the social participation surface`,
+          `${relative}: identity client escaped the social identity surface`,
+        );
+      }
+      if (/keychain-adapter|hivenues-participation/.test(tag)) {
+        assert.match(
+          relative,
+          /^views\/candidate-c\/social\/(poster|editorial|hospitality)-(hub|member)\.ejs$/,
+          `${relative}: relationship client escaped the social participation surface`,
         );
       }
     }
@@ -73,6 +80,15 @@ test('Workstream F + Era 4: Candidate C ships only bounded named client islands 
     );
     assert.match(hub, /\/js\/keychain-adapter\.js/);
     assert.match(hub, /\/js\/hivenues-identity\.js/);
+    assert.match(hub, /\/js\/hivenues-participation\.js/);
+
+    const member = fs.readFileSync(
+      path.join(ROOT, 'views', 'candidate-c', 'social', `${family}-member.ejs`),
+      'utf8',
+    );
+    assert.match(member, /\/js\/keychain-adapter\.js/);
+    assert.match(member, /\/js\/hivenues-participation\.js/);
+    assert.doesNotMatch(member, /\/js\/hivenues-identity\.js/);
   }
 });
 

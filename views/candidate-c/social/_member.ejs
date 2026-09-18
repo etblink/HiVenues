@@ -35,6 +35,14 @@
     </dl>
   </section>
 
+  <%- include('_participation', {
+    graph,
+    participation,
+    participationKind: 'follow',
+    participationLabels: followParticipationLabels,
+    socialHref
+  }) %>
+
   <% if (member.posts.length) { %>
     <section class="cc-social-section cc-member-posts" aria-labelledby="cc-member-posts-title">
       <header class="cc-social-section__head">

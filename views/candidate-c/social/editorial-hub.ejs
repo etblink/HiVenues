@@ -19,7 +19,7 @@
       <div><h1>Dispatches & contributors</h1><p>A living index of public notes, stories, and people around <%= graph.identity.displayName %>, translated into this host’s editorial language.</p></div>
     </header>
     <%- include('_hub', {
-      graph, hub, hubStateCopy, formatCommunityTime, memberHref,
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['posts', 'threads', 'people'],
       identityLabels: {
         kicker: 'Reader identity',
@@ -32,6 +32,20 @@
         placeholder: 'reader-account',
         action: 'Verify my identity',
         ready: 'Identity is optional until a participation action actually needs it.'
+      },
+      communityParticipationLabels: {
+        kicker: 'Community register',
+        title: 'Choose your subscription',
+        body: 'Keep this Hive community in your account’s subscriptions, or remove it deliberately.',
+        identifyTitle: 'Sign the reader register first',
+        identifyAction: 'Verify identity',
+        unavailableTitle: 'Subscription status is unavailable',
+        currentLabel: 'Hive subscription',
+        currentYes: 'Subscribed',
+        currentNo: 'Not subscribed',
+        join: 'Subscribe to community',
+        leave: 'Unsubscribe',
+        ready: 'Review the exact Hive community operation before your wallet opens.'
       },
       socialLabels: {
         state: 'Transmission status',
@@ -47,8 +61,9 @@
       }
     }) %>
   </main>
-  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public reads / identity proof at participation boundary</span></footer>
+  <footer class="cc-editorial-footer"><span><%= graph.identity.displayName %></span><span>Public reads / wallet-owned participation</span></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-identity.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>
