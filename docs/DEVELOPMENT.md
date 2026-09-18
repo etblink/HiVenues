@@ -133,8 +133,10 @@ Do not create Candidate D, a second HostGraph, a provider-specific product model
 
 ## Current authorization boundary
 
-Repository/product-core normalization is complete. The next strategic objective is **Era 4 — Real Hive-Backed Participation**.
+Era 4 is complete/frozen. The active strategic objective is **Era 5 — Product Distribution**, governed by issue **#323**.
 
-Do not begin Era-4 implementation merely because the roadmap points there. First open a bounded issue/charter that defines the exact consequence being admitted, authority/signing boundary, provider-neutral seam, degraded behavior, reconciliation/read-back semantics, focused tests, browser evidence where needed, and explicitly held scope.
+Current product work may change how HiVenues is packaged, installed, launched, updated, diagnosed, and given an application-owned user-data location. It must preserve the server-owned application model, EJS/HTMX/bounded-JS rendering model, loopback-only runtime, Working/Live/Release semantics, durable workspace/media integrity, and all accepted Era-4 Hive consequence contracts.
 
-Until such a charter authorizes a concrete slice, preserve zero external effects: no signing/Hive broadcast, social writes, value movement/payments, production deployment/DNS/VPS mutation, customer-specific Fourth Street work, independent Astra, or framework rewrite.
+The ordinary local product namespace is `/hivenues`. Active implementation belongs under `src/product/`; current Studio/Territory views belong under `views/hivenues/`. Do not reintroduce Candidate-C compatibility aliases or historical milestone harnesses without a current product requirement.
+
+Era 5 does **not** authorize production deployment/DNS/VPS mutation, Hive account-creation authority, new commerce/value classes, Fourth Street customer work, independent Astra, or a framework rewrite.

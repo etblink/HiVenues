@@ -52,23 +52,24 @@ See `docs/DEVELOPMENT.md` for the ordinary contribution loop.
 
 `src/product/` is the stable ordinary application boundary. `src/product/app.js` owns application composition.
 
-The already-qualified Era-0–3 implementation still contains internal `candidate-c` naming. That is implementation-history debt, not a second product line, not a compatibility promise, and not an architectural authority. New ordinary work should enter through product-owned boundaries and seams rather than adding fresh dependencies on the historical namespace.
+The active Era-0–4 implementation is normalized under the canonical `src/product/` boundary. Ordinary product routes, EJS views, browser assets, runtime symbols, and current regression tests use HiVenues-owned naming rather than the historical Candidate-C namespace.
 
 The current product includes the server-owned HostGraph, Working/Live separation, explicit Release and History, Restore, stale-state protection, urgent isolation, durable persistence, multi-route Territory projection, materially distinct Directions, supported Studio authoring, host-native social/community participation, human-wallet content/vote actions, personal resource/reward state, exact reward claiming, and a qualified synthetic direct-support transfer surface.
 
-Existing `/candidate-c` routes, views, assets, identifiers, or qualification names may be migrated later when a concrete product or maintenance requirement justifies the blast radius. Their continued existence does not reopen #301.
+Git history remains the archive for superseded Candidate-C implementation and qualification artifacts; no unreleased compatibility alias is retained merely for archaeology.
 
 ## Repository map
 
 | Area | Role |
 | --- | --- |
-| `src/product/` | Canonical product boundary and application composition root. |
-| `src/candidate-c/` | Current qualified Era-0–3 implementation internals carrying historical naming debt. Do not extend the naming by default. |
+| `src/product/` | Canonical product implementation, domain modules, and application composition root. |
+| `views/hivenues/` | Canonical HiVenues Studio/Territory EJS surface. |
+| `public/` | Current browser assets, including HiVenues-owned CSS/JS/media namespaces. |
 | `src/hive/`, `src/auth/`, and other capability modules | Reusable shared infrastructure only where the current product actually consumes it. |
 | older server/venue/v2/V1/deployment paths | Unreleased historical implementation. No compatibility status; remove when not required by current product or an enduring qualification contract. |
 | `scripts/hivenues-studio.js` | Ordinary loopback local Studio launcher. |
-| `scripts/candidate-c-dogfood.js` | Retained qualification launcher; not the ordinary product entry point. |
-| milestone-specific scripts/tests/docs | Maintenance candidates. Keep only when they protect an enduring current contract that cannot be expressed by ordinary product-level tests. |
+| `scripts/product-browser-qualification.js` | Current end-to-end browser qualification for enduring product contracts. |
+| milestone-specific scripts/tests/docs | Delete when they no longer protect an enduring current contract; Git history is the archive. |
 | `docs/HIVENUES_*DOCTRINE*` | Frozen product, journey, Hive, distribution, and architecture doctrine. |
 | `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` | Strategic execution roadmap. |
 | `docs/ROADMAP.md` | Current verified program marker. |
