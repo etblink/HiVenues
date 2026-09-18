@@ -58,14 +58,106 @@ function socialBindings() {
   return Object.fromEntries(HOSTS.map((host) => [host.slug, SOCIAL_BINDING]));
 }
 
+function contentKey(author, permlink) {
+  return String(author) + '/' + String(permlink);
+}
+
+function browserContentRecord({
+  author,
+  permlink,
+  parentAuthor = '',
+  parentPermlink,
+  title = '',
+  body,
+  jsonMetadata,
+  created = '2026-09-18T01:00:00',
+}) {
+  return {
+    author,
+    permlink,
+    parentAuthor,
+    parentPermlink,
+    title,
+    body,
+    jsonMetadata,
+    created,
+  };
+}
+
+function normalizeBrowserContent(raw, replyCount = 0) {
+  return {
+    author: raw.author,
+    permlink: raw.permlink,
+    parentAuthor: raw.parentAuthor,
+    parentPermlink: raw.parentPermlink,
+    title: raw.title || 'Untitled',
+    body: raw.body,
+    bodyHtml: '<p>' + String(raw.body || '') + '</p>',
+    excerpt: String(raw.body || ''),
+    primaryImage: '',
+    created: raw.created || '2026-09-18T01:00:00',
+    updated: '',
+    positiveVotes: 0,
+    negativeVotes: 0,
+    replyCount,
+    payout: 0,
+    depth: raw.parentAuthor ? 1 : 0,
+  };
+}
+
 function productReadService(publicKey) {
   const rpcCalls = [];
   const followState = new Set();
   const communityState = new Set();
+  const contentRecords = new Map();
   const followKey = (follower, following) => follower + '->' + following;
   const communityKey = (account, community) => account + '->' + community;
 
-  return {
+  const seedRoot = browserContentRecord({
+    author: 'etblink',
+    permlink: 'room-note',
+    parentPermlink: COMMUNITY,
+    title: 'A note from the room',
+    body: 'This is the exact public body.',
+    jsonMetadata: '{"tags":["hive-199299"],"app":"hivenues/1.0.0","format":"markdown"}',
+  });
+  const seedReply = browserContentRecord({
+    author: 'juniper-lane',
+    permlink: 're-room-note',
+    parentAuthor: 'etblink',
+    parentPermlink: 'room-note',
+    body: 'I am here too.',
+    jsonMetadata: '{"app":"hivenues/1.0.0","format":"markdown"}',
+    created: '2026-09-18T01:05:00',
+  });
+  contentRecords.set(contentKey(seedRoot.author, seedRoot.permlink), seedRoot);
+  contentRecords.set(contentKey(seedReply.author, seedReply.permlink), seedReply);
+
+  function roots() {
+    return Array.from(contentRecords.values())
+      .filter((item) => item.parentAuthor === '' && item.parentPermlink === COMMUNITY);
+  }
+
+  function commentsFor(root) {
+    const rootId = contentKey(root.author, root.permlink);
+    const belongs = (item) => {
+      let cursor = item;
+      const seen = new Set();
+      while (cursor?.parentAuthor) {
+        const parentId = contentKey(cursor.parentAuthor, cursor.parentPermlink);
+        if (parentId === rootId) return true;
+        if (seen.has(parentId)) return false;
+        seen.add(parentId);
+        cursor = contentRecords.get(parentId);
+      }
+      return false;
+    };
+    return Array.from(contentRecords.values()).filter(
+      (item) => item.parentAuthor && belongs(item),
+    );
+  }
+
+  const service = {
     rpcPool: {
       calls: rpcCalls,
       async call(api, method, params) {
@@ -90,7 +182,21 @@ function productReadService(publicKey) {
       };
     },
     async getCommunityPosts() {
-      return { items: [], profiles: {}, nextCursor: null };
+      const items = roots().map((item) => normalizeBrowserContent(
+        item,
+        commentsFor(item).length,
+      ));
+      return {
+        items,
+        profiles: {
+          etblink: {
+            name: 'etblink',
+            displayName: 'Evan',
+            profileImage: 'data:image/svg+xml,%3Csvg/%3E',
+          },
+        },
+        nextCursor: null,
+      };
     },
     async getLatestThreads() {
       return { container: null, threads: [], profiles: {} };
@@ -98,8 +204,13 @@ function productReadService(publicKey) {
     async listCommunitySubscribers() {
       return [];
     },
-    async getProfiles() {
-      return {};
+    async getProfiles(accounts = []) {
+      return Object.fromEntries(accounts.map((name) => [name, {
+        name,
+        displayName: name,
+        about: '',
+        profileImage: 'data:image/svg+xml,%3Csvg/%3E',
+      }]));
     },
     async getProfile(account) {
       return {
@@ -109,11 +220,17 @@ function productReadService(publicKey) {
         profileImage: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E',
         followerCount: 0,
         followingCount: 0,
-        postCount: 0,
+        postCount: roots().filter((item) => item.author === account).length,
       };
     },
-    async getAccountPosts() {
-      return { items: [], profiles: {}, nextCursor: null };
+    async getAccountPosts({ account } = {}) {
+      return {
+        items: roots()
+          .filter((item) => !account || item.author === account)
+          .map((item) => normalizeBrowserContent(item, commentsFor(item).length)),
+        profiles: {},
+        nextCursor: null,
+      };
     },
     async getFollowers() {
       return { items: [], nextCursor: null };
@@ -152,7 +269,62 @@ function productReadService(publicKey) {
       }
       return false;
     },
+    async getContentRecord(author, permlink) {
+      const value = contentRecords.get(contentKey(author, permlink));
+      return value ? structuredClone(value) : null;
+    },
+    async getPostWithComments(author, permlink) {
+      const root = contentRecords.get(contentKey(author, permlink));
+      if (!root || root.parentAuthor !== '' || root.parentPermlink !== COMMUNITY) {
+        const error = new Error('Post not found');
+        error.statusCode = 404;
+        error.expose = true;
+        error.code = 'NOT_FOUND';
+        throw error;
+      }
+      const comments = commentsFor(root);
+      return {
+        post: normalizeBrowserContent(root, comments.length),
+        comments: comments.map((item) => normalizeBrowserContent(item, 0)),
+        profiles: Object.fromEntries(
+          Array.from(new Set([root.author, ...comments.map((item) => item.author)]))
+            .map((name) => [name, { name, displayName: name }]),
+        ),
+      };
+    },
+    async observeContentOperation(record) {
+      const [type, value] = record?.operations?.[0] || [];
+      if (type !== 'comment' || !value) return false;
+      const observed = contentRecords.get(contentKey(value.author, value.permlink));
+      if (!observed) return false;
+      return observed.author === value.author
+        && observed.permlink === value.permlink
+        && observed.parentAuthor === value.parent_author
+        && observed.parentPermlink === value.parent_permlink
+        && observed.title === value.title
+        && observed.body === value.body
+        && observed.jsonMetadata === value.json_metadata;
+    },
+    applyContentOperation(value) {
+      const key = contentKey(value.author, value.permlink);
+      const existing = contentRecords.get(key);
+      contentRecords.set(key, browserContentRecord({
+        author: value.author,
+        permlink: value.permlink,
+        parentAuthor: value.parent_author,
+        parentPermlink: value.parent_permlink,
+        title: value.title,
+        body: value.body,
+        jsonMetadata: value.json_metadata,
+        created: existing?.created || '2026-09-18T02:00:00',
+      }));
+    },
+    contentSnapshot() {
+      return Array.from(contentRecords.values()).map((item) => structuredClone(item));
+    },
   };
+
+  return service;
 }
 
 function applyAuthorizedRelationshipOperation(hiveReadService, account, operations, counters) {
@@ -185,6 +357,26 @@ function applyAuthorizedRelationshipOperation(hiveReadService, account, operatio
   });
   return crypto.createHash('sha1')
     .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
+    .digest('hex');
+}
+
+
+function applyAuthorizedContentOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'comment');
+  assert.equal(value.author, account);
+  assert.equal(typeof value.permlink, 'string');
+  assert.equal(typeof value.body, 'string');
+  assert.equal(typeof value.json_metadata, 'string');
+  hiveReadService.applyContentOperation(value);
+  counters.contentBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+  });
+  return crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.contentBroadcasts.length]))
     .digest('hex');
 }
 
@@ -245,7 +437,7 @@ async function pageAudit(page, axeSource, label) {
       .length,
   }));
   const controls = await page.evaluate(() => {
-    const held = /\b(vote|upvote|downvote|post|publish|reply|comment|pay|send|tip|transfer)\b/i;
+    const held = /\b(vote|upvote|downvote|pay|send|tip|transfer|claim|reward)\b/i;
     const unauthorized = Array.from(document.querySelectorAll('a, button, input[type="submit"], [role="button"]'))
       .map((node) => ({
         text: (node.textContent || node.value || '').trim(),
@@ -261,7 +453,16 @@ async function pageAudit(page, axeSource, label) {
     const invalidRelationship = relationship.filter(
       (item) => !['follow', 'unfollow', 'subscribe', 'unsubscribe'].includes(item.action),
     );
-    return { unauthorized, relationship, invalidRelationship };
+    const content = Array.from(document.querySelectorAll('[data-hivenues-content]'))
+      .map((root) => ({
+        mode: root.dataset.contentMode || '',
+        actor: root.dataset.contentActor || '',
+        target: root.dataset.contentTarget || '',
+      }));
+    const invalidContent = content.filter(
+      (item) => !['post', 'update', 'reply'].includes(item.mode),
+    );
+    return { unauthorized, relationship, invalidRelationship, content, invalidContent };
   });
   const accessibility = await page.evaluate(async () => {
     const result = await window.axe.run(document, {
@@ -283,6 +484,7 @@ async function pageAudit(page, axeSource, label) {
   assert.equal(geometry.incompleteImages, 0, label + ': incomplete images');
   assert.deepEqual(controls.unauthorized, [], label + ': unauthorized held-write controls');
   assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
+  assert.deepEqual(controls.invalidContent, [], label + ': invalid content controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -536,6 +738,10 @@ async function runRelationshipDirectionEvidence(
         await control.waitFor();
         assert.equal(await control.getAttribute('data-participation-action'), 'subscribe');
         assert.equal(await control.getAttribute('data-participation-target'), COMMUNITY);
+        const composer = page.locator('[data-hivenues-content][data-content-mode="post"]');
+        await composer.waitFor();
+        assert.equal(await composer.getAttribute('data-content-actor'), 'etblink');
+        assert.match(await composer.textContent(), /Review|public|wallet/i);
         await capture(
           page,
           axeSource,
@@ -744,6 +950,204 @@ async function runRelationshipProviderUnavailableEvidence(
   }
 }
 
+async function approvePendingContent(page, hiveReadService, counters) {
+  const pending = await inspectPendingRelationship(page);
+  assert.equal(pending.account, 'etblink');
+  assert.equal(pending.authority, 'Posting');
+  assert.equal(pending.operations.length, 1);
+  assert.equal(pending.operations[0][0], 'comment');
+  const transactionId = applyAuthorizedContentOperation(
+    hiveReadService,
+    pending.account,
+    pending.operations,
+    counters,
+  );
+  await page.evaluate((tx) => {
+    window.__resolveRelationshipApproval({
+      accepted: true,
+      transactionId: tx,
+    });
+  }, transactionId);
+  return { ...pending, transactionId };
+}
+
+async function runContentJourneys(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  async function reviewAndApprove(root, expectedAction, labelPrefix) {
+    await root.locator('[data-content-submit]').click();
+    const dialog = root.locator('[data-content-review][open]');
+    await dialog.waitFor();
+    assert.equal(await root.getAttribute('data-content-state'), 'review');
+    assert.equal(await dialog.locator('[data-content-review-action]').textContent(), expectedAction);
+    assert.equal(await dialog.locator('[data-content-review-account]').textContent(), '@etblink');
+    assert.match(await dialog.locator('[data-content-review-operations]').textContent(), /"comment"/);
+    await capture(page, axeSource, manifest, labelPrefix + '-review');
+
+    await dialog.locator('[data-content-confirm]').click();
+    await page.locator('[data-content-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, labelPrefix + '-awaiting-wallet');
+    return approvePendingContent(page, hiveReadService, counters);
+  }
+
+  try {
+    await page.goto(origin + '/candidate-c/northline-hall/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    const post = page.locator('[data-hivenues-content][data-content-mode="post"]');
+    await post.locator('[data-content-title]').fill('Browser-qualified room note');
+    await post.locator('[data-content-body]').fill('Published through the exact Stage 3 human-wallet path.');
+    await reviewAndApprove(post, 'post', 'poster-content-post');
+    await page.waitForURL(/\/candidate-c\/northline-hall\/community\/posts\/etblink\//, {
+      timeout: 15000,
+    });
+    await page.getByText('Browser-qualified room note', { exact: true }).first().waitFor();
+    await capture(page, axeSource, manifest, 'poster-content-post-confirmed');
+
+    const update = page.locator('[data-hivenues-content][data-content-mode="update"]');
+    await update.locator('[data-content-title]').fill('Browser-qualified room note — revised');
+    await update.locator('[data-content-body]').fill('The same public post, revised through my own wallet.');
+    await update.locator('[data-content-submit]').click();
+    const updateDialog = update.locator('[data-content-review][open]');
+    await updateDialog.waitFor();
+    assert.match(await updateDialog.textContent(), /Currently public/);
+    assert.match(await updateDialog.textContent(), /After this update/);
+    assert.match(await updateDialog.textContent(), /Browser-qualified room note/);
+    assert.match(await updateDialog.textContent(), /Browser-qualified room note — revised/);
+    await capture(page, axeSource, manifest, 'poster-content-update-review');
+    await updateDialog.locator('[data-content-confirm]').click();
+    await page.locator('[data-content-state="awaiting-wallet"]').waitFor();
+    await capture(page, axeSource, manifest, 'poster-content-update-awaiting-wallet');
+    await approvePendingContent(page, hiveReadService, counters);
+    await page.waitForLoadState('networkidle');
+    await page.getByText('Browser-qualified room note — revised', { exact: true }).first().waitFor({
+      timeout: 15000,
+    });
+    await capture(page, axeSource, manifest, 'poster-content-update-confirmed');
+
+    const reply = page.locator('[data-hivenues-content][data-content-mode="reply"]').first();
+    await reply.locator('[data-content-body]').fill('A browser-qualified public response.');
+    await reviewAndApprove(reply, 'reply', 'poster-content-reply');
+    await page.waitForLoadState('networkidle');
+    await page.getByText('A browser-qualified public response.', { exact: true }).first().waitFor({
+      timeout: 15000,
+    });
+    await capture(page, axeSource, manifest, 'poster-content-reply-confirmed');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runContentCancellationEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+    'paper-sparrow',
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    const root = page.locator('[data-hivenues-content][data-content-mode="post"]');
+    await root.locator('[data-content-title]').fill('Cancelled dispatch');
+    await root.locator('[data-content-body]').fill('This must never become canonical content.');
+    await root.locator('[data-content-submit]').click();
+    await root.locator('[data-content-review][open]').waitFor();
+    await root.locator('[data-content-confirm]').click();
+    await page.locator('[data-content-state="awaiting-wallet"]').waitFor();
+    await rejectPendingRelationship(page);
+    await page.locator('[data-content-state="cancelled"]').waitFor();
+    assert.match(
+      await root.locator('[data-content-status]').textContent(),
+      /Nothing was published/,
+    );
+    await capture(page, axeSource, manifest, 'editorial-content-wallet-cancelled');
+  } finally {
+    await context.close();
+  }
+}
+
+async function runContentProviderUnavailableEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+    'blue-cup',
+  );
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/candidate-c/harbor-and-hearth/community/updates', {
+      waitUntil: 'networkidle',
+    });
+    const root = page.locator('[data-hivenues-content][data-content-mode="post"]');
+    await root.locator('[data-content-title]').fill('Unavailable note');
+    await root.locator('[data-content-body]').fill('This stays a draft because no human wallet is available.');
+    await root.locator('[data-content-submit]').click();
+    await root.locator('[data-content-review][open]').waitFor();
+    await root.locator('[data-content-confirm]').click();
+    await page.locator('[data-content-state="provider-unavailable"]').waitFor();
+    assert.match(
+      await root.locator('[data-content-status]').textContent(),
+      /human-owned Hive wallet/i,
+    );
+    await capture(page, axeSource, manifest, 'hospitality-content-wallet-unavailable');
+  } finally {
+    await context.close();
+  }
+}
+
 async function runCancellationEvidence(browser, axeSource, origin, manifest, counters) {
   const context = await createTrackedContext(browser, counters);
   await context.addInitScript(() => {
@@ -843,6 +1247,7 @@ async function main() {
     externalRequests: [],
     consoleErrors: [],
     walletBroadcasts: [],
+    contentBroadcasts: [],
   };
   const manifest = {
     qualification: 'hivenues-product-browser-participation',
@@ -867,6 +1272,12 @@ async function main() {
       'unfollow',
       'relationship-wallet-cancelled',
       'relationship-wallet-unavailable',
+      'three-direction-content-composers',
+      'root-post',
+      'own-post-update',
+      'reply',
+      'content-wallet-cancelled',
+      'content-wallet-unavailable',
     ],
   };
 
@@ -914,6 +1325,35 @@ async function main() {
       identityServices,
       hiveReadService,
     );
+    await runContentJourneys(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runContentCancellationEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      key,
+      publicKey,
+    );
+    await runContentProviderUnavailableEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+    );
   } finally {
     await browser.close();
     await stopServer(server);
@@ -942,7 +1382,7 @@ async function main() {
   assert.equal(mutatingIdentityPaths.has('/identity/verify'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/disconnect'), true);
   assert.equal(
-    observedPaths.some((value) => /\/(vote|post|reply|payment|pay|send|transfer|broadcast)\b/i.test(value)),
+    observedPaths.some((value) => /\/(vote|payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)),
     false,
     'browser invoked a held mutation path',
   );
@@ -966,6 +1406,22 @@ async function main() {
     }),
     ['subscribe', 'unsubscribe', 'follow', 'unfollow'],
   );
+  assert.equal(counters.contentBroadcasts.length, 3);
+  assert.deepEqual(
+    counters.contentBroadcasts.map((entry) => entry.operations[0][0]),
+    ['comment', 'comment', 'comment'],
+  );
+  assert.deepEqual(
+    counters.contentBroadcasts.map((entry) => {
+      const value = entry.operations[0][1];
+      if (value.parent_author) return 'reply';
+      return value.permlink.includes('browser-qualified-room-note')
+        && value.title.includes('revised')
+        ? 'update'
+        : 'post';
+    }),
+    ['post', 'update', 'reply'],
+  );
   assert.equal(
     hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment/.test(call.method)),
     false,
@@ -983,17 +1439,21 @@ async function main() {
     horizontalOverflowFindings: manifest.audits.filter((item) => item.geometry.overflow).length,
     incompleteImageFindings: manifest.audits.filter((item) => item.geometry.incompleteImages > 0).length,
     unauthorizedWriteLikeControls: manifest.audits.reduce(
-      (sum, item) => sum + item.controls.unauthorized.length + item.controls.invalidRelationship.length,
+      (sum, item) => sum
+        + item.controls.unauthorized.length
+        + item.controls.invalidRelationship.length
+        + item.controls.invalidContent.length,
       0,
     ),
     externalRequests: counters.externalRequests.length,
     unexpectedConsoleErrors: counters.consoleErrors.length,
     authorityRpcCalls: hiveReadService.rpcPool.calls.length,
     authorizedRelationshipBroadcasts: counters.walletBroadcasts.length,
+    authorizedContentBroadcasts: counters.contentBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 33);
+  assert.equal(manifest.summary.screenshotCount, 44);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
@@ -1001,6 +1461,7 @@ async function main() {
   assert.equal(manifest.summary.externalRequests, 0);
   assert.equal(manifest.summary.unexpectedConsoleErrors, 0);
   assert.equal(manifest.summary.authorizedRelationshipBroadcasts, 4);
+  assert.equal(manifest.summary.authorizedContentBroadcasts, 3);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),
