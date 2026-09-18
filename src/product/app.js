@@ -73,6 +73,7 @@ function createHiVenuesApp({
   participationServices = null,
   participationNow = Date.now,
   participationPreflightTtlMs,
+  contentPermlinkFactory,
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -180,6 +181,12 @@ function createHiVenuesApp({
   app.use(identitySessionContext(activeIdentityServices?.sessionStore || null));
   app.use((_req, res, next) => {
     res.locals.hivenuesParticipationAvailable = Boolean(activeParticipationServices);
+    res.locals.hivenuesContentAvailable = Boolean(
+      activeParticipationServices
+      && typeof activeParticipationServices.hiveReadService?.getContentRecord === 'function'
+      && typeof activeParticipationServices.hiveReadService?.getPostWithComments === 'function'
+      && typeof activeParticipationServices.hiveReadService?.observeContentOperation === 'function',
+    );
     next();
   });
   app.use('/identity', createHiVenuesIdentityRouter({
@@ -192,6 +199,7 @@ function createHiVenuesApp({
     services: activeParticipationServices,
     socialBindings,
     fixedOrigin: identityOrigin,
+    contentPermlinkFactory,
   }));
 
   // Durable test workspaces may deliberately place local media outside the
