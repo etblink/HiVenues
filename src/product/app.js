@@ -16,6 +16,8 @@ const {
   identitySessionContext,
 } = require('./identity');
 const { createHiVenuesIdentityRouter } = require('./identity-router');
+const { createHiVenuesParticipationServices } = require('./participation');
+const { createHiVenuesParticipationRouter } = require('./participation-router');
 
 const LOCAL_HOST = '127.0.0.1';
 const SESSION_COOKIE = 'hivenues_dogfood_session';
@@ -68,6 +70,9 @@ function createHiVenuesApp({
   identitySessionSecret = '',
   identityChallengeTtlMs,
   identitySessionTtlMs,
+  participationServices = null,
+  participationNow = Date.now,
+  participationPreflightTtlMs,
 } = {}) {
   if (!store) throw new TypeError('Candidate C dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -82,6 +87,14 @@ function createHiVenuesApp({
         challengeTtlMs: identityChallengeTtlMs,
         sessionTtlMs: identitySessionTtlMs,
         now: identityNow,
+      });
+
+  const activeParticipationServices = participationServices === false
+    ? null
+    : participationServices || createHiVenuesParticipationServices({
+        hiveReadService,
+        preflightTtlMs: participationPreflightTtlMs,
+        now: participationNow,
       });
 
   const app = express();
@@ -169,6 +182,12 @@ function createHiVenuesApp({
     services: activeIdentityServices,
     fixedOrigin: identityOrigin,
     secureCookie: Boolean(publicIngress),
+  }));
+  app.use('/participation', createHiVenuesParticipationRouter({
+    store,
+    services: activeParticipationServices,
+    socialBindings,
+    fixedOrigin: identityOrigin,
   }));
 
   // Durable test workspaces may deliberately place local media outside the
