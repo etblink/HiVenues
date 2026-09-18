@@ -12,7 +12,7 @@
       graph, member, participation, resourceState, memberStateCopy, formatCommunityTime, memberHref, socialHref,
       resourceLabels: {
         kicker: 'Your place in the room', title: 'Your participation energy',
-        body: 'A read-only look at the Hive capacity and rewards behind your own participation here.',
+        body: 'A look at the Hive capacity and rewards behind your own participation here.',
         voting: 'Raise-a-glass strength', capacity: 'Room to participate', basis: 'Your footing', rewards: 'Waiting for you',
         claimKicker: 'Ready when you are', claimAction: 'Collect rewards'
       },
@@ -39,9 +39,9 @@
       }
     }) %>
   </main>
-  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p><%= resourceState?.visible ? 'Your Hive participation state · read-only' : 'Public profile · wallet-owned follow' %></p></footer>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p><%= resourceState?.visible ? (claimRewardsEndpoint && resourceState.hasClaimableRewards ? 'Your Hive participation state · rewards ready' : 'Your Hive participation state · read-only') : 'Public profile · wallet-owned follow' %></p></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
-  <script src="/js/hivenues-reward-claim.js" defer></script>
+  <% if (claimRewardsEndpoint && resourceState?.hasClaimableRewards) { %><script src="/js/hivenues-reward-claim.js" defer></script><% } %>
 </body>
 </html>
