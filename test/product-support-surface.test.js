@@ -38,6 +38,18 @@ function reads() {
         throw new Error('RPC not expected in direct-support surface rendering tests');
       },
     },
+    async getProfile(account) {
+      return { name: account, displayName: account };
+    },
+    async getFollowStatus() {
+      return false;
+    },
+    async isCommunityMember() {
+      return false;
+    },
+    async observeSocialOperation() {
+      return false;
+    },
     async getAccountRecord(account) {
       return {
         name: account,
