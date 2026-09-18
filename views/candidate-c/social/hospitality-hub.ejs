@@ -23,6 +23,18 @@
     <%- include('_hub', {
       graph, hub, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['people', 'threads', 'posts'],
+      identityLabels: {
+        kicker: 'At the table',
+        title: 'Introduce yourself',
+        body: 'If you want to take part as yourself, prove control of your Hive account. You can still look around without signing in.',
+        unavailableTitle: 'Introductions are unavailable right now',
+        verifiedLabel: 'Seated as',
+        disconnect: 'Leave the table',
+        accountLabel: 'Your Hive account',
+        placeholder: 'your-account',
+        action: 'Introduce myself',
+        ready: 'Nothing is posted or changed on Hive just by introducing yourself.'
+      },
       socialLabels: {
         state: 'Table status',
         community: 'The wider table',
@@ -37,6 +49,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · read only</span></footer>
+  <footer class="cc-hospitality-footer"><span><%= graph.identity.displayName %></span><span>Community context · identity only when useful</span></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
 </body>
 </html>

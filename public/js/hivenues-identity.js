@@ -1,0 +1,253 @@
+'use strict';
+
+(function attachHiVenuesIdentity(global) {
+  const ROOT_SELECTOR = '[data-hivenues-identity]';
+
+  function normalizedAccount(value) {
+    return String(value || '').trim().toLowerCase().replace(/^@+/, '');
+  }
+
+  function errorState(error) {
+    const code = String(error?.code || '');
+    if (code === 'KEYCHAIN_CANCELLED') {
+      return {
+        state: 'cancelled',
+        message: 'Identity proof was cancelled. No Hive transaction or participation action occurred.',
+      };
+    }
+    if (['KEYCHAIN_UNAVAILABLE', 'KEYCHAIN_LOCKED', 'KEYCHAIN_TIMEOUT', 'IDENTITY_PROVIDER_UNAVAILABLE', 'HIVE_RPC_UNAVAILABLE'].includes(code)) {
+      return {
+        state: 'provider-unavailable',
+        message: error?.message || 'Identity proof is temporarily unavailable. Public browsing still works.',
+      };
+    }
+    if (code === 'AUTH_CHALLENGE_EXPIRED') {
+      return {
+        state: 'expired',
+        message: 'That identity challenge expired before it could be verified. Start again for a fresh proof.',
+      };
+    }
+    if (code === 'IDENTITY_RATE_LIMITED') {
+      return {
+        state: 'rate-limited',
+        message: 'Too many identity attempts were made in a short period. Public browsing still works; try again shortly.',
+      };
+    }
+    if (
+      code.startsWith('AUTH_')
+      || code === 'AUTHORITY_MISMATCH'
+      || code === 'KEYCHAIN_ACCOUNT_MISMATCH'
+      || code === 'KEYCHAIN_MESSAGE_MISMATCH'
+      || code === 'KEYCHAIN_INVALID_RESPONSE'
+    ) {
+      return {
+        state: 'invalid',
+        message: error?.message || 'That proof did not verify for the selected Hive account. No Hive transaction occurred.',
+      };
+    }
+    return {
+      state: 'failed',
+      message: error?.message || 'Identity proof could not be completed. No Hive transaction occurred.',
+    };
+  }
+
+  async function jsonRequest(fetchImpl, url, options = {}) {
+    const response = await fetchImpl(url, {
+      ...options,
+      headers: {
+        accept: 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+    const payload = response.status === 204 ? null : await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = new Error(payload?.error?.message || 'The request could not be completed.');
+      error.code = payload?.error?.code || 'REQUEST_FAILED';
+      throw error;
+    }
+    return payload;
+  }
+
+  function setState(root, state, message) {
+    root.dataset.identityState = state;
+    const status = root.querySelector('[data-identity-status]');
+    if (status) status.textContent = message || '';
+  }
+
+  function controls(root) {
+    return {
+      form: root.querySelector('[data-identity-form]'),
+      input: root.querySelector('[data-identity-account]'),
+      submit: root.querySelector('[data-identity-submit]'),
+      disconnect: root.querySelector('[data-identity-disconnect]'),
+      reprove: root.querySelector('[data-identity-reprove]'),
+    };
+  }
+
+  function setBusy(root, busy) {
+    const { input, submit, disconnect } = controls(root);
+    if (input) input.disabled = busy;
+    if (submit) submit.disabled = busy;
+    if (disconnect) disconnect.disabled = busy;
+    root.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function armUnverifiedForm(root) {
+    const { input, submit } = controls(root);
+    if (!input || !submit) return;
+    submit.disabled = !normalizedAccount(input.value);
+    input.addEventListener('input', () => {
+      submit.disabled = !normalizedAccount(input.value);
+    });
+  }
+
+  function watchExpiry(root, { now = Date.now, setTimeoutImpl = global.setTimeout.bind(global) } = {}) {
+    if (root.dataset.identityState !== 'verified') return null;
+    const expiresAtMs = Date.parse(root.dataset.identityExpiresAt || '');
+    if (!Number.isFinite(expiresAtMs)) return null;
+
+    const expire = () => {
+      setState(
+        root,
+        'expired',
+        'This verified HiVenues identity session has expired. Prove your identity again before participating.',
+      );
+      const { disconnect, reprove } = controls(root);
+      if (disconnect) disconnect.hidden = true;
+      if (reprove) reprove.hidden = false;
+    };
+
+    const remaining = expiresAtMs - now();
+    if (remaining <= 0) {
+      expire();
+      return null;
+    }
+    return setTimeoutImpl(expire, remaining);
+  }
+
+  function initializeIdentityRoot(root, {
+    fetchImpl = global.fetch.bind(global),
+    KeychainAdapter = global.HiVenuesKeychain?.KeychainAdapter,
+    reload = () => global.location.reload(),
+    now = Date.now,
+    setTimeoutImpl = global.setTimeout.bind(global),
+  } = {}) {
+    if (!root || root.dataset.identityBound === 'true') return root;
+    root.dataset.identityBound = 'true';
+
+    const { form, disconnect, reprove } = controls(root);
+    armUnverifiedForm(root);
+    watchExpiry(root, { now, setTimeoutImpl });
+
+    if (reprove) {
+      reprove.addEventListener('click', () => reload());
+    }
+
+    if (form) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const account = normalizedAccount(controls(root).input?.value);
+        if (!account) {
+          setState(root, 'invalid', 'Enter the Hive account you want to prove control of.');
+          return;
+        }
+
+        setBusy(root, true);
+        setState(root, 'claimed', `Preparing identity proof for @${account}.`);
+
+        try {
+          const challenge = await jsonRequest(fetchImpl, '/identity/challenge', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ account }),
+          });
+
+          if (typeof KeychainAdapter !== 'function') {
+            const unavailable = new Error('A compatible human-owned Hive wallet was not found in this browser.');
+            unavailable.code = 'KEYCHAIN_UNAVAILABLE';
+            throw unavailable;
+          }
+
+          setState(
+            root,
+            'awaiting-wallet',
+            `Approve the identity message for @${account} in your wallet. This does not broadcast a Hive transaction.`,
+          );
+          const adapter = new KeychainAdapter();
+          const signed = await adapter.signBuffer({
+            account,
+            message: challenge.message,
+            title: `HiVenues identity proof for @${account}`,
+          });
+
+          await jsonRequest(fetchImpl, '/identity/verify', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              account,
+              challengeId: challenge.id,
+              publicKey: signed.publicKey,
+              signature: signed.signature,
+            }),
+          });
+
+          setState(root, 'verified', `Identity verified as @${account}. Reloading this host view…`);
+          reload();
+        } catch (error) {
+          const mapped = errorState(error);
+          setState(root, mapped.state, mapped.message);
+          setBusy(root, false);
+        }
+      });
+    }
+
+    if (disconnect) {
+      disconnect.addEventListener('click', async () => {
+        setBusy(root, true);
+        setState(root, 'disconnecting', 'Ending this HiVenues identity session…');
+        try {
+          const session = await jsonRequest(fetchImpl, '/identity/session');
+          if (!session?.authenticated || !session.csrfToken) {
+            setState(root, 'expired', 'This identity session has already ended.');
+            controls(root).reprove && (controls(root).reprove.hidden = false);
+            return;
+          }
+          await jsonRequest(fetchImpl, '/identity/disconnect', {
+            method: 'POST',
+            headers: { 'x-csrf-token': session.csrfToken },
+          });
+          setState(root, 'disconnected', 'Identity disconnected. No Hive transaction or participation action occurred.');
+          reload();
+        } catch (error) {
+          const mapped = errorState(error);
+          setState(root, mapped.state, mapped.message);
+          setBusy(root, false);
+        }
+      });
+    }
+
+    return root;
+  }
+
+  function initializeAll(options = {}) {
+    return Array.from(global.document.querySelectorAll(ROOT_SELECTOR))
+      .map((root) => initializeIdentityRoot(root, options));
+  }
+
+  const api = Object.freeze({
+    ROOT_SELECTOR,
+    errorState,
+    initializeAll,
+    initializeIdentityRoot,
+    normalizedAccount,
+    setState,
+    watchExpiry,
+  });
+  global.HiVenuesIdentity = api;
+
+  if (global.document.readyState === 'loading') {
+    global.document.addEventListener('DOMContentLoaded', () => initializeAll(), { once: true });
+  } else {
+    initializeAll();
+  }
+})(window);

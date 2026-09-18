@@ -1,0 +1,66 @@
+<%
+  const identityAvailable = Boolean(hivenuesIdentityAvailable);
+  const identity = hivenuesIdentity || null;
+  const initialState = identity
+    ? 'verified'
+    : (identityAvailable ? 'not-identified' : 'provider-unavailable');
+%>
+<section
+  class="cc-identity"
+  data-hivenues-identity
+  data-identity-state="<%= initialState %>"
+  <% if (identity?.expiresAt) { %>data-identity-expires-at="<%= identity.expiresAt %>"<% } %>
+  aria-labelledby="cc-identity-title"
+>
+  <div class="cc-identity__intro">
+    <p class="cc-kicker"><%= identityLabels.kicker %></p>
+    <h2 id="cc-identity-title"><%= identityLabels.title %></h2>
+    <p><%= identityLabels.body %></p>
+  </div>
+
+  <% if (!identityAvailable) { %>
+    <div class="cc-identity__state cc-identity__state--unavailable">
+      <strong><%= identityLabels.unavailableTitle %></strong>
+      <p data-identity-status role="status">Identity proof is temporarily unavailable. You can keep browsing this public community without signing in.</p>
+    </div>
+  <% } else if (identity) { %>
+    <div class="cc-identity__verified">
+      <div>
+        <span><%= identityLabels.verifiedLabel %></span>
+        <strong>@<%= identity.account %></strong>
+      </div>
+      <p data-identity-status role="status">
+        HiVenues verified control of this Hive account. This identity session does not authorize a post, vote, follow, payment, or other Hive transaction.
+      </p>
+      <div class="cc-identity__actions">
+        <button type="button" data-identity-disconnect><%= identityLabels.disconnect %></button>
+        <button type="button" data-identity-reprove hidden>Prove identity again</button>
+      </div>
+    </div>
+  <% } else { %>
+    <form class="cc-identity__form" data-identity-form>
+      <label for="cc-identity-account"><%= identityLabels.accountLabel %></label>
+      <div class="cc-identity__account-row">
+        <span aria-hidden="true">@</span>
+        <input
+          id="cc-identity-account"
+          name="account"
+          data-identity-account
+          inputmode="text"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          maxlength="16"
+          placeholder="<%= identityLabels.placeholder %>"
+        >
+        <button type="submit" data-identity-submit disabled><%= identityLabels.action %></button>
+      </div>
+      <p class="cc-identity__truth">
+        Your wallet signs a fresh identity message only. HiVenues never receives your private key and this step does not post, follow, vote, pay, or broadcast a Hive transaction.
+      </p>
+      <p class="cc-identity__status" data-identity-status role="status" aria-live="polite"><%= identityLabels.ready %></p>
+    </form>
+  <% } %>
+
+  <noscript><p class="cc-identity__status">JavaScript is required only for wallet-based identity proof. Public browsing remains available.</p></noscript>
+</section>

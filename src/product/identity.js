@@ -56,6 +56,7 @@ function createHiVenuesIdentityServices({
 
 function identitySessionContext(sessionStore) {
   return (req, res, next) => {
+    res.locals.hivenuesIdentityAvailable = Boolean(sessionStore);
     if (!sessionStore) {
       req.hivenuesIdentity = null;
       req.hivenuesIdentityToken = '';

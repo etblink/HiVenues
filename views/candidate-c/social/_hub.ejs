@@ -1,6 +1,11 @@
 <%
   const stateCopy = hubStateCopy(hub, graph.identity.displayName);
   const showMaterial = hub.status === 'ready' || hub.status === 'partial' || hub.status === 'empty';
+  const hasIdentitySurface = typeof hivenuesIdentityAvailable !== 'undefined';
+  const identityAvailable = hasIdentitySurface ? hivenuesIdentityAvailable : false;
+  const identitySession = hasIdentitySurface && typeof hivenuesIdentity !== 'undefined'
+    ? hivenuesIdentity
+    : null;
 %>
 <% if (hub.status !== 'ready') { %>
   <section class="cc-social-state cc-social-state--<%= hub.status %>" role="status">
@@ -11,6 +16,15 @@
 <% } %>
 
 <% if (showMaterial) { %>
+  <% if (hasIdentitySurface) { %>
+    <%- include('_identity', {
+      graph,
+      identityLabels,
+      hivenuesIdentityAvailable: identityAvailable,
+      hivenuesIdentity: identitySession
+    }) %>
+  <% } %>
+
   <% if (hub.community) { %>
     <section class="cc-social-community-card" aria-labelledby="cc-social-community-title">
       <div>

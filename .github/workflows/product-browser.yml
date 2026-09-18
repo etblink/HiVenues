@@ -1,0 +1,80 @@
+name: Product browser
+
+on:
+  pull_request:
+    paths:
+      - 'public/css/**'
+      - 'public/js/**'
+      - 'views/**'
+      - 'src/product/**'
+      - 'src/candidate-c/**'
+      - 'scripts/product-browser-qualification.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/product-browser.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'public/css/**'
+      - 'public/js/**'
+      - 'views/**'
+      - 'src/product/**'
+      - 'src/candidate-c/**'
+      - 'scripts/product-browser-qualification.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/product-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-browser-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Product browser qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-fund
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Bind exact browser candidate
+        shell: bash
+        run: |
+          echo "HIVENUES_PRODUCT_BROWSER_EXACT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "HIVENUES_PRODUCT_BROWSER_EXACT_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+
+      - name: Run product browser qualification
+        run: npm run test:browser
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: product-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/product-browser/
+          if-no-files-found: warn
+          retention-days: 14
