@@ -18,7 +18,7 @@ const {
 const { CandidateCStore } = require('../src/candidate-c/store');
 
 const OUTPUT_ROOT = process.env.HIVENUES_PRODUCT_BROWSER_ROOT
-  || path.join('artifacts', 'product-browser', 'identity');
+  || path.join('artifacts', 'product-browser', 'participation');
 const EXACT_SHA = process.env.HIVENUES_PRODUCT_BROWSER_EXACT_SHA || 'LOCAL_UNBOUND';
 const EXACT_TREE = process.env.HIVENUES_PRODUCT_BROWSER_EXACT_TREE || 'LOCAL_UNBOUND';
 const COMMUNITY = 'hive-199299';
@@ -836,9 +836,14 @@ async function main() {
   const server = await startHiVenuesServer(app, { port: 0 });
   const origin = 'http://127.0.0.1:' + server.address().port;
   const browser = await chromium.launch({ headless: true });
-  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const counters = {
+    requests: [],
+    externalRequests: [],
+    consoleErrors: [],
+    walletBroadcasts: [],
+  };
   const manifest = {
-    qualification: 'hivenues-product-browser-identity',
+    qualification: 'hivenues-product-browser-participation',
     candidate: EXACT_SHA,
     tree: EXACT_TREE,
     synthetic: true,
@@ -852,6 +857,14 @@ async function main() {
       'disconnect',
       'wallet-cancelled',
       'provider-unavailable',
+      'three-direction-community-controls',
+      'three-direction-follow-controls',
+      'community-subscribe',
+      'community-unsubscribe',
+      'follow',
+      'unfollow',
+      'relationship-wallet-cancelled',
+      'relationship-wallet-unavailable',
     ],
   };
 
@@ -860,6 +873,45 @@ async function main() {
     await runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey);
     await runCancellationEvidence(browser, axeSource, origin, manifest, counters);
     await runUnavailableEvidence(browser, axeSource, publicKey, manifest);
+    await runRelationshipDirectionEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+    );
+    await runRelationshipJourneys(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runRelationshipCancellationEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runRelationshipProviderUnavailableEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+    );
   } finally {
     await browser.close();
     await stopServer(server);
@@ -888,9 +940,29 @@ async function main() {
   assert.equal(mutatingIdentityPaths.has('/identity/verify'), true);
   assert.equal(mutatingIdentityPaths.has('/identity/disconnect'), true);
   assert.equal(
-    observedPaths.some((value) => /\/(follow|subscribe|vote|post|reply|payment|broadcast)\b/i.test(value)),
+    observedPaths.some((value) => /\/(vote|post|reply|payment|pay|send|transfer|broadcast)\b/i.test(value)),
     false,
-    'browser invoked an unauthorized mutation path',
+    'browser invoked a held mutation path',
+  );
+  assert.equal(
+    observedPaths.some((value) => /\/participation\/[^/]+\/community\/(subscribe|unsubscribe)$/.test(value)),
+    true,
+    'browser never exercised community participation',
+  );
+  assert.equal(
+    observedPaths.some((value) => /\/participation\/[^/]+\/people\/[^/]+\/(follow|unfollow)$/.test(value)),
+    true,
+    'browser never exercised follow participation',
+  );
+  assert.equal(counters.walletBroadcasts.length, 4);
+  assert.deepEqual(
+    counters.walletBroadcasts.map((entry) => {
+      const operation = entry.operations[0][1];
+      return operation.id === 'community'
+        ? JSON.parse(operation.json)[0]
+        : (JSON.parse(operation.json)[1].what.length ? 'follow' : 'unfollow');
+    }),
+    ['subscribe', 'unsubscribe', 'follow', 'unfollow'],
   );
   assert.equal(
     hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment/.test(call.method)),
@@ -915,16 +987,18 @@ async function main() {
     externalRequests: counters.externalRequests.length,
     unexpectedConsoleErrors: counters.consoleErrors.length,
     authorityRpcCalls: hiveReadService.rpcPool.calls.length,
+    authorizedRelationshipBroadcasts: counters.walletBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 10);
+  assert.equal(manifest.summary.screenshotCount, 33);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
   assert.equal(manifest.summary.unauthorizedWriteLikeControls, 0);
   assert.equal(manifest.summary.externalRequests, 0);
   assert.equal(manifest.summary.unexpectedConsoleErrors, 0);
+  assert.equal(manifest.summary.authorizedRelationshipBroadcasts, 4);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),
