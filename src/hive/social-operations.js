@@ -362,8 +362,16 @@ function buildFollow({ account: accountValue, payload, following }) {
   });
 }
 
-function buildSubscription({ account: accountValue, config, subscribing }) {
+function buildCommunitySubscription({
+  account: accountValue,
+  community: communityValue,
+  subscribing,
+}) {
   const account = requireHiveAccount(accountValue);
+  const community = String(communityValue || '').trim();
+  if (!/^hive-[0-9]{3,12}$/.test(community)) {
+    throw new ValidationError('Hive community is invalid');
+  }
   const action = subscribing ? 'subscribe' : 'unsubscribe';
   const operation = [
     'custom_json',
@@ -371,13 +379,21 @@ function buildSubscription({ account: accountValue, config, subscribing }) {
       required_auths: [],
       required_posting_auths: [account],
       id: 'community',
-      json: JSON.stringify([action, { community: config.hive.communityId }]),
+      json: JSON.stringify([action, { community }]),
     },
   ];
   return operationEnvelope(action, account, [operation], {
     kind: subscribing ? 'Subscribe to community' : 'Unsubscribe from community',
     account,
-    community: config.hive.communityId,
+    community,
+  });
+}
+
+function buildSubscription({ account: accountValue, config, subscribing }) {
+  return buildCommunitySubscription({
+    account: accountValue,
+    community: config?.hive?.communityId,
+    subscribing,
   });
 }
 
@@ -410,6 +426,7 @@ module.exports = {
   LIMITS,
   POST_DESTINATIONS,
   buildComment,
+  buildCommunitySubscription,
   buildFollow,
   buildPost,
   buildSocialOperation,
