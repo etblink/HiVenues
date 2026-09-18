@@ -189,13 +189,23 @@ async function pageAudit(page, axeSource, label) {
       .length,
   }));
   const controls = await page.evaluate(() => {
-    const forbidden = /\b(follow|unfollow|subscribe|unsubscribe|vote|upvote|downvote|post|publish|reply|comment|pay|send)\b/i;
-    return Array.from(document.querySelectorAll('a, button, input[type="submit"], [role="button"]'))
+    const held = /\b(vote|upvote|downvote|post|publish|reply|comment|pay|send|tip|transfer)\b/i;
+    const unauthorized = Array.from(document.querySelectorAll('a, button, input[type="submit"], [role="button"]'))
       .map((node) => ({
         text: (node.textContent || node.value || '').trim(),
         tag: node.tagName,
       }))
-      .filter((item) => forbidden.test(item.text));
+      .filter((item) => held.test(item.text));
+    const relationship = Array.from(document.querySelectorAll('[data-hivenues-participation]'))
+      .map((root) => ({
+        action: root.dataset.participationAction || '',
+        target: root.dataset.participationTarget || '',
+        button: root.querySelector('[data-participation-submit]')?.textContent?.trim() || '',
+      }));
+    const invalidRelationship = relationship.filter(
+      (item) => !['follow', 'unfollow', 'subscribe', 'unsubscribe'].includes(item.action),
+    );
+    return { unauthorized, relationship, invalidRelationship };
   });
   const accessibility = await page.evaluate(async () => {
     const result = await window.axe.run(document, {
@@ -215,7 +225,8 @@ async function pageAudit(page, axeSource, label) {
 
   assert.equal(geometry.overflow, false, label + ': horizontal overflow');
   assert.equal(geometry.incompleteImages, 0, label + ': incomplete images');
-  assert.deepEqual(controls, [], label + ': unauthorized write-like controls');
+  assert.deepEqual(controls.unauthorized, [], label + ': unauthorized held-write controls');
+  assert.deepEqual(controls.invalidRelationship, [], label + ': invalid relationship controls');
   assert.equal(
     accessibility.blockingCount,
     0,
@@ -545,7 +556,10 @@ async function main() {
     ),
     horizontalOverflowFindings: manifest.audits.filter((item) => item.geometry.overflow).length,
     incompleteImageFindings: manifest.audits.filter((item) => item.geometry.incompleteImages > 0).length,
-    unauthorizedWriteLikeControls: manifest.audits.reduce((sum, item) => sum + item.controls.length, 0),
+    unauthorizedWriteLikeControls: manifest.audits.reduce(
+      (sum, item) => sum + item.controls.unauthorized.length + item.controls.invalidRelationship.length,
+      0,
+    ),
     externalRequests: counters.externalRequests.length,
     unexpectedConsoleErrors: counters.consoleErrors.length,
     authorityRpcCalls: hiveReadService.rpcPool.calls.length,
