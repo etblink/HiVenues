@@ -1025,6 +1025,7 @@ async function runContentJourneys(
     await page.getByText('Browser-qualified room note', { exact: true }).first().waitFor();
     await capture(page, axeSource, manifest, 'poster-content-post-confirmed');
 
+    await page.locator('.cc-content-task--update > summary').click();
     const update = page.locator('[data-hivenues-content][data-content-mode="update"]');
     await update.locator('[data-content-title]').fill('Browser-qualified room note — revised');
     await update.locator('[data-content-body]').fill('The same public post, revised through my own wallet.');
