@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
 const { buildHiVenuesHostFromInput } = require('../src/product/admission');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
 const { contactFor } = require('../src/product/present');
 
@@ -67,7 +67,7 @@ test('contact rendering preserves email, phone, web, and plain-text consequences
 test('fresh host stays working-only across restart until an explicit first Release', async (t) => {
   const statePath = tempState(t);
   const store = new ProvisioningFileHiVenuesStore({ statePath });
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
 
   const created = await request(app).post('/hivenues/new').type('form').send(input()).expect(303);
   assert.equal(created.headers.location, '/hivenues/studio/truthful-bar?created=1');
@@ -94,7 +94,7 @@ test('fresh host stays working-only across restart until an explicit first Relea
   assert.equal(afterRestart.liveReleaseId, null);
   assert.equal(restarted.publicSnapshot('truthful-bar'), null);
 
-  const restartedApp = createDogfoodApp({ store: restarted });
+  const restartedApp = createHiVenuesApp({ store: restarted });
   await request(restartedApp)
     .post('/hivenues/studio/truthful-bar/release')
     .type('form')
@@ -128,7 +128,7 @@ test('fresh host stays working-only across restart until an explicit first Relea
 test('durable state rejects mixed unpublished/live publication pointers', async (t) => {
   const statePath = tempState(t);
   const store = new ProvisioningFileHiVenuesStore({ statePath });
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
   await request(app).post('/hivenues/new').type('form').send(input()).expect(303);
 
   const envelope = JSON.parse(fs.readFileSync(statePath, 'utf8'));

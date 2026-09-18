@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { HiVenuesStore } = require('../src/product/store');
 
 const CASES = [
@@ -63,7 +63,7 @@ function completeFirstActivity(store, slug, activityId) {
 test('every released relevant Activity remains discoverable when the featured Activity is completed', async () => {
   for (const scenario of CASES) {
     const store = new HiVenuesStore();
-    const app = createDogfoodApp({ store });
+    const app = createHiVenuesApp({ store });
     const initial = await request(app).get(`/hivenues/${scenario.slug}`).expect(200);
     assert.doesNotMatch(initial.text, new RegExp(escapeRegex(scenario.expectedMarker)));
 
@@ -92,7 +92,7 @@ test('every released relevant Activity remains discoverable when the featured Ac
 
 test('working preview uses the same featured/remainder discovery contract without exposing it publicly before Release', async () => {
   const store = new HiVenuesStore();
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
   const slug = 'harbor-and-hearth';
   const added = addSecondActivity(store, slug);
 

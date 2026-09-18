@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const request = require('supertest');
-const { createDogfoodApp } = require('../src/product/dogfood-app');
+const { createHiVenuesApp } = require('../src/product/app');
 const { HiVenuesStore } = require('../src/product/store');
 
 function rewriteActivity(store, slug, activityId) {
@@ -25,7 +25,7 @@ function rewriteActivity(store, slug, activityId) {
 
 test('draft preview activity navigation, calendar, and back-link remain on the working snapshot', async () => {
   const store = new HiVenuesStore();
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
   const slug = 'northline-hall';
   const activitySlug = 'friday-night-assembly';
   const activityId = 'activity-northline-friday-001';
@@ -72,7 +72,7 @@ test('draft preview activity navigation, calendar, and back-link remain on the w
 
 test('all admitted public Directions keep preview Activity links inside preview context', async () => {
   const store = new HiVenuesStore();
-  const app = createDogfoodApp({ store });
+  const app = createHiVenuesApp({ store });
   const cases = [
     ['northline-hall', 'friday-night-assembly'],
     ['nova-ashby', 'soft-infrastructure-live-session'],
