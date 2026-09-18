@@ -22,6 +22,18 @@
     <%- include('_hub', {
       graph, hub, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['threads', 'posts', 'people'],
+      identityLabels: {
+        kicker: 'Join the room',
+        title: 'Put your name to the wall',
+        body: 'When you want this place to know who you are, prove control of your Hive account without turning the wall into a wallet dashboard.',
+        unavailableTitle: 'Introductions are paused',
+        verifiedLabel: 'Here as',
+        disconnect: 'Step away',
+        accountLabel: 'Your Hive account',
+        placeholder: 'your-account',
+        action: 'Prove who I am',
+        ready: 'Public browsing stays open whether or not you identify yourself.'
+      },
       socialLabels: {
         state: 'Wall signal',
         community: 'The wider room',
@@ -36,6 +48,8 @@
       }
     }) %>
   </main>
-  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public social reads · no account action</p></footer>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public social reads · identity only when useful</p></footer>
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
 </body>
 </html>
