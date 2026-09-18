@@ -581,7 +581,6 @@ async function runRelationshipJourneys(
     counters,
     origin,
     identityServices,
-    'paper-sparrow',
   );
   await installApprovalWallet(context, key, publicKey);
   const page = await context.newPage();
@@ -630,7 +629,7 @@ async function runRelationshipJourneys(
     await page.waitForFunction(() => (
       document.querySelector('[data-hivenues-participation]')?.dataset.participationAction === 'subscribe'
     ));
-    assert.equal(await hiveReadService.isCommunityMember('paper-sparrow', COMMUNITY), false);
+    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
     await capture(page, axeSource, manifest, 'poster-community-unsubscribed');
 
     await page.goto(
@@ -671,6 +670,7 @@ async function runRelationshipCancellationEvidence(
     counters,
     origin,
     identityServices,
+    'paper-sparrow',
   );
   await installApprovalWallet(context, key, publicKey);
   const page = await context.newPage();
@@ -690,7 +690,7 @@ async function runRelationshipCancellationEvidence(
     await page.locator('[data-participation-state="awaiting-wallet"]').waitFor();
     await rejectPendingRelationship(page);
     await page.locator('[data-participation-state="cancelled"]').waitFor();
-    assert.equal(await hiveReadService.isCommunityMember('etblink', COMMUNITY), false);
+    assert.equal(await hiveReadService.isCommunityMember('paper-sparrow', COMMUNITY), false);
     assert.match(
       await root.locator('[data-participation-status]').textContent(),
       /Nothing was broadcast/,
