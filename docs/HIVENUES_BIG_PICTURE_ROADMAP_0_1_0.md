@@ -13,6 +13,7 @@ PARENT_DOCTRINES =
 SCOPE = PROGRAM SEQUENCING, PHASE GATES, ANTI-DRIFT ORIENTATION
 IMPLEMENTATION = SUBORDINATE TO DOCTRINE AND THIS ROADMAP
 CURRENT_IMPLEMENTATION = EVIDENCE / NOT DEFINITIONAL
+CURRENT_STATE_POINTER = docs/ROADMAP.md + ACTIVE ISSUE / WORKSTREAM CHARTER
 AMENDMENT = EXPLICIT VERSIONED REVISION ONLY
 ```
 
@@ -35,11 +36,13 @@ This roadmap protects HiVenues from **sequential drift**: doing sensible things 
 
 This document is not a giant backlog. It is the shortest durable explanation of:
 
-- where the program is;
-- where it is going;
+- the program's major sequence;
+- where the product is going;
 - why the major phases are ordered this way;
 - what each phase must visibly prove before the next one opens;
-- what remains intentionally held.
+- what kinds of work remain intentionally held until their proper phase.
+
+Current program state belongs in `docs/ROADMAP.md` and the active issue/workstream charter, not in this frozen roadmap.
 
 The roadmap may be revised when evidence changes the optimal sequence. Revision must be explicit and versioned. Implementation momentum may not silently rewrite it.
 
@@ -91,7 +94,7 @@ CANONICAL PRODUCT / JOURNEY / HIVE / DISTRIBUTION / ARCHITECTURE DOCTRINES
         ↓
 BIG-PICTURE PRODUCT ROADMAP
         ↓
-CURRENT PROGRAM CHARTER (#284 or successor)
+CURRENT PROGRAM MARKER / ACTIVE CHARTER
         ↓
 BOUNDED WORKSTREAM
         ↓
@@ -136,13 +139,9 @@ Do not implement “later” merely because the adjacent code makes it convenien
 
 ## Era 0 — Reliable Candidate substrate
 
-### Status
+### Required foundation
 
-**SUBSTANTIALLY COMPLETE / PRESERVE**
-
-### Proven foundation
-
-The Candidate line has already established hard operational truths including:
+This era establishes and thereafter preserves hard operational truths including:
 
 - canonical server-owned host state;
 - durable object identity;
@@ -171,10 +170,6 @@ Extend it deliberately while preserving its contracts.
 
 ## Era 1 — Territory architecture
 
-### Status
-
-**COMPLETE / PRESERVE**
-
 ### Canonical evidence
 
 #285 / PR #286 established the Territory Kernel v2 vertical slice.
@@ -197,19 +192,15 @@ It proved:
 
 ### Program rule
 
-Territory architecture is now foundation, not an excuse to remain in architecture work.
+Once this gate is closed, territory architecture is foundation rather than an excuse to remain in architecture work.
 
-The next work must make that territory fully constructible and operable through normal product workflows.
+Subsequent work must make that territory fully constructible and operable through normal product workflows.
 
 ---
 
-# Part III — Active convergence sequence
+# Part III — Convergence sequence
 
 ## Era 2 — Complete Territory Authoring
-
-### Status
-
-**NEXT**
 
 ### Purpose
 
@@ -437,20 +428,18 @@ Do not present one giant blockchain setup form.
 
 Close the nondeveloper lifecycle from approved Release to a real live deployment.
 
-### Reference/default provider
+### Reference-provider path
 
-**Privex is the current preferred/reference VPS provider.**
+The first no-terminal deployment proof should use a concrete supported provider while the deployment architecture remains provider-neutral and permits future adapters.
 
-The deployment architecture remains provider-neutral and must permit future adapters.
-
-### Initial no-terminal Privex path
+### Initial no-terminal reference-provider path
 
 ```text
 Create immutable Release
 → Deploy
-→ Privex recommended / other provider available
+→ supported reference provider / other adapter available
 → HiVenues generates deployment-only SSH key locally
-→ guided Privex purchase/provisioning
+→ guided provider purchase/provisioning
 → operator supplies/authorizes resulting server target
 → HiVenues verifies server
 → HiVenues bootstraps restricted runtime automatically
@@ -740,45 +729,13 @@ The program should have evidence covering:
 
 ---
 
-# Part V — Current program marker
-
-At roadmap 0.1.0 freeze:
-
-```text
-CURRENT PROGRAM = #284 END-STATE CONVERGENCE
-
-COMPLETED / PRESERVE
-  ERA 0 — Reliable Candidate substrate
-  ERA 1 — Territory architecture (#285 / PR #286)
-
-NEXT
-  ERA 2 — Complete Territory Authoring
-
-THEN
-  ERA 3 — Host-Native Social & Community Experience
-  ERA 4 — Real Hive-Backed Participation
-  ERA 5 — Product Distribution
-  ERA 6 — Hive Account Onboarding
-  ERA 7 — Deployment Product
-  ERA 8 — Richer Direction & Design System
-  ERA 9 — Value / Commerce / V4V
-  ERA 10 — Operational & Mobile Completion
-  ERA 11 — Internal Maximal Synthetic Qualification
-  ERA 12 — Independent Synthetic Astra
-  ERA 13 — Fourth Street Bar First Customer
-  ERA 14 — Broader Release
-
-HELD
-  PRODUCTION DEPLOYMENT / PERMANENT HOSTING
-  LIVE VALUE MOVEMENT EXCEPT SEPARATELY AUTHORIZED TESTS
-  FOURTH STREET #267
-  INDEPENDENT ASTRA UNTIL INTERNAL END-STATE GATE
-  GENERAL RELEASE
-```
+# Part V — Sequencing revision rule
 
 The exact boundaries between Eras 3–10 may be split, merged or partially interleaved when dependency evidence makes that safer or more efficient.
 
 However, an explicit roadmap revision is required before a major reordering that changes the intended product-validation logic.
+
+Current completion state, active work, and held operational scope are recorded in `docs/ROADMAP.md` and the active issue/workstream charter.
 
 ---
 
@@ -791,16 +748,16 @@ WHAT IS HIVENUES?
 → A premium host-first frontend factory for Hive.
 
 WHERE ARE WE?
-→ Read CURRENT PROGRAM MARKER in this roadmap and verify against repository evidence.
+→ Read `docs/ROADMAP.md` and the active issue/workstream charter, then verify against repository evidence.
 
 WHAT IS THE NEXT GATE?
-→ The first incomplete Era marked NEXT, unless an explicit later roadmap revision supersedes it.
+→ Use the current program marker to identify the active/next roadmap gate; do not infer status from this frozen file.
 
 WHAT MUST NOT BE LOST?
 → The controlling doctrine plus all completed-era acceptance contracts.
 
 WHAT MUST NOT BE STARTED EARLY?
-→ Anything marked HELD unless a dedicated explicit authorization changes the boundary.
+→ Anything held by the current program marker or active charter unless a dedicated explicit authorization changes the boundary.
 ```
 
 A successor should not infer program priority merely from the most recently edited code.

@@ -1,7 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { HIVE_ACCOUNT_PATTERN } = require('../config');
+const { HIVE_ACCOUNT_PATTERN } = require('./account-name');
 const { ConflictError, ValidationError } = require('../lib/errors');
 const { parseAsset } = require('./assets');
 

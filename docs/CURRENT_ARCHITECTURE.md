@@ -49,7 +49,7 @@ Accepted Era-0–4 contracts remain controlling: server-owned canonical host sta
 
 ### 2. Shared infrastructure
 
-Older modules may be retained **only** when the current product actually consumes a capability that still satisfies current doctrine—for example Hive RPC/read normalization, authentication/authority helpers, validation, security middleware, or observability.
+The only shared source areas outside `src/product/` are small capability seams transitively consumed by the current product: Hive RPC/read and consequence primitives, authentication/authority helpers, HTTP validation/errors, social preflight state, and markdown/MathML rendering.
 
 Retention rules:
 
@@ -61,16 +61,9 @@ Retention rules:
 
 ### 3. Superseded development code
 
-Older server, venue/v2, V1, historical deployment, and milestone-specific paths have **no backwards-compatibility status** merely because they once worked.
+The active tree no longer carries a parallel historical server/venue/v1/v2/deployment application stack. Those unreleased architectures, along with their milestone-only tooling and documents, remain available in Git history.
 
-HiVenues has not shipped a public product whose users depend on those development architectures. Git history is the archive.
-
-For every superseded path, classify it as either:
-
-1. **currently reused primitive** — keep or move behind a current product-owned seam; or
-2. **not required by the current product** — delete it, along with tests/scripts/docs whose only purpose is preserving it.
-
-Do not create `legacy:*` commands or compatibility gates simply to keep unreleased historical runtimes executable.
+If future archaeology reveals another superseded path, it earns retention only when the current product has a concrete dependency on it. Do not recreate `legacy:*` commands or compatibility gates merely to make historical runtimes executable.
 
 ### 4. Qualification tooling
 
@@ -142,12 +135,12 @@ A new framework, parallel model, provider-specific product model, or Candidate l
 
 The #301 repository/product-core normalization exit audit passed on the green canonical main after PRs #302 and #303. The repository now has an obvious canonical product root, install/dev/check commands, current documentation hierarchy, feature-placement rule, ordinary PR/CI loop, and next roadmap objective.
 
-Remaining items are maintenance/admin debt rather than blockers to product progression:
+Remaining items are primarily repository administration rather than product-code debt:
 
-- any still-unreferenced historical scripts/docs/data discovered outside the normalized product path;
 - merged branch deletion where repository tooling permits;
-- main-branch protection/ruleset configuration in GitHub administration.
+- main-branch protection/ruleset configuration in GitHub administration;
+- dependency/build-pipeline simplification only when current reachability evidence justifies it.
 
 These should be handled opportunistically or by bounded maintenance issues when they create concrete ambiguity, risk, or cost. They do not outrank Era-5 distribution work merely because they are old.
 
-The next architectural task is therefore not a namespace cleanup or another adjacent Hive feature. It is to package the existing server-owned product behind an ordinary install/launch boundary while preserving all frozen Era-0–4 contracts.
+The installed-runtime and native-launcher boundary is now proven and product-owned. The next architectural task is Era-5 Tranche 2: turn that qualified runtime into a versioned distributable/installable Windows artifact while preserving all frozen Era-0–4 contracts.
