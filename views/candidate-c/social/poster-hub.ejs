@@ -20,7 +20,7 @@
       <p>Quick notes, longer stories, and the people showing up around this place—read from Hive without turning the room into a blockchain dashboard.</p>
     </header>
     <%- include('_hub', {
-      graph, hub, hubStateCopy, formatCommunityTime, memberHref,
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref,
       socialOrder: ['threads', 'posts', 'people'],
       identityLabels: {
         kicker: 'Join the room',
@@ -33,6 +33,20 @@
         placeholder: 'your-account',
         action: 'Prove who I am',
         ready: 'Public browsing stays open whether or not you identify yourself.'
+      },
+      communityParticipationLabels: {
+        kicker: 'Room membership',
+        title: 'Stay connected to the room',
+        body: 'Choose whether this Hive account stays connected to the host-bound community behind this room.',
+        identifyTitle: 'Put your name to the wall first',
+        identifyAction: 'Prove identity',
+        unavailableTitle: 'The room status is unclear',
+        currentLabel: 'Hive room status',
+        currentYes: 'Connected to this community',
+        currentNo: 'Not connected to this community',
+        join: 'Join this room',
+        leave: 'Leave this room',
+        ready: 'Review the exact Hive subscription change before your wallet opens.'
       },
       socialLabels: {
         state: 'Wall signal',
@@ -48,8 +62,9 @@
       }
     }) %>
   </main>
-  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public social reads · identity only when useful</p></footer>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public reads · wallet-owned participation</p></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-identity.js" defer></script>
+  <script src="/js/hivenues-participation.js" defer></script>
 </body>
 </html>
