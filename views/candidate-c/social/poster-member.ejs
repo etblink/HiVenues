@@ -38,7 +38,7 @@
       }
     }) %>
   </main>
-  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p>Public profile · wallet-owned follow</p></footer>
+  <footer class="cc-poster-footer"><p><%= graph.identity.displayName %></p><p><%= resourceState?.visible ? 'Your Hive participation state · read-only' : 'Public profile · wallet-owned follow' %></p></footer>
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
 </body>
