@@ -383,8 +383,9 @@ async function installApprovalWallet(context, key, publicKey) {
         class SyntheticRelationshipWallet extends api.KeychainAdapter {
           async broadcast(args) {
             window.__relationshipApproval = args;
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
               window.__resolveRelationshipApproval = resolve;
+              window.__rejectRelationshipApproval = reject;
             });
           }
         }
