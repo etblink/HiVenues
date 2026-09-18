@@ -85,7 +85,7 @@ const activityLifecycles = Object.freeze({
 const admittedAssetSchema = z.object({
   version: z.literal(1),
   storage: z.literal('repo-local'),
-  path: z.string().regex(/^\/candidate-c\/media\/[A-Za-z0-9._/-]+$/),
+  path: z.string().regex(/^\/studio\/media\/[A-Za-z0-9._/-]+$/),
   mime: z.enum(['image/svg+xml', 'image/jpeg', 'image/png', 'image/webp', 'video/mp4']),
   bytes: z.number().int().positive(),
   width: z.number().int().positive(),
@@ -278,7 +278,7 @@ function assertUnique(items, keyFor, label) {
   const seen = new Set();
   for (const item of items) {
     const key = keyFor(item);
-    if (seen.has(key)) throw new Error(`Duplicate Candidate C ${label}: ${key}`);
+    if (seen.has(key)) throw new Error(`Duplicate HiVenues ${label}: ${key}`);
     seen.add(key);
   }
 }
@@ -286,22 +286,22 @@ function assertUnique(items, keyFor, label) {
 function validateCommonReferences(parsed) {
   const mediaIds = new Set();
   for (const media of parsed.media) {
-    if (mediaIds.has(media.id)) throw new Error(`Duplicate Candidate C media id: ${media.id}`);
+    if (mediaIds.has(media.id)) throw new Error(`Duplicate HiVenues media id: ${media.id}`);
     mediaIds.add(media.id);
   }
   for (const activity of parsed.activities) {
     if (!mediaIds.has(activity.mediaId)) {
-      throw new Error(`Candidate C activity references missing media: ${activity.mediaId}`);
+      throw new Error(`HiVenues activity references missing media: ${activity.mediaId}`);
     }
     for (const action of activity.publicActions) {
       if (!mechanicRegistry[action.mechanic]) {
-        throw new Error(`Unknown Candidate C mechanic: ${action.mechanic}`);
+        throw new Error(`Unknown HiVenues mechanic: ${action.mechanic}`);
       }
     }
   }
   for (const [mechanicId] of Object.entries(parsed.voice.terms)) {
     if (!mechanicRegistry[mechanicId]) {
-      throw new Error(`Voice term references unknown Candidate C mechanic: ${mechanicId}`);
+      throw new Error(`Voice term references unknown HiVenues mechanic: ${mechanicId}`);
     }
   }
   return mediaIds;
@@ -320,19 +320,19 @@ function validateV2References(parsed, mediaIds) {
   const profileIds = new Set(parsed.people.map((profile) => profile.id));
   for (const profile of parsed.people) {
     if (profile.mediaId && !mediaIds.has(profile.mediaId)) {
-      throw new Error(`Candidate C profile references missing media: ${profile.mediaId}`);
+      throw new Error(`HiVenues profile references missing media: ${profile.mediaId}`);
     }
   }
   for (const story of parsed.stories) {
     for (const mediaId of story.mediaIds) {
-      if (!mediaIds.has(mediaId)) throw new Error(`Candidate C story references missing media: ${mediaId}`);
+      if (!mediaIds.has(mediaId)) throw new Error(`HiVenues story references missing media: ${mediaId}`);
     }
     for (const profileId of story.authorProfileIds) {
-      if (!profileIds.has(profileId)) throw new Error(`Candidate C story references missing profile: ${profileId}`);
+      if (!profileIds.has(profileId)) throw new Error(`HiVenues story references missing profile: ${profileId}`);
     }
   }
   for (const mediaId of parsed.gallery.mediaIds) {
-    if (!mediaIds.has(mediaId)) throw new Error(`Candidate C gallery references missing media: ${mediaId}`);
+    if (!mediaIds.has(mediaId)) throw new Error(`HiVenues gallery references missing media: ${mediaId}`);
   }
 }
 

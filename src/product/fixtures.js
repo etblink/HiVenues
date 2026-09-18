@@ -239,13 +239,13 @@ const harbor = validateHostGraph({
       id: 'media-harbor-table-001',
       kind: 'image',
       alt: 'Illustrated warm dining table with ceramic plates, candlelight, herbs, and a deep blue harbor window.',
-      provenance: 'HiVenues synthetic house artwork admitted locally for Candidate C; not documentary photography.',
+      provenance: 'HiVenues synthetic house artwork admitted locally for HiVenues; not documentary photography.',
       focal: { x: 53, y: 62 },
       palette: ['#f2e9da', '#a65337', '#244653', '#647a55'],
       asset: {
         version: 1,
         storage: 'repo-local',
-        path: '/candidate-c/media/harbor-hearth-table.svg',
+        path: '/studio/media/harbor-hearth-table.svg',
         mime: 'image/svg+xml',
         bytes: 4110,
         width: 1600,
@@ -281,8 +281,8 @@ const harbor = validateHostGraph({
   },
 });
 
-function seedCandidateCHosts() {
+function seedHiVenuesHosts() {
   return [northline, nova, harbor].map((host) => structuredClone(host));
 }
 
-module.exports = { seedCandidateCHosts };
+module.exports = { seedHiVenuesHosts };

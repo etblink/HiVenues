@@ -3,9 +3,9 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { provisionCandidateCHost } = require('./provision');
-const { CandidateCStore } = require('./store');
-const { seedCandidateCHosts } = require('./fixtures');
+const { provisionHiVenuesHost } = require('./provision');
+const { HiVenuesStore } = require('./store');
+const { seedHiVenuesHosts } = require('./fixtures');
 
 const STORAGE_VERSION = 1;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/i;
@@ -16,15 +16,15 @@ function storeError(code, message) {
   return error;
 }
 
-class FileCandidateCStore {
+class FileHiVenuesStore {
   constructor({
     statePath,
-    hosts = seedCandidateCHosts(),
+    hosts = seedHiVenuesHosts(),
     now = Date.now,
     lockTimeoutMs = 2000,
     lockRetryMs = 20,
   } = {}) {
-    if (!statePath) throw new TypeError('Candidate C file store requires statePath.');
+    if (!statePath) throw new TypeError('HiVenues file store requires statePath.');
     this.statePath = path.resolve(statePath);
     this.lockPath = `${this.statePath}.lock`;
     this.hosts = hosts;
@@ -55,7 +55,7 @@ class FileCandidateCStore {
   }
 
   createHost(graph) {
-    return this.mutate((store) => provisionCandidateCHost(store, graph));
+    return this.mutate((store) => provisionHiVenuesHost(store, graph));
   }
 
   proposal(slug, proposalId) {
@@ -77,7 +77,7 @@ class FileCandidateCStore {
   }
 
   executeUrgent(slug, operationId, expectedLiveReleaseId, expectedRevision, expectedDigest) {
-    // CandidateCStore deliberately checks the immutable live Release before
+    // HiVenuesStore deliberately checks the immutable live Release before
     // checking the working-version tokens. Do not wrap this in draftMutation:
     // doing so would mask a superseded live base as an ordinary stale draft.
     return this.mutate((store) => (
@@ -212,8 +212,8 @@ class FileCandidateCStore {
 
   loadStoreUnlocked(initializeIfMissing) {
     if (!fs.existsSync(this.statePath)) {
-      if (!initializeIfMissing) throw storeError('CANDIDATE_C_STATE_MISSING', 'Candidate C state file is missing.');
-      const seed = new CandidateCStore({ hosts: this.hosts, now: this.now });
+      if (!initializeIfMissing) throw storeError('HIVENUES_STATE_MISSING', 'HiVenues state file is missing.');
+      const seed = new HiVenuesStore({ hosts: this.hosts, now: this.now });
       this.writeStoreUnlocked(seed);
       return seed;
     }
@@ -222,22 +222,22 @@ class FileCandidateCStore {
     try {
       envelope = JSON.parse(fs.readFileSync(this.statePath, 'utf8'));
     } catch (error) {
-      throw storeError('CANDIDATE_C_STATE_PARSE_FAILED', `Candidate C state could not be parsed: ${error.message}`);
+      throw storeError('HIVENUES_STATE_PARSE_FAILED', `HiVenues state could not be parsed: ${error.message}`);
     }
     if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
-      throw storeError('CANDIDATE_C_STATE_INVALID', 'Candidate C state envelope must be an object.');
+      throw storeError('HIVENUES_STATE_INVALID', 'HiVenues state envelope must be an object.');
     }
     if (envelope.storageVersion !== STORAGE_VERSION) {
       throw storeError(
-        'CANDIDATE_C_STATE_VERSION_UNSUPPORTED',
-        `Unsupported Candidate C storage version: ${envelope.storageVersion}`
+        'HIVENUES_STATE_VERSION_UNSUPPORTED',
+        `Unsupported HiVenues storage version: ${envelope.storageVersion}`
       );
     }
     try {
-      return CandidateCStore.fromState(envelope.state, { now: this.now });
+      return HiVenuesStore.fromState(envelope.state, { now: this.now });
     } catch (error) {
       if (error && error.code) throw error;
-      throw storeError('CANDIDATE_C_STATE_INVALID', `Candidate C state validation failed: ${error.message}`);
+      throw storeError('HIVENUES_STATE_INVALID', `HiVenues state validation failed: ${error.message}`);
     }
   }
 
@@ -277,7 +277,7 @@ class FileCandidateCStore {
       } catch (error) {
         if (error.code !== 'EEXIST') throw error;
         if (Date.now() >= deadline) {
-          throw storeError('CANDIDATE_C_STORE_LOCK_TIMEOUT', 'Timed out waiting for Candidate C state lock.');
+          throw storeError('HIVENUES_STORE_LOCK_TIMEOUT', 'Timed out waiting for HiVenues state lock.');
         }
         Atomics.wait(this.sleepCell, 0, 0, this.lockRetryMs);
       }
@@ -293,4 +293,4 @@ class FileCandidateCStore {
   }
 }
 
-module.exports = { FileCandidateCStore, STORAGE_VERSION };
+module.exports = { FileHiVenuesStore, STORAGE_VERSION };

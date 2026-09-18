@@ -1,15 +1,15 @@
 'use strict';
 
-const { FileCandidateCStore } = require('./file-store');
+const { FileHiVenuesStore } = require('./file-store');
 const {
   defaultLocalMediaRoot,
   inspectImage,
   persistLocalImage,
   removeLocalImageIfNew,
 } = require('./local-media');
-const { provisionCandidateCHost } = require('./provision');
+const { provisionHiVenuesHost } = require('./provision');
 
-class ProvisioningFileCandidateCStore extends FileCandidateCStore {
+class ProvisioningFileHiVenuesStore extends FileHiVenuesStore {
   constructor(options = {}) {
     const { mediaRoot, ...storeOptions } = options;
     super(storeOptions);
@@ -17,7 +17,7 @@ class ProvisioningFileCandidateCStore extends FileCandidateCStore {
   }
 
   createHost(graph) {
-    return this.mutate((store) => provisionCandidateCHost(store, graph));
+    return this.mutate((store) => provisionHiVenuesHost(store, graph));
   }
 
   importLocalImage(slug, input, expectedRevision, expectedDigest) {
@@ -98,4 +98,4 @@ class ProvisioningFileCandidateCStore extends FileCandidateCStore {
   }
 }
 
-module.exports = { ProvisioningFileCandidateCStore };
+module.exports = { ProvisioningFileHiVenuesStore };

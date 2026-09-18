@@ -2,7 +2,7 @@
 
 const crypto = require('node:crypto');
 const { clone, stableDigest, validateHostGraph } = require('./model');
-const { seedCandidateCHosts } = require('./fixtures');
+const { seedHiVenuesHosts } = require('./fixtures');
 const { deriveUrgentClosure, diffGraphPaths, normalizeChange, verifyUrgentOperation, verifyUrgentRelease } = require('./urgent');
 
 const compositionFamilies = new Set(['poster', 'editorial', 'hospitality']);
@@ -60,7 +60,7 @@ function expectedStateConflict(workspace, expectedRevision, expectedDigest) {
 
 function stateError(message) {
   const error = new Error(message);
-  error.code = 'CANDIDATE_C_INVALID_PERSISTED_STATE';
+  error.code = 'HIVENUES_INVALID_PERSISTED_STATE';
   return error;
 }
 
@@ -68,8 +68,8 @@ function assertObject(value, message) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw stateError(message);
 }
 
-class CandidateCStore {
-  constructor({ hosts = seedCandidateCHosts(), now = Date.now, state = null } = {}) {
+class HiVenuesStore {
+  constructor({ hosts = seedHiVenuesHosts(), now = Date.now, state = null } = {}) {
     this.now = now;
     this.workspaces = new Map();
     this.external = {
@@ -112,7 +112,7 @@ class CandidateCStore {
   }
 
   static fromState(state, options = {}) {
-    return new CandidateCStore({ ...options, state });
+    return new HiVenuesStore({ ...options, state });
   }
 
   exportState() {
@@ -135,19 +135,19 @@ class CandidateCStore {
   }
 
   importState(state) {
-    assertObject(state, 'Candidate C persisted state must be an object.');
+    assertObject(state, 'HiVenues persisted state must be an object.');
     if (!Array.isArray(state.workspaces) || state.workspaces.length === 0) {
-      throw stateError('Candidate C persisted state must contain workspaces.');
+      throw stateError('HiVenues persisted state must contain workspaces.');
     }
-    assertObject(state.external, 'Candidate C persisted diagnostics are missing.');
-    assertObject(state.local, 'Candidate C persisted local diagnostics are missing.');
+    assertObject(state.external, 'HiVenues persisted diagnostics are missing.');
+    assertObject(state.local, 'HiVenues persisted local diagnostics are missing.');
 
     const workspaces = new Map();
     let rsvpCount = 0;
     for (const record of state.workspaces) {
-      assertObject(record, 'Candidate C workspace record must be an object.');
-      if (typeof record.slug !== 'string' || !record.slug) throw stateError('Candidate C workspace slug is invalid.');
-      if (workspaces.has(record.slug)) throw stateError(`Duplicate Candidate C workspace: ${record.slug}`);
+      assertObject(record, 'HiVenues workspace record must be an object.');
+      if (typeof record.slug !== 'string' || !record.slug) throw stateError('HiVenues workspace slug is invalid.');
+      if (workspaces.has(record.slug)) throw stateError(`Duplicate HiVenues workspace: ${record.slug}`);
       if (!Number.isInteger(record.revision) || record.revision < 1) throw stateError(`Invalid revision for ${record.slug}.`);
 
       const draft = validateHostGraph(record.draft);
@@ -210,10 +210,10 @@ class CandidateCStore {
       }
 
       if (!Array.isArray(record.proposals) || !Array.isArray(record.rsvps)) {
-        throw stateError(`Candidate C proposal/RSVP state is invalid for ${record.slug}.`);
+        throw stateError(`HiVenues proposal/RSVP state is invalid for ${record.slug}.`);
       }
       const urgentRecords = record.urgent === undefined ? [] : record.urgent;
-      if (!Array.isArray(urgentRecords)) throw stateError(`Candidate C urgent operation state is invalid for ${record.slug}.`);
+      if (!Array.isArray(urgentRecords)) throw stateError(`HiVenues urgent operation state is invalid for ${record.slug}.`);
       const urgent = new Map();
       for (const operation of urgentRecords) {
         assertObject(operation, `Invalid urgent operation for ${record.slug}.`);
@@ -286,7 +286,7 @@ class CandidateCStore {
       if (!Number.isInteger(state.external[key]) || state.external[key] < 0) throw stateError(`Invalid external diagnostic: ${key}.`);
     }
     if (!Number.isInteger(state.local.rsvps) || state.local.rsvps !== rsvpCount) {
-      throw stateError('Candidate C persisted RSVP diagnostics do not match RSVP records.');
+      throw stateError('HiVenues persisted RSVP diagnostics do not match RSVP records.');
     }
 
     this.workspaces = workspaces;
@@ -623,4 +623,4 @@ class CandidateCStore {
   }
 }
 
-module.exports = { CandidateCStore };
+module.exports = { HiVenuesStore };
