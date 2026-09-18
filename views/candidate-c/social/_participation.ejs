@@ -39,7 +39,7 @@
       <p>HiVenues does not offer a follow action for your own account.</p>
     </div>
   <% } else if (actor && target && typeof confirmed === 'boolean') { %>
-    <form
+    <div
       class="cc-participation__form"
       data-hivenues-participation
       data-participation-url="<%= endpoint %>"
@@ -52,7 +52,7 @@
         <span><%= participationLabels.currentLabel %></span>
         <strong><%= confirmed ? participationLabels.currentYes : participationLabels.currentNo %></strong>
       </div>
-      <button type="submit" data-participation-submit><%= actionLabel %></button>
+      <button type="button" data-participation-submit><%= actionLabel %></button>
       <p class="cc-participation__truth">
         This changes a real Hive relationship through your own wallet. HiVenues will not call it confirmed until Hive readback matches the requested state.
       </p>
@@ -80,6 +80,6 @@
           </div>
         </form>
       </dialog>
-    </form>
+    </div>
   <% } %>
 </section>
