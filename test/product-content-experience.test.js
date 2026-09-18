@@ -271,6 +271,8 @@ test('canonical discussion renders root, comments, own-post update and root/nest
     /data-content-url="\/participation\/northline-hall\/content\/etblink\/room-note\/replies\/juniper-lane\/re-room-note"/,
   );
   assert.match(response.text, /Revise my public note/);
+  assert.match(response.text, /Currently public/);
+  assert.match(response.text, /After this update/);
   assert.match(response.text, /Write underneath/);
   assert.doesNotMatch(response.text, />\s*(Vote|Pay|Send|Transfer)\s*</i);
 });
