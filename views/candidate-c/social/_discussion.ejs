@@ -1,0 +1,108 @@
+<%
+  const post = discussion.post;
+  const actor = discussion.actor;
+  const canWriteContent = discussion.available && actor;
+  const authorProfile = discussion.profiles?.[post?.author] || null;
+%>
+
+<% if (!post) { %>
+  <section class="cc-social-state cc-social-state--<%= discussion.status %>" role="status">
+    <p class="cc-kicker"><%= discussionLabels.state %></p>
+    <h1><%= discussionLabels.unavailableTitle %></h1>
+    <p><%= discussionLabels.unavailableBody %></p>
+  </section>
+<% } else { %>
+  <% if (discussion.status === 'partial') { %>
+    <section class="cc-social-state cc-social-state--partial" role="status">
+      <p class="cc-kicker"><%= discussionLabels.state %></p>
+      <h2>Some editing context is temporarily unavailable.</h2>
+      <p>The public discussion remains readable. HiVenues will not guess at missing update state.</p>
+    </section>
+  <% } %>
+
+  <article class="cc-discussion-root" aria-labelledby="cc-discussion-title">
+    <header>
+      <p class="cc-kicker"><%= discussionLabels.rootKicker %></p>
+      <div class="cc-social-author-row">
+        <a class="cc-social-author" href="<%= memberHref(post.author) %>">@<%= post.author %></a>
+        <% const created = formatCommunityTime(post.created, graph.identity.timezone); %>
+        <% if (created) { %><span><%= created %></span><% } %>
+      </div>
+      <h1 id="cc-discussion-title"><%= post.title %></h1>
+      <% if (authorProfile?.displayName && authorProfile.displayName !== post.author) { %>
+        <p><%= authorProfile.displayName %></p>
+      <% } %>
+    </header>
+    <% if (post.primaryImage) { %><img class="cc-discussion-image" src="<%= post.primaryImage %>" alt=""><% } %>
+    <div class="cc-social-richtext cc-discussion-body"><%- post.bodyHtml %></div>
+    <p class="cc-social-meta"><%= post.replyCount %> <%= post.replyCount === 1 ? 'response' : 'responses' %></p>
+  </article>
+
+  <% if (discussion.updateRecord && actor === post.author) { %>
+    <details class="cc-content-task cc-content-task--update">
+      <summary><%= discussionLabels.updateSummary %></summary>
+      <%- include('_content-composer', {
+        graph,
+        mode: 'update',
+        endpoint: contentUpdateEndpoint,
+        actor,
+        targetLabel: '@' + post.author + '/' + post.permlink,
+        initialTitle: discussion.updateRecord.title,
+        initialBody: discussion.updateRecord.body,
+        labels: updateLabels
+      }) %>
+    </details>
+  <% } %>
+
+  <% if (canWriteContent) { %>
+    <section class="cc-discussion-reply">
+      <%- include('_content-composer', {
+        graph,
+        mode: 'reply',
+        endpoint: contentReplyEndpoint(post.author, post.permlink),
+        actor,
+        targetLabel: '@' + post.author + '/' + post.permlink,
+        initialTitle: '',
+        initialBody: '',
+        labels: replyLabels
+      }) %>
+    </section>
+  <% } %>
+
+  <section class="cc-discussion-comments" aria-labelledby="cc-discussion-comments-title">
+    <header class="cc-social-section__head">
+      <p class="cc-kicker"><%= discussionLabels.responsesKicker %></p>
+      <h2 id="cc-discussion-comments-title"><%= discussionLabels.responsesTitle %></h2>
+    </header>
+
+    <% if (!discussion.comments.length) { %>
+      <p class="cc-social-quiet"><%= discussionLabels.noResponses %></p>
+    <% } %>
+
+    <% discussion.comments.forEach((item) => { %>
+      <article class="cc-discussion-comment" style="--cc-comment-depth:<%= item.depth %>">
+        <div class="cc-social-author-row">
+          <a class="cc-social-author" href="<%= memberHref(item.author) %>">@<%= item.author %></a>
+          <% const commentTime = formatCommunityTime(item.created, graph.identity.timezone); %>
+          <% if (commentTime) { %><span><%= commentTime %></span><% } %>
+        </div>
+        <div class="cc-social-richtext"><%- item.bodyHtml %></div>
+        <% if (canWriteContent) { %>
+          <details class="cc-content-task cc-content-task--reply">
+            <summary><%= discussionLabels.replyToResponse %></summary>
+            <%- include('_content-composer', {
+              graph,
+              mode: 'reply',
+              endpoint: contentReplyEndpoint(item.author, item.permlink),
+              actor,
+              targetLabel: '@' + item.author + '/' + item.permlink,
+              initialTitle: '',
+              initialBody: '',
+              labels: replyLabels
+            }) %>
+          </details>
+        <% } %>
+      </article>
+    <% }) %>
+  </section>
+<% } %>
