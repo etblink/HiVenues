@@ -5,9 +5,9 @@ const { buildViewModel } = require('./present');
 const { READ_MODEL_SCHEMA_VERSION } = require('./social-discussion');
 
 const COMMUNITY_TEMPLATES = Object.freeze({
-  poster: 'candidate-c/community/poster',
-  editorial: 'candidate-c/community/editorial',
-  hospitality: 'candidate-c/community/hospitality',
+  poster: 'studio/community/poster',
+  editorial: 'studio/community/editorial',
+  hospitality: 'studio/community/hospitality',
 });
 
 function normalizeBindings(bindings) {
@@ -105,13 +105,13 @@ function communityStateCopy(community, hostName) {
   };
 }
 
-function createCandidateCCommunityRouter({
+function createHiVenuesCommunityRouter({
   store,
   discussionReader = null,
   discussionBindings = {},
 } = {}) {
   if (!store || typeof store.publicSnapshot !== 'function') {
-    throw new TypeError('Candidate C community router requires a public snapshot store.');
+    throw new TypeError('HiVenues community router requires a public snapshot store.');
   }
 
   const router = express.Router();
@@ -141,7 +141,7 @@ function createCandidateCCommunityRouter({
       }
     }
 
-    const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
     res.set('Cache-Control', 'no-store');
     return res.render(template, {
       pageTitle: `Community — ${view.graph.identity.displayName}`,
@@ -160,7 +160,7 @@ function createCandidateCCommunityRouter({
 
 module.exports = {
   COMMUNITY_TEMPLATES,
-  createCandidateCCommunityRouter,
+  createHiVenuesCommunityRouter,
   communityStateCopy,
   degradedDiscussion,
   formatCommunityTime,

@@ -63,7 +63,7 @@ function draftMutation(store, slug, body, label, mutator, manualPaths) {
 }
 
 function renderSchedule(res, snapshot, activity, { status = 200, values, errors = [] } = {}) {
-  return res.status(status).render('candidate-c/activity-schedule', {
+  return res.status(status).render('studio/activity-schedule', {
     pageTitle: `Schedule — ${activity.title}`,
     ...buildViewModel(snapshot),
     activity,
@@ -72,7 +72,7 @@ function renderSchedule(res, snapshot, activity, { status = 200, values, errors 
   });
 }
 
-function createBetaRemediationRouter({ store } = {}) {
+function createRecoveryRouter({ store } = {}) {
   if (!store) throw new TypeError('Beta remediation router requires a store.');
   const router = express.Router();
 
@@ -82,7 +82,7 @@ function createBetaRemediationRouter({ store } = {}) {
     if (String(req.query.resource || '') !== 'look') return next();
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
-    return res.render('candidate-c/fragments/inspector', candidateLocals(snapshot, 'look'));
+    return res.render('studio/fragments/inspector', candidateLocals(snapshot, 'look'));
   });
 
   router.post('/studio/:slug/look', (req, res) => {
@@ -98,9 +98,9 @@ function createBetaRemediationRouter({ store } = {}) {
       return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send('The accent could not be saved.');
     }
     if (req.get('HX-Request') === 'true') {
-      return res.render('candidate-c/fragments/studio-update', candidateLocals(result.snapshot, 'look'));
+      return res.render('studio/fragments/studio-update', candidateLocals(result.snapshot, 'look'));
     }
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   router.get('/studio/:slug/activity/:activityId/schedule', (req, res) => {
@@ -161,7 +161,7 @@ function createBetaRemediationRouter({ store } = {}) {
       return res.status(result.reason === 'NOT_FOUND' ? 404 : 400).send('The schedule could not be saved.');
     }
 
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}?scheduled=${encodeURIComponent(req.params.activityId)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}?scheduled=${encodeURIComponent(req.params.activityId)}`);
   });
 
   // History restore gets a review step: selecting an older version prepares the
@@ -171,7 +171,7 @@ function createBetaRemediationRouter({ store } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const selectedRelease = snapshot.releases.find((item) => item.id === req.params.releaseId);
     if (!selectedRelease) return res.sendStatus(404);
-    return res.render('candidate-c/restore-review', {
+    return res.render('studio/restore-review', {
       pageTitle: `Review restore — ${snapshot.draft.identity.displayName}`,
       ...buildViewModel(snapshot),
       selectedRelease,
@@ -181,4 +181,4 @@ function createBetaRemediationRouter({ store } = {}) {
   return router;
 }
 
-module.exports = { LOOK_ACCENTS, createBetaRemediationRouter, localInputValue };
+module.exports = { LOOK_ACCENTS, createRecoveryRouter, localInputValue };

@@ -7,19 +7,19 @@ const { buildViewModel } = require('./present');
 
 const SOCIAL_TEMPLATES = Object.freeze({
   poster: Object.freeze({
-    hub: 'candidate-c/social/poster-hub',
-    member: 'candidate-c/social/poster-member',
-    discussion: 'candidate-c/social/poster-discussion',
+    hub: 'studio/social/poster-hub',
+    member: 'studio/social/poster-member',
+    discussion: 'studio/social/poster-discussion',
   }),
   editorial: Object.freeze({
-    hub: 'candidate-c/social/editorial-hub',
-    member: 'candidate-c/social/editorial-member',
-    discussion: 'candidate-c/social/editorial-discussion',
+    hub: 'studio/social/editorial-hub',
+    member: 'studio/social/editorial-member',
+    discussion: 'studio/social/editorial-discussion',
   }),
   hospitality: Object.freeze({
-    hub: 'candidate-c/social/hospitality-hub',
-    member: 'candidate-c/social/hospitality-member',
-    discussion: 'candidate-c/social/hospitality-discussion',
+    hub: 'studio/social/hospitality-hub',
+    member: 'studio/social/hospitality-member',
+    discussion: 'studio/social/hospitality-discussion',
   }),
 });
 
@@ -596,13 +596,13 @@ function memberStateCopy(member, hostName) {
   };
 }
 
-function createCandidateCSocialReadRouter({
+function createHiVenuesSocialReadRouter({
   store,
   hiveReadService = null,
   socialBindings = {},
 } = {}) {
   if (!store || typeof store.publicSnapshot !== 'function') {
-    throw new TypeError('Candidate C social-read router requires a public snapshot store.');
+    throw new TypeError('HiVenues social-read router requires a public snapshot store.');
   }
 
   const router = express.Router();
@@ -615,13 +615,13 @@ function createCandidateCSocialReadRouter({
     const recipient = safeAccount(view.graph.bindings.hive.valueRecipient);
     if (!recipient) return res.sendStatus(404);
 
-    const hostHref = '/candidate-c/' + encodeURIComponent(view.graph.identity.slug);
+    const hostHref = '/studio/' + encodeURIComponent(view.graph.identity.slug);
     const supportEndpoint = supportCapability(res)
       ? '/participation/' + encodeURIComponent(view.graph.identity.slug) + '/support'
       : null;
 
     res.set('Cache-Control', 'no-store');
-    return res.render('candidate-c/support', {
+    return res.render('studio/support', {
       pageTitle: (view.graph.voice.terms.support_hive || 'Support this host')
         + ' — ' + view.graph.identity.displayName,
       ...view,
@@ -647,7 +647,7 @@ function createCandidateCSocialReadRouter({
       verifiedViewer(res),
       participationCapability(res),
     );
-    const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (account) => `${communityHref}/people/${encodeURIComponent(account)}`;
@@ -701,7 +701,7 @@ function createCandidateCSocialReadRouter({
       readPersonalResourceRewardState(hiveReadService, account, viewer),
     ]);
 
-    const hostHref = `/candidate-c/${encodeURIComponent(view.graph.identity.slug)}`;
+    const hostHref = `/studio/${encodeURIComponent(view.graph.identity.slug)}`;
     const communityHref = `${hostHref}/community`;
     const socialHref = `${communityHref}/updates`;
     const memberHref = (name) => `${communityHref}/people/${encodeURIComponent(name)}`;
@@ -757,7 +757,7 @@ function createCandidateCSocialReadRouter({
     );
     if (discussion.status === 'missing') return res.sendStatus(404);
 
-    const hostHref = '/candidate-c/' + encodeURIComponent(view.graph.identity.slug);
+    const hostHref = '/studio/' + encodeURIComponent(view.graph.identity.slug);
     const communityHref = hostHref + '/community';
     const socialHref = communityHref + '/updates';
     const memberHref = (account) => communityHref + '/people/' + encodeURIComponent(account);
@@ -803,7 +803,7 @@ function createCandidateCSocialReadRouter({
 
 module.exports = {
   SOCIAL_TEMPLATES,
-  createCandidateCSocialReadRouter,
+  createHiVenuesSocialReadRouter,
   hasSocialReadContract,
   hubStateCopy,
   isSocialBinding,

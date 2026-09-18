@@ -194,7 +194,7 @@ function updateValues(update, graph) {
 }
 
 function renderUpdateForm(res, snapshot, { status = 200, update = null, values = null, errors = [] } = {}) {
-  return res.status(status).render('candidate-c/territory-update-form', {
+  return res.status(status).render('studio/territory-update-form', {
     pageTitle: `${update ? 'Edit Update' : 'Write an Update'} — ${snapshot.draft.identity.displayName}`,
     ...buildViewModel(snapshot),
     update,
@@ -245,7 +245,7 @@ function parseNavigationInput(body, graph) {
 }
 
 function renderNavigationForm(res, snapshot, { status = 200, values = null, errors = [] } = {}) {
-  return res.status(status).render('candidate-c/territory-navigation-form', {
+  return res.status(status).render('studio/territory-navigation-form', {
     pageTitle: `Navigation — ${snapshot.draft.identity.displayName}`,
     ...buildViewModel(snapshot),
     navigationRows: navigationRows(snapshot.draft, values),
@@ -253,8 +253,8 @@ function renderNavigationForm(res, snapshot, { status = 200, values = null, erro
   });
 }
 
-function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
-  if (!store) throw new TypeError('Territory structure authoring requires a Candidate C store.');
+function createHiVenuesTerritoryStructureAuthoringRouter({ store }) {
+  if (!store) throw new TypeError('Territory structure authoring requires a HiVenues store.');
   const router = express.Router();
 
   router.get('/studio/:slug/territory-content/update/new', (req, res) => {
@@ -285,7 +285,7 @@ function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
       });
     }, [`stories.${updateId}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/update/:updateId', (req, res) => {
@@ -320,7 +320,7 @@ function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
       `stories.${update.id}.mediaIds`,
     ]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.post('/studio/:slug/territory-content/update/:updateId/delete', (req, res) => {
@@ -333,7 +333,7 @@ function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
       draft.stories = draft.stories.filter((item) => item.id !== update.id);
     }, [`stories.${update.id}`]);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   router.get('/studio/:slug/territory-content/navigation', (req, res) => {
@@ -354,16 +354,16 @@ function createCandidateCTerritoryStructureAuthoringRouter({ store }) {
       draft.navigation.labels = parsed.value.labels;
     }, ['navigation.priorities', 'navigation.labels']);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}/territory-content?saved=1`);
   });
 
   // Territory v2 Direction changes carry their bounded presentation recipe as
   // part of the same durable Working mutation. This route is registered before
-  // the legacy Candidate C apply handler and deliberately preserves v1 behavior.
+  // the legacy HiVenues apply handler and deliberately preserves v1 behavior.
   router.post('/studio/:slug/direction/:proposalId/apply', (req, res) => {
     const result = applyDirectionWithTerritoryRecipe(store, req.params.slug, req.params.proposalId, req.body);
     if (!result.ok) return mutationError(res, result);
-    return res.redirect(303, `/candidate-c/studio/${encodeURIComponent(req.params.slug)}`);
+    return res.redirect(303, `/studio/studio/${encodeURIComponent(req.params.slug)}`);
   });
 
   return router;
@@ -373,6 +373,6 @@ module.exports = {
   DIRECTION_RECIPE_BY_FAMILY,
   NAVIGATION_ROLES,
   applyDirectionWithTerritoryRecipe,
-  createCandidateCTerritoryStructureAuthoringRouter,
+  createHiVenuesTerritoryStructureAuthoringRouter,
   deriveUpdateTitle,
 };
