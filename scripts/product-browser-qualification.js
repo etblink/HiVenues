@@ -1145,7 +1145,7 @@ async function runContentProviderUnavailableEvidence(
     await page.locator('[data-content-state="provider-unavailable"]').waitFor();
     assert.match(
       await root.locator('[data-content-status]').textContent(),
-      /human-owned Hive wallet/i,
+      /(Hive Keychain was not found|human-owned Hive wallet)/i,
     );
     await capture(page, axeSource, manifest, 'hospitality-content-wallet-unavailable');
   } finally {
