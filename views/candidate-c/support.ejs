@@ -44,7 +44,7 @@
     <%- include('social/_identity', {
       identityLabels: {
         kicker: family.id === 'poster' ? 'Your name on it' : family.id === 'editorial' ? 'Supporter identity' : 'Who is leaving this',
-        title: family.id === 'poster' ? 'Prove the Hive account sending support' : family.id === 'editorial' ? 'Verify the sending account' : 'Verify your Hive account',
+        title: family.id === 'poster' ? 'Your Hive sending account' : family.id === 'editorial' ? 'The sending account' : 'Your Hive account',
         body: 'HiVenues verifies the Hive account that will sign the transfer. Identity proof itself does not move value.',
         unavailableTitle: 'Wallet identity proof is unavailable',
         verifiedLabel: 'Verified sender',
