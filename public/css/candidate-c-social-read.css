@@ -376,3 +376,233 @@
     border-left-width:3px;
   }
 }
+
+
+/* Era 4 relationship participation — exact consequence, host-native voice. */
+.cc-participation {
+  display:grid;
+  grid-template-columns:minmax(0,.9fr) minmax(280px,1.1fr);
+  gap:clamp(1rem,4vw,3rem);
+  align-items:start;
+  margin-top:1.5rem;
+  padding-top:1.4rem;
+  border-top:1px solid currentColor;
+}
+.cc-participation__copy h3 {
+  margin:.2rem 0 .55rem;
+  font-size:clamp(1.45rem,3vw,2.45rem);
+  line-height:1;
+  text-wrap:balance;
+}
+.cc-participation__copy > p:last-child {
+  margin-bottom:0;
+  line-height:1.55;
+}
+.cc-participation__state,
+.cc-participation__form {
+  display:grid;
+  gap:.85rem;
+  min-width:0;
+}
+.cc-participation__state strong,
+.cc-participation__form > div:first-child strong {
+  display:block;
+  margin-top:.18rem;
+  font-size:1.08rem;
+}
+.cc-participation__form > div:first-child > span {
+  display:block;
+  font-size:.72rem;
+  font-weight:850;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  opacity:.7;
+}
+.cc-participation button,
+.cc-participation__link {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:max-content;
+  max-width:100%;
+  min-height:2.8rem;
+  padding:.68rem 1rem;
+  border:1px solid currentColor;
+  color:inherit;
+  background:transparent;
+  font:inherit;
+  font-weight:850;
+  text-decoration:none;
+  cursor:pointer;
+}
+.cc-participation button:disabled {
+  opacity:.48;
+  cursor:not-allowed;
+}
+.cc-participation button:focus-visible,
+.cc-participation__link:focus-visible,
+.cc-participation-review summary:focus-visible {
+  outline:3px solid var(--cc-accent);
+  outline-offset:3px;
+}
+.cc-participation__truth,
+.cc-participation__status,
+.cc-participation__state p {
+  margin:0;
+  font-size:.88rem;
+  line-height:1.55;
+}
+.cc-participation__truth { opacity:.78; }
+.cc-participation__status { min-height:1.4em; font-weight:700; }
+.cc-participation[data-participation-state="awaiting-wallet"],
+.cc-participation[data-participation-state="pending"],
+.cc-participation[data-participation-state="review"] {
+  box-shadow:inset 0 0 0 2px var(--cc-accent);
+}
+.cc-participation[data-participation-state="uncertain"] .cc-participation__status,
+.cc-participation[data-participation-state="failed"] .cc-participation__status,
+.cc-participation[data-participation-state="provider-unavailable"] .cc-participation__status,
+.cc-participation[data-participation-state="identity-mismatch"] .cc-participation__status {
+  text-decoration:underline;
+  text-decoration-thickness:.1em;
+  text-underline-offset:.24em;
+}
+.cc-participation-review {
+  width:min(720px,calc(100vw - 2rem));
+  max-height:calc(100vh - 2rem);
+  overflow:auto;
+  padding:0;
+  border:1px solid currentColor;
+  color:inherit;
+  background:#fff;
+  box-shadow:0 24px 80px rgba(0,0,0,.28);
+}
+.cc-participation-review::backdrop { background:rgba(0,0,0,.62); }
+.cc-participation-review > form {
+  display:grid;
+  gap:1rem;
+  padding:clamp(1.25rem,4vw,2.25rem);
+}
+.cc-participation-review h2 {
+  margin:.1rem 0;
+  font-size:clamp(1.7rem,4vw,2.8rem);
+  line-height:1;
+}
+.cc-participation-review dl {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.65rem;
+  margin:0;
+}
+.cc-participation-review dl > div {
+  min-width:0;
+  padding:.75rem;
+  border:1px solid rgba(0,0,0,.18);
+}
+.cc-participation-review dt {
+  font-size:.7rem;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.65;
+}
+.cc-participation-review dd {
+  margin:.3rem 0 0;
+  overflow-wrap:anywhere;
+  font-weight:800;
+}
+.cc-participation-review details {
+  padding:.85rem;
+  border:1px solid rgba(0,0,0,.18);
+}
+.cc-participation-review summary {
+  cursor:pointer;
+  font-weight:800;
+}
+.cc-participation-review pre {
+  max-height:220px;
+  overflow:auto;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  font-size:.72rem;
+}
+.cc-participation-review__actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.75rem;
+}
+.cc-participation-review__actions button:first-child {
+  background:#111;
+  color:#fff;
+}
+
+/* Poster: participation behaves like a handbill/control pinned into the wall. */
+.cc-social--poster .cc-participation {
+  padding:1.1rem;
+  border:1px solid var(--cc-night-line);
+  background:rgba(255,255,255,.025);
+  box-shadow:5px 5px 0 rgba(255,255,255,.035);
+}
+.cc-social--poster .cc-participation__copy h3 {
+  max-width:11ch;
+  text-transform:uppercase;
+  letter-spacing:-.03em;
+}
+.cc-social--poster .cc-participation button,
+.cc-social--poster .cc-participation__link {
+  border-color:var(--cc-night-line);
+  text-transform:uppercase;
+  letter-spacing:.035em;
+  background:rgba(255,255,255,.035);
+}
+
+/* Editorial: participation is a register annotation, not a generic action card. */
+.cc-social--editorial .cc-participation {
+  padding:1rem 0 0;
+  border-top:3px double rgba(41,36,59,.4);
+}
+.cc-social--editorial .cc-participation__copy h3 {
+  font-family:Georgia,serif;
+}
+.cc-social--editorial .cc-participation__form,
+.cc-social--editorial .cc-participation__state {
+  padding:1rem;
+  border-left:4px solid currentColor;
+  background:rgba(255,255,255,.34);
+}
+.cc-social--editorial .cc-participation button,
+.cc-social--editorial .cc-participation__link {
+  background:#29243b;
+  color:#f1eff7;
+}
+
+/* Hospitality: participation is an invitation/relationship card at the table. */
+.cc-social--hospitality .cc-participation {
+  padding:1.2rem;
+  border:1px solid rgba(45,37,31,.18);
+  border-radius:1.2rem;
+  background:#fffaf1;
+}
+.cc-social--hospitality .cc-participation__copy h3 {
+  font-family:Georgia,serif;
+}
+.cc-social--hospitality .cc-participation button,
+.cc-social--hospitality .cc-participation__link {
+  border-color:rgba(45,37,31,.32);
+  border-radius:999px;
+  background:#2d251f;
+  color:#fffaf1;
+}
+
+@media (max-width: 760px) {
+  .cc-participation {
+    grid-template-columns:1fr;
+  }
+  .cc-participation-review dl {
+    grid-template-columns:1fr;
+  }
+  .cc-participation button,
+  .cc-participation__link {
+    width:100%;
+  }
+}
