@@ -14,7 +14,6 @@
     "build": "npm run build:css",
     "build:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --minify",
     "watch:css": "tailwindcss --cwd ./views -i ../src/input.css -o ../public/css/style.css --watch",
-    "candidate-c:dogfood": "node scripts/candidate-c-dogfood.js",
     "smoke:live": "node scripts/live-read-smoke.js",
     "release:check:runtime": "node scripts/check-pinned-runtime.js",
     "lint": "eslint src public/js test scripts index.js eslint.config.js --max-warnings=0",

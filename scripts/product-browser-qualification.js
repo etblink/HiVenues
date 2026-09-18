@@ -15,8 +15,8 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { CandidateCStore } = require('../src/candidate-c/store');
-const { seedCandidateCHosts } = require('../src/candidate-c/fixtures');
+const { HiVenuesStore } = require('../src/product/store');
+const { seedHiVenuesHosts } = require('../src/product/fixtures');
 
 const OUTPUT_ROOT = process.env.HIVENUES_PRODUCT_BROWSER_ROOT
   || path.join('artifacts', 'product-browser', 'participation');
@@ -60,7 +60,7 @@ function socialBindings() {
 }
 
 function qualificationHosts() {
-  const hosts = seedCandidateCHosts();
+  const hosts = seedHiVenuesHosts();
   const posterHost = hosts.find((host) => host.identity.slug === 'northline-hall');
   posterHost.bindings.hive.showNegativeVoteAction = true;
   posterHost.voice.terms.downvote_hive = 'Not for this room';
@@ -872,7 +872,7 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
       for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
         await page.setViewportSize(viewport);
         await page.goto(
-          origin + '/candidate-c/' + host.slug + '/community/updates',
+          origin + '/hivenues/' + host.slug + '/community/updates',
           { waitUntil: 'networkidle' },
         );
         await page.locator('[data-identity-state="not-identified"]').waitFor();
@@ -1000,7 +1000,7 @@ async function runApprovalEvidence(browser, axeSource, origin, manifest, counter
   });
 
   try {
-    await page.goto(origin + '/candidate-c/northline-hall/community/updates', { waitUntil: 'networkidle' });
+    await page.goto(origin + '/hivenues/northline-hall/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-account]').fill('etblink');
     await page.locator('[data-identity-submit]').click();
     await page.locator('[data-identity-state="awaiting-wallet"]').waitFor();
@@ -1063,7 +1063,7 @@ async function runRelationshipDirectionEvidence(
       for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
         await page.setViewportSize(viewport);
         await page.goto(
-          origin + '/candidate-c/' + host.slug + '/community/updates',
+          origin + '/hivenues/' + host.slug + '/community/updates',
           { waitUntil: 'networkidle' },
         );
         const control = page.locator('[data-hivenues-participation]');
@@ -1084,7 +1084,7 @@ async function runRelationshipDirectionEvidence(
 
       await page.setViewportSize(DESKTOP);
       await page.goto(
-        origin + '/candidate-c/' + host.slug + '/community/people/juniper-lane',
+        origin + '/hivenues/' + host.slug + '/community/people/juniper-lane',
         { waitUntil: 'networkidle' },
       );
       const follow = page.locator('[data-hivenues-participation]');
@@ -1153,7 +1153,7 @@ async function runRelationshipJourneys(
   }
 
   try {
-    await page.goto(origin + '/candidate-c/northline-hall/community/updates', {
+    await page.goto(origin + '/hivenues/northline-hall/community/updates', {
       waitUntil: 'networkidle',
     });
     await reviewAndApprove('subscribe', 'community', 'poster-community-subscribe');
@@ -1171,7 +1171,7 @@ async function runRelationshipJourneys(
     await capture(page, axeSource, manifest, 'poster-community-unsubscribed');
 
     await page.goto(
-      origin + '/candidate-c/northline-hall/community/people/juniper-lane',
+      origin + '/hivenues/northline-hall/community/people/juniper-lane',
       { waitUntil: 'networkidle' },
     );
     await reviewAndApprove('follow', 'follow', 'poster-follow');
@@ -1218,7 +1218,7 @@ async function runRelationshipCancellationEvidence(
   });
 
   try {
-    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', {
+    await page.goto(origin + '/hivenues/nova-ashby/community/updates', {
       waitUntil: 'networkidle',
     });
     const root = page.locator('[data-hivenues-participation]');
@@ -1263,7 +1263,7 @@ async function runRelationshipProviderUnavailableEvidence(
 
   try {
     await page.goto(
-      origin + '/candidate-c/harbor-and-hearth/community/people/juniper-lane',
+      origin + '/hivenues/harbor-and-hearth/community/people/juniper-lane',
       { waitUntil: 'networkidle' },
     );
     const root = page.locator('[data-hivenues-participation]');
@@ -1415,7 +1415,7 @@ async function runResourceRewardEvidence(
       for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
         await page.setViewportSize(viewport);
         await page.goto(
-          origin + '/candidate-c/' + item.slug + '/community/people/etblink',
+          origin + '/hivenues/' + item.slug + '/community/people/etblink',
           { waitUntil: 'networkidle' },
         );
         const resource = page.locator('.cc-resource-state').first();
@@ -1478,7 +1478,7 @@ async function runRewardClaimJourney(
 
   try {
     await page.goto(
-      origin + '/candidate-c/northline-hall/community/people/etblink',
+      origin + '/hivenues/northline-hall/community/people/etblink',
       { waitUntil: 'networkidle' },
     );
     const root = page.locator('[data-hivenues-reward-claim]').first();
@@ -1567,7 +1567,7 @@ async function runSupportPresentationEvidence(
       for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
         await page.setViewportSize(viewport);
         await page.goto(
-          origin + '/candidate-c/' + item.slug + '/support',
+          origin + '/hivenues/' + item.slug + '/support',
           { waitUntil: 'networkidle' },
         );
         assert.equal(await page.locator('h1').textContent(), item.action);
@@ -1625,7 +1625,7 @@ async function runSupportJourney(
     });
 
     await page.goto(
-      origin + '/candidate-c/northline-hall/support',
+      origin + '/hivenues/northline-hall/support',
       { waitUntil: 'networkidle' },
     );
     const root = page.locator('[data-hivenues-support]').first();
@@ -1714,7 +1714,7 @@ async function runValueRecipientStudioEvidence(
 
   try {
     await page.setViewportSize(DESKTOP);
-    await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
+    await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
     await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
     await page.getByRole('button', { name: 'Support & value' }).click();
     const inspector = page.locator('#candidate-inspector');
@@ -1731,7 +1731,7 @@ async function runValueRecipientStudioEvidence(
     await inspector.locator('input[name="valueRecipient"]').fill('northline-alt');
     const saved = page.waitForResponse((response) => (
       response.request().method() === 'POST'
-      && new URL(response.url()).pathname === '/candidate-c/studio/northline-hall/value-recipient'
+      && new URL(response.url()).pathname === '/hivenues/studio/northline-hall/value-recipient'
     ));
     await inspector.getByRole('button', { name: 'Save value recipient' }).click();
     assert.equal((await saved).status(), 200);
@@ -1774,7 +1774,7 @@ async function runVotePolicyStudioEvidence(
   try {
     for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
       await page.setViewportSize(viewport);
-      await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
+      await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
       await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
       await page.locator('button[hx-get*="resource=participation"]').click();
       const inspector = page.locator('#candidate-inspector');
@@ -1839,7 +1839,7 @@ async function runVotePresentationEvidence(
       for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
         await page.setViewportSize(viewport);
         await page.goto(
-          origin + '/candidate-c/' + item.slug + '/community/posts/etblink/room-note',
+          origin + '/hivenues/' + item.slug + '/community/posts/etblink/room-note',
           { waitUntil: 'networkidle' },
         );
         const vote = page.locator('.cc-discussion-root [data-hivenues-vote]').first();
@@ -1937,7 +1937,7 @@ async function runVoteJourneys(
 
   try {
     await page.goto(
-      origin + '/candidate-c/northline-hall/community/posts/etblink/room-note',
+      origin + '/hivenues/northline-hall/community/posts/etblink/room-note',
       { waitUntil: 'networkidle' },
     );
     await cast('upvote', 42, 'poster-vote-upvote', 4200);
@@ -1988,14 +1988,14 @@ async function runContentJourneys(
   }
 
   try {
-    await page.goto(origin + '/candidate-c/northline-hall/community/updates', {
+    await page.goto(origin + '/hivenues/northline-hall/community/updates', {
       waitUntil: 'networkidle',
     });
     const post = page.locator('[data-hivenues-content][data-content-mode="post"]');
     await post.locator('[data-content-title]').fill('Browser-qualified room note');
     await post.locator('[data-content-body]').fill('Published through the exact Stage 3 human-wallet path.');
     await reviewAndApprove(post, 'post', 'poster-content-post');
-    await page.waitForURL(/\/candidate-c\/northline-hall\/community\/posts\/etblink\//, {
+    await page.waitForURL(/\/hivenues\/northline-hall\/community\/posts\/etblink\//, {
       timeout: 15000,
     });
     await page.getByText('Browser-qualified room note', { exact: true }).first().waitFor();
@@ -2065,7 +2065,7 @@ async function runContentCancellationEvidence(
   });
 
   try {
-    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', {
+    await page.goto(origin + '/hivenues/nova-ashby/community/updates', {
       waitUntil: 'networkidle',
     });
     const root = page.locator('[data-hivenues-content][data-content-mode="post"]');
@@ -2109,7 +2109,7 @@ async function runContentProviderUnavailableEvidence(
   });
 
   try {
-    await page.goto(origin + '/candidate-c/harbor-and-hearth/community/updates', {
+    await page.goto(origin + '/hivenues/harbor-and-hearth/community/updates', {
       waitUntil: 'networkidle',
     });
     const root = page.locator('[data-hivenues-content][data-content-mode="post"]');
@@ -2148,7 +2148,7 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
   });
 
   try {
-    await page.goto(origin + '/candidate-c/nova-ashby/community/updates', { waitUntil: 'networkidle' });
+    await page.goto(origin + '/hivenues/nova-ashby/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-account]').fill('etblink');
     await page.locator('[data-identity-submit]').click();
     await page.locator('[data-identity-state="cancelled"]').waitFor();
@@ -2161,7 +2161,7 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
 }
 
 async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
-  const store = new CandidateCStore({ hosts: qualificationHosts() });
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const hiveReadService = productReadService(publicKey);
   const app = createHiVenuesApp({
@@ -2181,7 +2181,7 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   });
 
   try {
-    await page.goto(origin + '/candidate-c/harbor-and-hearth/community/updates', { waitUntil: 'networkidle' });
+    await page.goto(origin + '/hivenues/harbor-and-hearth/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-state="provider-unavailable"]').waitFor();
     assert.match(
       await page.locator('.cc-identity').textContent(),
@@ -2214,7 +2214,7 @@ async function main() {
   const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
   const key = await signingKey();
   const publicKey = key.createPublic().toString();
-  const store = new CandidateCStore({ hosts: qualificationHosts() });
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
   const before = store.diagnostics();
   const beforePublicSnapshots = Object.fromEntries(
     HOSTS.map(({ slug }) => [
