@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { createRequire } = require('node:module');
+const { clearInterval, setInterval } = require('node:timers');
 
 const bundleRoot = path.resolve(__dirname, '..', '..');
 const appRoot = path.join(bundleRoot, 'app');
