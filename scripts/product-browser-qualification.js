@@ -1527,6 +1527,175 @@ async function runRewardClaimJourney(
   }
 }
 
+async function runSupportPresentationEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  const cases = [
+    {
+      slug: 'northline-hall',
+      family: 'poster',
+      action: 'Support the room',
+      recipient: 'northline-pay',
+    },
+    {
+      slug: 'nova-ashby',
+      family: 'editorial',
+      action: 'Support the work',
+      recipient: 'nova-pay',
+    },
+    {
+      slug: 'harbor-and-hearth',
+      family: 'hospitality',
+      action: 'Leave something for the house',
+      recipient: 'harbor-pay',
+    },
+  ];
+
+  try {
+    for (const item of cases) {
+      for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+        await page.setViewportSize(viewport);
+        await page.goto(
+          origin + '/candidate-c/' + item.slug + '/support',
+          { waitUntil: 'networkidle' },
+        );
+        assert.equal(await page.locator('h1').textContent(), item.action);
+        assert.match(await page.locator('.cc-support-mast').textContent(), new RegExp('@' + item.recipient));
+        assert.match(await page.locator('.cc-support-truth').textContent(), /direct support, not checkout/i);
+        assert.match(await page.locator('.cc-support-truth').textContent(), /Active/);
+        assert.match(await page.locator('.cc-support-truth').textContent(), /irreversible/i);
+        assert.equal(await page.locator('[data-hivenues-support]').count(), 0);
+        assert.equal(await page.locator('[data-identity-state="not-identified"]').count(), 1);
+        await capture(
+          page,
+          axeSource,
+          manifest,
+          item.family + '-direct-support-' + viewportName + '-identity-required',
+        );
+      }
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function runSupportJourney(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  identityServices,
+  hiveReadService,
+  key,
+  publicKey,
+) {
+  const context = await createAuthenticatedContext(
+    browser,
+    counters,
+    origin,
+    identityServices,
+  );
+  await installApprovalWallet(context, key, publicKey);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    assert.deepEqual(hiveReadService.liquidSnapshot('etblink'), {
+      hive: '12.345 HIVE',
+      hbd: '6.789 HBD',
+    });
+    assert.deepEqual(hiveReadService.liquidSnapshot('northline-pay'), {
+      hive: '0.500 HIVE',
+      hbd: '0.250 HBD',
+    });
+
+    await page.goto(
+      origin + '/candidate-c/northline-hall/support',
+      { waitUntil: 'networkidle' },
+    );
+    const root = page.locator('[data-hivenues-support]').first();
+    await root.waitFor();
+    assert.equal(await root.getAttribute('data-support-actor'), 'etblink');
+    assert.equal(await root.getAttribute('data-support-recipient'), 'northline-pay');
+    assert.match(await root.textContent(), /Support the room/);
+
+    await root.locator('[data-support-amount]').fill('1.250');
+    await root.locator('[data-support-asset]').selectOption('HIVE');
+    await root.locator('[data-support-form]').evaluate((form) => form.requestSubmit());
+
+    const dialog = root.locator('[data-support-review][open]');
+    await dialog.waitFor();
+    assert.equal(await root.getAttribute('data-support-state'), 'review');
+    assert.equal(await dialog.locator('[data-support-review-sender]').textContent(), '@etblink');
+    assert.equal(await dialog.locator('[data-support-review-recipient]').textContent(), '@northline-pay');
+    assert.equal(await dialog.locator('[data-support-review-amount]').textContent(), '1.250 HIVE');
+    assert.equal(await dialog.locator('[data-support-review-balance]').textContent(), '12.345 HIVE');
+    assert.equal(await dialog.locator('[data-support-review-authority]').textContent(), 'Active');
+    assert.equal(await dialog.locator('[data-support-review-memo]').textContent(), 'hivenues-support:v1');
+    assert.match(await dialog.textContent(), /not proof of a purchase/i);
+    assert.match(await dialog.textContent(), /normally irreversible/i);
+    assert.match(await dialog.locator('[data-support-review-operations]').textContent(), /"transfer"/);
+    await capture(page, axeSource, manifest, 'poster-direct-support-review');
+
+    await dialog.locator('[data-support-confirm]').click();
+    await page.locator('[data-support-state="awaiting-wallet"]').waitFor();
+    const pendingWallet = await inspectPendingRelationship(page);
+    assert.equal(pendingWallet.account, 'etblink');
+    assert.equal(pendingWallet.authority, 'Active');
+    assert.deepEqual(pendingWallet.operations, [[
+      'transfer',
+      {
+        from: 'etblink',
+        to: 'northline-pay',
+        amount: '1.250 HIVE',
+        memo: 'hivenues-support:v1',
+      },
+    ]]);
+    await capture(page, axeSource, manifest, 'poster-direct-support-awaiting-wallet');
+
+    const reload = page.waitForEvent('load');
+    await approvePendingSupport(page, hiveReadService, counters);
+    await page.locator('[data-support-state="pending"]').waitFor({ timeout: 5000 });
+    assert.match(
+      await root.locator('[data-support-status]').textContent(),
+      /(accepted|pending|confirmation)/i,
+    );
+    await capture(page, axeSource, manifest, 'poster-direct-support-canonical-pending');
+
+    await reload;
+    await page.waitForLoadState('networkidle');
+    const reloaded = page.locator('[data-hivenues-support]').first();
+    await reloaded.waitFor();
+    assert.deepEqual(hiveReadService.liquidSnapshot('etblink'), {
+      hive: '11.095 HIVE',
+      hbd: '6.789 HBD',
+    });
+    assert.deepEqual(hiveReadService.liquidSnapshot('northline-pay'), {
+      hive: '1.750 HIVE',
+      hbd: '0.250 HBD',
+    });
+    assert.equal(counters.supportBroadcasts.length, 1);
+    await capture(page, axeSource, manifest, 'poster-direct-support-confirmed-reloaded');
+  } finally {
+    await context.close();
+  }
+}
+
 async function runValueRecipientStudioEvidence(
   browser,
   axeSource,
@@ -2074,6 +2243,7 @@ async function main() {
     contentBroadcasts: [],
     voteBroadcasts: [],
     rewardClaimBroadcasts: [],
+    supportBroadcasts: [],
   };
   const manifest = {
     qualification: 'hivenues-product-browser-participation',
@@ -2114,6 +2284,11 @@ async function main() {
       'reward-claim-review',
       'reward-claim-wallet-pending',
       'reward-claim-canonical-confirmation',
+      'three-direction-direct-support-identity-required',
+      'direct-support-review',
+      'direct-support-wallet-pending',
+      'direct-support-canonical-pending',
+      'direct-support-canonical-confirmation',
     ],
   };
 
@@ -2170,6 +2345,24 @@ async function main() {
       identityServices,
     );
     await runRewardClaimJourney(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      identityServices,
+      hiveReadService,
+      key,
+      publicKey,
+    );
+    await runSupportPresentationEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+    );
+    await runSupportJourney(
       browser,
       axeSource,
       origin,
@@ -2273,6 +2466,7 @@ async function main() {
   const unauthorizedHeldMutationPaths = observedPaths.filter((value) => (
     /\/(payment|pay|send|transfer|broadcast|reward|claim)\b/i.test(value)
     && !/^\/participation\/[^/]+\/rewards\/claim$/.test(value)
+    && !/^\/participation\/[^/]+\/support$/.test(value)
   ));
   assert.deepEqual(
     unauthorizedHeldMutationPaths,
@@ -2298,6 +2492,11 @@ async function main() {
     observedPaths.some((value) => /^\/participation\/[^/]+\/rewards\/claim$/.test(value)),
     true,
     'browser never exercised reward claiming',
+  );
+  assert.equal(
+    observedPaths.some((value) => /^\/participation\/[^/]+\/support$/.test(value)),
+    true,
+    'browser never exercised direct host support',
   );
   assert.equal(counters.walletBroadcasts.length, 4);
   assert.deepEqual(
@@ -2345,6 +2544,17 @@ async function main() {
     },
   ]]);
   assert.match(counters.rewardClaimBroadcasts[0].transactionId, /^[0-9a-f]{40}$/);
+  assert.equal(counters.supportBroadcasts.length, 1);
+  assert.deepEqual(counters.supportBroadcasts[0].operations, [[
+    'transfer',
+    {
+      from: 'etblink',
+      to: 'northline-pay',
+      amount: '1.250 HIVE',
+      memo: 'hivenues-support:v1',
+    },
+  ]]);
+  assert.match(counters.supportBroadcasts[0].transactionId, /^[0-9a-f]{40}$/);
   assert.equal(
     hiveReadService.voteSnapshot().some((item) => (
       item.voter === 'external-reader'
@@ -2356,7 +2566,7 @@ async function main() {
     'canonical external negative vote disappeared from synthetic Hive state',
   );
   assert.equal(
-    hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment/.test(call.method)),
+    hiveReadService.rpcPool.calls.some((call) => /broadcast|custom_json|vote|comment|transfer/.test(call.method)),
     false,
     'identity browser journey reached a write RPC method',
   );
@@ -2377,7 +2587,8 @@ async function main() {
         + item.controls.invalidRelationship.length
         + item.controls.invalidContent.length
         + item.controls.invalidVote.length
-        + item.controls.invalidRewardClaim.length,
+        + item.controls.invalidRewardClaim.length
+        + item.controls.invalidSupport.length,
       0,
     ),
     externalRequests: counters.externalRequests.length,
@@ -2387,10 +2598,11 @@ async function main() {
     authorizedContentBroadcasts: counters.contentBroadcasts.length,
     authorizedVoteBroadcasts: counters.voteBroadcasts.length,
     authorizedRewardClaimBroadcasts: counters.rewardClaimBroadcasts.length,
+    authorizedSupportBroadcasts: counters.supportBroadcasts.length,
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 67);
+  assert.equal(manifest.summary.screenshotCount, 77);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
@@ -2401,6 +2613,7 @@ async function main() {
   assert.equal(manifest.summary.authorizedContentBroadcasts, 3);
   assert.equal(manifest.summary.authorizedVoteBroadcasts, 2);
   assert.equal(manifest.summary.authorizedRewardClaimBroadcasts, 1);
+  assert.equal(manifest.summary.authorizedSupportBroadcasts, 1);
 
   fs.writeFileSync(
     path.join(OUTPUT_ROOT, 'manifest.json'),
