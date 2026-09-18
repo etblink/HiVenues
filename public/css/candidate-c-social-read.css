@@ -1277,3 +1277,168 @@
     grid-template-columns:1fr;
   }
 }
+
+
+/* Era 4 resource/reward state: self-facing protocol truth inside the host world. */
+.cc-resource-state {
+  display:grid;
+  gap:1rem;
+  margin-top:clamp(1.5rem,4vw,2.6rem);
+  padding:clamp(1rem,3vw,1.5rem);
+  border:1px solid currentColor;
+}
+
+.cc-resource-state__head {
+  display:grid;
+  gap:.35rem;
+  max-width:64ch;
+}
+
+.cc-resource-state__head h2,
+.cc-resource-state__head p,
+.cc-resource-state__card h3,
+.cc-resource-state__card p,
+.cc-resource-state__rewards h3,
+.cc-resource-state__rewards p {
+  margin:0;
+}
+
+.cc-resource-state__grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.8rem;
+}
+
+.cc-resource-state__card {
+  display:grid;
+  align-content:start;
+  gap:.45rem;
+  min-width:0;
+  padding:1rem;
+  border:1px solid currentColor;
+}
+
+.cc-resource-state__card strong {
+  font-size:clamp(1.25rem,3vw,1.85rem);
+}
+
+.cc-resource-state__card meter {
+  width:100%;
+  min-height:.75rem;
+  accent-color:var(--cc-accent,currentColor);
+}
+
+.cc-resource-state__metaphor,
+.cc-resource-state__card small,
+.cc-resource-state__truth,
+.cc-resource-state__timestamp {
+  font-size:.78rem;
+  line-height:1.45;
+}
+
+.cc-resource-state__metaphor {
+  font-weight:800;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+
+.cc-resource-state__rewards {
+  display:grid;
+  gap:.75rem;
+  padding-top:.9rem;
+  border-top:1px solid currentColor;
+}
+
+.cc-resource-state__rewards dl {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.7rem;
+  margin:0;
+}
+
+.cc-resource-state__rewards dl > div {
+  display:grid;
+  gap:.2rem;
+  padding:.7rem;
+  border:1px solid currentColor;
+}
+
+.cc-resource-state__rewards dt {
+  font-size:.72rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.cc-resource-state__rewards dd {
+  margin:0;
+  font-size:1.1rem;
+  font-weight:850;
+}
+
+.cc-resource-state__truth {
+  padding:.7rem .8rem;
+  border-left:3px solid currentColor;
+}
+
+.cc-resource-state__timestamp {
+  margin:0;
+  opacity:.72;
+}
+
+/* Poster: a stamped participation card. */
+.cc-social--poster .cc-resource-state {
+  border-color:var(--cc-night-line);
+  background:rgba(255,255,255,.025);
+  box-shadow:4px 4px 0 rgba(255,255,255,.05);
+}
+
+.cc-social--poster .cc-resource-state__card,
+.cc-social--poster .cc-resource-state__rewards dl > div {
+  border-color:var(--cc-night-line);
+}
+
+.cc-social--poster .cc-resource-state__metaphor {
+  letter-spacing:.07em;
+}
+
+/* Editorial: restrained account ledger inside the publication. */
+.cc-social--editorial .cc-resource-state {
+  border-width:0;
+  border-top:3px double rgba(41,36,59,.42);
+  border-bottom:1px solid rgba(41,36,59,.22);
+  padding-inline:.2rem;
+}
+
+.cc-social--editorial .cc-resource-state__card,
+.cc-social--editorial .cc-resource-state__rewards dl > div {
+  border-width:0;
+  border-top:1px solid rgba(41,36,59,.28);
+  padding-inline:0;
+}
+
+.cc-social--editorial .cc-resource-state__card h3,
+.cc-social--editorial .cc-resource-state__rewards h3 {
+  font-family:Georgia,serif;
+}
+
+/* Hospitality: warm personal check-in rather than wallet chrome. */
+.cc-social--hospitality .cc-resource-state {
+  border-color:rgba(45,37,31,.2);
+  border-radius:1.15rem;
+  background:#fffaf1;
+}
+
+.cc-social--hospitality .cc-resource-state__card,
+.cc-social--hospitality .cc-resource-state__rewards dl > div {
+  border-color:rgba(45,37,31,.18);
+  border-radius:.85rem;
+  background:rgba(255,255,255,.42);
+}
+
+@media (max-width:760px) {
+  .cc-resource-state__grid,
+  .cc-resource-state__rewards dl {
+    grid-template-columns:1fr;
+  }
+}
