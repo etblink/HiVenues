@@ -301,3 +301,67 @@ test('identity proof attempts are rate-limited before provider work is attempted
     assert.equal(limited.body.error.code, 'IDENTITY_RATE_LIMITED');
   });
 });
+
+
+test('delegated posting authority cannot impersonate the claimed account for identity proof', async () => {
+  const delegateKey = await signingKey('hivenues-era4-delegated-identity');
+  const delegatePublicKey = delegateKey.createPublic().toString();
+  const calls = [];
+  const rpcPool = {
+    calls,
+    async call(api, method, params) {
+      calls.push({ api, method, params: structuredClone(params) });
+      assert.equal(`${api}.${method}`, 'condenser_api.get_accounts');
+      return params[0].map((name) => {
+        if (name === 'parent') {
+          return {
+            name: 'parent',
+            posting: {
+              weight_threshold: 1,
+              key_auths: [],
+              account_auths: [['delegate', 1]],
+            },
+          };
+        }
+        if (name === 'delegate') {
+          return {
+            name: 'delegate',
+            posting: {
+              weight_threshold: 1,
+              key_auths: [[delegatePublicKey, 1]],
+              account_auths: [],
+            },
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    },
+  };
+
+  const services = createHiVenuesIdentityServices({
+    rpcPool,
+    sessionSecret: SESSION_SECRET,
+  });
+  const challenge = services.identityProof.issueChallenge('parent', {
+    origin: ORIGIN,
+    context: 'HiVenues participation',
+  });
+
+  await assert.rejects(
+    services.identityProof.verify({
+      account: 'parent',
+      challengeId: challenge.id,
+      publicKey: delegatePublicKey,
+      signature: signMessage(delegateKey, challenge.message),
+      origin: ORIGIN,
+      context: 'HiVenues participation',
+    }),
+    (error) => error.code === 'AUTHORITY_MISMATCH',
+  );
+
+  assert.deepEqual(calls, [{
+    api: 'condenser_api',
+    method: 'get_accounts',
+    params: [['parent']],
+  }]);
+});
