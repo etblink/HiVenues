@@ -1398,6 +1398,59 @@ async function runRewardClaimJourney(
   }
 }
 
+async function runValueRecipientStudioEvidence(
+  browser,
+  axeSource,
+  origin,
+  manifest,
+  counters,
+  store,
+) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.setViewportSize(DESKTOP);
+    await page.goto(origin + '/candidate-c/studio/northline-hall', { waitUntil: 'networkidle' });
+    await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
+    await page.getByRole('button', { name: 'Support & value' }).click();
+    const inspector = page.locator('#candidate-inspector');
+    await inspector.getByText('Choose who receives direct support.').waitFor();
+    assert.equal(await inspector.locator('input[name="valueRecipient"]').inputValue(), '');
+    assert.match(await inspector.textContent(), /separate money-recipient role/i);
+    assert.match(await inspector.textContent(), /No private key is stored here/i);
+    assert.match(await inspector.textContent(), /Working version only/i);
+    await capture(page, axeSource, manifest, 'poster-studio-value-recipient-desktop');
+
+    const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
+    await inspector.locator('input[name="valueRecipient"]').fill('northline-support');
+    await inspector.getByRole('button', { name: 'Save value recipient' }).click();
+    await inspector.locator('input[name="valueRecipient"]').waitFor();
+    assert.equal(
+      await inspector.locator('input[name="valueRecipient"]').inputValue(),
+      'northline-support',
+    );
+    assert.equal(
+      store.snapshot('northline-hall').draft.bindings.hive.valueRecipient,
+      'northline-support',
+    );
+    assert.equal(
+      Object.hasOwn(store.publicSnapshot('northline-hall').draft.bindings.hive, 'valueRecipient'),
+      false,
+    );
+    assert.equal(store.publicSnapshot('northline-hall').draftDigest, liveBefore);
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'poster-studio-value-recipient-mobile390');
+  } finally {
+    await context.close();
+  }
+}
+
 async function runVotePolicyStudioEvidence(
   browser,
   axeSource,
@@ -1908,6 +1961,7 @@ async function main() {
       'vote-wallet-pending',
       'vote-canonical-confirmation',
       'three-direction-resource-reward-owner-state',
+      'studio-value-recipient-working-only',
       'reward-claim-review',
       'reward-claim-wallet-pending',
       'reward-claim-canonical-confirmation',
@@ -1976,6 +2030,14 @@ async function main() {
       hiveReadService,
       key,
       publicKey,
+    );
+    await runValueRecipientStudioEvidence(
+      browser,
+      axeSource,
+      origin,
+      manifest,
+      counters,
+      store,
     );
     await runVotePolicyStudioEvidence(
       browser,
@@ -2179,7 +2241,7 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 65);
+  assert.equal(manifest.summary.screenshotCount, 67);
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
