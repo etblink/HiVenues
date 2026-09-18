@@ -1040,7 +1040,9 @@ async function runContentJourneys(
     await updateDialog.locator('[data-content-confirm]').click();
     await page.locator('[data-content-state="awaiting-wallet"]').waitFor();
     await capture(page, axeSource, manifest, 'poster-content-update-awaiting-wallet');
+    const updateReload = page.waitForEvent('load');
     await approvePendingContent(page, hiveReadService, counters);
+    await updateReload;
     await page.waitForLoadState('networkidle');
     await page.getByText('Browser-qualified room note — revised', { exact: true }).first().waitFor({
       timeout: 15000,
@@ -1049,7 +1051,9 @@ async function runContentJourneys(
 
     const reply = page.locator('[data-hivenues-content][data-content-mode="reply"]').first();
     await reply.locator('[data-content-body]').fill('A browser-qualified public response.');
+    const replyReload = page.waitForEvent('load');
     await reviewAndApprove(reply, 'reply', 'poster-content-reply');
+    await replyReload;
     await page.waitForLoadState('networkidle');
     await page.getByText('A browser-qualified public response.', { exact: true }).first().waitFor({
       timeout: 15000,
