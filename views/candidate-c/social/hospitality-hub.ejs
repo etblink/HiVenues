@@ -21,7 +21,7 @@
       <p>The people, quick notes, and longer stories that give this place continuity beyond a single visit.</p>
     </header>
     <%- include('_hub', {
-      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref,
+      graph, hub, participation, hubStateCopy, formatCommunityTime, memberHref, discussionHref, contentPostEndpoint,
       socialOrder: ['people', 'threads', 'posts'],
       identityLabels: {
         kicker: 'At the table',
@@ -49,6 +49,19 @@
         leave: 'Leave the table',
         ready: 'Nothing changes until you review the exact Hive action and approve it in your wallet.'
       },
+      contentPostLabels: {
+        kicker: 'Leave a note',
+        title: 'Share something with the table',
+        body: 'Write a public Hive post for this host-bound community in the language of the place.',
+        titleLabel: 'Title',
+        bodyLabel: 'Your note',
+        previewKicker: 'At the table',
+        previewTitleEmpty: 'Your title will appear here',
+        previewBodyEmpty: 'Your note will appear here.',
+        action: 'Review my note',
+        truth: 'Your own wallet publishes it only after you review exactly what will become public.',
+        ready: 'Nothing leaves the table while you are drafting.'
+      },
       socialLabels: {
         state: 'Table status',
         community: 'The wider table',
@@ -67,5 +80,6 @@
   <script src="/js/keychain-adapter.js" defer></script>
   <script src="/js/hivenues-identity.js" defer></script>
   <script src="/js/hivenues-participation.js" defer></script>
+  <script src="/js/hivenues-content.js" defer></script>
 </body>
 </html>
