@@ -131,6 +131,15 @@ function productReadService(publicKey) {
   const communityState = new Set();
   const contentRecords = new Map();
   const voteState = new Map();
+  const rewardState = new Map([[
+    'etblink',
+    {
+      rewardHive: '1.000 HIVE',
+      rewardHbd: '0.500 HBD',
+      rewardVests: '1000.000000 VESTS',
+      lastClaim: null,
+    },
+  ]]);
   const followKey = (follower, following) => follower + '->' + following;
   const communityKey = (account, community) => account + '->' + community;
   const voteKey = (voter, author, permlink) => voter + '->' + author + '/' + permlink;
@@ -243,6 +252,16 @@ function productReadService(publicKey) {
       }]));
     },
     async getWallet(account) {
+      const rewards = rewardState.get(account) || {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: null,
+      };
+      const hive = Number.parseFloat(rewards.rewardHive);
+      const hbd = Number.parseFloat(rewards.rewardHbd);
+      const vestingShares = Number.parseFloat(rewards.rewardVests);
+      const hasClaimableRewards = hive > 0 || hbd > 0 || vestingShares > 0;
       return {
         account,
         displayedAt: '2026-09-18T12:00:00.000Z',
@@ -254,12 +273,26 @@ function productReadService(publicKey) {
         beerSegmentsFilled: 7,
         milestone: { name: 'Synthetic', progressPercent: 10, hasNextLevel: true, max: 1000 },
         rewards: {
-          hive: 1,
-          hbd: 0.5,
-          hivePower: 0.5,
-          vestingShares: 1000,
+          hive,
+          hbd,
+          hivePower: hasClaimableRewards ? 0.5 : 0,
+          vestingShares,
         },
-        hasClaimableRewards: true,
+        hasClaimableRewards,
+      };
+    },
+    async getAccountRecord(account) {
+      const rewards = rewardState.get(account) || {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: null,
+      };
+      return {
+        name: account,
+        reward_hive_balance: rewards.rewardHive,
+        reward_hbd_balance: rewards.rewardHbd,
+        reward_vesting_balance: rewards.rewardVests,
       };
     },
     async getProfile(account) {
@@ -366,6 +399,38 @@ function productReadService(publicKey) {
     voteSnapshot() {
       return voteRecords().map((item) => structuredClone(item));
     },
+    async observeRewardClaimOperation(record) {
+      const rewards = rewardState.get(record.account);
+      const lastClaim = rewards?.lastClaim;
+      if (!lastClaim || !record.transactionId) return false;
+      return lastClaim.transactionId === record.transactionId
+        && JSON.stringify(lastClaim.operations) === JSON.stringify(record.operations);
+    },
+    applyRewardClaimOperation(value, transactionId) {
+      const rewards = rewardState.get(value.account);
+      assert.ok(rewards, 'synthetic reward account must exist');
+      assert.equal(value.reward_hive, rewards.rewardHive);
+      assert.equal(value.reward_hbd, rewards.rewardHbd);
+      assert.equal(value.reward_vests, rewards.rewardVests);
+      const operations = [[
+        'claim_reward_balance',
+        {
+          account: value.account,
+          reward_hive: value.reward_hive,
+          reward_hbd: value.reward_hbd,
+          reward_vests: value.reward_vests,
+        },
+      ]];
+      rewardState.set(value.account, {
+        rewardHive: '0.000 HIVE',
+        rewardHbd: '0.000 HBD',
+        rewardVests: '0.000000 VESTS',
+        lastClaim: { transactionId, operations },
+      });
+    },
+    rewardSnapshot(account) {
+      return structuredClone(rewardState.get(account) || null);
+    },
     async observeContentOperation(record) {
       const [type, value] = record?.operations?.[0] || [];
       if (type !== 'comment' || !value) return false;
@@ -432,6 +497,28 @@ function applyAuthorizedRelationshipOperation(hiveReadService, account, operatio
   return crypto.createHash('sha1')
     .update(JSON.stringify([account, operations, counters.walletBroadcasts.length]))
     .digest('hex');
+}
+
+
+function applyAuthorizedRewardClaimOperation(hiveReadService, account, operations, counters) {
+  assert.equal(Array.isArray(operations), true);
+  assert.equal(operations.length, 1);
+  const [type, value] = operations[0];
+  assert.equal(type, 'claim_reward_balance');
+  assert.equal(value.account, account);
+  assert.match(value.reward_hive, /^\d+\.\d{3} HIVE$/);
+  assert.match(value.reward_hbd, /^\d+\.\d{3} HBD$/);
+  assert.match(value.reward_vests, /^\d+\.\d{6} VESTS$/);
+  const transactionId = crypto.createHash('sha1')
+    .update(JSON.stringify([account, operations, counters.rewardClaimBroadcasts.length + 1]))
+    .digest('hex');
+  hiveReadService.applyRewardClaimOperation(value, transactionId);
+  counters.rewardClaimBroadcasts.push({
+    account,
+    operations: structuredClone(operations),
+    transactionId,
+  });
+  return transactionId;
 }
 
 
