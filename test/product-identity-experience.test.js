@@ -23,7 +23,7 @@ function socialBindings() {
 function productReadService() {
   const rpcPool = {
     async call(api, method, params) {
-      assert.equal(\`\${api}.\${method}\`, 'condenser_api.get_accounts');
+      assert.equal(`${api}.${method}`, 'condenser_api.get_accounts');
       return (params?.[0] || []).map((name) => ({
         name,
         posting: {
@@ -62,7 +62,7 @@ function productReadService() {
         name: account,
         displayName: 'Juniper Lane',
         about: 'Printmaker and regular.',
-        profileImage: \`https://images.hive.blog/u/\${account}/avatar\`,
+        profileImage: `https://images.hive.blog/u/${account}/avatar`,
         followerCount: 4,
         followingCount: 2,
         postCount: 1,
@@ -103,7 +103,7 @@ test('canonical social hubs introduce one host-native identity mechanic across t
 
   for (const host of HOSTS) {
     const response = await request(app)
-      .get(\`/candidate-c/\${host.slug}/community/updates\`)
+      .get(`/candidate-c/${host.slug}/community/updates`)
       .expect(200);
 
     assert.match(response.text, /data-hivenues-identity/);
@@ -144,7 +144,7 @@ test('verified identity renders as bounded session truth rather than an operatio
 
   const response = await request(app)
     .get('/candidate-c/northline-hall/community/updates')
-    .set('cookie', \`\${IDENTITY_COOKIE_NAME}=\${token}\`)
+    .set('cookie', `${IDENTITY_COOKIE_NAME}=${token}`)
     .expect(200);
 
   assert.match(response.text, /data-identity-state="verified"/);
