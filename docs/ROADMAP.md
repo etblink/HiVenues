@@ -10,25 +10,30 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-The #301 exit audit was performed against:
+Era 4 closed against canonical main after the Stage-6 direct-support merge:
 
 ```text
-EXIT_AUDIT_MAIN = 75375fb1aa6fb1ae4513f7d1e12d2f8427bd5844
-EXIT_AUDIT_TREE = e8b9b421b58ac24c4451645d18d9b377a23e35c8
-POST_MERGE_CI = #1264 / PASS
+CANONICAL_MAIN = e5ffa008c1ccf74131df43b225f8ba8874f8355a
+CANONICAL_TREE = a23d0baae246fd81c13fe5d099e2262cf8050e0c
+POST_MERGE_CI = #1348 / PASS
+POST_MERGE_PRODUCT_BROWSER = #75 / PASS
 
 ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
 ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE
 ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
+ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 
 #301 — REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION   COMPLETE
-NEXT OBJECTIVE = ERA 4 — REAL HIVE-BACKED PARTICIPATION
-ERA 4 IMPLEMENTATION = REQUIRES BOUNDED CHARTER / ISSUE
-EXTERNAL EFFECTS = ZERO UNTIL EXPLICITLY AUTHORIZED
+NEXT OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
+ACTIVE ERA-5 CHARTER = #323
+LIVE VALUE QUALIFICATION = HELD
+PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
 ```
 
-Era 2 was closed through the Territory Authoring workstream. Era 3 was subsequently closed after read-only social/community discovery, provider-realistic Hive reads, host-native Direction-specific presentation, degraded/failure states, browser qualification, and confirmation that observed Hive state does not enter HostGraph.
+Era 4 accepted the bounded consequence progression from identity and relationship writes through posting/replying, voting, personal resource/reward state, exact same-account reward claiming, and the first host-native value action: synthetic direct host support using a separately released value-recipient role, fresh sender/recipient state, Active-authority human-wallet approval, pending state after wallet acceptance, and exact transaction/operation read-back before confirmed success.
+
+No customer private key is stored by HiVenues. Provider-observed Hive state, balances, rewards, votes, transactions and receipts remain outside HostGraph truth.
 
 ## #301 normalization outcome
 
@@ -62,36 +67,28 @@ The objective closed with:
 
 Remaining historical names, branches, scripts, or documents may be cleaned when concrete dependency evidence and maintenance value justify it. They do not independently reopen normalization.
 
-## Next objective — Era 4
+## Next objective — Era 5
 
-The next strategic era is **Real Hive-Backed Participation**.
+The next strategic era is **Product Distribution**, governed by **#323**.
 
-The roadmap's preferred authority progression remains:
+The frozen roadmap exit gate is:
 
-```text
-PUBLIC READS
-→ ACCOUNT / PROFILE STATE
-→ COMMUNITY / CONTENT STATE
-→ IDENTITY PROOF
-→ FOLLOW / COMMUNITY ACTIONS
-→ POST / UPDATE / REPLY
-→ VOTE / RECOMMEND / APPLAUSE
-→ RESOURCE / REWARD STATE
-→ LATER VALUE ACTIONS
-```
+> **On a clean supported machine, an ordinary user can install and launch HiVenues without Git, npm, Docker, a shell, manual environment configuration or repository knowledge.**
 
-This ordering is a planning preference, not blanket authorization. Before Era-4 product code begins, open a bounded charter/issue specifying the first admitted consequence class, authority boundary, wallet/signing provider seam, reconciliation/read-back behavior, degraded states, qualification evidence, and held scope.
+The first practical target is Windows. Distribution may package the existing loopback server architecture; it does not justify a SPA rewrite.
 
-The governing separation remains:
+The bounded first work must prove or decide:
 
-```text
-MECHANIC         = exact consequence
-VOICE            = host language
-PRESENTATION     = Direction-specific visual form
-PROVIDER BINDING = external execution/state source
-```
+- packaging technology for the current Node/server-rendered application;
+- application-owned user-data/workspace location rather than repository-relative defaults;
+- packaged EJS/static/dependency asset resolution;
+- ordinary launcher/browser-open behavior;
+- single-instance/port/shutdown behavior;
+- exact version/build provenance and checksums;
+- clean-machine install/launch/relaunch persistence;
+- a credible signing/reputation strategy for an ordinary Windows artifact.
 
-No customer private keys belong in HiVenues. A provider or wallet acceptance must not be presented as confirmed success until the product has the appropriate canonical read-back/reconciliation evidence for that consequence.
+Era 5 does not authorize production hosting/deployment, account-creation onboarding, new commerce classes, Fourth Street work, or independent Astra.
 
 ## Remaining strategic sequence
 
@@ -115,15 +112,19 @@ The boundaries between intermediate eras may be split or partially interleaved w
 
 ## Current hard boundary
 
-Until a bounded Era-4 charter explicitly authorizes a concrete slice, do not introduce:
+During Era 5, preserve all accepted Era-0–4 behavior while changing how the application is obtained and launched.
 
-- Hive writes, signing, broadcast, follow/unfollow, subscribe/unsubscribe, posting, replying, or voting;
-- value movement or payments;
-- production deployment, DNS, VPS, or permanent hosting mutation;
-- Fourth Street customer work;
+Do not introduce merely because packaging code is adjacent:
+
+- production deployment, DNS, VPS or permanent-hosting mutation;
+- live-value qualification or unattended Hive writes;
+- Hive account-creation authority;
+- Fourth Street customer-specific work;
 - independent Astra qualification;
 - a React/Vue/SPA rewrite;
 - broad cleanup or renaming solely for aesthetics.
+
+Packaging may add local installer/runtime/update consequences, but those must remain separate from host Release, Hive consequence state, and future deployment state.
 
 ## Successor rule
 
@@ -137,7 +138,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–3 are complete/frozen; #301 normalization is complete; Era 4 is next and requires a bounded charter.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is next under #323.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.

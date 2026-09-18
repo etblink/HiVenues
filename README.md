@@ -14,8 +14,9 @@ ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE CONTRACTS
 ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 #301 — REPOSITORY / PRODUCT-CORE NORMALIZATION COMPLETE
-ERA 4 — REAL HIVE-BACKED PARTICIPATION        NEXT / REQUIRES BOUNDED CHARTER
-EXTERNAL EFFECTS                              ZERO
+ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
+ERA 5 — PRODUCT DISTRIBUTION                  NEXT / ISSUE #323
+LIVE VALUE / PRODUCTION DEPLOYMENT            HELD
 ```
 
 The strategic roadmap continues through distribution, Hive onboarding, deployment, richer Directions, value/commerce, operational completion, synthetic qualification, independent Astra, the first real customer, and broader release. See `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md` and `docs/ROADMAP.md`.
@@ -53,7 +54,7 @@ See `docs/DEVELOPMENT.md` for the ordinary contribution loop.
 
 The already-qualified Era-0–3 implementation still contains internal `candidate-c` naming. That is implementation-history debt, not a second product line, not a compatibility promise, and not an architectural authority. New ordinary work should enter through product-owned boundaries and seams rather than adding fresh dependencies on the historical namespace.
 
-The current product includes the server-owned HostGraph, Working/Live separation, explicit Release and History, Restore, stale-state protection, urgent isolation, durable persistence, multi-route Territory projection, materially distinct Directions, supported Studio authoring, and host-native read-only social/community surfaces.
+The current product includes the server-owned HostGraph, Working/Live separation, explicit Release and History, Restore, stale-state protection, urgent isolation, durable persistence, multi-route Territory projection, materially distinct Directions, supported Studio authoring, host-native social/community participation, human-wallet content/vote actions, personal resource/reward state, exact reward claiming, and a qualified synthetic direct-support transfer surface.
 
 Existing `/candidate-c` routes, views, assets, identifiers, or qualification names may be migrated later when a concrete product or maintenance requirement justifies the blast radius. Their continued existence does not reopen #301.
 
@@ -123,11 +124,13 @@ See `docs/CURRENT_ARCHITECTURE.md` and `docs/HIVENUES_RENDERING_AUTHORING_ARCHIT
 
 ## Next development boundary
 
-Normalization is complete. The strategic next objective is **Era 4 — Real Hive-Backed Participation**.
+Era 4 is complete. The strategic next objective is **Era 5 — Product Distribution**, governed by issue **#323**.
 
-Era 4 product code should not begin from implementation adjacency. Open a bounded Era-4 charter/issue first that identifies the exact consequence class being admitted, the existing provider-neutral seam it reuses, human-wallet authority requirements, read-back/reconciliation semantics, degraded behavior, tests/evidence, and explicit held scope.
+The first distribution proof is a qualified Windows installation and launch path for the existing server-owned application: an ordinary user should be able to download, install, open, close, and relaunch HiVenues without Git, npm, a Node installation, Docker, a shell, manual environment configuration, or repository knowledge.
 
-Until such a charter authorizes a concrete slice, preserve the current zero-external-effect boundary: no Hive broadcasts/signing, follow/unfollow or posting/voting writes, value movement, production deployment/DNS/VPS mutation, Fourth Street customer work, or unrelated framework rewrite.
+Packaging must preserve the canonical architecture rather than triggering a framework rewrite. The first work is a bounded packaging/runtime proof covering application-owned user-data paths, packaged asset resolution, loopback launch behavior, exact build provenance, clean-machine qualification, and a credible Windows signing/reputation strategy.
+
+Still held unless separately authorized: live-value qualification, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra, and unrelated framework replacement.
 
 ## Canonical doctrine and roadmap
 
