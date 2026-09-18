@@ -100,7 +100,8 @@
             <a href="/candidate-c/studio/<%= graph.identity.slug %>/brand">Look settings</a>
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
             <span class="cc-studio-commandmenu__label">Participation & media</span>
-            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Participation</button>
+            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=participation" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Participation</button>
+            <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Contact</button>
             <a href="/candidate-c/studio/<%= graph.identity.slug %>/media-library">Media library</a>
             <button type="button" hx-get="/candidate-c/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
             <a href="/candidate-c/studio/<%= graph.identity.slug %>/release">History & release</a>
