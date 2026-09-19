@@ -84,9 +84,16 @@ function Stop-InstalledRuntime([string]$StopFile, [string]$CurrentUrlPath) {
 }
 
 function Assert-NoUnintendedEffects([string]$DiagnosticsPath) {
-  Assert-True (Test-Path -LiteralPath $DiagnosticsPath -PathType Leaf) 'Runtime diagnostics were not persisted on shutdown.'
+  Wait-Until {
+    if (-not (Test-Path -LiteralPath $DiagnosticsPath -PathType Leaf)) { return $false }
+    try {
+      $record = Get-Content -LiteralPath $DiagnosticsPath -Raw | ConvertFrom-Json
+      return $record.status -eq 'stopped'
+    } catch {
+      return $false
+    }
+  } 'Runtime diagnostics did not record a stopped lifecycle.'
   $diagnostics = Get-Content -LiteralPath $DiagnosticsPath -Raw | ConvertFrom-Json
-  Assert-True ($diagnostics.status -eq 'stopped') 'Runtime diagnostics did not record a stopped lifecycle.'
   $external = $diagnostics.productDiagnostics.external
   foreach ($name in @('hiveRpcAttempts','hiveWrites','providerWrites','payments','signingAttempts','deployments')) {
     Assert-True ([int64]$external.$name -eq 0) "Unexpected external consequence during clean-machine scenario: $name=$($external.$name)"
