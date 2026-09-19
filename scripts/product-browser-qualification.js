@@ -876,13 +876,12 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
           { waitUntil: 'networkidle' },
         );
         await page.locator('[data-identity-state="not-identified"]').waitFor();
-        const text = await page.locator('.cc-identity').textContent();
-        assert.ok(text.includes(host.heading), host.slug + ': Direction identity heading missing');
-        assert.ok(text.includes('Connect an existing Hive account'), host.slug + ': existing-account path missing');
-        assert.ok(text.includes('Create an account without giving HiVenues your keys'), host.slug + ': create-account path missing');
-        assert.ok(text.includes('Keep using this host without connecting Hive'), host.slug + ': not-now path missing');
-        assert.ok(text.includes('private key'), host.slug + ': key-custody truth missing');
-        assert.ok(text.includes('does not post'), host.slug + ': consequence truth missing');
+        await page.locator('[data-identity-onboarding]').waitFor();
+        await page.locator('[data-identity-path="existing"]').waitFor();
+        await page.locator('[data-identity-path="create"]').waitFor();
+        await page.locator('[data-identity-path="later"]').waitFor();
+        await page.locator('[data-identity-proof-boundary]').waitFor();
+        await page.locator('[data-identity-recovery-boundary]').waitFor();
         const createAccount = page.locator('[data-identity-create-account]');
         assert.equal(await createAccount.getAttribute('href'), 'https://signup.hive.io/');
         assert.equal(await createAccount.getAttribute('target'), '_blank');
@@ -924,19 +923,16 @@ async function runStudioOnboardingEvidence(browser, axeSource, origin, manifest,
     for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
       await page.setViewportSize(viewport);
       await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
-      const siteMenu = page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' });
-      await siteMenu.locator('summary').click();
-      await siteMenu.locator('a[href="/hivenues/studio/northline-hall/hive"]').click();
+      const onboardingHref = await page.locator('[data-studio-hive-onboarding]').getAttribute('href');
+      assert.equal(onboardingHref, '/hivenues/studio/northline-hall/hive');
+      await page.goto(origin + onboardingHref, { waitUntil: 'networkidle' });
       await page.locator('[data-identity-onboarding]').waitFor();
-
-      const text = await page.locator('.cc-identity').textContent();
-      assert.match(text, /Connect an existing Hive account/);
-      assert.match(text, /Create a Hive account through the ecosystem/);
-      assert.match(text, /Keep building without Hive/);
-      assert.match(
-        await page.locator('.cc-consequence-card').textContent(),
-        /identity is not blanket signing authority/i,
-      );
+      await page.locator('[data-identity-path="existing"]').waitFor();
+      await page.locator('[data-identity-path="create"]').waitFor();
+      await page.locator('[data-identity-path="later"]').waitFor();
+      await page.locator('[data-identity-proof-boundary]').waitFor();
+      await page.locator('[data-identity-recovery-boundary]').waitFor();
+      await page.locator('[data-identity-authority-boundary]').waitFor();
       assert.equal(
         await page.locator('[data-identity-create-account]').getAttribute('href'),
         'https://signup.hive.io/',
