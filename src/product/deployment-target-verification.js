@@ -24,6 +24,39 @@ function normalizedTargetFacts(record) {
   return { host, port, username };
 }
 
+function targetSuitability(record, inspection, target) {
+  const publicTcpPorts = Array.isArray(inspection?.publicTcpPorts)
+    ? [...new Set(inspection.publicTcpPorts.map(Number))].sort((a, b) => a - b)
+    : [];
+  const firstBootstrap = !record.activeRelease;
+  const unexpectedPublicTcpPorts = firstBootstrap
+    ? publicTcpPorts.filter((port) => port !== target.port)
+    : [];
+  const conflicts = [];
+  if (firstBootstrap && !publicTcpPorts.includes(target.port)) {
+    conflicts.push('ssh-listener-not-observed');
+  }
+  if (unexpectedPublicTcpPorts.length) {
+    conflicts.push('unexpected-public-tcp-listeners');
+  }
+  if (firstBootstrap && inspection?.systemCaddyActive) {
+    conflicts.push('system-caddy-active');
+  }
+  if (firstBootstrap && inspection?.hivenuesCaddyActive) {
+    conflicts.push('untracked-hivenues-caddy-active');
+  }
+  if (firstBootstrap && inspection?.hivenuesFirewallActive) {
+    conflicts.push('untracked-hivenues-firewall-active');
+  }
+  return Object.freeze({
+    suitable: conflicts.length === 0,
+    firstBootstrap,
+    publicTcpPorts: Object.freeze(publicTcpPorts),
+    unexpectedPublicTcpPorts: Object.freeze(unexpectedPublicTcpPorts),
+    conflicts: Object.freeze(conflicts),
+  });
+}
+
 class SshTargetVerificationService {
   constructor({
     store,
@@ -124,6 +157,26 @@ class SshTargetVerificationService {
       verifiedMemoryMb: Number(inspection?.memoryMb || 0),
       verifiedDiskMb: Number(inspection?.diskMb || 0),
     };
+    const suitability = targetSuitability(refreshed, inspection, target);
+    targetPublicFacts.verifiedPublicTcpPorts = suitability.publicTcpPorts;
+    targetPublicFacts.verifiedUnexpectedPublicTcpPorts = suitability.unexpectedPublicTcpPorts;
+    targetPublicFacts.verifiedSystemCaddyActive = Boolean(inspection?.systemCaddyActive);
+    targetPublicFacts.verifiedHiVenuesCaddyActive = Boolean(inspection?.hivenuesCaddyActive);
+    targetPublicFacts.verifiedHiVenuesFirewallActive = Boolean(inspection?.hivenuesFirewallActive);
+    targetPublicFacts.verifiedDedicatedTarget = suitability.suitable;
+    targetPublicFacts.verifiedTargetConflicts = suitability.conflicts;
+
+    if (!suitability.suitable) {
+      return this.store.transition(deploymentId, 'degraded', {
+        reason: 'ssh-target-suitability-conflict',
+        patch: {
+          targetPublicFacts,
+          healthState: 'conflict',
+          lastConfirmedAt: new Date(this.now()).toISOString(),
+        },
+      });
+    }
+
     return this.store.transition(deploymentId, 'bootstrap-ready', {
       reason: 'ssh-read-only-verification-passed',
       patch: {
@@ -170,6 +223,10 @@ class ScriptedSshVerificationTransport {
       architecture: 'x86_64',
       memoryMb: 1024,
       diskMb: 20480,
+      publicTcpPorts: null,
+      systemCaddyActive: false,
+      hivenuesCaddyActive: false,
+      hivenuesFirewallActive: false,
       ...inspection,
     };
     this.calls = [];
@@ -197,7 +254,10 @@ class ScriptedSshVerificationTransport {
     if (!Buffer.isBuffer(input.privateKey) || input.privateKey.length < 100) {
       throw verificationError('DEPLOYMENT_AUTHORITY_INVALID', 'Deployment private key was unavailable.');
     }
-    return { ...this.inspection };
+    return {
+      ...this.inspection,
+      publicTcpPorts: this.inspection.publicTcpPorts || [Number(input.port || 22)],
+    };
   }
 }
 
@@ -206,4 +266,5 @@ module.exports = {
   SshTargetVerificationService,
   normalizeFingerprint,
   normalizedTargetFacts,
+  targetSuitability,
 };

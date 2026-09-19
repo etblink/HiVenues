@@ -11,6 +11,10 @@ const READ_ONLY_INSPECTION_COMMAND = [
   'printf "HIVENUES_ARCH=%s\\n" "$(uname -m)"',
   'printf "HIVENUES_MEMORY_KB=%s\\n" "$(awk \'/^MemTotal:/ { print $2; exit }\' /proc/meminfo)"',
   'printf "HIVENUES_DISK_KB=%s\\n" "$(df -Pk / | awk \'NR==2 { print $2; exit }\')"',
+  'printf "HIVENUES_PUBLIC_TCP_PORTS=%s\\n" "$(ss -H -ltn | awk \'{ endpoint=$4; if (endpoint ~ /^127\\.0\\.0\\.1:/ || endpoint ~ /^\\[::1\\]:/) next; sub(/^.*:/, "", endpoint); if (endpoint ~ /^[0-9]+$/) print endpoint }\' | sort -nu | paste -sd, -)"',
+  'if systemctl is-active --quiet caddy.service 2>/dev/null; then printf "HIVENUES_SYSTEM_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_SYSTEM_CADDY_ACTIVE=0\\n"; fi',
+  'if systemctl is-active --quiet hivenues-caddy.service 2>/dev/null; then printf "HIVENUES_HIVENUES_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_CADDY_ACTIVE=0\\n"; fi',
+  'if systemctl is-active --quiet hivenues-firewall.service 2>/dev/null; then printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=0\\n"; fi',
 ].join('; ');
 
 const DEFAULT_READY_TIMEOUT_MS = 10000;
@@ -83,6 +87,34 @@ function positiveInteger(value, label) {
   return number;
 }
 
+function boundedPortList(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return Object.freeze([]);
+  if (!/^[0-9]+(?:,[0-9]+)*$/.test(text)) {
+    throw transportError(
+      'DEPLOYMENT_INSPECTION_INVALID',
+      'SSH inspection returned an invalid public TCP listener list.',
+    );
+  }
+  const ports = [...new Set(text.split(',').map((item) => Number(item)))].sort((a, b) => a - b);
+  if (ports.some((port) => !Number.isInteger(port) || port < 1 || port > 65535)) {
+    throw transportError(
+      'DEPLOYMENT_INSPECTION_INVALID',
+      'SSH inspection returned an out-of-range public TCP listener.',
+    );
+  }
+  return Object.freeze(ports);
+}
+
+function strictBoolean(value, label) {
+  if (value === '1') return true;
+  if (value === '0') return false;
+  throw transportError(
+    'DEPLOYMENT_INSPECTION_INVALID',
+    'SSH inspection returned an invalid ' + label + ' state.',
+  );
+}
+
 function parseInspectionOutput(stdout) {
   const values = new Map();
   for (const line of String(stdout || '').split(/\r?\n/)) {
@@ -97,6 +129,10 @@ function parseInspectionOutput(stdout) {
     architecture: boundedText(values.get('ARCH'), 'architecture', 64),
     memoryMb: Math.floor(memoryKb / 1024),
     diskMb: Math.floor(diskKb / 1024),
+    publicTcpPorts: boundedPortList(values.get('PUBLIC_TCP_PORTS')),
+    systemCaddyActive: strictBoolean(values.get('SYSTEM_CADDY_ACTIVE'), 'system Caddy'),
+    hivenuesCaddyActive: strictBoolean(values.get('HIVENUES_CADDY_ACTIVE'), 'HiVenues Caddy'),
+    hivenuesFirewallActive: strictBoolean(values.get('HIVENUES_FIREWALL_ACTIVE'), 'HiVenues firewall'),
   });
 }
 

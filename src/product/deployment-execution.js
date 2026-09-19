@@ -168,6 +168,12 @@ function requireRemoteRecord(record) {
       'Server target must have complete public facts and an explicitly trusted SSH host fingerprint.',
     );
   }
+  if (!record.activeRelease && facts.verifiedDedicatedTarget !== true) {
+    throw executionError(
+      'DEPLOYMENT_TARGET_NOT_DEDICATED',
+      'First bootstrap requires a read-only verified dedicated target with no unrelated public listener or service conflict.',
+    );
+  }
   return record;
 }
 
@@ -247,6 +253,10 @@ class InstalledRemoteDeploymentService {
         trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
         verifiedOs: String(facts.verifiedOs || ''),
         verifiedArchitecture: String(facts.verifiedArchitecture || ''),
+        dedicatedTargetVerified: facts.verifiedDedicatedTarget === true,
+        publicTcpPorts: Array.isArray(facts.verifiedPublicTcpPorts)
+          ? facts.verifiedPublicTcpPorts.map(Number)
+          : [],
       },
       release: {
         id: releasePackage.releaseId,

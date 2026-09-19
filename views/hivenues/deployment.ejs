@@ -316,6 +316,12 @@
                         Host fingerprint:
                         <code data-deployment-trusted-host-fingerprint><%= deployment.targetPublicFacts.trustedHostKeyFingerprint %></code>
                       </p>
+                      <p>
+                        Dedicated-target suitability:
+                        <strong data-deployment-dedicated-target>verified</strong>
+                        · Public TCP listeners:
+                        <code><%= (deployment.targetPublicFacts.verifiedPublicTcpPorts || []).join(', ') || 'none' %></code>
+                      </p>
                       <% if (!deploymentMutationAvailable) { %>
                         <p data-deployment-bootstrap-held>
                           Remote bootstrap remains held in this runtime.
@@ -334,6 +340,10 @@
                     && deploymentMutationAvailable
                     && deployment.selectedRelease
                     && deployment.package
+                    && (
+                      deployment.activeRelease
+                      || deployment.targetPublicFacts.verifiedDedicatedTarget === true
+                    )
                     && ['bootstrap-ready', 'deploying', 'healthy', 'rollback-available', 'degraded'].includes(deployment.state)
                   ) { %>
                     <section class="cc-consequence-card" data-deployment-consequence-review>
@@ -353,6 +363,29 @@
                       >
                         <%= deployment.state === 'deploying' ? 'Review and resume exact deployment' : 'Review exact deployment' %>
                       </a>
+                    </section>
+                  <% } %>
+
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && deployment.state === 'degraded'
+                    && deployment.stateReason === 'ssh-target-suitability-conflict'
+                  ) { %>
+                    <section class="cc-consequence-card" data-deployment-target-conflict>
+                      <strong>This server is not safe for a first HiVenues bootstrap.</strong>
+                      <p>
+                        Read-only inspection found an existing public listener or service that the Stage-3
+                        Caddy/firewall bootstrap could disrupt. HiVenues will not expose the mutation review
+                        for this target. Use a clean dedicated reference server instead.
+                      </p>
+                      <p>
+                        Public TCP listeners:
+                        <code data-deployment-conflict-ports><%= (deployment.targetPublicFacts.verifiedPublicTcpPorts || []).join(', ') || 'none' %></code>
+                      </p>
+                      <p>
+                        Conflicts:
+                        <code data-deployment-conflicts><%= (deployment.targetPublicFacts.verifiedTargetConflicts || []).join(', ') %></code>
+                      </p>
                     </section>
                   <% } %>
 
