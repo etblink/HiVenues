@@ -81,6 +81,28 @@ function createHiVenuesIdentityRouter({
     next();
   });
 
+  router.get('/account/:account', attemptLimiter, async (req, res) => {
+    try {
+      const active = requireIdentityServices(services);
+      const account = requireHiveAccount(req.params?.account);
+      if (typeof active.accountPreview !== 'function') {
+        throw new FeatureUnavailableError('Hive account preview is temporarily unavailable', {
+          code: 'IDENTITY_PROVIDER_UNAVAILABLE',
+        });
+      }
+      const preview = await active.accountPreview(account);
+      if (!preview) {
+        throw new AuthenticationError('That Hive account does not exist yet', {
+          code: 'AUTH_ACCOUNT_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+      return res.json(preview);
+    } catch (error) {
+      return sendIdentityError(res, error);
+    }
+  });
+
   router.post('/challenge', attemptLimiter, async (req, res) => {
     try {
       const origin = assertSameOrigin(req, fixedOrigin);
