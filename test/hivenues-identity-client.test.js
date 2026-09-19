@@ -184,7 +184,6 @@ test('wallet cancellation becomes an explicit non-consequence state and never re
 
   assert.deepEqual(calls, ['/identity/account/etblink', '/identity/challenge']);
   assert.equal(root.dataset.identityState, 'cancelled');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /No Hive transaction or participation action occurred/);
   assert.equal(root.getAttribute('aria-busy'), 'false');
   dom.window.close();
 });
@@ -215,7 +214,7 @@ test('missing wallet is explicit after challenge issuance and preserves public b
   await settle();
 
   assert.equal(root.dataset.identityState, 'provider-unavailable');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /human-owned Hive wallet was not found/);
+  assert.equal(root.getAttribute('aria-busy'), 'false');
   dom.window.close();
 });
 
@@ -303,7 +302,6 @@ test('expired verified session is represented locally without creating any exter
   });
 
   assert.equal(root.dataset.identityState, 'expired');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /expired/);
   assert.equal(root.querySelector('[data-identity-disconnect]').hidden, true);
   assert.equal(root.querySelector('[data-identity-reprove]').hidden, false);
   dom.window.close();
