@@ -361,6 +361,7 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
     mediaRoot,
     authorityRoot: path.join(root, 'deployment', 'authority'),
     authorityProtector: reversibleProtector(),
+    verificationTransport: false,
     idFactory: () => 'ssh-router-target',
     authorityIdFactory: () => 'ssh-router-authority',
     now: () => Date.parse('2026-09-19T12:00:00.000Z'),
