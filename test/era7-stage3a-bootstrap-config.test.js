@@ -7,6 +7,8 @@ const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan')
 const {
   renderBootstrapArtifacts,
   renderCaddyHttpConfig,
+  renderCaddySystemdUnit,
+  renderFirewallSystemdUnit,
   renderNftablesPolicy,
   renderRestrictedSudoers,
   renderRuntimeEnvironment,
@@ -39,6 +41,7 @@ test('Era 7 Stage 3A: bootstrap environment uses stable current pointers and loo
   assert.match(value, /HIVENUES_RUNTIME_STATE='\/var\/lib\/hivenues\/harbor-and-hearth\/runtime-state\.json'/);
   assert.match(value, /PORT='4317'/);
   assert.match(value, /NODE_ENV='production'/);
+  assert.match(value, /PATH='\/opt\/hivenues\/node\/v24\.19\.0\/bin:\/usr\/bin:\/bin'/);
   assert.doesNotMatch(value, /release-stage3a|aaaaaaaaaaaaaaaa/);
 });
 
@@ -49,7 +52,7 @@ test('Era 7 Stage 3A: systemd unit runs as non-login runtime user against stable
   assert.match(value, /^WorkingDirectory=\/opt\/hivenues\/runtime\/current$/m);
   assert.match(
     value,
-    /^ExecStart=\/usr\/bin\/node \/opt\/hivenues\/runtime\/current\/scripts\/hivenues-public-runtime\.js$/m,
+    /^ExecStart=\/opt\/hivenues\/node\/v24\.19\.0\/bin\/node \/opt\/hivenues\/runtime\/current\/scripts\/hivenues-public-runtime\.js$/m,
   );
   assert.match(value, /^NoNewPrivileges=true$/m);
   assert.match(value, /^ProtectSystem=strict$/m);
@@ -65,6 +68,31 @@ test('Era 7 Stage 3A: temporary Caddy config is HTTP-only and reverse-proxies on
   assert.match(value, /^http:\/\/:80 \{$/m);
   assert.match(value, /^  reverse_proxy 127\.0\.0\.1:4317$/m);
   assert.doesNotMatch(value, /:443|tls |acme|dns |https:\/\//i);
+});
+
+test('Era 7 Stage 3B: dedicated Caddy service uses only the bounded Stage 3 config', () => {
+  const value = renderCaddySystemdUnit(plan());
+  assert.match(value, /^User=caddy$/m);
+  assert.match(value, /^Group=caddy$/m);
+  assert.match(
+    value,
+    /^ExecStart=\/usr\/bin\/caddy run --environ --config \/etc\/hivenues\/harbor-and-hearth\.caddy --adapter caddyfile$/m,
+  );
+  assert.match(value, /^NoNewPrivileges=true$/m);
+  assert.match(value, /^CapabilityBoundingSet=CAP_NET_BIND_SERVICE$/m);
+  assert.doesNotMatch(value, /\/etc\/caddy\/Caddyfile|:443|tls |acme/i);
+});
+
+test('Era 7 Stage 3B: persistent firewall unit can only load the bounded HiVenues policy', () => {
+  const value = renderFirewallSystemdUnit(plan());
+  assert.match(
+    value,
+    /^ExecStart=\/usr\/sbin\/nft -f \/etc\/hivenues\/harbor-and-hearth\.nft$/m,
+  );
+  assert.match(value, /^Type=oneshot$/m);
+  assert.match(value, /^RemainAfterExit=yes$/m);
+  assert.match(value, /^NoNewPrivileges=true$/m);
+  assert.doesNotMatch(value, /flush ruleset|shell|bash|sh -c/);
 });
 
 test('Era 7 Stage 3A: firewall policy exposes only deployment SSH and temporary HTTP', () => {
@@ -94,7 +122,9 @@ test('Era 7 Stage 3A: complete bootstrap artifacts contain no Stage 4 domain or 
   const artifacts = renderBootstrapArtifacts(plan(), { sshPort: 22 });
   assert.deepEqual(Object.keys(artifacts).sort(), [
     'caddyHttpConfig',
+    'caddySystemdUnit',
     'environment',
+    'firewallSystemdUnit',
     'nftablesPolicy',
     'restrictedSudoers',
     'systemdUnit',
