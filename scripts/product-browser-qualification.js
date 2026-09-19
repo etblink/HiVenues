@@ -2667,6 +2667,7 @@ async function main() {
   for (const requiredLabel of [
     'studio-hive-onboarding-desktop',
     'studio-hive-onboarding-mobile390',
+    'poster-desktop-account-reviewed',
   ]) {
     assert.equal(
       screenshotLabels.includes(requiredLabel),
