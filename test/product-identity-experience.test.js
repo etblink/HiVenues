@@ -146,7 +146,7 @@ test('Studio exposes optional progressive Hive onboarding without mutating host 
   assert.match(response.text, /data-identity-create-account/);
   assert.match(response.text, /data-identity-not-now/);
   assert.match(response.text, /href="\/hivenues\/studio\/northline-hall"/);
-  assert.match(response.text, /does not require a Hive account just to continue creating/);
+  assert.match(response.text, /do not require a Hive account just to continue creating/);
   assert.match(response.text, /identity is not blanket signing authority/i);
   assert.match(response.text, /never asks for your master password/i);
   assert.equal(JSON.stringify(store.snapshot('northline-hall')), before);
