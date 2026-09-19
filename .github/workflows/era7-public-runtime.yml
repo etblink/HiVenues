@@ -1,0 +1,62 @@
+name: Public runtime bundle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/era7-public-runtime.yml"
+      - ".nvmrc"
+      - "LICENSE"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/era7/**"
+      - "scripts/hivenues-public-runtime.js"
+      - "src/deploy/**"
+      - "src/product/model.js"
+      - "src/product/present.js"
+      - "views/hivenues/**"
+      - "public/css/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/era7-public-runtime.yml"
+      - ".nvmrc"
+      - "LICENSE"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/era7/**"
+      - "scripts/hivenues-public-runtime.js"
+      - "src/deploy/**"
+      - "src/product/model.js"
+      - "src/product/present.js"
+      - "views/hivenues/**"
+      - "public/css/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Build and install minimal Linux public runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install repository tooling
+        run: npm ci --ignore-scripts --no-fund
+      - name: Build and independently install public runtime bundle
+        run: node scripts/era7/qualify-public-runtime-bundle.js
