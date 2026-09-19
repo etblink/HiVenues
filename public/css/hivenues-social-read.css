@@ -257,6 +257,38 @@
   font-weight:900;
   opacity:.72;
 }
+.cc-identity__account-review {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:.8rem;
+  padding:.85rem;
+  border:1px solid currentColor;
+}
+.cc-identity__account-review[hidden] { display:none; }
+.cc-identity__account-review img {
+  width:2.8rem;
+  height:2.8rem;
+  border-radius:50%;
+  object-fit:cover;
+}
+.cc-identity__account-review > div {
+  min-width:0;
+  display:grid;
+  gap:.15rem;
+}
+.cc-identity__account-review > div > span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.82rem;
+  opacity:.72;
+}
+.cc-identity__account-review > div > strong {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 .cc-identity input,
 .cc-identity button {
   min-height:2.9rem;
@@ -416,6 +448,13 @@
     grid-template-columns:auto minmax(0,1fr);
   }
   .cc-identity__account-row button {
+    grid-column:1 / -1;
+    width:100%;
+  }
+  .cc-identity__account-review {
+    grid-template-columns:auto minmax(0,1fr);
+  }
+  .cc-identity__account-review button {
     grid-column:1 / -1;
     width:100%;
   }
