@@ -912,6 +912,43 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
   }
 }
 
+async function runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+      await page.setViewportSize(viewport);
+      await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
+      const siteMenu = page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' });
+      await siteMenu.locator('summary').click();
+      await siteMenu.locator('a[href="/hivenues/studio/northline-hall/hive"]').click();
+      await page.locator('[data-identity-onboarding]').waitFor();
+
+      const text = await page.locator('.cc-identity').textContent();
+      assert.match(text, /Connect an existing Hive account/);
+      assert.match(text, /Create a Hive account through the ecosystem/);
+      assert.match(text, /Keep building without Hive/);
+      assert.match(text, /identity is not blanket signing authority/i);
+      assert.equal(
+        await page.locator('[data-identity-create-account]').getAttribute('href'),
+        'https://signup.hive.io/',
+      );
+      assert.equal(
+        await page.locator('[data-identity-not-now]').getAttribute('href'),
+        '/hivenues/studio/northline-hall',
+      );
+      await capture(page, axeSource, manifest, 'studio-hive-onboarding-' + viewportName);
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 async function installApprovalWallet(context, key, publicKey) {
   await context.exposeFunction('hivenuesSignIdentity', async (_account, message) => ({
     signature: signMessage(key, message),
@@ -2268,6 +2305,7 @@ async function main() {
     scenarios: [
       'three-direction-not-identified',
       'progressive-account-onboarding',
+      'studio-progressive-account-onboarding',
       'awaiting-wallet',
       'verified',
       'disconnect',
@@ -2307,6 +2345,7 @@ async function main() {
 
   try {
     await runDirectionEvidence(browser, axeSource, origin, manifest, counters);
+    await runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters);
     await runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey);
     await runCancellationEvidence(browser, axeSource, origin, manifest, counters);
     await runUnavailableEvidence(browser, axeSource, publicKey, manifest);
