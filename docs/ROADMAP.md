@@ -10,15 +10,18 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-Era 4 remains frozen. Era 5 Tranches 0–2 have now established the Windows installed-runtime boundary through a reproducible versioned distributable:
+Era 4 remains frozen. Era 5 Tranches 0–3 have now established the Windows installed-runtime, reproducible distributable, ordinary per-user installer, and clean-machine lifecycle boundary:
 
 ```text
-CANONICAL_MAIN = 3488d4c758f2ac7d23a5fe0191959c10b8203a37
-CANONICAL_TREE = 1a8c0667b430fc71be1610c551e36e37c8704a04
-POST_MERGE_CI = #1376 / PASS
-TRANCHE_2_PR_HEAD_CI = #1375 / PASS
-TRANCHE_2_PR_HEAD_RUNTIME_PROOF = #16 / PASS
-TRANCHE_2_PR_HEAD_WINDOWS_DISTRIBUTABLE = #2 / PASS
+CANONICAL_MAIN = 4cbf4b7f88ae3a9ac768b81bd9b2bb928dcc7b0e
+CANONICAL_TREE = 52390b2ad4bf85ef3b70c7828d8b7e50375ceacb
+
+TRANCHE_3_QUALIFIED_SOURCE = fb61afbafb7bf038481b17b9bb9e716fa568c101
+TRANCHE_3_PR_HEAD_CI = #1383 / PASS
+TRANCHE_3_PR_HEAD_PRODUCT_BROWSER = #101 / PASS
+TRANCHE_3_PR_HEAD_RUNTIME_PROOF = #21 / PASS
+TRANCHE_3_PR_HEAD_WINDOWS_DISTRIBUTABLE = #7 / PASS
+TRANCHE_3_PR_HEAD_CLEAN_MACHINE_INSTALLER = #5 / PASS
 
 ERA 0 — RELIABLE CANDIDATE SUBSTRATE          COMPLETE / PRESERVE
 ERA 1 — TERRITORY ARCHITECTURE               COMPLETE / PRESERVE
@@ -31,7 +34,8 @@ ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
 ERA 5 TRANCHE 0 = COMPLETE / FROZEN
 ERA 5 TRANCHE 1 = COMPLETE / QUALIFIED
 ERA 5 TRANCHE 2 = COMPLETE / FROZEN
-NEXT BOUNDED WORK = TRANCHE 3 — CLEAN-MACHINE QUALIFICATION
+ERA 5 TRANCHE 3 = COMPLETE / FROZEN
+NEXT BOUNDED WORK = PRODUCTION SIGNING / REPUTATION QUALIFICATION
 ACTIVE ERA-5 CHARTER = #323
 LIVE VALUE QUALIFICATION = HELD
 PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
@@ -83,18 +87,18 @@ The frozen roadmap exit gate is:
 
 The first practical target is Windows. Distribution may package the existing loopback server architecture; it does not justify a SPA rewrite.
 
-Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. Tranche 2 now supplies a versioned Windows x64 ZIP from exact source with embedded provenance, SHA-256 sidecars, byte-for-byte double-build reproducibility, ordinary Windows extraction, and full installed-runtime/native-launcher qualification from the extracted artifact.
+Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. Tranche 2 supplies a versioned Windows x64 ZIP from exact source with embedded provenance, SHA-256 sidecars, byte-for-byte double-build reproducibility, ordinary Windows extraction, and full installed-runtime/native-launcher qualification from the extracted artifact. Tranche 3 now adds a per-user NSIS installer and has proven the real clean-machine lifecycle: install without source/developer tooling, launch through the normal application entry, create/edit/Release a synthetic host, preserve state through repair-style reinstall, preserve user work through uninstall, and restore the released host after reinstall.
 
-The next bounded work is **Tranche 3 — clean-machine qualification**:
+The next bounded work is **production signing / reputation qualification**:
 
-- select and qualify the ordinary Windows installer / supported package flow;
-- obtain and install HiVenues on a clean supported Windows environment without source checkout or developer tooling;
-- launch Studio through the normal application entry;
-- create, edit, and release a synthetic host through ordinary product workflows;
-- close and relaunch while preserving durable host, media, and release state;
-- verify update and uninstall semantics do not silently destroy user work;
-- verify install/launch performs no production deployment, DNS/VPS mutation, or live Hive value movement;
-- establish the explicitly accepted Windows signing/reputation strategy required before Era-5 exit.
+- enroll the selected verified individual publisher identity in the accepted public-trust signing path;
+- keep signing keys/authority outside the repository and ordinary PR CI;
+- establish protected release-signing authority with short-lived/federated authentication where supported;
+- promote only an exact qualified unsigned artifact into signing;
+- Authenticode-sign and trusted-timestamp the production Windows executables/installer;
+- record both the reproducible unsigned hash and final signed-artifact hash/provenance;
+- verify the signed installer on a clean supported Windows environment;
+- document the truthful SmartScreen reputation posture without treating reputation as equivalent to signature validity.
 
 Era 5 does not authorize production hosting/deployment, account-creation onboarding, new commerce classes, Fourth Street work, or independent Astra.
 
@@ -150,7 +154,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–2 complete and Tranche 3 clean-machine qualification next.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–3 complete and production signing/reputation qualification next.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
