@@ -15,9 +15,11 @@ ERA 2 — COMPLETE TERRITORY AUTHORING          COMPLETE / FROZEN
 ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 #301 — REPOSITORY / PRODUCT-CORE NORMALIZATION COMPLETE
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
-ERA 5 — PRODUCT DISTRIBUTION                  ACTIVE / ISSUE #323
+ERA 5 — PRODUCT DISTRIBUTION                  FINAL EXTERNAL TRUST GATE PARKED
 ERA 5 TRANCHE 3 — CLEAN-MACHINE INSTALLER     COMPLETE / FROZEN
-NEXT — PRODUCTION SIGNING / REPUTATION         QUALIFICATION
+ERA 5 SIGNING REPOSITORY BOUNDARY             COMPLETE / QUALIFIED
+NEXT PRODUCT BOUNDARY — ERA 6                  HIVE ACCOUNT ONBOARDING
+PAID PUBLIC-TRUST SIGNING                      DEFERRED UNTIL RELEASE READINESS
 LIVE VALUE / PRODUCTION DEPLOYMENT            HELD
 ```
 
@@ -152,9 +154,13 @@ Era 4 is complete and **Era 5 — Product Distribution is active** under issue *
 
 Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher. Tranche 2 established the reproducible Windows x64 distributable. Tranche 3 then qualified the per-user NSIS installer on a fresh Windows runner, including install/launch/create-edit-Release, repair-style reinstall, uninstall-preserved durable state, and reinstall restoration without developer tooling.
 
-The next bounded work is **production signing / reputation qualification**: enroll the selected verified individual publisher identity, protect signing authority, promote only an exact qualified unsigned artifact, Authenticode-sign and trusted-timestamp the production installer/executables, bind signed-artifact provenance, and verify the signed path on a clean supported Windows environment.
+The repository-side production-signing boundary is now qualified: exact unsigned promotion, manual-only protected signing authority, GitHub OIDC, pinned Azure actions, signed-provenance finalization, and signed clean-machine qualification are wired and preflighted.
 
-Still held unless separately authorized: live-value qualification, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra, and unrelated framework replacement.
+The remaining paid external signing step—Azure Pay-As-You-Go, Microsoft Artifact Signing Public Trust individual enrollment, certificate profile, and first real signed installer qualification—is intentionally deferred until HiVenues is materially closer to external distribution.
+
+Accordingly, the next product-building boundary is **Era 6 — Hive Account Onboarding**. Era 5 remains technically open at its final external trust gate; that gate must be resumed before broad external release.
+
+Still held unless separately authorized: production deployment/DNS/VPS mutation, unrelated new commerce classes, Fourth Street customer work, independent Astra, and unrelated framework replacement.
 
 ## Canonical doctrine and roadmap
 

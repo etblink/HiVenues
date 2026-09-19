@@ -1,6 +1,6 @@
 # HiVenues Era 5 — Production Signing / Reputation Boundary 0.1.0
 
-Status: **FROZEN CANDIDATE — repository preflight pending; external publisher enrollment not yet complete**
+Status: **FROZEN — repository-side signing boundary accepted; paid external publisher enrollment intentionally deferred until external-release readiness**
 
 Governing issue: #323
 
@@ -258,9 +258,31 @@ Before owner enrollment is exercised, the repository preflight must prove:
 - Azure actions are pinned to immutable commits;
 - signed clean-machine qualification is wired after signing rather than assumed.
 
-Passing repository preflight does **not** close Era 5.
+Repository preflight passed on exact PR #334 head `37dccb77b9b7986388807aeb1157eb76359e9635` with CI #1392, runtime proof #26, Windows distributable #12, clean-machine installer #11, and signing preflight #4 all PASS.
 
-It establishes that the software side is ready for the owner-side trusted identity enrollment and first real signed qualification run.
+PR #334 merged as `125ba38701077c1f77974b97d10e4a5d331572fd`.
+
+This accepts the **repository-side signing boundary**. It does **not** close Era 5.
+
+The project owner has intentionally deferred creating a paid Azure Pay-As-You-Go / Artifact Signing account, Public Trust individual identity validation, certificate profile, and first real signed qualification until HiVenues is materially closer to external distribution. This avoids paying for idle signing infrastructure while preserving the already-qualified trust architecture.
+
+Until that release-readiness point, do not repeatedly treat Azure enrollment as the next product-development task. Resume the roadmap's next product-building work while keeping the Era-5 final trust gate explicitly open and parked.
+
+## Deferred external-enrollment decision
+
+The following work is **ready but intentionally parked**:
+
+- Azure Pay-As-You-Go subscription creation;
+- Microsoft Artifact Signing account creation;
+- individual Public Trust identity validation;
+- Public Trust certificate-profile creation;
+- GitHub OIDC workload-identity setup against that Azure profile;
+- paid Basic Artifact Signing activation;
+- first real Authenticode-signed installer qualification.
+
+The trigger to resume this work is **external-release readiness**, not mere repository availability. A practical trigger is when HiVenues is approaching real external distribution/customer use and the signed installer will soon provide value rather than sit unused.
+
+The repository must preserve the production-signing workflow and preflight guard in the meantime.
 
 ## Era 5 exit evidence
 
