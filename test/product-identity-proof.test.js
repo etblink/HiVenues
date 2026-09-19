@@ -58,6 +58,55 @@ function withStore(run) {
     .finally(() => fs.rmSync(directory, { recursive: true, force: true }));
 }
 
+test('public account review reads Hive state without creating a session or wallet challenge', async () => {
+  await withStore(async ({ store, statePath }) => {
+    const key = await signingKey();
+    const publicKey = key.createPublic().toString();
+    const rpcPool = authorityRpc(publicKey);
+    const before = fs.readFileSync(statePath, 'utf8');
+    const profileCalls = [];
+    const app = createHiVenuesApp({
+      store,
+      hiveReadService: {
+        rpcPool,
+        async getProfile(account) {
+          profileCalls.push(account);
+          if (account !== 'etblink') return null;
+          return {
+            name: 'etblink',
+            displayName: 'Evan',
+            profileImage: 'https://images.hive.blog/u/etblink/avatar',
+          };
+        },
+      },
+      identityOrigin: ORIGIN,
+      identitySessionSecret: SESSION_SECRET,
+    });
+
+    const preview = await request(app)
+      .get('/identity/account/etblink')
+      .expect(200);
+
+    assert.deepEqual(preview.body, {
+      account: 'etblink',
+      displayName: 'Evan',
+      profileImage: 'https://images.hive.blog/u/etblink/avatar',
+    });
+    assert.deepEqual(profileCalls, ['etblink']);
+    assert.deepEqual(rpcPool.calls, []);
+    assert.deepEqual((await request(app).get('/identity/session').expect(200)).body, {
+      authenticated: false,
+    });
+
+    const missing = await request(app)
+      .get('/identity/account/barfriend')
+      .expect(404);
+    assert.equal(missing.body.error.code, 'AUTH_ACCOUNT_NOT_FOUND');
+    assert.deepEqual(profileCalls, ['etblink', 'barfriend']);
+    assert.equal(fs.readFileSync(statePath, 'utf8'), before);
+  });
+});
+
 test('canonical product proves Hive account control without mutating HostGraph or broadcasting', async () => {
   await withStore(async ({ store, statePath }) => {
     const key = await signingKey();
