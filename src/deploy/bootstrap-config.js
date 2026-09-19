@@ -44,6 +44,7 @@ function renderRuntimeEnvironment(planInput) {
     HIVENUES_RUNTIME_MANIFEST: plan.paths.runtimeCurrent + '/runtime-manifest.json',
     PORT: String(plan.runtimePort),
     NODE_ENV: 'production',
+    PATH: plan.paths.nodeRoot + '/bin:/usr/bin:/bin',
   };
   return Object.entries(entries)
     .map(([key, value]) => key + '=' + shellQuote(value))
@@ -65,7 +66,7 @@ function renderSystemdUnit(planInput) {
     'Group=' + plan.runtimeUser,
     'WorkingDirectory=' + plan.paths.runtimeCurrent,
     'EnvironmentFile=' + plan.paths.environmentFile,
-    'ExecStart=/usr/bin/node ' + executable,
+    'ExecStart=' + plan.nodeDistribution.nodePath + ' ' + executable,
     'Restart=on-failure',
     'RestartSec=3s',
     'NoNewPrivileges=true',
@@ -132,6 +133,57 @@ function renderNftablesPolicy({
   ].join('\n');
 }
 
+function renderCaddySystemdUnit(planInput) {
+  const plan = assertPlan(planInput);
+  return [
+    '[Unit]',
+    'Description=HiVenues Stage 3 reverse proxy',
+    'After=network-online.target hivenues-firewall.service',
+    'Wants=network-online.target',
+    '',
+    '[Service]',
+    'Type=notify',
+    'User=caddy',
+    'Group=caddy',
+    'ExecStart=/usr/bin/caddy run --environ --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
+    'ExecReload=/usr/bin/caddy reload --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
+    'TimeoutStopSec=5s',
+    'LimitNOFILE=1048576',
+    'PrivateTmp=true',
+    'ProtectSystem=strict',
+    'ProtectHome=true',
+    'NoNewPrivileges=true',
+    'AmbientCapabilities=CAP_NET_BIND_SERVICE',
+    'CapabilityBoundingSet=CAP_NET_BIND_SERVICE',
+    '',
+    '[Install]',
+    'WantedBy=multi-user.target',
+    '',
+  ].join('\n');
+}
+
+function renderFirewallSystemdUnit(planInput) {
+  const plan = assertPlan(planInput);
+  return [
+    '[Unit]',
+    'Description=HiVenues bounded firewall policy',
+    'Before=network-online.target',
+    'Wants=network-pre.target',
+    '',
+    '[Service]',
+    'Type=oneshot',
+    'ExecStart=/usr/sbin/nft -f ' + plan.paths.firewallPolicy,
+    'RemainAfterExit=yes',
+    'NoNewPrivileges=true',
+    'ProtectSystem=strict',
+    'ProtectHome=true',
+    '',
+    '[Install]',
+    'WantedBy=multi-user.target',
+    '',
+  ].join('\n');
+}
+
 function renderRestrictedSudoers(planInput) {
   const plan = assertPlan(planInput);
   const service = 'hivenues-' + plan.release.hostSlug + '.service';
@@ -154,7 +206,9 @@ function renderBootstrapArtifacts(planInput, {
     environment: renderRuntimeEnvironment(plan),
     systemdUnit: renderSystemdUnit(plan),
     caddyHttpConfig: renderCaddyHttpConfig(plan),
+    caddySystemdUnit: renderCaddySystemdUnit(plan),
     nftablesPolicy: renderNftablesPolicy({ sshPort }),
+    firewallSystemdUnit: renderFirewallSystemdUnit(plan),
     restrictedSudoers: renderRestrictedSudoers(plan),
   });
 }
@@ -162,6 +216,8 @@ function renderBootstrapArtifacts(planInput, {
 module.exports = {
   renderBootstrapArtifacts,
   renderCaddyHttpConfig,
+  renderCaddySystemdUnit,
+  renderFirewallSystemdUnit,
   renderNftablesPolicy,
   renderRestrictedSudoers,
   renderRuntimeEnvironment,

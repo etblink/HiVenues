@@ -179,7 +179,10 @@ test('Era 7 Stage 3A: reference bootstrap plan is fixed, least-privilege, and ke
   });
   assert.equal(plan.runtime.bindHost, '127.0.0.1');
   assert.equal(plan.runtimePort, 4317);
-  assert.equal(plan.runtime.installCommand, 'npm ci --omit=dev --ignore-scripts');
+  assert.equal(
+    plan.runtime.installCommand,
+    '/opt/hivenues/node/v24.19.0/bin/npm ci --omit=dev --ignore-scripts',
+  );
   assert.equal(plan.runtime.bundleDigest, f.runtime.bundleDigest);
   assert.equal(plan.release.releaseId, f.releaseA.id);
   assert.equal(plan.release.releaseDigest, f.releaseA.digest);
@@ -192,11 +195,11 @@ test('Era 7 Stage 3A: reference bootstrap plan is fixed, least-privilege, and ke
   ]);
 });
 
-test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mutates HostGraph', (t) => {
+test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mutates HostGraph', async (t) => {
   const f = fixture(t);
   const hostBefore = JSON.stringify(f.store.snapshot(f.slug));
 
-  let result = f.coordinator.deploy(f.deploymentId, {
+  let result = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -229,7 +232,7 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
     || item === 'activate'
   )).length;
 
-  result = f.coordinator.deploy(f.deploymentId, {
+  result = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -246,9 +249,9 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
   externalZero(f.store);
 });
 
-test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activates Release B with rollback provenance', (t) => {
+test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activates Release B with rollback provenance', async (t) => {
   const f = fixture(t);
-  f.coordinator.deploy(f.deploymentId, {
+  await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -270,7 +273,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   f.deploymentStore.recordPackage(f.deploymentId, packageB);
 
   f.target.failAt = 'activate';
-  assert.throws(
+  await assert.rejects(
     () => f.coordinator.deploy(f.deploymentId, {
       runtimeRoot: f.runtimeRoot,
       releasePackageRoot: packageB.packagePath,
@@ -284,7 +287,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   assert.equal(record.activeRelease.id, f.releaseA.id);
   assert.equal(f.target.readBack().deployment.releaseId, f.releaseA.id);
 
-  record = f.coordinator.deploy(f.deploymentId, {
+  record = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: packageB.packagePath,
   });
@@ -302,7 +305,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   externalZero(f.store);
 });
 
-test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation state begins', (t) => {
+test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation state begins', async (t) => {
   const f = fixture(t);
   const releaseB = editAndRelease(f.store, f.slug, 'Mismatched Release B.');
   const packageB = buildDeploymentPackage({
@@ -314,7 +317,7 @@ test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation st
     packageRoot: path.join(f.root, 'packages'),
   });
 
-  assert.throws(
+  await assert.rejects(
     () => f.coordinator.deploy(f.deploymentId, {
       runtimeRoot: f.runtimeRoot,
       releasePackageRoot: packageB.packagePath,
@@ -325,4 +328,100 @@ test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation st
   assert.equal(record.state, 'bootstrap-ready');
   assert.equal(f.target.readBack(), null);
   externalZero(f.store);
+});
+
+
+test('Era 7 Stage 3B: coordinator persists restricted account before destructive bootstrap-key removal', async (t) => {
+  const f = fixture(t);
+  const runtime = JSON.parse(
+    fs.readFileSync(path.join(f.runtimeRoot, 'runtime-provenance.json'), 'utf8'),
+  );
+  const release = JSON.parse(
+    fs.readFileSync(path.join(f.packageA.packagePath, 'manifest.json'), 'utf8'),
+  );
+  let active = false;
+  let narrowed = false;
+  let stateObservedAtNarrowing = null;
+
+  const target = {
+    async readBack() {
+      if (!active) return null;
+      return {
+        status: 'healthy',
+        runtime: {
+          sourceSha: runtime.sourceSha,
+          sourceTree: runtime.sourceTree,
+          packageVersion: runtime.packageVersion,
+          nodeVersion: runtime.nodeVersion,
+          bundleDigest: runtime.bundleDigest,
+        },
+        deployment: {
+          hostSlug: release.hostSlug,
+          releaseId: release.releaseId,
+          releaseDigest: release.releaseDigest,
+          packageDigest: release.packageDigest,
+        },
+        bootstrap: {
+          profile: 'debian-systemd-caddy-v1',
+          runtimeUser: 'hivenues',
+          deploymentUser: 'hivenues-deploy',
+          runtimePort: 4317,
+          authorityState: narrowed
+            ? 'restricted-deployment-user'
+            : 'restricted-login-proven',
+        },
+      };
+    },
+    async installRuntime() {
+      return {
+        provenance: runtime,
+        path: '/opt/hivenues/runtime/' + runtime.bundleDigest,
+        stagingPath: null,
+      };
+    },
+    async installRelease() {
+      return {
+        manifest: release,
+        path: '/srv/hivenues/releases/' + release.releaseId,
+        stagingPath: null,
+      };
+    },
+    async activate() {
+      active = true;
+    },
+    async finalizeAuthorityNarrowing() {
+      stateObservedAtNarrowing = f.deploymentStore.get(f.deploymentId);
+      assert.equal(stateObservedAtNarrowing.state, 'deploying');
+      assert.equal(
+        stateObservedAtNarrowing.targetPublicFacts.username,
+        'hivenues-deploy',
+      );
+      assert.equal(
+        stateObservedAtNarrowing.targetPublicFacts.bootstrapAuthorityState,
+        'restricted-login-proven',
+      );
+      narrowed = true;
+      return true;
+    },
+  };
+
+  const coordinator = new ExactReleaseDeploymentCoordinator({
+    store: f.deploymentStore,
+    target,
+    now: () => Date.parse('2026-09-19T16:00:00.000Z'),
+  });
+
+  const result = await coordinator.deploy(f.deploymentId, {
+    runtimeRoot: f.runtimeRoot,
+    releasePackageRoot: f.packageA.packagePath,
+  });
+
+  assert(stateObservedAtNarrowing);
+  assert.equal(result.state, 'healthy');
+  assert.equal(result.targetPublicFacts.username, 'hivenues-deploy');
+  assert.equal(
+    result.targetPublicFacts.bootstrapAuthorityState,
+    'restricted-deployment-user',
+  );
+  assert.equal(result.activeRelease.id, f.releaseA.id);
 });

@@ -48,7 +48,7 @@ function desiredReadBack(runtime, release) {
   };
 }
 
-function readBackMatches(actual, expected) {
+function readBackArtifactsMatch(actual, expected) {
   if (!actual || actual.status !== 'healthy') return false;
   return (
     actual.runtime?.sourceSha === expected.runtime.sourceSha
@@ -60,6 +60,12 @@ function readBackMatches(actual, expected) {
     && actual.deployment?.releaseId === expected.deployment.releaseId
     && actual.deployment?.releaseDigest === expected.deployment.releaseDigest
     && actual.deployment?.packageDigest === expected.deployment.packageDigest
+  );
+}
+
+function readBackMatches(actual, expected) {
+  return (
+    readBackArtifactsMatch(actual, expected)
     && actual.bootstrap?.authorityState === 'restricted-deployment-user'
   );
 }
@@ -85,7 +91,7 @@ class ExactReleaseDeploymentCoordinator {
     this.now = now;
   }
 
-  deploy(deploymentId, {
+  async deploy(deploymentId, {
     runtimeRoot,
     releasePackageRoot,
   } = {}) {
@@ -101,6 +107,14 @@ class ExactReleaseDeploymentCoordinator {
       throw coordinatorError(
         'DEPLOYMENT_MUTATION_STATE_INVALID',
         'Server target is not in an accepted mutation state.',
+      );
+    }
+    const verifiedOs = String(record.targetPublicFacts?.verifiedOs || '');
+    const verifiedArchitecture = String(record.targetPublicFacts?.verifiedArchitecture || '');
+    if (!/Debian GNU\/Linux 13/i.test(verifiedOs) || verifiedArchitecture !== 'x86_64') {
+      throw coordinatorError(
+        'DEPLOYMENT_TARGET_PROFILE_UNSUPPORTED',
+        'Reference bootstrap currently requires verified Debian GNU/Linux 13 on x86_64.',
       );
     }
     if (!record.selectedRelease || !record.package) {
@@ -154,22 +168,42 @@ class ExactReleaseDeploymentCoordinator {
     });
 
     try {
-      let readBack = this.target.readBack();
+      let readBack = await this.target.readBack();
       if (!readBackMatches(readBack, expected)) {
-        const installedRuntime = this.target.installRuntime(runtimeRoot);
-        const installedRelease = this.target.installRelease(releasePackageRoot);
-        this.target.activate({
+        const installedRuntime = await this.target.installRuntime(runtimeRoot);
+        const installedRelease = await this.target.installRelease(releasePackageRoot);
+        await this.target.activate({
           runtime: installedRuntime,
           release: installedRelease,
           plan,
         });
-        readBack = this.target.readBack();
+        readBack = await this.target.readBack();
+      }
+
+      if (!readBackArtifactsMatch(readBack, expected)) {
+        throw coordinatorError(
+          'DEPLOYMENT_READBACK_MISMATCH',
+          'Server read-back did not match the exact runtime and Release.',
+        );
+      }
+
+      if (
+        readBack.bootstrap?.authorityState === 'restricted-login-proven'
+        && typeof this.target.finalizeAuthorityNarrowing === 'function'
+      ) {
+        this.store.setTargetPublicFacts(deploymentId, {
+          ...record.targetPublicFacts,
+          username: plan.privilegeModel.steadyRemoteAccount,
+          bootstrapAuthorityState: 'restricted-login-proven',
+        });
+        await this.target.finalizeAuthorityNarrowing(plan);
+        readBack = await this.target.readBack();
       }
 
       if (!readBackMatches(readBack, expected)) {
         throw coordinatorError(
-          'DEPLOYMENT_READBACK_MISMATCH',
-          'Server read-back did not match the exact runtime and Release.',
+          'DEPLOYMENT_AUTHORITY_NARROWING_INCOMPLETE',
+          'Server authority was not narrowed after exact deployment read-back.',
         );
       }
 
@@ -198,7 +232,7 @@ class ExactReleaseDeploymentCoordinator {
           activeRelease: desiredActive,
           previousRelease,
           targetPublicFacts: {
-            ...record.targetPublicFacts,
+            ...this.store.get(deploymentId).targetPublicFacts,
             username: plan.privilegeModel.steadyRemoteAccount,
             bootstrapAuthorityState: plan.privilegeModel.steadyStateAuthority,
           },
@@ -230,5 +264,6 @@ class ExactReleaseDeploymentCoordinator {
 
 module.exports = {
   ExactReleaseDeploymentCoordinator,
+  readBackArtifactsMatch,
   readBackMatches,
 };
