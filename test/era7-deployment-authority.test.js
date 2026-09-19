@@ -302,6 +302,53 @@ test('Era 7 Stage 2A: changed host key returns to hard review before authenticat
 });
 
 
+test('Era 7 Stage 2B: host-key change between observation and authentication returns to hard review', async (t) => {
+  const root = tempRoot(t);
+  const authorities = authorityStore(t, root);
+  const authority = authorities.createSshAuthority();
+  const deployments = deploymentStore(root);
+  const target = createSshTarget(deployments, authority.id);
+  const trusted = 'SHA256:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE';
+  const changed = 'SHA256:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+  let inspectionAttempts = 0;
+  const transport = {
+    async observeHostKey() {
+      return trusted;
+    },
+    async inspect() {
+      inspectionAttempts += 1;
+      const error = new Error('Host key changed.');
+      error.code = 'DEPLOYMENT_HOST_KEY_CHANGED';
+      error.observedHostKeyFingerprint = changed;
+      throw error;
+    },
+  };
+  const verifier = new SshTargetVerificationService({
+    store: deployments,
+    authorityStore: authorities,
+    transport,
+  });
+
+  let result = await verifier.verify(target.id);
+  assert.equal(result.state, 'host-key-review');
+  result = verifier.acceptObservedHostKey(target.id, trusted);
+  assert.equal(result.state, 'target-ready');
+
+  await assert.rejects(
+    () => verifier.verify(target.id),
+    (error) => error.code === 'DEPLOYMENT_HOST_KEY_CHANGED',
+  );
+  assert.equal(inspectionAttempts, 1);
+
+  result = deployments.get(target.id);
+  assert.equal(result.state, 'host-key-review');
+  assert.equal(result.healthState, 'review-required');
+  assert.equal(result.targetPublicFacts.trustedHostKeyFingerprint, trusted);
+  assert.equal(result.targetPublicFacts.observedHostKeyFingerprint, changed);
+  assert.equal(result.targetPublicFacts.hostKeyTrustState, 'changed-review-required');
+});
+
+
 test('Era 7 Stage 2A: protected server handoff UI persists only public target facts and revokes authority on disconnect', async (t) => {
   const root = tempRoot(t);
   const statePath = path.join(root, 'workspace', 'state.json');
