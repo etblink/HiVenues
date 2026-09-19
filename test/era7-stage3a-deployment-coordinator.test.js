@@ -326,3 +326,99 @@ test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation st
   assert.equal(f.target.readBack(), null);
   externalZero(f.store);
 });
+
+
+test('Era 7 Stage 3B: coordinator persists restricted account before destructive bootstrap-key removal', async (t) => {
+  const f = fixture(t);
+  const runtime = JSON.parse(
+    fs.readFileSync(path.join(f.runtimeRoot, 'runtime-provenance.json'), 'utf8'),
+  );
+  const release = JSON.parse(
+    fs.readFileSync(path.join(f.packageA.packagePath, 'manifest.json'), 'utf8'),
+  );
+  let active = false;
+  let narrowed = false;
+  let stateObservedAtNarrowing = null;
+
+  const target = {
+    async readBack() {
+      if (!active) return null;
+      return {
+        status: 'healthy',
+        runtime: {
+          sourceSha: runtime.sourceSha,
+          sourceTree: runtime.sourceTree,
+          packageVersion: runtime.packageVersion,
+          nodeVersion: runtime.nodeVersion,
+          bundleDigest: runtime.bundleDigest,
+        },
+        deployment: {
+          hostSlug: release.hostSlug,
+          releaseId: release.releaseId,
+          releaseDigest: release.releaseDigest,
+          packageDigest: release.packageDigest,
+        },
+        bootstrap: {
+          profile: 'debian-systemd-caddy-v1',
+          runtimeUser: 'hivenues',
+          deploymentUser: 'hivenues-deploy',
+          runtimePort: 4317,
+          authorityState: narrowed
+            ? 'restricted-deployment-user'
+            : 'restricted-login-proven',
+        },
+      };
+    },
+    async installRuntime() {
+      return {
+        provenance: runtime,
+        path: '/opt/hivenues/runtime/' + runtime.bundleDigest,
+        stagingPath: null,
+      };
+    },
+    async installRelease() {
+      return {
+        manifest: release,
+        path: '/srv/hivenues/releases/' + release.releaseId,
+        stagingPath: null,
+      };
+    },
+    async activate() {
+      active = true;
+    },
+    async finalizeAuthorityNarrowing() {
+      stateObservedAtNarrowing = f.deploymentStore.get(f.deploymentId);
+      assert.equal(stateObservedAtNarrowing.state, 'deploying');
+      assert.equal(
+        stateObservedAtNarrowing.targetPublicFacts.username,
+        'hivenues-deploy',
+      );
+      assert.equal(
+        stateObservedAtNarrowing.targetPublicFacts.bootstrapAuthorityState,
+        'restricted-login-proven',
+      );
+      narrowed = true;
+      return true;
+    },
+  };
+
+  const coordinator = new ExactReleaseDeploymentCoordinator({
+    store: f.deploymentStore,
+    target,
+    now: () => Date.parse('2026-09-19T16:00:00.000Z'),
+  });
+
+  const result = await coordinator.deploy(f.deploymentId, {
+    runtimeRoot: f.runtimeRoot,
+    releasePackageRoot: f.packageA.packagePath,
+  });
+
+  assert(stateObservedAtNarrowing);
+  assert.equal(result.state, 'healthy');
+  assert.equal(result.targetPublicFacts.username, 'hivenues-deploy');
+  assert.equal(
+    result.targetPublicFacts.bootstrapAuthorityState,
+    'restricted-deployment-user',
+  );
+  assert.equal(result.activeRelease.id, f.releaseA.id);
+});
