@@ -136,13 +136,48 @@ test('canonical product proves Hive account control without mutating HostGraph o
 
     assert.deepEqual(
       rpcPool.calls,
-      [{
-        api: 'condenser_api',
-        method: 'get_accounts',
-        params: [['etblink']],
-      }],
+      [
+        {
+          api: 'condenser_api',
+          method: 'get_accounts',
+          params: [['etblink']],
+        },
+        {
+          api: 'condenser_api',
+          method: 'get_accounts',
+          params: [['etblink']],
+        },
+      ],
     );
     assert.equal(fs.readFileSync(statePath, 'utf8'), before);
+  });
+});
+
+test('identity challenge rejects a nonexistent public account before any wallet proof can begin', async () => {
+  await withStore(async ({ store }) => {
+    const key = await signingKey();
+    const publicKey = key.createPublic().toString();
+    const rpcPool = authorityRpc(publicKey);
+    const app = createHiVenuesApp({
+      store,
+      hiveReadService: { rpcPool },
+      identityOrigin: ORIGIN,
+      identitySessionSecret: SESSION_SECRET,
+    });
+
+    const response = await request(app)
+      .post('/identity/challenge')
+      .set('origin', ORIGIN)
+      .send({ account: 'barfriend' })
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'AUTH_ACCOUNT_NOT_FOUND');
+    assert.match(response.body.error.message, /does not exist/i);
+    assert.deepEqual(rpcPool.calls, [{
+      api: 'condenser_api',
+      method: 'get_accounts',
+      params: [['barfriend']],
+    }]);
   });
 });
 
@@ -213,7 +248,7 @@ test('product identity proof fails closed for foreign origins, expiry, account m
       })
       .expect(401);
     assert.equal(consumed.body.error.code, 'AUTH_CHALLENGE_INVALID');
-    assert.equal(rpcPool.calls.length, 0);
+    assert.equal(rpcPool.calls.length, 2);
   });
 });
 
