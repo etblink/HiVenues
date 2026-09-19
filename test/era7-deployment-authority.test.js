@@ -10,6 +10,7 @@ const request = require('supertest');
 
 const { createHiVenuesApp } = require('../src/product/app');
 const { createLocalDeploymentServices } = require('../src/product/deployment');
+const { requireConnectionFacts } = require('../src/product/deployment-router');
 const {
   FileDeploymentAuthorityStore,
   createPlatformAuthorityProtector,
@@ -77,6 +78,38 @@ function createSshTarget(store, authorityRef, idExpected = 'deployment-test-targ
     reason: 'provider-provisioned',
   });
 }
+
+test('Era 7 Stage 2A: server connection facts admit only bounded public SSH coordinates', () => {
+  assert.deepEqual(
+    requireConnectionFacts({
+      host: '203.0.113.10',
+      port: '22',
+      username: 'root',
+    }),
+    {
+      host: '203.0.113.10',
+      port: 22,
+      username: 'root',
+    },
+  );
+  assert.throws(
+    () => requireConnectionFacts({
+      host: 'https://203.0.113.10/path',
+      port: '22',
+      username: 'root',
+    }),
+    (error) => error.code === 'DEPLOYMENT_TARGET_HOST_INVALID',
+  );
+  assert.throws(
+    () => requireConnectionFacts({
+      host: '203.0.113.10',
+      port: '22',
+      username: 'root',
+      password: 'forbidden',
+    }),
+    (error) => error.code === 'DEPLOYMENT_TARGET_FIELDS_INVALID',
+  );
+});
 
 test('Era 7 Stage 2A: generated deployment SSH key is valid and public identity is reproducible', () => {
   const pemHeader = ['-----BEGIN RSA', 'PRIVATE KEY-----'].join(' ');
