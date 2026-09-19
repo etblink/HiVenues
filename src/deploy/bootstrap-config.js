@@ -133,6 +133,28 @@ function renderNftablesPolicy({
   ].join('\n');
 }
 
+function renderFirewallSystemdUnit(planInput) {
+  const plan = assertPlan(planInput);
+  return [
+    '[Unit]',
+    'Description=HiVenues bounded firewall policy',
+    'Before=network-online.target',
+    'Wants=network-pre.target',
+    '',
+    '[Service]',
+    'Type=oneshot',
+    'ExecStart=/usr/sbin/nft -f ' + plan.paths.firewallPolicy,
+    'RemainAfterExit=yes',
+    'NoNewPrivileges=true',
+    'ProtectSystem=strict',
+    'ProtectHome=true',
+    '',
+    '[Install]',
+    'WantedBy=multi-user.target',
+    '',
+  ].join('\n');
+}
+
 function renderRestrictedSudoers(planInput) {
   const plan = assertPlan(planInput);
   const service = 'hivenues-' + plan.release.hostSlug + '.service';
@@ -156,6 +178,7 @@ function renderBootstrapArtifacts(planInput, {
     systemdUnit: renderSystemdUnit(plan),
     caddyHttpConfig: renderCaddyHttpConfig(plan),
     nftablesPolicy: renderNftablesPolicy({ sshPort }),
+    firewallSystemdUnit: renderFirewallSystemdUnit(plan),
     restrictedSudoers: renderRestrictedSudoers(plan),
   });
 }
@@ -163,6 +186,7 @@ function renderBootstrapArtifacts(planInput, {
 module.exports = {
   renderBootstrapArtifacts,
   renderCaddyHttpConfig,
+  renderFirewallSystemdUnit,
   renderNftablesPolicy,
   renderRestrictedSudoers,
   renderRuntimeEnvironment,
