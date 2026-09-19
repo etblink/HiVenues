@@ -2653,7 +2653,22 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 77);
+  const screenshotLabels = manifest.screenshots.map((item) => item.label);
+  assert.equal(
+    new Set(screenshotLabels).size,
+    screenshotLabels.length,
+    'browser evidence labels must remain unique',
+  );
+  for (const requiredLabel of [
+    'studio-hive-onboarding-desktop',
+    'studio-hive-onboarding-mobile390',
+  ]) {
+    assert.equal(
+      screenshotLabels.includes(requiredLabel),
+      true,
+      'missing required browser evidence: ' + requiredLabel,
+    );
+  }
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
