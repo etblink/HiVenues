@@ -7,6 +7,7 @@ const {
   createHiVenuesStore,
   startHiVenuesServer,
 } = require('../src/product/app');
+const { createLocalDeploymentServices } = require('../src/product/deployment');
 const { createHiVenuesHiveReadService } = require('../src/product/hive-read');
 
 const DEFAULT_STATE_PATH = path.join(__dirname, '..', 'data', 'hivenues-dev-state.json');
@@ -68,10 +69,18 @@ async function main() {
   // Initialize or validate durable local state before the listener opens.
   store.list();
   const hiveReadService = createHiVenuesHiveReadService();
+  const localRoot = path.join(path.dirname(statePath), 'deployment');
+  const deploymentServices = createLocalDeploymentServices({
+    store,
+    statePath: path.join(localRoot, 'state.json'),
+    packageRoot: path.join(localRoot, 'packages'),
+    mediaRoot: store.mediaRoot || path.join(path.dirname(statePath), 'media'),
+  });
   const app = createHiVenuesApp({
     store,
     hiveReadService,
     identityOrigin: `http://${LOCAL_HOST}:${options.port}`,
+    deploymentServices,
   });
   const server = await startHiVenuesServer(app, { port: options.port });
   const port = server.address().port;
@@ -82,6 +91,7 @@ async function main() {
   console.log(`Studio:   http://${LOCAL_HOST}:${port}/hivenues`);
   console.log(`Identity: http://${LOCAL_HOST}:${port}/identity/session`);
   console.log('Hive:     public reads available; server signing/broadcast disabled');
+  console.log('Deploy:   local synthetic simulation only; real infrastructure disabled');
   console.log('Mutating external effects: disabled');
 
   let closing = false;

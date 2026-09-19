@@ -31,10 +31,15 @@ function resolveInstalledDataRoot({
 function resolveInstalledPaths(options = {}) {
   const dataRoot = resolveInstalledDataRoot(options);
   const diagnosticsRoot = path.join(dataRoot, 'diagnostics');
+  const deploymentRoot = path.join(dataRoot, 'deployment');
   return Object.freeze({
     dataRoot,
     statePath: path.join(dataRoot, 'workspace', 'state.json'),
     mediaRoot: path.join(dataRoot, 'media'),
+    deploymentRoot,
+    deploymentStatePath: path.join(deploymentRoot, 'state.json'),
+    deploymentPackagesRoot: path.join(deploymentRoot, 'packages'),
+    deploymentAuthorityRoot: path.join(deploymentRoot, 'authority'),
     diagnosticsRoot,
     runtimeDiagnosticsPath: path.join(diagnosticsRoot, 'runtime.json'),
     currentUrlPath: path.join(diagnosticsRoot, 'current-url.txt'),

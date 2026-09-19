@@ -10,6 +10,7 @@ const {
   createHiVenuesStore,
   startHiVenuesServer,
 } = require('../src/product/app');
+const { createLocalDeploymentServices } = require('../src/product/deployment');
 const { createHiVenuesHiveReadService } = require('../src/product/hive-read');
 const { resolveInstalledPaths } = require('../src/product/runtime-paths');
 const {
@@ -63,6 +64,12 @@ async function main() {
     store.list();
 
     const hiveReadService = createHiVenuesHiveReadService();
+    const deploymentServices = createLocalDeploymentServices({
+      store,
+      statePath: paths.deploymentStatePath,
+      packageRoot: paths.deploymentPackagesRoot,
+      mediaRoot: paths.mediaRoot,
+    });
     const app = createHiVenuesApp({
       store,
       hiveReadService,
@@ -71,6 +78,7 @@ async function main() {
         tree: provenance.sourceTree,
       },
       identityOrigin: '',
+      deploymentServices,
     });
 
     server = await startHiVenuesServer(app, { port: options.port });
@@ -84,6 +92,8 @@ async function main() {
       dataRoot: paths.dataRoot,
       statePath: paths.statePath,
       mediaRoot: paths.mediaRoot,
+      deploymentStatePath: paths.deploymentStatePath,
+      deploymentPackagesRoot: paths.deploymentPackagesRoot,
       diagnosticsRoot: paths.diagnosticsRoot,
       provenance,
     };

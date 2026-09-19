@@ -5,6 +5,7 @@ const path = require('node:path');
 const express = require('express');
 const { createRecoveryRouter } = require('./recovery-router');
 const { createHiVenuesCommunityRouter } = require('./community-router');
+const { createHiVenuesDeploymentRouter } = require('./deployment-router');
 const { createHiVenuesSocialReadRouter } = require('./social-read-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
 const { createHiVenuesOperatorRouter } = require('./operator-router');
@@ -74,6 +75,7 @@ function createHiVenuesApp({
   participationNow = Date.now,
   participationPreflightTtlMs,
   contentPermlinkFactory,
+  deploymentServices = null,
 } = {}) {
   if (!store) throw new TypeError('HiVenues dogfood app requires a store.');
   if (publicIngress && String(accessSecret).length < 32) {
@@ -198,6 +200,7 @@ function createHiVenuesApp({
       && typeof activeParticipationServices.hiveReadService?.getAccountRecord === 'function'
       && typeof activeParticipationServices.hiveReadService?.observeRewardClaimOperation === 'function',
     );
+    res.locals.hivenuesDeploymentAvailable = Boolean(deploymentServices);
     res.locals.hivenuesSupportAvailable = Boolean(
       activeParticipationServices
       && typeof activeParticipationServices.hiveReadService?.getAccountRecord === 'function'
@@ -294,6 +297,10 @@ function createHiVenuesApp({
     store,
     discussionReader,
     discussionBindings,
+  }));
+  app.use('/hivenues', createHiVenuesDeploymentRouter({
+    store,
+    services: deploymentServices,
   }));
   app.use('/hivenues', createHiVenuesOperatorRouter({ store }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));

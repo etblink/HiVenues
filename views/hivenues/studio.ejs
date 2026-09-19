@@ -107,6 +107,9 @@
             <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/release">History & release</a>
+            <% if (typeof hivenuesDeploymentAvailable !== 'undefined' && hivenuesDeploymentAvailable) { %>
+              <a href="/hivenues/studio/<%= graph.identity.slug %>/deploy" data-studio-deployment>Deployment</a>
+            <% } %>
           </div>
         </details>
       </nav>
