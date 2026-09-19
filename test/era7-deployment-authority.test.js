@@ -261,10 +261,58 @@ test('Era 7 Stage 2A: first-seen host key blocks private-key use until explicit 
   assert.equal(result.targetPublicFacts.verifiedArchitecture, 'x86_64');
   assert.equal(result.targetPublicFacts.verifiedMemoryMb, 1024);
   assert.equal(result.targetPublicFacts.verifiedDiskMb, 20480);
+  assert.deepEqual(result.targetPublicFacts.verifiedPublicTcpPorts, [22]);
+  assert.equal(result.targetPublicFacts.verifiedDedicatedTarget, true);
+  assert.deepEqual(result.targetPublicFacts.verifiedTargetConflicts, []);
   assert.deepEqual(transport.calls.map((item) => item.kind), [
     'observe-host-key',
     'observe-host-key',
     'inspect',
+  ]);
+});
+
+test('Era 7 Stage 3B live gate: occupied server fails dedicated-target suitability before mutation', async (t) => {
+  const root = tempRoot(t);
+  const authorities = authorityStore(t, root);
+  const authority = authorities.createSshAuthority();
+  const deployments = deploymentStore(root, 'occupied-target');
+  const target = createSshTarget(
+    deployments,
+    authority.id,
+    'deployment-occupied-target',
+  );
+  const fingerprint = 'SHA256:GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG';
+  const transport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      os: 'Debian GNU/Linux 13',
+      architecture: 'x86_64',
+      memoryMb: 1024,
+      diskMb: 20480,
+      publicTcpPorts: [22, 80, 443],
+      systemCaddyActive: true,
+    },
+  });
+  const verifier = new SshTargetVerificationService({
+    store: deployments,
+    authorityStore: authorities,
+    transport,
+  });
+
+  await verifier.verify(target.id);
+  verifier.acceptObservedHostKey(target.id, fingerprint);
+  const result = await verifier.verify(target.id);
+
+  assert.equal(result.state, 'degraded');
+  assert.equal(result.stateReason, 'ssh-target-suitability-conflict');
+  assert.equal(result.healthState, 'conflict');
+  assert.equal(result.targetPublicFacts.verifiedDedicatedTarget, false);
+  assert.deepEqual(result.targetPublicFacts.verifiedPublicTcpPorts, [22, 80, 443]);
+  assert.deepEqual(result.targetPublicFacts.verifiedUnexpectedPublicTcpPorts, [80, 443]);
+  assert.equal(result.targetPublicFacts.verifiedSystemCaddyActive, true);
+  assert.deepEqual(result.targetPublicFacts.verifiedTargetConflicts, [
+    'unexpected-public-tcp-listeners',
+    'system-caddy-active',
   ]);
 });
 

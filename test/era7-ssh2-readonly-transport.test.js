@@ -74,6 +74,10 @@ async function createLoopbackSshServer(t) {
             'HIVENUES_ARCH=x86_64',
             'HIVENUES_MEMORY_KB=1048576',
             'HIVENUES_DISK_KB=20971520',
+            'HIVENUES_PUBLIC_TCP_PORTS=22',
+            'HIVENUES_SYSTEM_CADDY_ACTIVE=0',
+            'HIVENUES_HIVENUES_CADDY_ACTIVE=0',
+            'HIVENUES_HIVENUES_FIREWALL_ACTIVE=0',
             '',
           ].join('\n'));
           stream.exit(0);
@@ -110,6 +114,10 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
       'HIVENUES_ARCH=x86_64',
       'HIVENUES_MEMORY_KB=1048576',
       'HIVENUES_DISK_KB=20971520',
+      'HIVENUES_PUBLIC_TCP_PORTS=22,80,443',
+      'HIVENUES_SYSTEM_CADDY_ACTIVE=1',
+      'HIVENUES_HIVENUES_CADDY_ACTIVE=0',
+      'HIVENUES_HIVENUES_FIREWALL_ACTIVE=0',
       '',
     ].join('\n')),
     {
@@ -117,6 +125,10 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
       architecture: 'x86_64',
       memoryMb: 1024,
       diskMb: 20480,
+      publicTcpPorts: [22, 80, 443],
+      systemCaddyActive: true,
+      hivenuesCaddyActive: false,
+      hivenuesFirewallActive: false,
     },
   );
 
@@ -166,6 +178,10 @@ test('Era 7 Stage 2B: loopback SSH observation and inspection enforce host trust
     architecture: 'x86_64',
     memoryMb: 1024,
     diskMb: 20480,
+    publicTcpPorts: [22],
+    systemCaddyActive: false,
+    hivenuesCaddyActive: false,
+    hivenuesFirewallActive: false,
   });
   assert.ok(fixture.evidence.authenticationAttempts >= 1);
   assert.equal(fixture.evidence.sessions, 1);

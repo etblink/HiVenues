@@ -71,6 +71,13 @@ function fixture(t) {
     verifiedArchitecture: 'x86_64',
     verifiedMemoryMb: 1024,
     verifiedDiskMb: 20480,
+    verifiedPublicTcpPorts: [22],
+    verifiedUnexpectedPublicTcpPorts: [],
+    verifiedSystemCaddyActive: false,
+    verifiedHiVenuesCaddyActive: false,
+    verifiedHiVenuesFirewallActive: false,
+    verifiedDedicatedTarget: true,
+    verifiedTargetConflicts: [],
   });
   deploymentStore.transition(deployment.id, 'target-ready', {
     reason: 'server-public-facts-recorded',
