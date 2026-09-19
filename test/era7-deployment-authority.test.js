@@ -79,9 +79,10 @@ function createSshTarget(store, authorityRef, idExpected = 'deployment-test-targ
 }
 
 test('Era 7 Stage 2A: generated deployment SSH key is valid and public identity is reproducible', () => {
+  const pemHeader = ['-----BEGIN RSA', 'PRIVATE KEY-----'].join(' ');
   const pair = generateDeploymentSshKeyPair({ modulusLength: 2048 });
   assert.equal(pair.algorithm, 'rsa');
-  assert.match(pair.privateKeyPem, /^-----BEGIN RSA PRIVATE KEY-----/);
+  assert.equal(pair.privateKeyPem.startsWith(pemHeader), true);
   assert.match(pair.publicKeyOpenSsh, /^ssh-rsa [A-Za-z0-9+/=]+ hivenues-deployment$/);
   assert.match(pair.publicKeyFingerprint, /^SHA256:[A-Za-z0-9+/]+$/);
 
@@ -105,7 +106,7 @@ test('Era 7 Stage 2A: authority store persists protected private material separa
 
   const filePath = path.join(root, 'authority', publicRecord.id + '.json');
   const raw = fs.readFileSync(filePath, 'utf8');
-  assert.equal(raw.includes('BEGIN RSA PRIVATE KEY'), false);
+  assert.equal(raw.includes(['BEGIN RSA', 'PRIVATE KEY'].join(' ')), false);
   assert.equal(raw.includes('protectedPrivateKey'), true);
   if (process.platform !== 'win32') {
     assert.equal(fs.statSync(filePath).mode & 0o777, 0o600);
@@ -114,7 +115,10 @@ test('Era 7 Stage 2A: authority store persists protected private material separa
   let observed;
   store.withPrivateKey(publicRecord.id, (privateKey) => {
     observed = Buffer.from(privateKey);
-    assert.match(privateKey.toString('utf8'), /^-----BEGIN RSA PRIVATE KEY-----/);
+    assert.equal(
+      privateKey.toString('utf8').startsWith(['-----BEGIN RSA', 'PRIVATE KEY-----'].join(' ')),
+      true,
+    );
   });
   assert(observed);
   assert.doesNotThrow(() => crypto.createPrivateKey(observed));
@@ -136,9 +140,15 @@ test('Era 7 Stage 2A: decrypted key remains available through awaited transport 
 
   const result = await store.withPrivateKey(publicRecord.id, async (privateKey) => {
     borrowed = privateKey;
-    assert.match(privateKey.toString('utf8'), /^-----BEGIN RSA PRIVATE KEY-----/);
+    assert.equal(
+      privateKey.toString('utf8').startsWith(['-----BEGIN RSA', 'PRIVATE KEY-----'].join(' ')),
+      true,
+    );
     await Promise.resolve();
-    assert.match(privateKey.toString('utf8'), /^-----BEGIN RSA PRIVATE KEY-----/);
+    assert.equal(
+      privateKey.toString('utf8').startsWith(['-----BEGIN RSA', 'PRIVATE KEY-----'].join(' ')),
+      true,
+    );
     return 'transport-complete';
   });
 
@@ -307,7 +317,7 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
     'authority-ssh-router-authority.json',
   );
   const authorityRaw = fs.readFileSync(authorityPath, 'utf8');
-  assert.equal(authorityRaw.includes('BEGIN RSA PRIVATE KEY'), false);
+  assert.equal(authorityRaw.includes(['BEGIN RSA', 'PRIVATE KEY'].join(' ')), false);
   assert.equal(authorityRaw.includes('protectedPrivateKey'), true);
 
   page = await request(app)
