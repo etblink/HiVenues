@@ -91,6 +91,10 @@ function createReferenceBootstrapPlan({
       runtimeState: path.posix.join(stateRoot, 'runtime-state.json'),
       environmentFile: '/etc/hivenues/' + hostSlug + '.env',
       serviceUnit: '/etc/systemd/system/hivenues-' + hostSlug + '.service',
+      caddyConfig: '/etc/hivenues/' + hostSlug + '.caddy',
+      firewallPolicy: '/etc/hivenues/' + hostSlug + '.nft',
+      firewallService: '/etc/systemd/system/hivenues-firewall.service',
+      sudoersFile: '/etc/sudoers.d/hivenues-' + hostSlug,
       activeRecord: path.posix.join(stateRoot, 'active-deployment.json'),
     }),
     ownership: Object.freeze({
