@@ -111,28 +111,12 @@ jobs:
           $workflow = Get-Content -LiteralPath '.github/workflows/era5-production-signing.yml' -Raw
           if ($workflow -notmatch '(?m)^  workflow_dispatch:') { throw 'Production signing workflow must remain manually dispatched.' }
           if ($workflow -match '(?m)^  pull_request:') { throw 'Production signing workflow must never be pull-request triggered.' }
-          if ($workflow -notmatch '(?m)^    environment: production-signing
-        with:
-          name: hivenues-signing-preflight-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}\promotion\hivenues-production-signing-promotion.json
-          if-no-files-found: error
-          retention-days: 14
-) { throw 'Production signing job must use the protected production-signing environment.' }
-          if ($workflow -notmatch '(?m)^  id-token: write
-        with:
-          name: hivenues-signing-preflight-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}\promotion\hivenues-production-signing-promotion.json
-          if-no-files-found: error
-          retention-days: 14
-) { throw 'Production signing workflow must retain GitHub OIDC token permission.' }
+          if (-not $workflow.Contains('    environment: production-signing')) { throw 'Production signing job must use the protected production-signing environment.' }
+          if (-not $workflow.Contains('  id-token: write')) { throw 'Production signing workflow must retain GitHub OIDC token permission.' }
           if ($workflow -match '(?i)azure-client-secret|\.pfx|client-secret:') { throw 'Production signing workflow must not introduce reusable Azure signing secrets or PFX material.' }
-          if ($workflow -notmatch 'Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906') { throw 'Azure/login must remain pinned to the reviewed immutable commit.' }
-          if ($workflow -notmatch 'Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82') { throw 'Artifact Signing action must remain pinned to the reviewed immutable commit.' }
-          if ($workflow -notmatch 'Artifact Signing Certificate Profile Signer|ARTIFACT_SIGNING_PROFILE') {
-            throw 'Production signing workflow lost its certificate-profile boundary.'
-          }
+          if (-not $workflow.Contains('Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906')) { throw 'Azure/login must remain pinned to the reviewed immutable commit.' }
+          if (-not $workflow.Contains('Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82')) { throw 'Artifact Signing action must remain pinned to the reviewed immutable commit.' }
+          if (-not $workflow.Contains('ARTIFACT_SIGNING_PROFILE')) { throw 'Production signing workflow lost its certificate-profile boundary.' }
 
       - name: Upload preflight evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
