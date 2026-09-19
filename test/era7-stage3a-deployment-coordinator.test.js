@@ -159,9 +159,24 @@ test('Era 7 Stage 3A: reference bootstrap plan is fixed, least-privilege, and ke
   assert.equal(plan.profile, 'debian-systemd-caddy-v1');
   assert.equal(plan.runtimeUser, 'hivenues');
   assert.equal(plan.deploymentUser, 'hivenues-deploy');
-  assert.equal(plan.privilegeModel.initialAuthority, 'bootstrap-root');
+  assert.equal(plan.privilegeModel.initialAuthority, 'bootstrap-admin');
+  assert.equal(plan.privilegeModel.initialRemoteAccount, 'root');
   assert.equal(plan.privilegeModel.steadyStateAuthority, 'restricted-deployment-user');
+  assert.equal(plan.privilegeModel.steadyRemoteAccount, 'hivenues-deploy');
   assert.equal(plan.privilegeModel.runtimeLogin, false);
+  assert.deepEqual(plan.privilegeModel.authorityNarrowing, [
+    'create-restricted-deployment-account',
+    'install-same-deployment-public-key',
+    'prove-restricted-ssh-login',
+    'remove-exact-bootstrap-authorized-key',
+    'persist-restricted-remote-account',
+  ]);
+  assert.deepEqual(plan.ownership, {
+    runtimeArtifacts: 'hivenues-deploy:hivenues',
+    releaseArtifacts: 'hivenues-deploy:hivenues',
+    runtimeState: 'hivenues:hivenues',
+    rootConfiguration: 'root:root',
+  });
   assert.equal(plan.runtime.bindHost, '127.0.0.1');
   assert.equal(plan.runtimePort, 4317);
   assert.equal(plan.runtime.installCommand, 'npm ci --omit=dev --ignore-scripts');
@@ -192,6 +207,11 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
   assert.equal(result.previousRelease, null);
   assert.equal(result.runtimeProfile.bundleDigest, f.runtime.bundleDigest);
   assert.equal(result.healthState, 'healthy');
+  assert.equal(result.targetPublicFacts.username, 'hivenues-deploy');
+  assert.equal(
+    result.targetPublicFacts.bootstrapAuthorityState,
+    'restricted-deployment-user',
+  );
 
   const readBack = f.target.readBack();
   assert.equal(readBack.status, 'healthy');
@@ -200,6 +220,7 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
   assert.equal(readBack.deployment.releaseDigest, f.releaseA.digest);
   assert.equal(readBack.deployment.packageDigest, f.packageA.packageDigest);
   assert.equal(readBack.bootstrap.authorityState, 'restricted-deployment-user');
+  assert.equal(readBack.bootstrap.deploymentUser, 'hivenues-deploy');
 
   const targetFingerprint = f.target.fingerprint();
   const mutationsBefore = f.target.operations.filter((item) => (
