@@ -16,6 +16,7 @@ function createLocalDeploymentServices({
   authorityRoot = '',
   authorityProtector = null,
   authorityIdFactory,
+  authorityKeyPairFactory,
   now = Date.now,
   idFactory,
 } = {}) {
@@ -45,6 +46,7 @@ function createLocalDeploymentServices({
         protector: authorityProtector,
         now,
         ...(authorityIdFactory ? { idFactory: authorityIdFactory } : {}),
+        ...(authorityKeyPairFactory ? { keyPairFactory: authorityKeyPairFactory } : {}),
       })
     : null;
 
