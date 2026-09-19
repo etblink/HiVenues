@@ -179,7 +179,10 @@ test('Era 7 Stage 3A: reference bootstrap plan is fixed, least-privilege, and ke
   });
   assert.equal(plan.runtime.bindHost, '127.0.0.1');
   assert.equal(plan.runtimePort, 4317);
-  assert.equal(plan.runtime.installCommand, 'npm ci --omit=dev --ignore-scripts');
+  assert.equal(
+    plan.runtime.installCommand,
+    '/opt/hivenues/node/v24.19.0/bin/npm ci --omit=dev --ignore-scripts',
+  );
   assert.equal(plan.runtime.bundleDigest, f.runtime.bundleDigest);
   assert.equal(plan.release.releaseId, f.releaseA.id);
   assert.equal(plan.release.releaseDigest, f.releaseA.digest);
