@@ -328,7 +328,7 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
   assert.match(page.text, /data-deployment-public-key-fingerprint/);
   assert.match(page.text, /data-deployment-server-connection/);
 
-  await request(app)
+  const rejected = await request(app)
     .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/connection')
     .type('form')
     .send({
@@ -337,6 +337,22 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
       username: 'root',
       password: 'must-never-persist',
       apiToken: 'must-never-persist',
+    })
+    .expect(400);
+  assert.match(rejected.text, /data-deployment-error/);
+
+  deployment = services.deploymentStore.get(deployment.id);
+  assert.equal(deployment.state, 'awaiting-provider');
+  assert.deepEqual(deployment.targetPublicFacts, {});
+  assert.equal(JSON.stringify(deployment).includes('must-never-persist'), false);
+
+  await request(app)
+    .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/connection')
+    .type('form')
+    .send({
+      host: '203.0.113.10',
+      port: '22',
+      username: 'root',
     })
     .expect(303);
 
@@ -347,7 +363,6 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
     port: 22,
     username: 'root',
   });
-  assert.equal(JSON.stringify(deployment).includes('must-never-persist'), false);
 
   page = await request(app)
     .get('/hivenues/studio/' + slug + '/deploy')
