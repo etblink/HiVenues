@@ -98,11 +98,28 @@ test('runtime readiness and stop state are published without moving durable work
     assert.equal(fs.readFileSync(readyFile, 'utf8').trim(), runtime.url);
     assert.equal(JSON.parse(fs.readFileSync(paths.runtimeDiagnosticsPath, 'utf8')).status, 'running');
 
-    markRuntimeStopped({ paths, url: runtime.url, now: () => 1000, reason: 'requested' });
+    const productDiagnostics = {
+      external: {
+        hiveRpcAttempts: 0,
+        hiveWrites: 0,
+        providerWrites: 0,
+        payments: 0,
+        signingAttempts: 0,
+        deployments: 0,
+      },
+    };
+    markRuntimeStopped({
+      paths,
+      url: runtime.url,
+      now: () => 1000,
+      reason: 'requested',
+      productDiagnostics,
+    });
     assert.equal(fs.existsSync(paths.currentUrlPath), false);
     const stopped = JSON.parse(fs.readFileSync(paths.runtimeDiagnosticsPath, 'utf8'));
     assert.equal(stopped.status, 'stopped');
     assert.equal(stopped.stopReason, 'requested');
+    assert.deepEqual(stopped.productDiagnostics, productDiagnostics);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

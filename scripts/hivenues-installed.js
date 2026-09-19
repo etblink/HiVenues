@@ -51,11 +51,12 @@ async function main() {
   let server = null;
   let timer = null;
   let runtime = null;
+  let store = null;
 
   try {
     releaseInstance = acquireInstanceLock(paths.instanceLockPath);
 
-    const store = createHiVenuesStore({
+    store = createHiVenuesStore({
       statePath: paths.statePath,
       mediaRoot: paths.mediaRoot,
     });
@@ -103,6 +104,7 @@ async function main() {
           paths,
           url,
           reason: error ? 'server-close-error' : reason,
+          productDiagnostics: typeof store?.diagnostics === 'function' ? store.diagnostics() : null,
         });
         releaseInstance();
         if (error) process.exitCode = 1;
@@ -124,6 +126,7 @@ async function main() {
         paths,
         url: runtime.url,
         reason: 'startup-error',
+        productDiagnostics: typeof store?.diagnostics === 'function' ? store.diagnostics() : null,
       });
     }
     releaseInstance();
