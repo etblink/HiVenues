@@ -39,6 +39,7 @@ async function createLoopbackSshServer(t) {
   const server = new Server({
     hostKeys: [hostKeys.private],
   }, (client) => {
+    client.on('error', () => {});
     client.on('authentication', (ctx) => {
       evidence.authenticationAttempts += 1;
       if (ctx.username !== 'root' || ctx.method !== 'publickey') {
