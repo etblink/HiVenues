@@ -126,6 +126,32 @@ test('canonical social hubs introduce one host-native identity mechanic across t
   assert.deepEqual(store.diagnostics(), before);
 });
 
+test('Studio exposes optional progressive Hive onboarding without mutating host truth', async () => {
+  const { app, store } = appWith();
+  const before = JSON.stringify(store.snapshot('northline-hall'));
+
+  const studio = await request(app)
+    .get('/hivenues/studio/northline-hall')
+    .expect(200);
+  assert.match(studio.text, /href="\/hivenues\/studio\/northline-hall\/hive">Hive account<\/a>/);
+
+  const response = await request(app)
+    .get('/hivenues/studio/northline-hall/hive')
+    .expect(200);
+
+  assert.match(response.text, /Connect an existing Hive account/);
+  assert.match(response.text, /Create a Hive account through the ecosystem/);
+  assert.match(response.text, /Back to Studio without Hive/);
+  assert.match(response.text, /href="https:\/\/signup\.hive\.io\//);
+  assert.match(response.text, /data-identity-create-account/);
+  assert.match(response.text, /data-identity-not-now/);
+  assert.match(response.text, /href="\/hivenues\/studio\/northline-hall"/);
+  assert.match(response.text, /does not require a Hive account just to continue creating/);
+  assert.match(response.text, /identity is not blanket signing authority/i);
+  assert.match(response.text, /never asks for your master password/i);
+  assert.equal(JSON.stringify(store.snapshot('northline-hall')), before);
+});
+
 test('identity provider unavailability is explicit and does not fabricate an interactive proof control', async () => {
   const { app } = appWith({ identityServices: false });
   const response = await request(app)
