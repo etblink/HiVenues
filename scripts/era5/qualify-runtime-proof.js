@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 function parseArgs(argv) {
   const index = argv.indexOf('--bundle');
@@ -94,10 +94,17 @@ async function waitForAbsent(file, timeoutMs = 15000) {
 async function main() {
   const { bundle } = parseArgs(process.argv.slice(2));
   const runtime = path.join(bundle, 'runtime', process.platform === 'win32' ? 'node.exe' : 'node');
-  const script = path.join(bundle, 'app', 'scripts', 'hivenues-installed.js');
+  const appRoot = path.join(bundle, 'app');
+  const script = path.join(appRoot, 'scripts', 'hivenues-installed.js');
+  const publicRuntimeBuilder = path.join(appRoot, 'scripts', 'era7', 'build-public-runtime-bundle.js');
+  const publicRuntimeEntry = path.join(appRoot, 'scripts', 'hivenues-public-runtime.js');
+  const installedLicense = path.join(appRoot, 'LICENSE');
   const launcher = path.join(bundle, 'HiVenues Studio.exe');
   assert.ok(fs.existsSync(runtime), 'private runtime is present');
   assert.ok(fs.existsSync(script), 'installed runtime entry is present');
+  assert.ok(fs.existsSync(publicRuntimeBuilder), 'installed public-runtime builder is present');
+  assert.ok(fs.existsSync(publicRuntimeEntry), 'installed public-runtime entry is present');
+  assert.ok(fs.existsSync(installedLicense), 'installed license required by public runtime is present');
   if (process.platform === 'win32') assert.ok(fs.existsSync(launcher), 'native Windows launcher is present');
 
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era5-proof-'));
@@ -105,6 +112,37 @@ async function main() {
   const localAppData = path.join(temp, 'LocalAppData');
   fs.mkdirSync(unrelatedCwd, { recursive: true });
   const env = { ...process.env, LOCALAPPDATA: localAppData };
+  const bundledProvenance = JSON.parse(
+    fs.readFileSync(path.join(bundle, 'build-provenance.json'), 'utf8'),
+  );
+  const deploymentRuntimeRoot = path.join(temp, 'deployment-runtime-proof');
+  const buildRuntime = spawnSync(runtime, [
+    publicRuntimeBuilder,
+    '--output', deploymentRuntimeRoot,
+    '--source-sha', bundledProvenance.sourceSha,
+    '--source-tree', bundledProvenance.sourceTree,
+    '--node-version', bundledProvenance.nodeVersion,
+  ], {
+    cwd: appRoot,
+    env: { ...env, PATH: '' },
+    windowsHide: true,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  assert.equal(
+    buildRuntime.status,
+    0,
+    'installed public runtime build failed without developer tooling:\n'
+      + (buildRuntime.stdout || '') + '\n' + (buildRuntime.stderr || ''),
+  );
+  const deploymentRuntimeProvenance = JSON.parse(
+    fs.readFileSync(path.join(deploymentRuntimeRoot, 'runtime-provenance.json'), 'utf8'),
+  );
+  assert.equal(deploymentRuntimeProvenance.sourceSha, bundledProvenance.sourceSha);
+  assert.equal(deploymentRuntimeProvenance.sourceTree, bundledProvenance.sourceTree);
+  assert.equal(deploymentRuntimeProvenance.nodeVersion, bundledProvenance.nodeVersion);
+  assert.equal(deploymentRuntimeProvenance.packageVersion, bundledProvenance.packageVersion);
+
   const dataRoot = path.join(localAppData, 'HiVenues Studio');
   const runtimePaths = {
     runtimeDiagnosticsPath: path.join(dataRoot, 'diagnostics', 'runtime.json'),
@@ -204,6 +242,14 @@ async function main() {
     launcherUrl,
     stateDigest: firstDigest,
     provenance: info1.provenance,
+    deploymentRuntime: {
+      sourceSha: deploymentRuntimeProvenance.sourceSha,
+      sourceTree: deploymentRuntimeProvenance.sourceTree,
+      nodeVersion: deploymentRuntimeProvenance.nodeVersion,
+      packageVersion: deploymentRuntimeProvenance.packageVersion,
+      bundleDigest: deploymentRuntimeProvenance.bundleDigest,
+      builtWithoutDeveloperTooling: true,
+    },
   }, null, 2) + '\n');
   fs.rmSync(temp, { recursive: true, force: true });
 }
