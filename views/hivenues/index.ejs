@@ -23,7 +23,9 @@
           <p><%= host.graph.facts.tagline %></p>
           <div class="cc-index-card__actions">
             <a class="cc-button" href="/hivenues/<%= host.graph.identity.slug %>">Visit site</a>
-            <a class="cc-link" href="/hivenues/studio/<%= host.graph.identity.slug %>">Open Studio</a>
+            <% if (typeof studioAvailable === 'undefined' || studioAvailable) { %>
+              <a class="cc-link" href="/hivenues/studio/<%= host.graph.identity.slug %>">Open Studio</a>
+            <% } %>
           </div>
         </article>
       <% }) %>
