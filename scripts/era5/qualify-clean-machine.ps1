@@ -43,9 +43,13 @@ function Hidden-Value([string]$Html, [string]$Name) {
 function Start-InstalledRuntime([string]$Launcher, [string]$StopFile, [string]$CurrentUrlPath) {
   Remove-Item -LiteralPath $StopFile -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $CurrentUrlPath -Force -ErrorAction SilentlyContinue
-  $process = Start-Process -FilePath $Launcher -ArgumentList @('--no-open', '--shutdown-file', $StopFile) -PassThru -Wait
+  Write-Host "Launching installed HiVenues runtime..."
+  $process = Start-Process -FilePath $Launcher -ArgumentList @('--no-open', '--shutdown-file', $StopFile) -PassThru
+  Assert-True ($process.WaitForExit(60000)) 'Native launcher did not exit after publishing runtime readiness.'
   Assert-True ($process.ExitCode -eq 0) "Native launcher exited with code $($process.ExitCode)."
-  return Read-RunningUrl $CurrentUrlPath
+  $url = Read-RunningUrl $CurrentUrlPath
+  Write-Host "Installed HiVenues runtime ready at $url"
+  return $url
 }
 
 function Stop-InstalledRuntime([string]$StopFile, [string]$CurrentUrlPath) {
