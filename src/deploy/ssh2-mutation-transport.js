@@ -342,7 +342,6 @@ class Ssh2PinnedMutationTransport {
         const tree = listTree(localRoot);
         const normalizedRemote = String(remoteRoot || '').trim();
         if (!normalizedRemote.startsWith('/') || hasRejectedControlCharacter(normalizedRemote)) {
-]/.test(normalizedRemote)) {
           throw mutationError(
             'DEPLOYMENT_REMOTE_PATH_INVALID',
             'Remote upload path is invalid.',
