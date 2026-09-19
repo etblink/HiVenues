@@ -6,7 +6,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const request = require('supertest');
 
+const { createHiVenuesApp } = require('../src/product/app');
+const { createLocalDeploymentServices } = require('../src/product/deployment');
 const {
   FileDeploymentAuthorityStore,
   createPlatformAuthorityProtector,
@@ -15,6 +18,7 @@ const {
   rsaPublicKeyToOpenSsh,
 } = require('../src/product/deployment-authority');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
+const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
 const {
   ScriptedSshVerificationTransport,
   SshTargetVerificationService,
@@ -122,6 +126,25 @@ test('Era 7 Stage 2A: authority store persists protected private material separa
     () => store.publicRecord(publicRecord.id),
     (error) => error.code === 'DEPLOYMENT_AUTHORITY_NOT_FOUND',
   );
+});
+
+test('Era 7 Stage 2A: decrypted key remains available through awaited transport work then is wiped', async (t) => {
+  const root = tempRoot(t);
+  const store = authorityStore(t, root, 'async-authority');
+  const publicRecord = store.createSshAuthority();
+  let borrowed;
+
+  const result = await store.withPrivateKey(publicRecord.id, async (privateKey) => {
+    borrowed = privateKey;
+    assert.match(privateKey.toString('utf8'), /^-----BEGIN RSA PRIVATE KEY-----/);
+    await Promise.resolve();
+    assert.match(privateKey.toString('utf8'), /^-----BEGIN RSA PRIVATE KEY-----/);
+    return 'transport-complete';
+  });
+
+  assert.equal(result, 'transport-complete');
+  assert(borrowed);
+  assert.equal(borrowed.every((byte) => byte === 0), true);
 });
 
 test('Era 7 Stage 2A: non-Windows production protector fails closed', () => {
@@ -233,4 +256,110 @@ test('Era 7 Stage 2A: changed host key returns to hard review before authenticat
     'observe-host-key',
     'observe-host-key',
   ]);
+});
+
+
+test('Era 7 Stage 2A: protected server handoff UI persists only public target facts and revokes authority on disconnect', async (t) => {
+  const root = tempRoot(t);
+  const statePath = path.join(root, 'workspace', 'state.json');
+  const mediaRoot = path.join(root, 'media');
+  const store = new ProvisioningFileHiVenuesStore({ statePath, mediaRoot });
+  const services = createLocalDeploymentServices({
+    store,
+    statePath: path.join(root, 'deployment', 'state.json'),
+    packageRoot: path.join(root, 'deployment', 'packages'),
+    mediaRoot,
+    authorityRoot: path.join(root, 'deployment', 'authority'),
+    authorityProtector: reversibleProtector(),
+    idFactory: () => 'ssh-router-target',
+    authorityIdFactory: () => 'ssh-router-authority',
+    now: () => Date.parse('2026-09-19T12:00:00.000Z'),
+  });
+  const app = createHiVenuesApp({
+    store,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices: services,
+  });
+  const slug = 'harbor-and-hearth';
+
+  let page = await request(app)
+    .get('/hivenues/studio/' + slug + '/deploy')
+    .expect(200);
+  assert.match(page.text, /data-deployment-stage2a/);
+  assert.match(page.text, /data-deployment-authority-profile/);
+
+  await request(app)
+    .post('/hivenues/studio/' + slug + '/deploy/targets/reference-ssh')
+    .expect(303);
+
+  let deployment = services.deploymentStore.list(slug)[0];
+  assert.equal(deployment.id, 'deployment-ssh-router-target');
+  assert.equal(deployment.providerKind, 'ssh-server');
+  assert.equal(deployment.providerProfile, 'privex-reference');
+  assert.equal(deployment.state, 'awaiting-provider');
+  assert.equal(deployment.authorityRef, 'authority-ssh-router-authority');
+
+  const authorityPath = path.join(
+    root,
+    'deployment',
+    'authority',
+    'authority-ssh-router-authority.json',
+  );
+  const authorityRaw = fs.readFileSync(authorityPath, 'utf8');
+  assert.equal(authorityRaw.includes('BEGIN RSA PRIVATE KEY'), false);
+  assert.equal(authorityRaw.includes('protectedPrivateKey'), true);
+
+  page = await request(app)
+    .get('/hivenues/studio/' + slug + '/deploy')
+    .expect(200);
+  assert.match(page.text, /data-deployment-authority-public/);
+  assert.match(page.text, /data-deployment-public-key/);
+  assert.match(page.text, /data-deployment-public-key-fingerprint/);
+  assert.match(page.text, /data-deployment-server-connection/);
+
+  await request(app)
+    .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/connection')
+    .type('form')
+    .send({
+      host: '203.0.113.10',
+      port: '22',
+      username: 'root',
+      password: 'must-never-persist',
+      apiToken: 'must-never-persist',
+    })
+    .expect(303);
+
+  deployment = services.deploymentStore.get(deployment.id);
+  assert.equal(deployment.state, 'target-ready');
+  assert.deepEqual(deployment.targetPublicFacts, {
+    host: '203.0.113.10',
+    port: 22,
+    username: 'root',
+  });
+  assert.equal(JSON.stringify(deployment).includes('must-never-persist'), false);
+
+  page = await request(app)
+    .get('/hivenues/studio/' + slug + '/deploy')
+    .expect(200);
+  assert.match(page.text, /data-deployment-server-facts/);
+  assert.match(page.text, /data-deployment-ssh-verification-held/);
+  assert.doesNotMatch(page.text, /data-verify-deployment-target/);
+
+  await request(app)
+    .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/disconnect')
+    .expect(303);
+
+  deployment = services.deploymentStore.get(deployment.id);
+  assert.equal(deployment.state, 'disconnected');
+  assert.equal(deployment.authorityRef, null);
+  assert.equal(fs.existsSync(authorityPath), false);
+  assert.deepEqual(store.diagnostics().external, {
+    hiveRpcAttempts: 0,
+    hiveWrites: 0,
+    providerWrites: 0,
+    payments: 0,
+    signingAttempts: 0,
+    deployments: 0,
+  });
 });
