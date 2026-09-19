@@ -47,7 +47,7 @@ const TRANSITIONS = Object.freeze({
   'awaiting-provider': new Set(['target-ready', 'disconnected']),
   'target-ready': new Set(['host-key-review', 'verifying', 'disconnected']),
   'host-key-review': new Set(['target-ready', 'disconnected']),
-  verifying: new Set(['bootstrap-ready', 'degraded', 'unreachable', 'disconnected']),
+  verifying: new Set(['host-key-review', 'bootstrap-ready', 'degraded', 'unreachable', 'disconnected']),
   'bootstrap-ready': new Set(['deploying', 'disconnected']),
   deploying: new Set(['healthy', 'rollback-available', 'awaiting-dns', 'awaiting-tls', 'degraded', 'unreachable']),
   'awaiting-dns': new Set(['awaiting-tls', 'healthy', 'degraded', 'unreachable', 'disconnected']),
