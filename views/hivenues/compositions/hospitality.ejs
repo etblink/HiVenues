@@ -8,6 +8,8 @@
   const sparseHost = !primaryActivity && graph.offers.length === 0;
   const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
   const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const communityAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.community !== false;
+  const supportAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.support !== false;
   const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
   const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
 %>
@@ -19,8 +21,8 @@
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
       <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#more-activities">More dates</a><% } %>
-      <% if (!previewMode) { %><a href="<%= hostHref %>/community">Table talk</a><% } %>
-      <% if (!previewMode && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
+      <% if (!previewMode && communityAvailable) { %><a href="<%= hostHref %>/community">Table talk</a><% } %>
+      <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
@@ -74,7 +76,7 @@
             <p class="cc-kicker">Why this place</p>
             <p><%= graph.intent.purpose %></p>
             <p><strong><%= graph.intent.participation %></strong></p>
-            <% if (!previewMode && graph.bindings.hive.valueRecipient) { %>
+            <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %>
               <p><a class="cc-link" href="<%= hostHref %>/support"><%= graph.voice.terms.support_hive || 'Leave something for the house' %></a></p>
             <% } %>
           </div>
