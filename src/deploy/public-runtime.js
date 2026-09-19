@@ -16,16 +16,23 @@ function runtimeError(code, message) {
   return error;
 }
 
-function loadRuntimeProvenance(filePath) {
+function sha256(value) {
+  return require('node:crypto').createHash('sha256').update(value).digest('hex');
+}
+
+function loadRuntimeProvenance(filePath, manifestPath) {
   let record;
+  let manifest;
   try {
     record = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   } catch (error) {
     throw runtimeError(
       'DEPLOYED_RUNTIME_PROVENANCE_UNREADABLE',
       'Deployed runtime provenance could not be read: ' + error.message,
     );
   }
+
   if (
     !record
     || record.version !== 1
@@ -35,18 +42,81 @@ function loadRuntimeProvenance(filePath) {
     || !record.packageVersion
     || typeof record.nodeVersion !== 'string'
     || !record.nodeVersion
+    || !/^[a-f0-9]{64}$/.test(String(record.bundleDigest || ''))
+    || !manifest
+    || manifest.version !== 1
+    || !Array.isArray(manifest.files)
+    || manifest.sourceSha !== record.sourceSha
+    || manifest.sourceTree !== record.sourceTree
+    || manifest.packageVersion !== record.packageVersion
+    || manifest.nodeVersion !== record.nodeVersion
+    || manifest.bundleDigest !== record.bundleDigest
   ) {
     throw runtimeError(
       'DEPLOYED_RUNTIME_PROVENANCE_INVALID',
       'Deployed runtime provenance is invalid.',
     );
   }
+
+  const manifestCore = {
+    version: manifest.version,
+    sourceSha: manifest.sourceSha,
+    sourceTree: manifest.sourceTree,
+    packageVersion: manifest.packageVersion,
+    nodeVersion: manifest.nodeVersion,
+    files: manifest.files,
+  };
+  const calculatedBundleDigest = sha256(Buffer.from(JSON.stringify(manifestCore), 'utf8'));
+  if (calculatedBundleDigest !== manifest.bundleDigest) {
+    throw runtimeError(
+      'DEPLOYED_RUNTIME_BUNDLE_DIGEST_MISMATCH',
+      'Deployed runtime bundle manifest digest changed.',
+    );
+  }
+
+  const runtimeRoot = path.dirname(path.resolve(manifestPath));
+  for (const file of manifest.files) {
+    if (
+      !file
+      || typeof file.path !== 'string'
+      || !Number.isInteger(file.bytes)
+      || file.bytes < 0
+      || !/^[a-f0-9]{64}$/.test(String(file.sha256 || ''))
+    ) {
+      throw runtimeError(
+        'DEPLOYED_RUNTIME_MANIFEST_INVALID',
+        'Deployed runtime bundle manifest contains an invalid file record.',
+      );
+    }
+    const resolved = path.resolve(runtimeRoot, file.path);
+    if (resolved !== runtimeRoot && !resolved.startsWith(runtimeRoot + path.sep)) {
+      throw runtimeError(
+        'DEPLOYED_RUNTIME_MANIFEST_INVALID',
+        'Deployed runtime bundle file escapes its runtime root.',
+      );
+    }
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+      throw runtimeError(
+        'DEPLOYED_RUNTIME_FILE_MISSING',
+        'Deployed runtime bundle file is missing: ' + file.path,
+      );
+    }
+    const bytes = fs.readFileSync(resolved);
+    if (bytes.length !== file.bytes || sha256(bytes) !== file.sha256) {
+      throw runtimeError(
+        'DEPLOYED_RUNTIME_FILE_DIGEST_MISMATCH',
+        'Deployed runtime bundle file changed: ' + file.path,
+      );
+    }
+  }
+
   return Object.freeze({
     version: 1,
     sourceSha: record.sourceSha,
     sourceTree: record.sourceTree,
     packageVersion: record.packageVersion,
     nodeVersion: record.nodeVersion,
+    bundleDigest: record.bundleDigest,
   });
 }
 
@@ -54,12 +124,13 @@ function createDeployedPublicApp({
   packagePath,
   runtimeStatePath,
   provenancePath,
+  manifestPath,
   root = path.join(__dirname, '..', '..'),
   now = Date.now,
   idFactory,
 } = {}) {
-  if (!packagePath || !runtimeStatePath || !provenancePath) {
-    throw new TypeError('Deployed public runtime requires package, state and provenance paths.');
+  if (!packagePath || !runtimeStatePath || !provenancePath || !manifestPath) {
+    throw new TypeError('Deployed public runtime requires package, state, provenance and manifest paths.');
   }
 
   const store = new DeployedReleaseStore({
@@ -68,7 +139,7 @@ function createDeployedPublicApp({
     now,
     ...(idFactory ? { idFactory } : {}),
   });
-  const provenance = loadRuntimeProvenance(provenancePath);
+  const provenance = loadRuntimeProvenance(provenancePath, manifestPath);
   const app = express();
 
   app.disable('x-powered-by');
@@ -110,6 +181,7 @@ function createDeployedPublicApp({
       sourceTree: provenance.sourceTree,
       packageVersion: provenance.packageVersion,
       nodeVersion: provenance.nodeVersion,
+      bundleDigest: provenance.bundleDigest,
       platform: process.platform + '-' + process.arch,
     },
     deployment: {
