@@ -103,6 +103,14 @@ class ExactReleaseDeploymentCoordinator {
         'Server target is not in an accepted mutation state.',
       );
     }
+    const verifiedOs = String(record.targetPublicFacts?.verifiedOs || '');
+    const verifiedArchitecture = String(record.targetPublicFacts?.verifiedArchitecture || '');
+    if (!/Debian GNU\/Linux 13/i.test(verifiedOs) || verifiedArchitecture !== 'x86_64') {
+      throw coordinatorError(
+        'DEPLOYMENT_TARGET_PROFILE_UNSUPPORTED',
+        'Reference bootstrap currently requires verified Debian GNU/Linux 13 on x86_64.',
+      );
+    }
     if (!record.selectedRelease || !record.package) {
       throw coordinatorError(
         'DEPLOYMENT_RELEASE_REQUIRED',
