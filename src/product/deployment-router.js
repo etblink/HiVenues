@@ -99,6 +99,30 @@ function ownedDeployment(services, hostSlug, deploymentId) {
   return record;
 }
 
+function requireSyntheticTarget(deployment) {
+  if (deployment.providerKind !== 'synthetic-offline') {
+    const error = new Error('This operation is available only for the offline synthetic target.');
+    error.code = 'DEPLOYMENT_TARGET_KIND_INVALID';
+    throw error;
+  }
+  return deployment;
+}
+
+function requireHostKeyAcceptance(body = {}) {
+  if (Object.keys(body).some((key) => key !== 'fingerprint')) {
+    const error = new Error('Host-key review accepts only the exact observed fingerprint.');
+    error.code = 'DEPLOYMENT_HOST_KEY_REVIEW_FIELDS_INVALID';
+    throw error;
+  }
+  const fingerprint = String(body.fingerprint || '').trim();
+  if (!fingerprint) {
+    const error = new Error('Choose the exact observed SSH host fingerprint to continue.');
+    error.code = 'DEPLOYMENT_HOST_KEY_REVIEW_REQUIRED';
+    throw error;
+  }
+  return fingerprint;
+}
+
 function createHiVenuesDeploymentRouter({
   store,
   services = null,
@@ -131,6 +155,7 @@ function createHiVenuesDeploymentRouter({
       deploymentAvailable: Boolean(active),
       deploymentProfile: active?.adapters?.synthetic?.profile?.() || null,
       deploymentAuthorityAvailable: Boolean(active?.authorityStore),
+      deploymentVerificationAvailable: Boolean(active?.targetVerifier),
       deployments,
       error,
     });
@@ -145,6 +170,19 @@ function createHiVenuesDeploymentRouter({
       return render(req, res, {
         status: deploymentErrorStatus(error),
         error: error.message || 'Deployment simulation could not continue.',
+      });
+    }
+  };
+
+  const mutateAsync = (handler) => async (req, res) => {
+    try {
+      const active = requireServices(services);
+      await handler(active, req);
+      return res.redirect(303, `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy`);
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: error.message || 'Deployment verification could not continue.',
       });
     }
   };
@@ -234,20 +272,44 @@ function createHiVenuesDeploymentRouter({
   }));
 
   router.post('/studio/:slug/deploy/:deploymentId/target-ready', mutate((active, req) => {
-    ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    requireSyntheticTarget(deployment);
     active.adapters.synthetic.markTargetReady(req.params.deploymentId, {
       host: 'synthetic.local',
       port: 0,
     });
   }));
 
-  router.post('/studio/:slug/deploy/:deploymentId/verify', mutate((active, req) => {
-    ownedDeployment(active, req.params.slug, req.params.deploymentId);
-    active.adapters.synthetic.verify(req.params.deploymentId);
+  router.post('/studio/:slug/deploy/:deploymentId/verify', mutateAsync(async (active, req) => {
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (deployment.providerKind === 'synthetic-offline') {
+      active.adapters.synthetic.verify(req.params.deploymentId);
+      return;
+    }
+    if (deployment.providerKind !== 'ssh-server' || !active.targetVerifier) {
+      const error = new Error('Read-only SSH verification is unavailable in this runtime.');
+      error.code = 'DEPLOYMENT_SSH_VERIFICATION_UNAVAILABLE';
+      throw error;
+    }
+    await active.targetVerifier.verify(req.params.deploymentId);
+  }));
+
+  router.post('/studio/:slug/deploy/:deploymentId/host-key/accept', mutate((active, req) => {
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (deployment.providerKind !== 'ssh-server' || !active.targetVerifier) {
+      const error = new Error('SSH host-key review is unavailable in this runtime.');
+      error.code = 'DEPLOYMENT_SSH_VERIFICATION_UNAVAILABLE';
+      throw error;
+    }
+    active.targetVerifier.acceptObservedHostKey(
+      req.params.deploymentId,
+      requireHostKeyAcceptance(req.body),
+    );
   }));
 
   router.post('/studio/:slug/deploy/:deploymentId/deploy', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    requireSyntheticTarget(deployment);
     if (!deployment.selectedRelease) {
       const error = new Error('Choose and package an immutable Release before deployment.');
       error.code = 'DEPLOYMENT_RELEASE_REQUIRED';
@@ -262,12 +324,14 @@ function createHiVenuesDeploymentRouter({
   }));
 
   router.post('/studio/:slug/deploy/:deploymentId/degrade', mutate((active, req) => {
-    ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    requireSyntheticTarget(deployment);
     active.adapters.synthetic.degrade(req.params.deploymentId);
   }));
 
   router.post('/studio/:slug/deploy/:deploymentId/rollback', mutate((active, req) => {
-    ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    requireSyntheticTarget(deployment);
     active.adapters.synthetic.rollback(req.params.deploymentId);
   }));
 
@@ -289,4 +353,5 @@ function createHiVenuesDeploymentRouter({
 module.exports = {
   createHiVenuesDeploymentRouter,
   requireConnectionFacts,
+  requireHostKeyAcceptance,
 };
