@@ -16,7 +16,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
-const { createLocalDeploymentServices } = require('../src/product/deployment');
+const { createInstalledDeploymentServices, createLocalDeploymentServices } = require('../src/product/deployment');
 const { ScriptedSshVerificationTransport } = require('../src/product/deployment-target-verification');
 const { HiVenuesStore } = require('../src/product/store');
 const { seedHiVenuesHosts } = require('../src/product/fixtures');
@@ -2698,6 +2698,220 @@ async function runDeploymentStage2BVerificationEvidence(browser, axeSource, mani
   }
 }
 
+function scriptedExactRemoteTargetFactory(calls) {
+  return (options) => {
+    calls.push({
+      kind: 'target-created',
+      host: options.target.host,
+      port: options.target.port,
+      username: options.target.username,
+      bootstrapUsername: options.bootstrapUsername,
+      expectedHostKeyFingerprint: options.expectedHostKeyFingerprint,
+      authorityId: options.authorityId,
+    });
+    let runtime = null;
+    let release = null;
+    let active = false;
+    return {
+      async installRuntime(runtimeRoot) {
+        runtime = JSON.parse(
+          fs.readFileSync(path.join(runtimeRoot, 'runtime-provenance.json'), 'utf8'),
+        );
+        calls.push({ kind: 'install-runtime', bundleDigest: runtime.bundleDigest });
+        return {
+          provenance: runtime,
+          path: '/opt/hivenues/runtime/' + runtime.bundleDigest,
+        };
+      },
+      async installRelease(packageRoot) {
+        release = JSON.parse(
+          fs.readFileSync(path.join(packageRoot, 'manifest.json'), 'utf8'),
+        );
+        calls.push({ kind: 'install-release', releaseId: release.releaseId });
+        return {
+          manifest: release,
+          path: '/srv/hivenues/releases/' + release.releaseId,
+        };
+      },
+      async activate() {
+        calls.push({ kind: 'activate' });
+        active = true;
+      },
+      async readBack() {
+        if (!active) return null;
+        calls.push({ kind: 'read-back' });
+        return {
+          status: 'healthy',
+          runtime: {
+            sourceSha: runtime.sourceSha,
+            sourceTree: runtime.sourceTree,
+            packageVersion: runtime.packageVersion,
+            nodeVersion: runtime.nodeVersion,
+            bundleDigest: runtime.bundleDigest,
+          },
+          deployment: {
+            hostSlug: release.hostSlug,
+            releaseId: release.releaseId,
+            releaseDigest: release.releaseDigest,
+            packageDigest: release.packageDigest,
+          },
+          bootstrap: {
+            profile: 'debian-systemd-caddy-v1',
+            runtimeUser: 'hivenues',
+            deploymentUser: 'hivenues-deploy',
+            runtimePort: 4317,
+            authorityState: 'restricted-deployment-user',
+          },
+        };
+      },
+    };
+  };
+}
+
+async function runDeploymentStage3BCompositionEvidence(browser, axeSource, manifest) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-browser-era7-stage3b-'));
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
+  const slug = 'harbor-and-hearth';
+  const snapshot = store.snapshot(slug);
+  const created = store.createRelease(slug, snapshot.revision, snapshot.draftDigest);
+  assert.equal(created.ok, true);
+  const beforeDiagnostics = store.diagnostics();
+  const beforeHost = JSON.stringify(store.snapshot(slug));
+  const fingerprint = 'SHA256:Stage3BBrowserHostFingerprint000000000000000';
+  const verificationTransport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      os: 'Debian GNU/Linux 13',
+      architecture: 'x86_64',
+      memoryMb: 1024,
+      diskMb: 20480,
+    },
+  });
+  const protector = Object.freeze({
+    kind: 'browser-test-protector',
+    protect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+    unprotect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+  });
+  const mutationCalls = [];
+  const sourceSha = /^[a-f0-9]{40}$/.test(EXACT_SHA) ? EXACT_SHA : 'c'.repeat(40);
+  const sourceTree = /^[a-f0-9]{40}$/.test(EXACT_TREE) ? EXACT_TREE : 'd'.repeat(40);
+  const deploymentServices = createInstalledDeploymentServices({
+    store,
+    statePath: path.join(root, 'deployment', 'state.json'),
+    packageRoot: path.join(root, 'deployment', 'packages'),
+    mediaRoot: path.join(root, 'media'),
+    authorityRoot: path.join(root, 'deployment', 'authority'),
+    authorityProtector: protector,
+    verificationTransport,
+    authorityIdFactory: () => 'browser-stage3b-authority',
+    authorityKeyPairFactory: () => Object.freeze({
+      algorithm: 'rsa',
+      modulusLength: 3072,
+      privateKeyPem: 'browser-stage3b-private-material-'.repeat(8),
+      publicKeyOpenSsh: 'ssh-rsa AAAABROWSERSTAGE3B hivenues-deployment',
+      publicKeyFingerprint: 'SHA256:Stage3BDeploymentPublicFingerprint000000000000',
+    }),
+    runtimeBundlesRoot: path.join(root, 'deployment', 'runtime-bundles'),
+    buildProvenance: {
+      sourceSha,
+      sourceTree,
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+    remoteTargetFactory: scriptedExactRemoteTargetFactory(mutationCalls),
+    now: () => Date.parse('2026-09-19T17:30:00.000Z'),
+    idFactory: () => 'browser-stage3b-target',
+  });
+  const app = createHiVenuesApp({
+    store,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices,
+  });
+  const server = await startHiVenuesServer(app, { port: 0 });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/hivenues/studio/' + slug + '/deploy', { waitUntil: 'networkidle' });
+    await page.locator('[data-deployment-stage3b]').waitFor();
+    await page.locator('[data-create-reference-ssh-target]').click();
+    const record = page.locator('[data-deployment-record]');
+    await record.waitFor();
+    const deploymentId = await record.getAttribute('data-deployment-record');
+    assert.equal(deploymentId, 'deployment-browser-stage3b-target');
+
+    const connection = record.locator('[data-deployment-server-connection]');
+    await connection.locator('input[name="host"]').fill('203.0.113.30');
+    await connection.locator('input[name="port"]').fill('22');
+    await connection.locator('input[name="username"]').fill('root');
+    await connection.locator('button[type="submit"]').click();
+
+    await page.locator('[data-observe-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'host-key-review');
+    await page.locator('[data-accept-deployment-host-key]').click();
+    await page.locator('[data-observe-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'bootstrap-ready');
+
+    const releaseForm = page.locator('[data-select-deployment-release]');
+    await releaseForm.locator('select[name="releaseId"]').selectOption(created.release.id);
+    await releaseForm.locator('button[type="submit"]').click();
+    await page.locator('[data-deployment-consequence-review]').waitFor();
+    assert.equal(await page.locator('[data-deploy-release]').count(), 0);
+    await capture(page, axeSource, manifest, 'era7-stage3b-ready-for-consequence-review-desktop');
+
+    await page.locator('[data-review-exact-deployment]').click();
+    await page.locator('[data-deployment-exact-review]').waitFor();
+    assert.equal(await page.locator('[data-review-release-id]').textContent(), created.release.id);
+    assert.equal(await page.locator('[data-review-source-sha]').textContent(), sourceSha);
+    assert.equal(await page.locator('[data-review-source-tree]').textContent(), sourceTree);
+    assert.equal(await page.locator('[data-review-host-fingerprint]').textContent(), fingerprint);
+    assert.equal(await page.locator('[data-deployment-review-held] code').allTextContents().then(
+      (items) => items.includes('dns-mutation') && items.includes('tls-issuance'),
+    ), true);
+    await capture(page, axeSource, manifest, 'era7-stage3b-exact-consequence-review-desktop');
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'era7-stage3b-exact-consequence-review-mobile390');
+
+    await page.locator('input[name="confirmation"]').check();
+    await page.locator('[data-confirm-exact-deployment]').click();
+    await page.locator('[data-deployment-record]').waitFor();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'healthy');
+    assert.equal(await page.locator('[data-active-release]').textContent(), created.release.id);
+    assert.equal(await page.locator('[data-deployment-consequence-review]').count(), 1);
+
+    assert.deepEqual(
+      mutationCalls.map((item) => item.kind),
+      ['target-created', 'install-runtime', 'install-release', 'activate', 'read-back'],
+    );
+    assert.equal(mutationCalls[0].host, '203.0.113.30');
+    assert.equal(mutationCalls[0].username, 'root');
+    assert.equal(mutationCalls[0].bootstrapUsername, 'root');
+    assert.equal(mutationCalls[0].expectedHostKeyFingerprint, fingerprint);
+    assert.equal(mutationCalls[0].authorityId, 'authority-browser-stage3b-authority');
+
+    assert.deepEqual(store.diagnostics(), beforeDiagnostics);
+    assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
+    assert.deepEqual(counters.externalRequests, []);
+    assert.deepEqual(counters.consoleErrors, []);
+  } finally {
+    await context.close();
+    await stopServer(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function publicReleaseInvariant(snapshot) {
   return {
     revision: snapshot.revision,
@@ -2763,6 +2977,7 @@ async function main() {
       'era7-stage1-local-deployment-lifecycle',
       'era7-stage2a-protected-server-handoff',
       'era7-stage2b-readonly-ssh-verification',
+      'era7-stage3b-exact-deployment-consequence-review',
       'account-reviewed',
       'awaiting-wallet',
       'verified',
@@ -2950,6 +3165,7 @@ async function main() {
     await runDeploymentStage1Evidence(browser, axeSource, manifest);
     await runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifest);
     await runDeploymentStage2BVerificationEvidence(browser, axeSource, manifest);
+    await runDeploymentStage3BCompositionEvidence(browser, axeSource, manifest);
   } finally {
     await browser.close();
     await stopServer(server);
