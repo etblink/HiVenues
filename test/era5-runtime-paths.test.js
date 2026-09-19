@@ -24,7 +24,11 @@ test('Windows installed data belongs under LOCALAPPDATA, not the app or reposito
   });
   assert.match(paths.statePath, /HiVenues Studio[\\/]workspace[\\/]state\.json$/);
   assert.match(paths.mediaRoot, /HiVenues Studio[\\/]media$/);
+  assert.match(paths.deploymentStatePath, /HiVenues Studio[\\/]deployment[\\/]state\.json$/);
+  assert.match(paths.deploymentPackagesRoot, /HiVenues Studio[\\/]deployment[\\/]packages$/);
+  assert.match(paths.deploymentAuthorityRoot, /HiVenues Studio[\\/]deployment[\\/]authority$/);
   assert.match(paths.instanceLockPath, /HiVenues Studio[\\/]runtime\.lock$/);
+  assert.notEqual(paths.deploymentStatePath, paths.statePath);
 });
 
 test('Windows installed data has a bounded homedir fallback when LOCALAPPDATA is unavailable', () => {
