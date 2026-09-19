@@ -44,6 +44,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
   const publicJs = fs.readdirSync(path.join(ROOT, 'public', 'js')).filter((file) => file.startsWith('hivenues'));
   assert.deepEqual(publicJs, [
     'hivenues-content.js',
+    'hivenues-deployment.js',
     'hivenues-identity.js',
     'hivenues-participation.js',
     'hivenues-reward-claim.js',
@@ -61,7 +62,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/hivenues-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js|\/js\/hivenues-support\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/hivenues-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-deployment\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js|\/js\/hivenues-support\.js/,
         `${relative}: ${tag}`,
       );
       if (/hivenues-identity/.test(tag)) {
@@ -97,6 +98,13 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
           relative,
           /^views\/hivenues\/social\/(poster|editorial|hospitality)-member\.ejs$/,
           `${relative}: reward claim client escaped the verified member surface`,
+        );
+      }
+      if (/hivenues-deployment/.test(tag)) {
+        assert.equal(
+          relative,
+          'views/hivenues/deployment.ejs',
+          `${relative}: deployment client escaped the deployment authority surface`,
         );
       }
       if (/hivenues-support/.test(tag)) {

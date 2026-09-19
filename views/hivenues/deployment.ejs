@@ -4,17 +4,18 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
-  <main class="cc-task" data-deployment-stage1>
+  <main class="cc-task" data-deployment-stage1 <%= deploymentAuthorityAvailable ? 'data-deployment-stage2a' : '' %>>
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
       <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
 
-    <p class="cc-kicker">Deployment · Stage 1</p>
-    <h1>Prepare an exact Release without touching a real server.</h1>
+    <p class="cc-kicker">Deployment · qualification boundary</p>
+    <h1>Prepare an exact Release and deployment target safely.</h1>
     <p class="cc-task__dek">
-      This screen exercises the deployment product locally. The only admitted target is synthetic/offline.
-      No SSH connection, provider write, DNS change, TLS request, payment or public deployment can occur here.
+      Offline simulation remains available everywhere. Installed Windows HiVenues may also create a protected
+      deployment-only SSH authority for provider handoff. Real SSH inspection, server mutation, DNS, TLS,
+      payment and public deployment remain unavailable at this stage.
     </p>
 
     <% if (error) { %>
@@ -44,6 +45,20 @@
         </form>
       </section>
 
+      <% if (deploymentAuthorityAvailable) { %>
+        <section class="cc-review-card" data-deployment-authority-profile style="margin-top:1.2rem">
+          <p class="cc-kicker">Reference server handoff</p>
+          <h2>Prepare a protected SSH deployment identity</h2>
+          <p>
+            HiVenues can generate a deployment-only key locally. The private key is protected by the
+            operating system and is not shown here. Only the public key is handed to the server provider.
+          </p>
+          <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets/reference-ssh">
+            <button class="cc-button" type="submit" data-create-reference-ssh-target>Prepare server target</button>
+          </form>
+        </section>
+      <% } %>
+
       <% if (!releases.length) { %>
         <section class="cc-review-card" data-deployment-no-release style="margin-top:1.2rem">
           <h2>Create a Release first</h2>
@@ -64,7 +79,7 @@
           <% deployments.forEach((deployment) => { %>
             <article class="cc-review-card" data-deployment-record="<%= deployment.id %>">
               <div>
-                <p class="cc-kicker">Synthetic target</p>
+                <p class="cc-kicker"><%= deployment.providerKind === 'synthetic-offline' ? 'Synthetic target' : 'Server target' %></p>
                 <h3><%= deployment.id %></h3>
                 <p>
                   State:
@@ -73,6 +88,38 @@
                 <p>Provider: <%= deployment.providerKind %> · <%= deployment.providerProfile %></p>
                 <p>Provider state: <%= deployment.providerState %> · Payment state: <%= deployment.paymentState %></p>
                 <p>Health: <%= deployment.healthState %> · Rollback: <%= deployment.rollbackState %></p>
+
+                <% if (deployment.authorityPublic) { %>
+                  <section class="cc-consequence-card" data-deployment-authority-public>
+                    <h4>Deployment public key</h4>
+                    <p>
+                      This public key may be supplied to the server provider. The protected private key remains
+                      local to this HiVenues installation.
+                    </p>
+                    <label>
+                      Public SSH key
+                      <textarea
+                        rows="5"
+                        readonly
+                        data-deployment-public-key
+                      ><%= deployment.authorityPublic.publicKey %></textarea>
+                    </label>
+                    <p>Key fingerprint: <code data-deployment-public-key-fingerprint><%= deployment.authorityPublic.publicKeyFingerprint %></code></p>
+                    <button
+                      class="cc-button"
+                      type="button"
+                      data-copy-deployment-public-key
+                    >Copy public key</button>
+                    <span data-copy-deployment-public-key-status role="status" aria-live="polite"></span>
+                  </section>
+                <% } %>
+
+                <% if (deployment.providerKind === 'ssh-server' && Object.keys(deployment.targetPublicFacts || {}).length) { %>
+                  <p data-deployment-server-facts>
+                    Server:
+                    <code><%= deployment.targetPublicFacts.username %>@<%= deployment.targetPublicFacts.host %>:<%= deployment.targetPublicFacts.port %></code>
+                  </p>
+                <% } %>
 
                 <% if (deployment.selectedRelease) { %>
                   <p>
@@ -101,6 +148,28 @@
 
               <% if (deployment.state !== 'disconnected') { %>
                 <div style="display:grid;gap:.8rem;margin-top:1rem">
+                  <% if (deployment.providerKind === 'ssh-server' && ['target-draft', 'awaiting-provider'].includes(deployment.state)) { %>
+                    <form
+                      method="post"
+                      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/connection"
+                      data-deployment-server-connection
+                    >
+                      <label>
+                        Server address
+                        <input name="host" required autocomplete="off" inputmode="url" placeholder="server.example.com or IP address">
+                      </label>
+                      <label>
+                        SSH port
+                        <input name="port" required type="number" min="1" max="65535" value="22">
+                      </label>
+                      <label>
+                        Remote account
+                        <input name="username" required autocomplete="off" value="root">
+                      </label>
+                      <button class="cc-button" type="submit">Save public server details</button>
+                    </form>
+                  <% } %>
+
                   <% if (releases.length) { %>
                     <form
                       method="post"
@@ -125,20 +194,21 @@
                     </form>
                   <% } %>
 
-                  <% if (deployment.state === 'target-draft' || deployment.state === 'awaiting-provider') { %>
+                  <% if (deployment.providerKind === 'synthetic-offline' && (deployment.state === 'target-draft' || deployment.state === 'awaiting-provider')) { %>
                     <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/target-ready">
                       <button class="cc-button" type="submit" data-mark-target-ready>Simulate provider handoff</button>
                     </form>
                   <% } %>
 
-                  <% if (deployment.state === 'target-ready' || deployment.state === 'degraded' || deployment.state === 'unreachable') { %>
+                  <% if (deployment.providerKind === 'synthetic-offline' && (deployment.state === 'target-ready' || deployment.state === 'degraded' || deployment.state === 'unreachable')) { %>
                     <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/verify">
                       <button class="cc-button" type="submit" data-verify-deployment-target>Verify synthetic target</button>
                     </form>
                   <% } %>
 
                   <% if (
-                    deployment.selectedRelease
+                    deployment.providerKind === 'synthetic-offline'
+                    && deployment.selectedRelease
                     && deployment.package
                     && ['bootstrap-ready', 'healthy', 'rollback-available', 'degraded'].includes(deployment.state)
                   ) { %>
@@ -147,16 +217,23 @@
                     </form>
                   <% } %>
 
-                  <% if (deployment.state === 'healthy' || deployment.state === 'rollback-available') { %>
+                  <% if (deployment.providerKind === 'synthetic-offline' && (deployment.state === 'healthy' || deployment.state === 'rollback-available')) { %>
                     <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/degrade">
                       <button class="cc-button" type="submit" data-degrade-deployment>Simulate degraded health</button>
                     </form>
                   <% } %>
 
-                  <% if (deployment.previousRelease && ['rollback-available', 'healthy', 'degraded'].includes(deployment.state)) { %>
+                  <% if (deployment.providerKind === 'synthetic-offline' && deployment.previousRelease && ['rollback-available', 'healthy', 'degraded'].includes(deployment.state)) { %>
                     <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/rollback">
                       <button class="cc-button" type="submit" data-rollback-deployment>Simulate rollback</button>
                     </form>
+                  <% } %>
+
+                  <% if (deployment.providerKind === 'ssh-server' && deployment.state === 'target-ready') { %>
+                    <section class="cc-review-card" data-deployment-ssh-verification-held>
+                      <strong>Server details ready for verification</strong>
+                      <p>Read-only SSH inspection is the next qualified boundary and is not enabled by this screen yet.</p>
+                    </section>
                   <% } %>
 
                   <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect">
@@ -181,11 +258,13 @@
       <section class="cc-consequence-card" style="margin-top:2rem" data-deployment-stage1-boundary>
         <h2>Authority boundary</h2>
         <p>
-          Stage 1 stores deployment state and deterministic Release packages locally only.
-          It does not generate a production deployment key and cannot contact Privex or any other server.
+          Synthetic deployment remains local-only. Where protected authority is available, HiVenues may
+          generate a deployment-only key and record public server facts, but this stage still performs no
+          SSH connection, server mutation, provider write, DNS/TLS mutation, payment or public deployment.
         </p>
       </section>
     <% } %>
   </main>
+  <script defer src="/js/hivenues-deployment.js"></script>
 </body>
 </html>

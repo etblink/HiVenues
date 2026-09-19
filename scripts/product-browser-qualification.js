@@ -2464,6 +2464,118 @@ async function runDeploymentStage1Evidence(browser, axeSource, manifest) {
   }
 }
 
+async function runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifest) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-browser-era7-stage2a-'));
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
+  const slug = 'harbor-and-hearth';
+  const beforeDiagnostics = store.diagnostics();
+  const beforeHost = JSON.stringify(store.snapshot(slug));
+
+  const protector = Object.freeze({
+    kind: 'browser-test-protector',
+    protect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+    unprotect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+  });
+  const deploymentServices = createLocalDeploymentServices({
+    store,
+    statePath: path.join(root, 'deployment', 'state.json'),
+    packageRoot: path.join(root, 'deployment', 'packages'),
+    mediaRoot: path.join(root, 'media'),
+    authorityRoot: path.join(root, 'deployment', 'authority'),
+    authorityProtector: protector,
+    authorityIdFactory: () => 'browser-stage2a-authority',
+    authorityKeyPairFactory: () => Object.freeze({
+      algorithm: 'rsa',
+      modulusLength: 3072,
+      privateKeyPem: 'browser-only-private-material',
+      publicKeyOpenSsh: 'ssh-rsa AAAABROWSERQUALIFICATION hivenues-deployment',
+      publicKeyFingerprint: 'SHA256:BrowserQualificationFingerprint000000000000000',
+    }),
+    now: () => Date.parse('2026-09-19T12:30:00.000Z'),
+    idFactory: () => 'browser-stage2a-target',
+  });
+  const app = createHiVenuesApp({
+    store,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices,
+  });
+  const server = await startHiVenuesServer(app, { port: 0 });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/hivenues/studio/' + slug + '/deploy', { waitUntil: 'networkidle' });
+    await page.locator('[data-deployment-stage2a]').waitFor();
+    await page.locator('[data-deployment-authority-profile]').waitFor();
+
+    await page.locator('[data-create-reference-ssh-target]').click();
+    const record = page.locator('[data-deployment-record]');
+    await record.waitFor();
+    const deploymentId = await record.getAttribute('data-deployment-record');
+    assert.equal(deploymentId, 'deployment-browser-stage2a-target');
+    assert.equal(await record.locator('[data-deployment-state]').textContent(), 'awaiting-provider');
+    assert.equal(await record.locator('[data-deployment-authority-public]').count(), 1);
+    assert.equal(
+      await record.locator('[data-deployment-public-key]').inputValue(),
+      'ssh-rsa AAAABROWSERQUALIFICATION hivenues-deployment',
+    );
+    assert.equal(
+      await record.locator('[data-deployment-public-key-fingerprint]').textContent(),
+      'SHA256:BrowserQualificationFingerprint000000000000000',
+    );
+    assert.equal(await record.locator('[data-verify-deployment-target]').count(), 0);
+    await capture(page, axeSource, manifest, 'era7-stage2a-protected-authority-desktop');
+
+    const form = record.locator('[data-deployment-server-connection]');
+    await form.locator('input[name="host"]').fill('203.0.113.10');
+    await form.locator('input[name="port"]').fill('22');
+    await form.locator('input[name="username"]').fill('root');
+    await form.locator('button[type="submit"]').click();
+
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
+    assert.equal(await page.locator('[data-deployment-server-facts]').count(), 1);
+    assert.equal(await page.locator('[data-deployment-ssh-verification-held]').count(), 1);
+    assert.equal(await page.locator('[data-verify-deployment-target]').count(), 0);
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'era7-stage2a-server-ready-mobile390');
+
+    const authorityPath = path.join(
+      root,
+      'deployment',
+      'authority',
+      'authority-browser-stage2a-authority.json',
+    );
+    const rawAuthority = fs.readFileSync(authorityPath, 'utf8');
+    assert.equal(rawAuthority.includes('browser-only-private-material'), false);
+    assert.equal(rawAuthority.includes('protectedPrivateKey'), true);
+
+    await page.locator('[data-disconnect-deployment]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'disconnected');
+    assert.equal(fs.existsSync(authorityPath), false);
+
+    assert.deepEqual(store.diagnostics(), beforeDiagnostics);
+    assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
+    assert.deepEqual(counters.externalRequests, []);
+    assert.deepEqual(counters.consoleErrors, []);
+  } finally {
+    await context.close();
+    await stopServer(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function publicReleaseInvariant(snapshot) {
   return {
     revision: snapshot.revision,
@@ -2527,6 +2639,7 @@ async function main() {
       'studio-progressive-account-onboarding',
       'external-account-creation-handoff-resume',
       'era7-stage1-local-deployment-lifecycle',
+      'era7-stage2a-protected-server-handoff',
       'account-reviewed',
       'awaiting-wallet',
       'verified',
@@ -2712,6 +2825,7 @@ async function main() {
       identityServices,
     );
     await runDeploymentStage1Evidence(browser, axeSource, manifest);
+    await runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifest);
   } finally {
     await browser.close();
     await stopServer(server);
@@ -2894,6 +3008,8 @@ async function main() {
     'era7-stage1-release-a-healthy-desktop',
     'era7-stage1-rollback-mobile390',
     'era7-stage1-disconnected-mobile390',
+    'era7-stage2a-protected-authority-desktop',
+    'era7-stage2a-server-ready-mobile390',
   ]) {
     assert.equal(
       screenshotLabels.includes(requiredLabel),

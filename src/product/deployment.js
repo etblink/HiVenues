@@ -2,6 +2,7 @@
 
 const path = require('node:path');
 
+const { FileDeploymentAuthorityStore } = require('./deployment-authority');
 const { createDeploymentPackageBuilder } = require('./deployment-package');
 const { FileDeploymentStore } = require('./deployment-store');
 const { SyntheticDeploymentAdapter } = require('./synthetic-deployment-adapter');
@@ -12,6 +13,10 @@ function createLocalDeploymentServices({
   packageRoot,
   mediaRoot,
   publicRoot = path.join(__dirname, '..', '..', 'public'),
+  authorityRoot = '',
+  authorityProtector = null,
+  authorityIdFactory,
+  authorityKeyPairFactory,
   now = Date.now,
   idFactory,
 } = {}) {
@@ -35,11 +40,21 @@ function createLocalDeploymentServices({
     store: deploymentStore,
     now,
   });
+  const authorityStore = authorityRoot && authorityProtector
+    ? new FileDeploymentAuthorityStore({
+        root: authorityRoot,
+        protector: authorityProtector,
+        now,
+        ...(authorityIdFactory ? { idFactory: authorityIdFactory } : {}),
+        ...(authorityKeyPairFactory ? { keyPairFactory: authorityKeyPairFactory } : {}),
+      })
+    : null;
 
   return Object.freeze({
-    kind: 'local-stage1',
+    kind: authorityStore ? 'local-stage2a' : 'local-stage1',
     deploymentStore,
     packageBuilder,
+    authorityStore,
     adapters: Object.freeze({
       synthetic: syntheticAdapter,
     }),
