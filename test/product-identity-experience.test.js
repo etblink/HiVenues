@@ -110,7 +110,13 @@ test('canonical social hubs introduce one host-native identity mechanic across t
     assert.match(response.text, /data-identity-state="not-identified"/);
     assert.match(response.text, new RegExp(host.copy));
     assert.match(response.text, new RegExp(host.action));
-    assert.match(response.text, /Your wallet signs a fresh identity message only/);
+    assert.match(response.text, /Connect an existing Hive account/);
+    assert.match(response.text, /Create an account without giving HiVenues your keys/);
+    assert.match(response.text, /href="https:\/\/signup\.hive\.io\/"[^>]*data-identity-create-account|data-identity-create-account[^>]*href="https:\/\/signup\.hive\.io\//);
+    assert.match(response.text, /data-identity-not-now/);
+    assert.match(response.text, /Continue without Hive/);
+    assert.match(response.text, /HiVenues checks that the public account exists before your wallet opens/);
+    assert.match(response.text, /Your wallet then signs a fresh identity message only/);
     assert.match(response.text, /does not post, follow, vote, pay, or broadcast a Hive transaction/);
     assert.match(response.text, /\/js\/keychain-adapter\.js/);
     assert.match(response.text, /\/js\/hivenues-identity\.js/);
