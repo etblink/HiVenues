@@ -878,8 +878,19 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
         await page.locator('[data-identity-state="not-identified"]').waitFor();
         const text = await page.locator('.cc-identity').textContent();
         assert.ok(text.includes(host.heading), host.slug + ': Direction identity heading missing');
+        assert.ok(text.includes('Connect an existing Hive account'), host.slug + ': existing-account path missing');
+        assert.ok(text.includes('Create an account without giving HiVenues your keys'), host.slug + ': create-account path missing');
+        assert.ok(text.includes('Keep using this host without connecting Hive'), host.slug + ': not-now path missing');
         assert.ok(text.includes('private key'), host.slug + ': key-custody truth missing');
         assert.ok(text.includes('does not post'), host.slug + ': consequence truth missing');
+        const createAccount = page.locator('[data-identity-create-account]');
+        assert.equal(await createAccount.getAttribute('href'), 'https://signup.hive.io/');
+        assert.equal(await createAccount.getAttribute('target'), '_blank');
+        assert.match(await createAccount.getAttribute('rel'), /noopener/);
+        assert.equal(
+          await page.locator('[data-identity-not-now]').getAttribute('href'),
+          '/hivenues/' + host.slug,
+        );
         const record = await capture(
           page,
           axeSource,
@@ -2256,6 +2267,7 @@ async function main() {
     audits: [],
     scenarios: [
       'three-direction-not-identified',
+      'progressive-account-onboarding',
       'awaiting-wallet',
       'verified',
       'disconnect',
