@@ -50,8 +50,8 @@ function createReferenceBootstrapPlan({
   const packageDigest = requireDigest(releaseManifest.packageDigest, 'Release package');
   const runtimeRoot = '/opt/hivenues/runtime/' + bundleDigest;
   const releaseRoot = '/srv/hivenues/releases/' + releaseManifest.releaseId + '-' + releaseDigest.slice(0, 12);
-  const runtimeCurrent = '/opt/hivenues/current';
-  const releaseCurrent = '/srv/hivenues/current/' + hostSlug;
+  const runtimeCurrent = '/opt/hivenues/runtime/current';
+  const releaseCurrent = '/srv/hivenues/releases/current-' + hostSlug;
   const stateRoot = '/var/lib/hivenues/' + hostSlug;
   if (runtimeProvenance.nodeVersion !== 'v24.19.0') {
     throw planError(
