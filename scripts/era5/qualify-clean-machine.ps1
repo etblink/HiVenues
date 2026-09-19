@@ -177,6 +177,12 @@ $uninstaller = Join-Path $installDir 'Uninstall.exe'
 Assert-True (Test-Path -LiteralPath $launcher -PathType Leaf) 'Installed launcher is missing.'
 Assert-True (Test-Path -LiteralPath $privateNode -PathType Leaf) 'Installed private Node runtime is missing.'
 Assert-True (Test-Path -LiteralPath $uninstaller -PathType Leaf) 'Installed uninstaller is missing.'
+$publicRuntimeBuilder = Join-Path $installDir 'app\scripts\era7\build-public-runtime-bundle.js'
+$publicRuntimeEntry = Join-Path $installDir 'app\scripts\hivenues-public-runtime.js'
+$installedLicense = Join-Path $installDir 'app\LICENSE'
+Assert-True (Test-Path -LiteralPath $publicRuntimeBuilder -PathType Leaf) 'Installed public-runtime builder is missing.'
+Assert-True (Test-Path -LiteralPath $publicRuntimeEntry -PathType Leaf) 'Installed public-runtime entry is missing.'
+Assert-True (Test-Path -LiteralPath $installedLicense -PathType Leaf) 'Installed license required by public runtime is missing.'
 Assert-True (Test-Path -LiteralPath $startMenuShortcut -PathType Leaf) 'Per-user Start menu shortcut is missing.'
 Assert-True (Test-Path -LiteralPath $uninstallKey) 'Per-user Add/Remove Programs registration is missing.'
 Assert-True ((Get-ItemProperty -LiteralPath $uninstallKey).InstallLocation -eq $installDir) 'Registered install location is incorrect.'
@@ -184,6 +190,18 @@ Assert-True ((Get-ItemProperty -LiteralPath $uninstallKey).InstallLocation -eq $
 $originalPath = $env:PATH
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot;$env:SystemRoot\System32\Wbem"
 Assert-True ($null -eq (Get-Command node -ErrorAction SilentlyContinue)) 'Sanitized clean-machine launch PATH still exposes a developer Node executable.'
+Assert-True ($null -eq (Get-Command git -ErrorAction SilentlyContinue)) 'Sanitized clean-machine launch PATH still exposes Git.'
+
+$runtimeProofRoot = Join-Path $env:TEMP ('hivenues-clean-machine-runtime-' + [Guid]::NewGuid().ToString('N'))
+$builderOutput = (& $privateNode $publicRuntimeBuilder '--output' $runtimeProofRoot '--source-sha' ([string]$provenance.sourceSha) '--source-tree' ([string]$provenance.sourceTree) '--node-version' ([string]$provenance.nodeVersion) 2>&1 | Out-String)
+Assert-True ($LASTEXITCODE -eq 0) "Installed public-runtime build failed without Git/developer Node: $builderOutput"
+$runtimeProofProvenance = Get-Content -LiteralPath (Join-Path $runtimeProofRoot 'runtime-provenance.json') -Raw | ConvertFrom-Json
+Assert-True ([string]$runtimeProofProvenance.sourceSha -eq [string]$provenance.sourceSha) 'Installed public-runtime source SHA does not match installer provenance.'
+Assert-True ([string]$runtimeProofProvenance.sourceTree -eq [string]$provenance.sourceTree) 'Installed public-runtime source tree does not match installer provenance.'
+Assert-True ([string]$runtimeProofProvenance.nodeVersion -eq [string]$provenance.nodeVersion) 'Installed public-runtime Node version does not match installer provenance.'
+Assert-True ([string]$runtimeProofProvenance.packageVersion -eq [string]$provenance.packageVersion) 'Installed public-runtime package version does not match installer provenance.'
+$runtimeProofDigest = [string]$runtimeProofProvenance.bundleDigest
+Remove-Item -LiteralPath $runtimeProofRoot -Recurse -Force
 
 $stop1 = Join-Path $env:TEMP 'hivenues-clean-machine-stop-1'
 $url1 = Start-InstalledRuntime $launcher $stop1 $currentUrlPath
@@ -301,6 +319,9 @@ $evidence = [ordered]@{
     dataRoot = $dataRoot
     privateNode = $privateNode
     developerNodeAvailableOnLaunchPath = $false
+    gitAvailableOnLaunchPath = $false
+    deploymentRuntimeBundleBuiltFromInstalledProduct = $true
+    deploymentRuntimeBundleSha256 = $runtimeProofDigest
   }
   workflow = [ordered]@{
     slug = $slug

@@ -4,8 +4,12 @@ on:
   pull_request:
     paths:
       - 'src/product/**'
+      - 'src/deploy/**'
       - 'scripts/era5/**'
       - 'scripts/hivenues-installed.js'
+      - 'scripts/hivenues-public-runtime.js'
+      - 'scripts/era7/**'
+      - 'LICENSE'
       - 'native/windows/**'
       - 'package.json'
       - 'package-lock.json'

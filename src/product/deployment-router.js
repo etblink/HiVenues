@@ -16,6 +16,10 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PACKAGE_RELEASE_MISMATCH'
     || error.code === 'DEPLOYMENT_RELEASE_REQUIRED'
     || error.code === 'DEPLOYMENT_ROLLBACK_UNAVAILABLE'
+    || error.code === 'DEPLOYMENT_MUTATION_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_PACKAGE_STALE'
+    || error.code === 'DEPLOYMENT_CONSEQUENCE_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_TARGET_NOT_TRUSTED'
   ) return 409;
   return 400;
 }
@@ -108,6 +112,20 @@ function requireSyntheticTarget(deployment) {
   return deployment;
 }
 
+function requireDeploymentConsequenceSubmission(body = {}) {
+  const allowed = new Set(['reviewDigest', 'confirmation']);
+  const unexpected = Object.keys(body).filter((key) => !allowed.has(key));
+  if (unexpected.length) {
+    const error = new Error('Deployment consequence confirmation contains unexpected fields.');
+    error.code = 'DEPLOYMENT_CONSEQUENCE_FIELDS_INVALID';
+    throw error;
+  }
+  return Object.freeze({
+    reviewDigest: String(body.reviewDigest || '').trim(),
+    confirmation: String(body.confirmation || '').trim(),
+  });
+}
+
 function requireHostKeyAcceptance(body = {}) {
   if (Object.keys(body).some((key) => key !== 'fingerprint')) {
     const error = new Error('Host-key review accepts only the exact observed fingerprint.');
@@ -156,6 +174,7 @@ function createHiVenuesDeploymentRouter({
       deploymentProfile: active?.adapters?.synthetic?.profile?.() || null,
       deploymentAuthorityAvailable: Boolean(active?.authorityStore),
       deploymentVerificationAvailable: Boolean(active?.targetVerifier),
+      deploymentMutationAvailable: Boolean(active?.remoteDeployment),
       deployments,
       error,
     });
@@ -188,6 +207,45 @@ function createHiVenuesDeploymentRouter({
   };
 
   router.get('/studio/:slug/deploy', (req, res) => render(req, res));
+
+  router.get('/studio/:slug/deploy/:deploymentId/review', (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (!active.remoteDeployment) {
+        const error = new Error('Qualified server deployment is unavailable in this runtime.');
+        error.code = 'DEPLOYMENT_MUTATION_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = active.remoteDeployment.prepareReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-review', {
+        pageTitle: `Deployment review — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: error.message || 'Deployment consequence review could not be prepared.',
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/deploy-exact', mutateAsync(async (active, req) => {
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (deployment.providerKind !== 'ssh-server' || !active.remoteDeployment) {
+      const error = new Error('Qualified server deployment is unavailable in this runtime.');
+      error.code = 'DEPLOYMENT_MUTATION_UNAVAILABLE';
+      throw error;
+    }
+    await active.remoteDeployment.deploy(
+      deployment.id,
+      requireDeploymentConsequenceSubmission(req.body),
+    );
+  }));
 
   router.post('/studio/:slug/deploy/targets', mutate((active, req) => {
     active.deploymentStore.createDraft({
@@ -353,5 +411,6 @@ function createHiVenuesDeploymentRouter({
 module.exports = {
   createHiVenuesDeploymentRouter,
   requireConnectionFacts,
+  requireDeploymentConsequenceSubmission,
   requireHostKeyAcceptance,
 };

@@ -8,6 +8,7 @@ const { FileDeploymentStore } = require('./deployment-store');
 const { SshTargetVerificationService } = require('./deployment-target-verification');
 const { Ssh2ReadOnlyVerificationTransport } = require('./ssh2-readonly-transport');
 const { SyntheticDeploymentAdapter } = require('./synthetic-deployment-adapter');
+const { InstalledRemoteDeploymentService } = require('./deployment-execution');
 
 function createLocalDeploymentServices({
   store,
@@ -80,6 +81,36 @@ function createLocalDeploymentServices({
   });
 }
 
+
+function createInstalledDeploymentServices({
+  runtimeBundlesRoot,
+  buildProvenance,
+  remoteTargetFactory,
+  runtimeBuilder,
+  ...options
+} = {}) {
+  const local = createLocalDeploymentServices(options);
+  if (!local.authorityStore || !local.targetVerifier) {
+    throw new TypeError('Installed deployment services require protected authority and SSH verification.');
+  }
+  const remoteDeployment = new InstalledRemoteDeploymentService({
+    deploymentStore: local.deploymentStore,
+    packageBuilder: local.packageBuilder,
+    authorityStore: local.authorityStore,
+    runtimeBundlesRoot,
+    buildProvenance,
+    ...(remoteTargetFactory ? { targetFactory: remoteTargetFactory } : {}),
+    ...(runtimeBuilder ? { runtimeBuilder } : {}),
+    ...(options.now ? { now: options.now } : {}),
+  });
+  return Object.freeze({
+    ...local,
+    kind: 'installed-stage3b',
+    remoteDeployment,
+  });
+}
+
 module.exports = {
+  createInstalledDeploymentServices,
   createLocalDeploymentServices,
 };

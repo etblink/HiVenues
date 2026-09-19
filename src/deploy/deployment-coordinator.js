@@ -103,7 +103,7 @@ class ExactReleaseDeploymentCoordinator {
         'Exact Release deployment requires a verified server target.',
       );
     }
-    if (!['bootstrap-ready', 'healthy', 'rollback-available', 'degraded'].includes(record.state)) {
+    if (!['bootstrap-ready', 'deploying', 'healthy', 'rollback-available', 'degraded'].includes(record.state)) {
       throw coordinatorError(
         'DEPLOYMENT_MUTATION_STATE_INVALID',
         'Server target is not in an accepted mutation state.',
@@ -150,7 +150,11 @@ class ExactReleaseDeploymentCoordinator {
     const plan = createReferenceBootstrapPlan({
       runtimeProvenance: runtime,
       releaseManifest: release,
-      bootstrapUsername: record.targetPublicFacts?.username || 'root',
+      bootstrapUsername: (
+        record.targetPublicFacts?.bootstrapUsername
+        || record.targetPublicFacts?.username
+        || 'root'
+      ),
     });
     const expected = desiredReadBack(runtime, release);
     const priorActive = record.activeRelease ? { ...record.activeRelease } : null;
@@ -162,14 +166,21 @@ class ExactReleaseDeploymentCoordinator {
       deployedAt: new Date(this.now()).toISOString(),
     };
 
-    this.store.transition(deploymentId, 'deploying', {
-      reason: 'exact-release-deployment-started',
-      patch: { healthState: 'checking' },
-    });
+    if (record.state !== 'deploying') {
+      this.store.transition(deploymentId, 'deploying', {
+        reason: 'exact-release-deployment-started',
+        patch: { healthState: 'checking' },
+      });
+    }
 
     try {
       let readBack = await this.target.readBack();
-      if (!readBackMatches(readBack, expected)) {
+      const authorityState = String(readBack?.bootstrap?.authorityState || '');
+      const artifactsNeedActivation = (
+        !readBackArtifactsMatch(readBack, expected)
+        || !['restricted-login-proven', 'restricted-deployment-user'].includes(authorityState)
+      );
+      if (artifactsNeedActivation) {
         const installedRuntime = await this.target.installRuntime(runtimeRoot);
         const installedRelease = await this.target.installRelease(releasePackageRoot);
         await this.target.activate({
@@ -194,6 +205,10 @@ class ExactReleaseDeploymentCoordinator {
         this.store.setTargetPublicFacts(deploymentId, {
           ...record.targetPublicFacts,
           username: plan.privilegeModel.steadyRemoteAccount,
+          bootstrapUsername: (
+            record.targetPublicFacts.bootstrapUsername
+            || plan.privilegeModel.initialRemoteAccount
+          ),
           bootstrapAuthorityState: 'restricted-login-proven',
         });
         await this.target.finalizeAuthorityNarrowing(plan);

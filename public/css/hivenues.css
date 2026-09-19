@@ -301,6 +301,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .cc-consequence-card h2 { margin: 0 0 1rem; font-size: 2.2rem; }
 .cc-consequence-truth { padding: 1rem; border-left: 4px solid var(--cc-accent, #6e59c8); background: #f1eee7; line-height: 1.65; }
 
+[data-deployment-exact-review] .cc-review-card,
+[data-deployment-exact-review] .cc-consequence-card { min-width: 0; }
+[data-deployment-exact-review] code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* Workstream E — activity status and urgent update */
 .cc-status { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .6rem; margin: .4rem 0 .8rem; padding: .55rem .85rem; border-radius: 12px; font-size: .92rem; line-height: 1.45; border: 1px solid currentColor; }
 .cc-status strong { font-weight: 850; letter-spacing: .04em; text-transform: uppercase; font-size: .78rem; }
