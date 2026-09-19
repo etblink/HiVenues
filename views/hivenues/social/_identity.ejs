@@ -66,10 +66,20 @@
               maxlength="16"
               placeholder="<%= identityLabels.placeholder %>"
             >
-            <button type="submit" data-identity-submit disabled><%= identityLabels.action %></button>
+            <button type="submit" data-identity-submit disabled>Review account</button>
           </div>
+
+          <div class="cc-identity__account-review" data-identity-account-review hidden>
+            <span data-identity-review-avatar-slot hidden></span>
+            <div>
+              <span data-identity-review-name></span>
+              <strong>@<span data-identity-review-account></span></strong>
+            </div>
+            <button type="button" data-identity-verify><%= identityLabels.action %></button>
+          </div>
+
           <p class="cc-identity__truth" data-identity-proof-boundary>
-            HiVenues checks that the public account exists before your wallet opens. Your wallet then signs a fresh identity message only. HiVenues never receives your private key and this step does not post, follow, vote, pay, or broadcast a Hive transaction.
+            Public account details are reviewed before any wallet request. Wallet verification then proves control with a fresh identity message only; HiVenues never receives your private key.
           </p>
           <p class="cc-identity__status" data-identity-status role="status" aria-live="polite"><%= identityLabels.ready %></p>
         </form>

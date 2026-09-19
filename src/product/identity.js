@@ -41,6 +41,23 @@ function createHiVenuesIdentityServices({
     const records = await rpcPool.call('condenser_api', 'get_accounts', [[account]]);
     return Array.isArray(records) && records.some((record) => record?.name === account);
   };
+  const accountPreview = async (account) => {
+    if (hiveReadService && typeof hiveReadService.getProfile === 'function') {
+      const profile = await hiveReadService.getProfile(account);
+      if (!profile?.name) return null;
+      return Object.freeze({
+        account: profile.name,
+        displayName: profile.displayName || profile.name,
+        profileImage: profile.profileImage || '',
+      });
+    }
+    if (!(await accountExists(account))) return null;
+    return Object.freeze({
+      account,
+      displayName: account,
+      profileImage: '',
+    });
+  };
   const identityProof = new KeychainAuthService({
     challengeStore,
     sessionStore,
@@ -49,6 +66,7 @@ function createHiVenuesIdentityServices({
 
   return Object.freeze({
     accountExists,
+    accountPreview,
     authorityVerifier,
     postingAuthorityVerifier,
     challengeStore,

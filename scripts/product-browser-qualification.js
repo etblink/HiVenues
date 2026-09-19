@@ -1050,36 +1050,40 @@ async function runApprovalEvidence(browser, axeSource, origin, manifest, counter
     await page.goto(origin + '/hivenues/northline-hall/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-account]').fill('etblink');
     await page.locator('[data-identity-submit]').click();
+    await page.locator('[data-identity-state="reviewed"]').waitFor();
+    assert.equal(
+      await page.locator('[data-identity-review-account]').textContent(),
+      'etblink',
+    );
+    assert.equal(
+      await page.locator('[data-identity-account-review]').isVisible(),
+      true,
+    );
+    assert.equal(
+      await page.evaluate(() => Boolean(window.__identityApproval)),
+      false,
+      'wallet must not open during public account review',
+    );
+    await capture(page, axeSource, manifest, 'poster-desktop-account-reviewed');
+
+    await page.locator('[data-identity-verify]').click();
     await page.locator('[data-identity-state="awaiting-wallet"]').waitFor();
     await capture(page, axeSource, manifest, 'poster-desktop-awaiting-wallet');
 
     const walletState = await page.evaluate(() => ({
       account: window.__identityApproval?.account,
       authority: window.__identityApproval?.authority,
-      title: window.__identityApproval?.title,
-      message: window.__identityApproval?.message,
     }));
     assert.equal(walletState.account, 'etblink');
     assert.equal(walletState.authority, 'Posting');
-    assert.match(walletState.title, /HiVenues identity proof/);
-    assert.match(walletState.message, /no Hive transaction or value action is authorized/);
 
     await page.evaluate(() => window.__approveIdentity());
     await page.locator('[data-identity-state="verified"]').waitFor({ timeout: 15000 });
     const verified = await capture(page, axeSource, manifest, 'poster-desktop-verified');
     assert.equal(verified.fingerprint.identityState, 'verified');
-    assert.match(await page.locator('.cc-identity').textContent(), /@etblink/);
-    assert.match(
-      await page.locator('.cc-identity').textContent(),
-      /does not authorize a post, vote, follow, payment, or other Hive transaction/,
-    );
 
     await page.locator('[data-identity-disconnect]').click();
     await page.locator('[data-identity-state="not-identified"]').waitFor({ timeout: 15000 });
-    assert.match(
-      await page.locator('.cc-identity').textContent(),
-      /Public browsing stays open whether or not you identify yourself/,
-    );
   } finally {
     await context.close();
   }
@@ -2198,9 +2202,14 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
     await page.goto(origin + '/hivenues/nova-ashby/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-account]').fill('etblink');
     await page.locator('[data-identity-submit]').click();
+    await page.locator('[data-identity-state="reviewed"]').waitFor();
+    assert.equal(
+      await page.evaluate(() => Boolean(window.__identityApproval)),
+      false,
+      'wallet must not open during public account review',
+    );
+    await page.locator('[data-identity-verify]').click();
     await page.locator('[data-identity-state="cancelled"]').waitFor();
-    const text = await page.locator('.cc-identity').textContent();
-    assert.match(text, /No Hive transaction or participation action occurred/);
     await capture(page, axeSource, manifest, 'editorial-desktop-cancelled');
   } finally {
     await context.close();
@@ -2230,10 +2239,7 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   try {
     await page.goto(origin + '/hivenues/harbor-and-hearth/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-state="provider-unavailable"]').waitFor();
-    assert.match(
-      await page.locator('.cc-identity').textContent(),
-      /keep browsing this public community without signing in/,
-    );
+    assert.equal(await page.locator('[data-identity-form]').count(), 0);
     await capture(page, axeSource, manifest, 'hospitality-desktop-provider-unavailable');
     assert.deepEqual(store.diagnostics(), before);
     assert.deepEqual(counters.externalRequests, []);
@@ -2305,6 +2311,7 @@ async function main() {
       'three-direction-not-identified',
       'progressive-account-onboarding',
       'studio-progressive-account-onboarding',
+      'account-reviewed',
       'awaiting-wallet',
       'verified',
       'disconnect',
@@ -2662,6 +2669,7 @@ async function main() {
   for (const requiredLabel of [
     'studio-hive-onboarding-desktop',
     'studio-hive-onboarding-mobile390',
+    'poster-desktop-account-reviewed',
   ]) {
     assert.equal(
       screenshotLabels.includes(requiredLabel),

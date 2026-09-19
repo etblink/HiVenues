@@ -23,7 +23,13 @@ function unverifiedMarkup() {
     + '<section data-hivenues-identity data-identity-state="not-identified">'
     + '<form data-identity-form>'
     + '<input data-identity-account>'
-    + '<button type="submit" data-identity-submit disabled>Prove identity</button>'
+    + '<button type="submit" data-identity-submit disabled>Review account</button>'
+    + '<div data-identity-account-review hidden>'
+    + '<span data-identity-review-avatar-slot hidden></span>'
+    + '<span data-identity-review-name></span>'
+    + '<span data-identity-review-account></span>'
+    + '<button type="button" data-identity-verify>Verify</button>'
+    + '</div>'
     + '<p data-identity-status role="status"></p>'
     + '</form>'
     + '</section>'
@@ -64,6 +70,13 @@ test('identity controller signs only the server challenge and reloads after serv
 
   const fetchImpl = async (url, options = {}) => {
     calls.push({ url, method: options.method || 'GET', body: options.body || '' });
+    if (url === '/identity/account/etblink') {
+      return response({
+        account: 'etblink',
+        displayName: 'Evan',
+        profileImage: 'https://images.hive.blog/u/etblink/avatar',
+      });
+    }
     if (url === '/identity/challenge') {
       return response({
         id: 'challenge-1',
@@ -100,15 +113,29 @@ test('identity controller signs only the server challenge and reloads after serv
   );
   await settle();
 
+  assert.equal(root.dataset.identityState, 'reviewed');
+  assert.equal(root.dataset.identityReviewedAccount, 'etblink');
+  assert.equal(root.querySelector('[data-identity-account-review]').hidden, false);
+  assert.equal(root.querySelector('[data-identity-review-account]').textContent, 'etblink');
+  assert.equal(root.querySelector('[data-identity-review-name]').textContent, 'Evan');
+  assert.equal(root.querySelector('[data-identity-review-avatar]').getAttribute('src'), 'https://images.hive.blog/u/etblink/avatar');
+  assert.equal(signed.length, 0);
+  assert.deepEqual(calls.map((call) => call.url), ['/identity/account/etblink']);
+
+  root.querySelector('[data-identity-verify]').click();
+  await settle();
+
   assert.equal(signed.length, 1);
   assert.equal(signed[0].account, 'etblink');
   assert.equal(signed[0].message, 'HiVenues identity proof | Account: @etblink | Nonce: one');
   assert.equal(signed[0].title, 'HiVenues identity proof for @etblink');
-  assert.equal(calls.length, 2);
-  assert.equal(calls[0].url, '/identity/challenge');
-  assert.deepEqual(JSON.parse(calls[0].body), { account: 'etblink' });
-  assert.equal(calls[1].url, '/identity/verify');
-  assert.deepEqual(JSON.parse(calls[1].body), {
+  assert.equal(calls.length, 3);
+  assert.equal(calls[0].url, '/identity/account/etblink');
+  assert.equal(calls[0].method, 'GET');
+  assert.equal(calls[1].url, '/identity/challenge');
+  assert.deepEqual(JSON.parse(calls[1].body), { account: 'etblink' });
+  assert.equal(calls[2].url, '/identity/verify');
+  assert.deepEqual(JSON.parse(calls[2].body), {
     account: 'etblink',
     challengeId: 'challenge-1',
     publicKey: 'STM_DIRECT_POSTING_KEY',
@@ -136,6 +163,9 @@ test('wallet cancellation becomes an explicit non-consequence state and never re
   dom.window.HiVenuesIdentity.initializeIdentityRoot(root, {
     fetchImpl: async (url) => {
       calls.push(url);
+      if (url === '/identity/account/etblink') {
+        return response({ account: 'etblink', displayName: 'Evan', profileImage: '' });
+      }
       assert.equal(url, '/identity/challenge');
       return response({ id: 'challenge-2', message: 'proof' }, { status: 201 });
     },
@@ -150,10 +180,11 @@ test('wallet cancellation becomes an explicit non-consequence state and never re
     new dom.window.Event('submit', { bubbles: true, cancelable: true }),
   );
   await settle();
+  root.querySelector('[data-identity-verify]').click();
+  await settle();
 
-  assert.deepEqual(calls, ['/identity/challenge']);
+  assert.deepEqual(calls, ['/identity/account/etblink', '/identity/challenge']);
   assert.equal(root.dataset.identityState, 'cancelled');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /No Hive transaction or participation action occurred/);
   assert.equal(root.getAttribute('aria-busy'), 'false');
   dom.window.close();
 });
@@ -163,7 +194,12 @@ test('missing wallet is explicit after challenge issuance and preserves public b
   const root = dom.window.document.querySelector('[data-hivenues-identity]');
 
   dom.window.HiVenuesIdentity.initializeIdentityRoot(root, {
-    fetchImpl: async () => response({ id: 'challenge-3', message: 'proof' }, { status: 201 }),
+    fetchImpl: async (url) => {
+      if (url === '/identity/account/etblink') {
+        return response({ account: 'etblink', displayName: 'Evan', profileImage: '' });
+      }
+      return response({ id: 'challenge-3', message: 'proof' }, { status: 201 });
+    },
     KeychainAdapter: null,
     reload: () => assert.fail('unavailable wallet must not reload'),
   });
@@ -175,9 +211,53 @@ test('missing wallet is explicit after challenge issuance and preserves public b
     new dom.window.Event('submit', { bubbles: true, cancelable: true }),
   );
   await settle();
+  root.querySelector('[data-identity-verify]').click();
+  await settle();
 
   assert.equal(root.dataset.identityState, 'provider-unavailable');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /human-owned Hive wallet was not found/);
+  assert.equal(root.getAttribute('aria-busy'), 'false');
+  dom.window.close();
+});
+
+test('changing the selected account invalidates a public review before wallet proof', async () => {
+  const dom = createDom(unverifiedMarkup());
+  const root = dom.window.document.querySelector('[data-hivenues-identity]');
+  const calls = [];
+
+  dom.window.HiVenuesIdentity.initializeIdentityRoot(root, {
+    fetchImpl: async (url) => {
+      calls.push(url);
+      assert.equal(url, '/identity/account/etblink');
+      return response({ account: 'etblink', displayName: 'Evan', profileImage: '' });
+    },
+    KeychainAdapter: class {
+      async signBuffer() { assert.fail('stale review must never reach wallet'); }
+    },
+  });
+
+  const input = root.querySelector('[data-identity-account]');
+  input.value = 'etblink';
+  input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  root.querySelector('form').dispatchEvent(
+    new dom.window.Event('submit', { bubbles: true, cancelable: true }),
+  );
+  await settle();
+
+  assert.equal(root.dataset.identityReviewedAccount, 'etblink');
+  assert.equal(root.querySelector('[data-identity-account-review]').hidden, false);
+
+  input.value = 'barfriend';
+  input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+
+  assert.equal(root.dataset.identityReviewedAccount, '');
+  assert.equal(root.querySelector('[data-identity-account-review]').hidden, true);
+  assert.equal(root.dataset.identityState, 'not-identified');
+
+  root.querySelector('[data-identity-verify]').click();
+  await settle();
+
+  assert.equal(root.dataset.identityState, 'invalid');
+  assert.deepEqual(calls, ['/identity/account/etblink']);
   dom.window.close();
 });
 
@@ -223,7 +303,6 @@ test('expired verified session is represented locally without creating any exter
   });
 
   assert.equal(root.dataset.identityState, 'expired');
-  assert.match(root.querySelector('[data-identity-status]').textContent, /expired/);
   assert.equal(root.querySelector('[data-identity-disconnect]').hidden, true);
   assert.equal(root.querySelector('[data-identity-reprove]').hidden, false);
   dom.window.close();

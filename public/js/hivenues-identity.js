@@ -79,15 +79,49 @@
       form: root.querySelector('[data-identity-form]'),
       input: root.querySelector('[data-identity-account]'),
       submit: root.querySelector('[data-identity-submit]'),
+      review: root.querySelector('[data-identity-account-review]'),
+      reviewAccount: root.querySelector('[data-identity-review-account]'),
+      reviewName: root.querySelector('[data-identity-review-name]'),
+      reviewAvatarSlot: root.querySelector('[data-identity-review-avatar-slot]'),
+      verify: root.querySelector('[data-identity-verify]'),
       disconnect: root.querySelector('[data-identity-disconnect]'),
       reprove: root.querySelector('[data-identity-reprove]'),
     };
   }
 
+  function resetAccountReview(root) {
+    const { review, reviewAccount, reviewName, reviewAvatarSlot } = controls(root);
+    root.dataset.identityReviewedAccount = '';
+    if (review) review.hidden = true;
+    if (reviewAccount) reviewAccount.textContent = '';
+    if (reviewName) reviewName.textContent = '';
+    if (reviewAvatarSlot) {
+      reviewAvatarSlot.hidden = true;
+      reviewAvatarSlot.replaceChildren();
+    }
+  }
+
+  function renderAccountReview(root, preview) {
+    const { review, reviewAccount, reviewName, reviewAvatarSlot } = controls(root);
+    root.dataset.identityReviewedAccount = normalizedAccount(preview?.account);
+    if (reviewAccount) reviewAccount.textContent = root.dataset.identityReviewedAccount;
+    if (reviewName) reviewName.textContent = String(preview?.displayName || preview?.account || '');
+    if (reviewAvatarSlot && preview?.profileImage) {
+      const image = root.ownerDocument.createElement('img');
+      image.setAttribute('data-identity-review-avatar', '');
+      image.alt = '';
+      image.src = String(preview.profileImage);
+      reviewAvatarSlot.replaceChildren(image);
+      reviewAvatarSlot.hidden = false;
+    }
+    if (review) review.hidden = false;
+  }
+
   function setBusy(root, busy) {
-    const { input, submit, disconnect } = controls(root);
+    const { input, submit, verify, disconnect } = controls(root);
     if (input) input.disabled = busy;
-    if (submit) submit.disabled = busy;
+    if (submit) submit.disabled = busy || !normalizedAccount(input?.value);
+    if (verify) verify.disabled = busy;
     if (disconnect) disconnect.disabled = busy;
     root.setAttribute('aria-busy', busy ? 'true' : 'false');
   }
@@ -98,6 +132,10 @@
     submit.disabled = !normalizedAccount(input.value);
     input.addEventListener('input', () => {
       submit.disabled = !normalizedAccount(input.value);
+      if (root.dataset.identityReviewedAccount) {
+        resetAccountReview(root);
+        setState(root, 'not-identified', '');
+      }
     });
   }
 
@@ -135,7 +173,7 @@
     if (!root || root.dataset.identityBound === 'true') return root;
     root.dataset.identityBound = 'true';
 
-    const { form, disconnect, reprove } = controls(root);
+    const { form, verify, disconnect, reprove } = controls(root);
     armUnverifiedForm(root);
     watchExpiry(root, { now, setTimeoutImpl });
 
@@ -148,7 +186,42 @@
         event.preventDefault();
         const account = normalizedAccount(controls(root).input?.value);
         if (!account) {
-          setState(root, 'invalid', 'Enter the Hive account you want to prove control of.');
+          setState(root, 'invalid', 'Enter the Hive account you want to review.');
+          return;
+        }
+
+        resetAccountReview(root);
+        setBusy(root, true);
+        setState(root, 'reviewing', `Reading public Hive account @${account}.`);
+
+        try {
+          const preview = await jsonRequest(
+            fetchImpl,
+            '/identity/account/' + encodeURIComponent(account),
+          );
+          if (normalizedAccount(preview?.account) !== account) {
+            const mismatch = new Error('The public Hive account response did not match the selected account.');
+            mismatch.code = 'AUTH_ACCOUNT_MISMATCH';
+            throw mismatch;
+          }
+          renderAccountReview(root, preview);
+          setState(root, 'reviewed', '');
+          setBusy(root, false);
+        } catch (error) {
+          const mapped = errorState(error);
+          setState(root, mapped.state, mapped.message);
+          setBusy(root, false);
+        }
+      });
+    }
+
+    if (verify) {
+      verify.addEventListener('click', async () => {
+        const account = normalizedAccount(controls(root).input?.value);
+        const reviewedAccount = normalizedAccount(root.dataset.identityReviewedAccount);
+        if (!account || account !== reviewedAccount) {
+          resetAccountReview(root);
+          setState(root, 'invalid', 'Review the selected Hive account again before wallet verification.');
           return;
         }
 
@@ -240,6 +313,8 @@
     initializeAll,
     initializeIdentityRoot,
     normalizedAccount,
+    renderAccountReview,
+    resetAccountReview,
     setState,
     watchExpiry,
   });
