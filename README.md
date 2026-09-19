@@ -16,6 +16,8 @@ ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 #301 — REPOSITORY / PRODUCT-CORE NORMALIZATION COMPLETE
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 ERA 5 — PRODUCT DISTRIBUTION                  ACTIVE / ISSUE #323
+ERA 5 TRANCHE 3 — CLEAN-MACHINE INSTALLER     COMPLETE / FROZEN
+NEXT — PRODUCTION SIGNING / REPUTATION         QUALIFICATION
 LIVE VALUE / PRODUCTION DEPLOYMENT            HELD
 ```
 
@@ -102,6 +104,26 @@ Therefore:
 - **No customer private-key custody.**
 - **Professional 2026 visual, interaction, responsive, and accessibility quality is a product requirement.**
 
+## Economic model and license
+
+HiVenues follows the frozen **Sovereign Core + Paid Convenience + Hive-Aligned Upside** model.
+
+The sovereign core remains open and self-hostable. The primary commercial opportunity is optional managed deployment/operations, support, professional services, and future marketplace services—not charging users for permission to use their own software, identity, data, or Hive relationships.
+
+Economic invariants include:
+
+- no mandatory HiVenues percentage tax on direct peer-to-peer Hive value transfers;
+- no core revenue model based on sale of user data or surveillance advertising;
+- no HiVenues ICO, founder pre-mine, or speculative project token by default;
+- cancellation of paid services must preserve a practical exit/migration path;
+- DHF/DAO funding and Value-for-Value may supplement, but not replace, a real customer/service economy;
+- sustainable business surplus may be aligned with Hive through prudent HIVE/HP treasury accumulation;
+- commercial competition is allowed; artificial proprietary lock-in is not the moat.
+
+HiVenues-owned software is licensed under **AGPL-3.0-or-later**. Third-party components retain their own licenses. The repository remains `"private": true` in package metadata only to prevent accidental npm publication.
+
+See `docs/HIVENUES_SOVEREIGN_SERVICES_ECONOMIC_DOCTRINE_0_1_0.md`.
+
 ## Architecture direction
 
 ```text
@@ -128,9 +150,9 @@ See `docs/CURRENT_ARCHITECTURE.md` and `docs/HIVENUES_RENDERING_AUTHORING_ARCHIT
 
 Era 4 is complete and **Era 5 — Product Distribution is active** under issue **#323**.
 
-Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher, including provenance, diagnostics, dynamic port selection, single-instance behavior, graceful close/relaunch, and durable state below the per-user application-data root. Tranche 2 now provides a versioned Windows x64 distributable with exact provenance/checksums, byte-for-byte double-build reproducibility, and installed-runtime/native-launcher qualification from the extracted ZIP.
+Tranche 0 froze the Windows runtime architecture: a minimal native launcher around a private Node 24 runtime and ordinary packaged HiVenues app tree, using the system browser over loopback and application-owned user data. Tranche 1 productized that lifecycle and qualified the real Win32 launcher. Tranche 2 established the reproducible Windows x64 distributable. Tranche 3 then qualified the per-user NSIS installer on a fresh Windows runner, including install/launch/create-edit-Release, repair-style reinstall, uninstall-preserved durable state, and reinstall restoration without developer tooling.
 
-The next bounded work is **Tranche 3 — clean-machine qualification**: layer an ordinary Windows installer / supported package flow over that frozen distributable, prove install/launch/create-edit-release/relaunch persistence on a clean supported machine, qualify update/uninstall preservation, and accept the Windows signing/reputation strategy required for Era-5 exit.
+The next bounded work is **production signing / reputation qualification**: enroll the selected verified individual publisher identity, protect signing authority, promote only an exact qualified unsigned artifact, Authenticode-sign and trusted-timestamp the production installer/executables, bind signed-artifact provenance, and verify the signed path on a clean supported Windows environment.
 
 Still held unless separately authorized: live-value qualification, production deployment/DNS/VPS mutation, Fourth Street customer work, independent Astra, and unrelated framework replacement.
 
@@ -143,7 +165,8 @@ Read these before major product work:
 3. `docs/HIVENUES_HIVE_ECOSYSTEM_INTEGRATION_DOCTRINE_0_2_0.md`
 4. `docs/HIVENUES_DISTRIBUTION_ONBOARDING_DEPLOYMENT_DOCTRINE_0_1_0.md`
 5. `docs/HIVENUES_RENDERING_AUTHORING_ARCHITECTURE_DOCTRINE_0_1_0.md`
-6. `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md`
-7. `docs/ROADMAP.md`
+6. `docs/HIVENUES_SOVEREIGN_SERVICES_ECONOMIC_DOCTRINE_0_1_0.md`
+7. `docs/HIVENUES_BIG_PICTURE_ROADMAP_0_1_0.md`
+8. `docs/ROADMAP.md`
 
 Doctrine defines the destination, the roadmap defines the journey, active issue charters define bounded work, and current product tests protect accepted contracts. Implementation archaeology does not set product priority.
