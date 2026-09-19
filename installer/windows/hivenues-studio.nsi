@@ -1,6 +1,5 @@
 Unicode true
 RequestExecutionLevel user
-SetShellVarContext current
 SetCompressor /SOLID lzma
 
 !include "MUI2.nsh"
