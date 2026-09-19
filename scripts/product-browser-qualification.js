@@ -4,6 +4,7 @@
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { chromium } = require('playwright');
 
@@ -15,6 +16,7 @@ const {
   IDENTITY_COOKIE_NAME,
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
+const { createLocalDeploymentServices } = require('../src/product/deployment');
 const { HiVenuesStore } = require('../src/product/store');
 const { seedHiVenuesHosts } = require('../src/product/fixtures');
 
@@ -2337,6 +2339,131 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   }
 }
 
+async function runDeploymentStage1Evidence(browser, axeSource, manifest) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-browser-era7-stage1-'));
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
+  const slug = 'harbor-and-hearth';
+  const firstSnapshot = store.snapshot(slug);
+  const createdA = store.createRelease(slug, firstSnapshot.revision, firstSnapshot.draftDigest);
+  assert.equal(createdA.ok, true);
+
+  let working = store.snapshot(slug);
+  const edited = store.editTagline(
+    slug,
+    'Dinner follows the tide — browser Release B.',
+    working.revision,
+    working.draftDigest,
+  );
+  assert.equal(edited.ok, true);
+  working = store.snapshot(slug);
+  const createdB = store.createRelease(slug, working.revision, working.draftDigest);
+  assert.equal(createdB.ok, true);
+
+  const beforeDiagnostics = store.diagnostics();
+  const beforeHost = JSON.stringify(store.snapshot(slug));
+  const deploymentServices = createLocalDeploymentServices({
+    store,
+    statePath: path.join(root, 'deployment', 'state.json'),
+    packageRoot: path.join(root, 'deployment', 'packages'),
+    mediaRoot: path.join(root, 'media'),
+    now: () => Date.parse('2026-09-19T10:00:00.000Z'),
+    idFactory: () => 'browser-stage1-target',
+  });
+  const app = createHiVenuesApp({
+    store,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices,
+  });
+  const server = await startHiVenuesServer(app, { port: 0 });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/hivenues/studio/' + slug, { waitUntil: 'networkidle' });
+    assert.equal(
+      await page.locator('[data-studio-deployment]').getAttribute('href'),
+      '/hivenues/studio/' + slug + '/deploy',
+    );
+
+    await page.goto(origin + '/hivenues/studio/' + slug + '/deploy', { waitUntil: 'networkidle' });
+    await page.locator('[data-deployment-stage1]').waitFor();
+    await page.locator('[data-deployment-stage1-boundary]').waitFor();
+    assert.equal(
+      await page.locator('[data-deployment-profile]').count(),
+      1,
+    );
+    await capture(page, axeSource, manifest, 'era7-stage1-deployment-empty-desktop');
+
+    await page.locator('[data-create-deployment-target]').click();
+    await page.locator('[data-deployment-record]').waitFor();
+    const record = page.locator('[data-deployment-record]');
+    const deploymentId = await record.getAttribute('data-deployment-record');
+    assert.equal(deploymentId, 'deployment-browser-stage1-target');
+    assert.equal(await record.locator('[data-deployment-state]').textContent(), 'target-draft');
+
+    const releaseForm = record.locator('[data-select-deployment-release]');
+    await releaseForm.locator('select[name="releaseId"]').selectOption(createdA.release.id);
+    await releaseForm.locator('button[type="submit"]').click();
+    assert.equal(
+      await page.locator('[data-selected-release]').textContent(),
+      createdA.release.id,
+    );
+    assert.equal(await page.locator('[data-package-digest]').count(), 1);
+
+    await page.locator('[data-mark-target-ready]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
+    await page.locator('[data-verify-deployment-target]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'bootstrap-ready');
+
+    await page.locator('[data-deploy-release]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'healthy');
+    assert.equal(await page.locator('[data-active-release]').textContent(), createdA.release.id);
+    await capture(page, axeSource, manifest, 'era7-stage1-release-a-healthy-desktop');
+
+    const secondReleaseForm = page.locator('[data-select-deployment-release]');
+    await secondReleaseForm.locator('select[name="releaseId"]').selectOption(createdB.release.id);
+    await secondReleaseForm.locator('button[type="submit"]').click();
+    await page.locator('[data-deploy-release]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'rollback-available');
+    assert.equal(await page.locator('[data-active-release]').textContent(), createdB.release.id);
+    assert.equal(await page.locator('[data-previous-release]').textContent(), createdA.release.id);
+
+    await page.locator('[data-degrade-deployment]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'degraded');
+    await page.locator('[data-rollback-deployment]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'rollback-available');
+    assert.equal(await page.locator('[data-active-release]').textContent(), createdA.release.id);
+    assert.equal(await page.locator('[data-previous-release]').textContent(), createdB.release.id);
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'era7-stage1-rollback-mobile390');
+
+    await page.locator('[data-disconnect-deployment]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'disconnected');
+    await capture(page, axeSource, manifest, 'era7-stage1-disconnected-mobile390');
+
+    assert.deepEqual(store.diagnostics(), beforeDiagnostics);
+    assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
+    assert.deepEqual(counters.externalRequests, []);
+    assert.deepEqual(counters.consoleErrors, []);
+    const persisted = deploymentServices.deploymentStore.get(deploymentId);
+    assert.equal(persisted.state, 'disconnected');
+    assert.equal(persisted.activeRelease.id, createdA.release.id);
+    assert.equal(persisted.previousRelease.id, createdB.release.id);
+  } finally {
+    await context.close();
+    await stopServer(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function publicReleaseInvariant(snapshot) {
   return {
     revision: snapshot.revision,
@@ -2399,6 +2526,7 @@ async function main() {
       'progressive-account-onboarding',
       'studio-progressive-account-onboarding',
       'external-account-creation-handoff-resume',
+      'era7-stage1-local-deployment-lifecycle',
       'account-reviewed',
       'awaiting-wallet',
       'verified',
@@ -2583,6 +2711,7 @@ async function main() {
       counters,
       identityServices,
     );
+    await runDeploymentStage1Evidence(browser, axeSource, manifest);
   } finally {
     await browser.close();
     await stopServer(server);
@@ -2761,6 +2890,10 @@ async function main() {
     'poster-desktop-creation-handoff-resumed',
     'poster-mobile390-creation-handoff-resumed',
     'poster-desktop-account-reviewed',
+    'era7-stage1-deployment-empty-desktop',
+    'era7-stage1-release-a-healthy-desktop',
+    'era7-stage1-rollback-mobile390',
+    'era7-stage1-disconnected-mobile390',
   ]) {
     assert.equal(
       screenshotLabels.includes(requiredLabel),
