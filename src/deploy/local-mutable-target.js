@@ -66,7 +66,8 @@ class LocalMutableDeploymentTarget {
     const provenance = loadRuntimeProvenance(provenancePath, manifestPath);
     const destination = path.join(this.root, 'runtime', provenance.bundleDigest);
 
-    if (!fs.existsSync(destination)) {
+    const reused = fs.existsSync(destination);
+    if (!reused) {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       copyTree(source, destination);
     }
@@ -79,7 +80,7 @@ class LocalMutableDeploymentTarget {
       throw targetError('DEPLOYED_TARGET_RUNTIME_MISMATCH', 'Installed runtime bundle does not match.');
     }
     return Object.freeze({
-      reused: fs.existsSync(destination),
+      reused,
       path: destination,
       provenance: verified,
     });
@@ -95,7 +96,8 @@ class LocalMutableDeploymentTarget {
       release.manifest.releaseId + '-' + release.manifest.releaseDigest.slice(0, 12),
     );
 
-    if (!fs.existsSync(destination)) {
+    const reused = fs.existsSync(destination);
+    if (!reused) {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       copyTree(source, destination);
     }
@@ -108,7 +110,7 @@ class LocalMutableDeploymentTarget {
       throw targetError('DEPLOYED_TARGET_RELEASE_MISMATCH', 'Installed Release package does not match.');
     }
     return Object.freeze({
-      reused: fs.existsSync(destination),
+      reused,
       path: destination,
       manifest: verified.manifest,
     });
