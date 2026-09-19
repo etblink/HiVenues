@@ -1,6 +1,6 @@
 # HiVenues Era 5 — Windows Installer Decision 0.1.0
 
-Status: **FROZEN CANDIDATE — Tranche-3 clean-machine qualification pending**
+Status: **FROZEN — Tranche-3 clean-machine installer boundary accepted 2026-09-18**
 
 Governing issue: #323
 
@@ -25,7 +25,7 @@ thin native launcher
 → application-owned durable user data
 ```
 
-This document freezes the candidate installer/lifecycle contract. Acceptance still requires exact-head GitHub Actions evidence from the fresh-Windows qualification workflow.
+This document freezes the accepted installer/lifecycle contract. Exact-head GitHub Actions evidence from the fresh-Windows qualification workflow is bound below.
 
 ## Installer technology decision
 
@@ -273,14 +273,59 @@ This Tranche does not authorize:
 - independent Astra;
 - a SPA/desktop-framework rewrite.
 
-## Acceptance rule
+## Accepted Tranche-3 evidence
 
-This candidate decision becomes an **accepted Tranche-3 installer boundary** only after the exact PR head passes:
+The installer/lifecycle boundary was accepted from the exact PR #331 implementation head:
 
-1. ordinary repository CI required for the changed implementation;
-2. the fresh-Windows `Era 5 clean-machine installer` workflow;
-3. any other exact-head product/runtime qualification triggered by the PR.
+```text
+SOURCE_SHA  = fb61afbafb7bf038481b17b9bb9e716fa568c101
+SOURCE_TREE = 52390b2ad4bf85ef3b70c7828d8b7e50375ceacb
 
-The accepted evidence must identify the exact source SHA/tree and preserve the generated clean-machine evidence artifact.
+CI                         = #1383 / PASS
+PRODUCT_BROWSER            = #101  / PASS
+ERA_5_RUNTIME_PROOF        = #21   / PASS
+WINDOWS_DISTRIBUTABLE      = #7    / PASS
+CLEAN_MACHINE_INSTALLER    = #5    / PASS
+```
 
-Until that proof is green, this document freezes the intended contract but does **not** claim Tranche 3 complete.
+The clean-machine evidence artifact is:
+
+```text
+ARTIFACT_ID = 10575279629
+ARTIFACT_DIGEST = sha256:ad5f995b21b1e25d2eae4205a8e543c7debc826aa6f6b8b33c157f211dc3f04b
+RESULT = PASS
+```
+
+Qualified installer identity:
+
+```text
+FILE = HiVenues-Studio-1.0.0-windows-x64-setup.exe
+SHA256 = b2e6e6851b5473670cef22e7b595c70b61bcaa1520a1888d7919adcd7148d7bb
+TECHNOLOGY = NSIS v3.12
+INSTALL_SCOPE = per-user
+SIGNING = unsigned qualification artifact
+```
+
+Observed lifecycle proof:
+
+- the clean qualification runner had no repository checkout;
+- developer Node was unavailable on the sanitized launch `PATH`;
+- the installed private Node runtime launched Studio successfully;
+- a synthetic host was created, edited, and explicitly Released through ordinary product routes;
+- same-version repair/update-style reinstall preserved durable state exactly;
+- uninstall removed the installed program/integration while retaining user-owned durable state;
+- reinstall restored the same released host;
+- durable state SHA-256 remained `e0c90ddb2e2c8260703cfc604a8400ffa22cd9b3163079f919cf4571d6ff4766`;
+- this local scenario recorded zero Hive writes, provider writes, payments, signing attempts, and deployments after authoring, repair, and reinstall.
+
+PR #331 was merged without changing the accepted implementation head into canonical main commit:
+
+```text
+MERGE_COMMIT = 4cbf4b7f88ae3a9ac768b81bd9b2bb928dcc7b0e
+```
+
+The merge adds no file changes beyond the accepted head.
+
+This freezes **Era 5 Tranche 3 — clean-machine installer qualification** as complete.
+
+It does **not** close Era 5. The remaining distribution boundary is production signing/reputation qualification: external enrollment for the selected verified individual publisher identity, protected release-signing authority, and proof that the promoted production installer is Authenticode-signed/timestamped with provenance linking the signed artifact back to the reproducible unsigned boundary.
