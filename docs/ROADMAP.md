@@ -10,11 +10,12 @@ The product destination and constraints are defined by the frozen doctrine set r
 
 ## Verified current state
 
-Era 4 remains frozen. Era 5 Tranches 0–3 have now established the Windows installed-runtime, reproducible distributable, ordinary per-user installer, and clean-machine lifecycle boundary:
+Era 4 remains frozen. Era 5 Tranches 0–3 established the Windows installed-runtime, reproducible distributable, ordinary per-user installer, and clean-machine lifecycle boundary. Era 6 Hive Account Onboarding is now complete and qualified while the paid external Era-5 Public Trust gate remains intentionally parked:
 
 ```text
-CANONICAL_MAIN = 4cbf4b7f88ae3a9ac768b81bd9b2bb928dcc7b0e
-CANONICAL_TREE = 52390b2ad4bf85ef3b70c7828d8b7e50375ceacb
+CANONICAL_MAIN = a7495dcf4290dddf9eb2d559acfaa58f40b65ba6
+ERA6_STAGE2_QUALIFIED_SOURCE = 604fd0d1a05c8b16697e8e65f967d97cd61cfd26
+ERA6_STAGE3_QUALIFIED_SOURCE = 62e62e13367a681eb67604f12ab9ba8060cdfc6f
 
 TRANCHE_3_QUALIFIED_SOURCE = fb61afbafb7bf038481b17b9bb9e716fa568c101
 TRANCHE_3_PR_HEAD_CI = #1383 / PASS
@@ -30,14 +31,15 @@ ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 
 #301 — REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION   COMPLETE
-ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION (FINAL EXTERNAL TRUST GATE PARKED)
+CURRENT PRODUCT-BUILDING STATE = ERA 6 — HIVE ACCOUNT ONBOARDING COMPLETE / QUALIFIED
 ERA 5 TRANCHE 0 = COMPLETE / FROZEN
 ERA 5 TRANCHE 1 = COMPLETE / QUALIFIED
 ERA 5 TRANCHE 2 = COMPLETE / FROZEN
 ERA 5 TRANCHE 3 = COMPLETE / FROZEN
 ERA 5 SIGNING REPOSITORY BOUNDARY = COMPLETE / QUALIFIED
 ERA 5 PAID PUBLIC-TRUST ENROLLMENT = DEFERRED UNTIL EXTERNAL-RELEASE READINESS
-NEXT PRODUCT-BUILDING BOUNDARY = ERA 6 — HIVE ACCOUNT ONBOARDING
+ERA 6 ACCOUNT ONBOARDING = COMPLETE / QUALIFIED
+NEXT PRODUCT-BUILDING BOUNDARY = ERA 7 — DEPLOYMENT PRODUCT
 ACTIVE ERA-5 CHARTER = #323 / FINAL TRUST GATE OPEN
 LIVE VALUE QUALIFICATION = HELD
 PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
@@ -79,9 +81,24 @@ The objective closed with:
 
 Remaining historical names, branches, scripts, or documents may be cleaned when concrete dependency evidence and maintenance value justify it. They do not independently reopen normalization.
 
-## Active objective — Era 5
+## Completed Era 6 / parked Era-5 trust gate
 
-The active strategic era is **Product Distribution**, governed by **#323**.
+Era 6 — **Hive Account Onboarding**, governed by **#336**, is complete and qualified.
+
+The accepted product path now supports:
+
+- useful accountless browsing and Studio authoring;
+- an explicit Connect existing / Create account / Not now decision surface;
+- public account review before wallet ceremony;
+- fresh Posting-authority identity proof with canonical authority verification;
+- bounded local identity sessions that are not operation authority;
+- provider-neutral external account creation through the official Hive signup directory;
+- a resumable local handoff that stores no account name, provider choice, password, key, or recovery secret;
+- return from external creation into the same public-review → wallet-verification path;
+- desktop and mobile browser qualification;
+- no HiVenues-sponsored account creation, secret custody, production deployment, or unintended Hive write.
+
+Era 5 — **Product Distribution**, governed by **#323**, remains open only at its intentionally parked external Public Trust signing gate.
 
 The frozen roadmap exit gate is:
 
@@ -105,7 +122,7 @@ The remaining Era-5 trust gate requires external paid infrastructure and verifie
 
 The project owner has intentionally **deferred that paid external enrollment until HiVenues is materially closer to external distribution**. This avoids carrying an idle signing subscription while preserving the complete repository-side architecture.
 
-This is an allowed roadmap interleave, not an Era-5 completion claim. Era 5 remains open at its final external trust gate while the next product-building boundary advances to **Era 6 — Hive Account Onboarding**. The deferred signing gate must be resumed before broad external release.
+This remains an allowed roadmap interleave, not an Era-5 completion claim. Era 5 stays open at its final external trust gate while the next product-building boundary advances to **Era 7 — Deployment Product**. The deferred signing gate must still be resumed before broad external release.
 
 Production hosting/deployment, unrelated new commerce classes, Fourth Street customer work, independent Astra, and broad release remain held unless their roadmap boundary is explicitly opened.
 
@@ -135,9 +152,9 @@ For future **Era 7 — Deployment Product** work, **Privex is the current prefer
 
 ## Current hard boundary
 
-During Era 5, preserve all accepted Era-0–4 behavior while changing how the application is obtained and launched.
+Preserve all accepted Era-0–6 behavior. Until a dedicated Era-7 charter explicitly opens deployment work, do not infer production authority merely because deployment is next in the roadmap.
 
-Do not introduce merely because packaging code is adjacent:
+Do not introduce merely because adjacent code makes it convenient:
 
 - production deployment, DNS, VPS or permanent-hosting mutation;
 - live-value qualification or unattended Hive writes;
@@ -147,7 +164,7 @@ Do not introduce merely because packaging code is adjacent:
 - a React/Vue/SPA rewrite;
 - broad cleanup or renaming solely for aesthetics.
 
-Packaging may add local installer/runtime/update consequences, but those must remain separate from host Release, Hive consequence state, and future deployment state.
+Local installer/runtime/update consequences, Hive identity, host Release, and future deployment consequences must remain separate authority boundaries.
 
 ## Successor rule
 
@@ -161,7 +178,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Tranches 0–3 plus the repository-side signing boundary are complete; paid Public Trust enrollment remains an intentionally parked final Era-5 gate; Era 6 Hive Account Onboarding is the next product-building boundary.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Tranches 0–3 plus the repository-side signing boundary are complete with paid Public Trust enrollment intentionally parked; Era 6 Hive Account Onboarding is complete/qualified; Era 7 Deployment Product is the next product-building boundary.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
