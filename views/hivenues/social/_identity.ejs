@@ -48,7 +48,7 @@
     </div>
   <% } else { %>
     <div class="cc-identity__onboarding" data-identity-onboarding>
-      <section class="cc-identity__path cc-identity__path--existing" aria-labelledby="cc-identity-existing-title">
+      <section class="cc-identity__path cc-identity__path--existing" data-identity-path="existing" aria-labelledby="cc-identity-existing-title">
         <p class="cc-identity__path-kicker">Already on Hive</p>
         <h3 id="cc-identity-existing-title">Connect an existing Hive account</h3>
         <form class="cc-identity__form" data-identity-form>
@@ -68,14 +68,14 @@
             >
             <button type="submit" data-identity-submit disabled><%= identityLabels.action %></button>
           </div>
-          <p class="cc-identity__truth">
+          <p class="cc-identity__truth" data-identity-proof-boundary>
             HiVenues checks that the public account exists before your wallet opens. Your wallet then signs a fresh identity message only. HiVenues never receives your private key and this step does not post, follow, vote, pay, or broadcast a Hive transaction.
           </p>
           <p class="cc-identity__status" data-identity-status role="status" aria-live="polite"><%= identityLabels.ready %></p>
         </form>
       </section>
 
-      <section class="cc-identity__path cc-identity__path--create" aria-labelledby="cc-identity-create-title">
+      <section class="cc-identity__path cc-identity__path--create" data-identity-path="create" aria-labelledby="cc-identity-create-title">
         <p class="cc-identity__path-kicker">New to Hive</p>
         <h3 id="cc-identity-create-title"><%= createTitle %></h3>
         <p><%= createBody %></p>
@@ -86,10 +86,10 @@
           target="_blank"
           rel="noopener noreferrer"
         >Open Hive account options</a>
-        <p class="cc-identity__truth">Save the credentials and recovery material supplied by the provider you choose. Hive does not have an ordinary centralized password reset. When your account is ready, return here and connect it above.</p>
+        <p class="cc-identity__truth" data-identity-recovery-boundary>Save the credentials and recovery material supplied by the provider you choose. Hive does not have an ordinary centralized password reset. When your account is ready, return here and connect it above.</p>
       </section>
 
-      <section class="cc-identity__path cc-identity__path--later" aria-labelledby="cc-identity-later-title">
+      <section class="cc-identity__path cc-identity__path--later" data-identity-path="later" aria-labelledby="cc-identity-later-title">
         <p class="cc-identity__path-kicker">Not now</p>
         <h3 id="cc-identity-later-title"><%= laterTitle %></h3>
         <p><%= laterBody %></p>
