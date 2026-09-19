@@ -425,3 +425,92 @@ test('Era 7 Stage 3B: coordinator persists restricted account before destructive
   );
   assert.equal(result.activeRelease.id, f.releaseA.id);
 });
+
+
+test('Era 7 Stage 3B: interrupted authority narrowing resumes after restart without replaying deployment', async (t) => {
+  const f = fixture(t);
+  const runtime = JSON.parse(
+    fs.readFileSync(path.join(f.runtimeRoot, 'runtime-provenance.json'), 'utf8'),
+  );
+  const release = JSON.parse(
+    fs.readFileSync(path.join(f.packageA.packagePath, 'manifest.json'), 'utf8'),
+  );
+
+  f.deploymentStore.setTargetPublicFacts(f.deploymentId, {
+    ...f.deploymentStore.get(f.deploymentId).targetPublicFacts,
+    username: 'hivenues-deploy',
+    bootstrapUsername: 'root',
+    bootstrapAuthorityState: 'restricted-login-proven',
+  });
+  f.deploymentStore.transition(f.deploymentId, 'deploying', {
+    reason: 'simulated-process-stop-after-restricted-login-proof',
+    patch: { healthState: 'checking' },
+  });
+
+  let authorityState = 'restricted-login-proven';
+  let finalized = 0;
+  const target = {
+    async readBack() {
+      return {
+        status: 'healthy',
+        runtime: {
+          sourceSha: runtime.sourceSha,
+          sourceTree: runtime.sourceTree,
+          packageVersion: runtime.packageVersion,
+          nodeVersion: runtime.nodeVersion,
+          bundleDigest: runtime.bundleDigest,
+        },
+        deployment: {
+          hostSlug: release.hostSlug,
+          releaseId: release.releaseId,
+          releaseDigest: release.releaseDigest,
+          packageDigest: release.packageDigest,
+        },
+        bootstrap: {
+          profile: 'debian-systemd-caddy-v1',
+          runtimeUser: 'hivenues',
+          deploymentUser: 'hivenues-deploy',
+          runtimePort: 4317,
+          authorityState,
+        },
+      };
+    },
+    async installRuntime() {
+      throw new Error('runtime install must not replay during narrowing recovery');
+    },
+    async installRelease() {
+      throw new Error('Release install must not replay during narrowing recovery');
+    },
+    async activate() {
+      throw new Error('activation must not replay during narrowing recovery');
+    },
+    async finalizeAuthorityNarrowing(plan) {
+      assert.equal(plan.privilegeModel.initialRemoteAccount, 'root');
+      assert.equal(plan.privilegeModel.steadyRemoteAccount, 'hivenues-deploy');
+      finalized += 1;
+      authorityState = 'restricted-deployment-user';
+      return true;
+    },
+  };
+
+  const coordinator = new ExactReleaseDeploymentCoordinator({
+    store: f.deploymentStore,
+    target,
+    now: () => Date.parse('2026-09-19T16:30:00.000Z'),
+  });
+
+  const result = await coordinator.deploy(f.deploymentId, {
+    runtimeRoot: f.runtimeRoot,
+    releasePackageRoot: f.packageA.packagePath,
+  });
+
+  assert.equal(finalized, 1);
+  assert.equal(result.state, 'healthy');
+  assert.equal(result.targetPublicFacts.username, 'hivenues-deploy');
+  assert.equal(result.targetPublicFacts.bootstrapUsername, 'root');
+  assert.equal(
+    result.targetPublicFacts.bootstrapAuthorityState,
+    'restricted-deployment-user',
+  );
+  assert.equal(result.activeRelease.id, f.releaseA.id);
+});
