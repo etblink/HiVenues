@@ -11,6 +11,7 @@ const {
   startHiVenuesServer,
 } = require('../src/product/app');
 const { createLocalDeploymentServices } = require('../src/product/deployment');
+const { createPlatformAuthorityProtector } = require('../src/product/deployment-authority');
 const { createHiVenuesHiveReadService } = require('../src/product/hive-read');
 const { resolveInstalledPaths } = require('../src/product/runtime-paths');
 const {
@@ -64,11 +65,16 @@ async function main() {
     store.list();
 
     const hiveReadService = createHiVenuesHiveReadService();
+    const authorityProtector = process.platform === 'win32'
+      ? createPlatformAuthorityProtector()
+      : null;
     const deploymentServices = createLocalDeploymentServices({
       store,
       statePath: paths.deploymentStatePath,
       packageRoot: paths.deploymentPackagesRoot,
       mediaRoot: paths.mediaRoot,
+      authorityRoot: authorityProtector ? paths.deploymentAuthorityRoot : '',
+      authorityProtector,
     });
     const app = createHiVenuesApp({
       store,
@@ -94,6 +100,8 @@ async function main() {
       mediaRoot: paths.mediaRoot,
       deploymentStatePath: paths.deploymentStatePath,
       deploymentPackagesRoot: paths.deploymentPackagesRoot,
+      deploymentAuthorityRoot: authorityProtector ? paths.deploymentAuthorityRoot : null,
+      deploymentAuthorityProtector: authorityProtector?.kind || null,
       diagnosticsRoot: paths.diagnosticsRoot,
       provenance,
     };
