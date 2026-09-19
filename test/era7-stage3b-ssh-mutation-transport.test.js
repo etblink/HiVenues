@@ -9,13 +9,13 @@ const test = require('node:test');
 
 const {
   Server,
-  sftp: {
-    OPEN_MODE,
-    STATUS_CODE,
-  },
   utils: {
     generateKeyPairSync,
     parseKey,
+    sftp: {
+      OPEN_MODE,
+      STATUS_CODE,
+    },
   },
 } = require('ssh2');
 
