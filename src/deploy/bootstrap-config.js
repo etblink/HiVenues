@@ -44,6 +44,7 @@ function renderRuntimeEnvironment(planInput) {
     HIVENUES_RUNTIME_MANIFEST: plan.paths.runtimeCurrent + '/runtime-manifest.json',
     PORT: String(plan.runtimePort),
     NODE_ENV: 'production',
+    PATH: plan.paths.nodeRoot + '/bin:/usr/bin:/bin',
   };
   return Object.entries(entries)
     .map(([key, value]) => key + '=' + shellQuote(value))
@@ -65,7 +66,7 @@ function renderSystemdUnit(planInput) {
     'Group=' + plan.runtimeUser,
     'WorkingDirectory=' + plan.paths.runtimeCurrent,
     'EnvironmentFile=' + plan.paths.environmentFile,
-    'ExecStart=/usr/bin/node ' + executable,
+    'ExecStart=' + plan.nodeDistribution.nodePath + ' ' + executable,
     'Restart=on-failure',
     'RestartSec=3s',
     'NoNewPrivileges=true',
