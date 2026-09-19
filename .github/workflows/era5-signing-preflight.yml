@@ -1,0 +1,128 @@
+name: Era 5 signing preflight
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'views/**'
+      - 'public/**'
+      - 'native/windows/**'
+      - 'installer/windows/**'
+      - 'scripts/hivenues-installed.js'
+      - 'scripts/era5/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.github/workflows/era5-signing-preflight.yml'
+      - '.github/workflows/era5-production-signing.yml'
+      - 'docs/HIVENUES_ERA5_PRODUCTION_SIGNING_0_1_0.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unsigned-promotion-guard:
+    name: Prove exact unsigned promotion boundary
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Verify exact runtime provenance
+        run: npm run release:check:runtime
+
+      - name: Resolve exact source identity
+        id: source
+        shell: pwsh
+        run: |
+          "tree=$(git rev-parse 'HEAD^{tree}')" >> $env:GITHUB_OUTPUT
+
+      - name: Build native Windows launcher
+        shell: pwsh
+        run: |
+          ./scripts/era5/build-windows-launcher.ps1 -Output "$env:RUNNER_TEMP\launcher\HiVenues Studio.exe"
+
+      - name: Build Windows bundle
+        shell: pwsh
+        run: |
+          node scripts/era5/build-windows-bundle.js --output "$env:RUNNER_TEMP\bundle" --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" --source-tree "${{ steps.source.outputs.tree }}" --launcher "$env:RUNNER_TEMP\launcher\HiVenues Studio.exe"
+
+      - name: Install pinned NSIS build dependency
+        shell: pwsh
+        run: |
+          choco install nsis --version=3.12.0 --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "Chocolatey NSIS install failed with exit code $LASTEXITCODE." }
+
+      - name: Build unsigned installer
+        shell: pwsh
+        run: |
+          ./scripts/era5/build-windows-installer.ps1 -BundleRoot "$env:RUNNER_TEMP\bundle" -OutputDirectory "$env:RUNNER_TEMP\unsigned"
+
+      - name: Resolve unsigned installer identity
+        id: unsigned
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\unsigned" -Filter 'HiVenues-Studio-*-windows-x64-setup.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'Unsigned installer missing.' }
+          $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Prove exact promotion guard
+        shell: pwsh
+        run: |
+          ./scripts/era5/prepare-production-signing.ps1 -ArtifactRoot "$env:RUNNER_TEMP\unsigned" -OutputDirectory "$env:RUNNER_TEMP\promotion" -ExpectedSourceSha "${{ github.event.pull_request.head.sha || github.sha }}" -ExpectedUnsignedSha256 "${{ steps.unsigned.outputs.sha256 }}" -QualificationRunId "preflight-${{ github.run_id }}"
+
+          $manifest = Get-Content -LiteralPath "$env:RUNNER_TEMP\promotion\hivenues-production-signing-promotion.json" -Raw | ConvertFrom-Json
+          if ($manifest.source.sha -ne "${{ github.event.pull_request.head.sha || github.sha }}") { throw 'Promotion manifest source SHA mismatch.' }
+          if ($manifest.installer.unsignedSha256 -ne "${{ steps.unsigned.outputs.sha256 }}") { throw 'Promotion manifest unsigned hash mismatch.' }
+          if ($manifest.signing.trustModel -ne 'PublicTrust') { throw 'Promotion manifest trust model mismatch.' }
+
+      - name: Require unsigned artifact rejection at signed finalizer
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\promotion" -Filter 'HiVenues-Studio-*-windows-x64-setup.exe' | Select-Object -First 1
+          $rejected = $false
+          try {
+            ./scripts/era5/finalize-production-signing.ps1 -SignedInstaller $installer.FullName -PromotionManifest "$env:RUNNER_TEMP\promotion\hivenues-production-signing-promotion.json" -OutputDirectory "$env:RUNNER_TEMP\finalized" -ExpectedPublisherSubject "CN=preflight-invalid"
+          } catch {
+            if ($_.Exception.Message -match 'Authenticode signature is not valid') {
+              $rejected = $true
+              Write-Host "Expected unsigned rejection: $($_.Exception.Message)"
+            } else {
+              throw
+            }
+          }
+          if (-not $rejected) { throw 'Unsigned installer crossed the production signed-artifact finalizer.' }
+
+      - name: Enforce production workflow authority policy
+        shell: pwsh
+        run: |
+          $workflow = Get-Content -LiteralPath '.github/workflows/era5-production-signing.yml' -Raw
+          if ($workflow -notmatch '(?m)^  workflow_dispatch:') { throw 'Production signing workflow must remain manually dispatched.' }
+          if ($workflow -match '(?m)^  pull_request:') { throw 'Production signing workflow must never be pull-request triggered.' }
+          if (-not $workflow.Contains('    environment: production-signing')) { throw 'Production signing job must use the protected production-signing environment.' }
+          if (-not $workflow.Contains('  id-token: write')) { throw 'Production signing workflow must retain GitHub OIDC token permission.' }
+          if ($workflow -match '(?i)azure-client-secret|\.pfx|client-secret:') { throw 'Production signing workflow must not introduce reusable Azure signing secrets or PFX material.' }
+          if (-not $workflow.Contains('Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906')) { throw 'Azure/login must remain pinned to the reviewed immutable commit.' }
+          if (-not $workflow.Contains('Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82')) { throw 'Artifact Signing action must remain pinned to the reviewed immutable commit.' }
+          if (-not $workflow.Contains('ARTIFACT_SIGNING_PROFILE')) { throw 'Production signing workflow lost its certificate-profile boundary.' }
+
+      - name: Upload preflight evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hivenues-signing-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\promotion\hivenues-production-signing-promotion.json
+          if-no-files-found: error
+          retention-days: 14
