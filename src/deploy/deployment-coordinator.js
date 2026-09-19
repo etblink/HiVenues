@@ -175,7 +175,12 @@ class ExactReleaseDeploymentCoordinator {
 
     try {
       let readBack = await this.target.readBack();
-      if (!readBackMatches(readBack, expected)) {
+      const authorityState = String(readBack?.bootstrap?.authorityState || '');
+      const artifactsNeedActivation = (
+        !readBackArtifactsMatch(readBack, expected)
+        || !['restricted-login-proven', 'restricted-deployment-user'].includes(authorityState)
+      );
+      if (artifactsNeedActivation) {
         const installedRuntime = await this.target.installRuntime(runtimeRoot);
         const installedRelease = await this.target.installRelease(releasePackageRoot);
         await this.target.activate({
