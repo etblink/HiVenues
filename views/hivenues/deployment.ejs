@@ -9,6 +9,7 @@
     data-deployment-stage1
     <%= deploymentAuthorityAvailable ? 'data-deployment-stage2a' : '' %>
     <%= deploymentVerificationAvailable ? 'data-deployment-stage2b' : '' %>
+    <%= deploymentMutationAvailable ? 'data-deployment-stage3b' : '' %>
   >
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -19,9 +20,10 @@
     <h1>Prepare an exact Release and deployment target safely.</h1>
     <p class="cc-task__dek">
       Offline simulation remains available everywhere. Installed Windows HiVenues may also create a protected
-      deployment-only SSH authority for provider handoff. Where read-only verification is available, HiVenues
-      may inspect an explicitly trusted SSH target without changing it. Server mutation, DNS, TLS, payment and
-      public deployment remain unavailable at this stage.
+      deployment-only SSH authority for provider handoff. HiVenues verifies an explicitly trusted SSH target
+      without changing it first. In a qualified installed runtime, an exact immutable Release may then advance
+      to a separate deployment consequence review before any server mutation. DNS, TLS and provider payment
+      remain held.
     </p>
 
     <% if (error) { %>
@@ -141,7 +143,7 @@
 
                 <% if (deployment.activeRelease) { %>
                   <p>
-                    Synthetic read-back:
+                    Confirmed deployed Release:
                     <code data-active-release><%= deployment.activeRelease.id %></code>
                     · <code><%= deployment.activeRelease.digest %></code>
                   </p>
@@ -314,9 +316,43 @@
                         Host fingerprint:
                         <code data-deployment-trusted-host-fingerprint><%= deployment.targetPublicFacts.trustedHostKeyFingerprint %></code>
                       </p>
-                      <p data-deployment-bootstrap-held>
-                        Remote bootstrap and every server mutation remain held for Stage 3.
+                      <% if (!deploymentMutationAvailable) { %>
+                        <p data-deployment-bootstrap-held>
+                          Remote bootstrap remains held in this runtime.
+                        </p>
+                      <% } else { %>
+                        <p>
+                          Server mutation remains behind a separate exact consequence review. No DNS, TLS or
+                          provider-payment action is included.
+                        </p>
+                      <% } %>
+                    </section>
+                  <% } %>
+
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && deploymentMutationAvailable
+                    && deployment.selectedRelease
+                    && deployment.package
+                    && ['bootstrap-ready', 'deploying', 'healthy', 'rollback-available', 'degraded'].includes(deployment.state)
+                  ) { %>
+                    <section class="cc-consequence-card" data-deployment-consequence-review>
+                      <strong>
+                        <%= deployment.state === 'deploying'
+                          ? 'Interrupted deployment can be resumed safely'
+                          : 'Exact Release is ready for deployment consequence review' %>
+                      </strong>
+                      <p>
+                        Review the trusted server identity, exact immutable Release, installed-runtime source
+                        provenance and bounded server changes before HiVenues is allowed to mutate the target.
                       </p>
+                      <a
+                        class="cc-button cc-button--ink"
+                        href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/review"
+                        data-review-exact-deployment
+                      >
+                        <%= deployment.state === 'deploying' ? 'Review and resume exact deployment' : 'Review exact deployment' %>
+                      </a>
                     </section>
                   <% } %>
 
@@ -342,10 +378,10 @@
       <section class="cc-consequence-card" style="margin-top:2rem" data-deployment-stage1-boundary>
         <h2>Authority boundary</h2>
         <p>
-          Synthetic deployment remains local-only. Where protected authority and read-only verification are
-          available, HiVenues may establish an SSH connection only after explicit host-fingerprint trust and run
-          the fixed read-only inspection probe. This stage still performs no server mutation, provider write,
-          package upload, DNS/TLS mutation, payment or public deployment.
+          Synthetic deployment remains local-only. Protected SSH targets require explicit host-fingerprint trust
+          and fixed read-only inspection before mutation is even reviewable. A qualified installed runtime may
+          perform only the exact reviewed Stage-3B bootstrap/Release consequence. Provider payment, custom-domain,
+          DNS and TLS consequences remain outside this action.
         </p>
       </section>
     <% } %>

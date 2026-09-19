@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-deployment-exact-review>
+    <nav class="cc-task-nav">
+      <a
+        class="cc-link"
+        href="/hivenues/studio/<%= graph.identity.slug %>/deploy"
+      >Back to Deployment</a>
+      <span class="cc-draft-status">Immutable Release consequence</span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · explicit external consequence</p>
+    <h1>Review the exact server mutation before it happens.</h1>
+    <p class="cc-task__dek">
+      This action will connect to the already verified server with the protected deployment-only SSH authority,
+      upload the exact qualified public runtime and immutable Release, configure only the bounded HiVenues
+      services, prove the restricted deployment login, remove the exact HiVenues key from the bootstrap account,
+      and verify exact health/provenance read-back.
+    </p>
+
+    <section class="cc-consequence-card" data-deployment-review-target>
+      <p class="cc-kicker">Verified target</p>
+      <h2><code><%= review.target.currentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></h2>
+      <p>
+        Trusted SSH fingerprint:
+        <code data-review-host-fingerprint><%= review.target.trustedHostKeyFingerprint %></code>
+      </p>
+      <p>
+        Verified target:
+        <code><%= review.target.verifiedOs %></code>
+        ·
+        <code><%= review.target.verifiedArchitecture %></code>
+      </p>
+      <% if (review.target.bootstrapUsername !== review.target.currentUsername) { %>
+        <p>
+          Original bootstrap account retained only for exact-key cleanup:
+          <code><%= review.target.bootstrapUsername %></code>
+        </p>
+      <% } %>
+    </section>
+
+    <section class="cc-review-card" data-deployment-review-release>
+      <p class="cc-kicker">Exact immutable Release</p>
+      <h2><code data-review-release-id><%= review.release.id %></code></h2>
+      <p>Release digest: <code><%= review.release.digest %></code></p>
+      <p>Package digest: <code data-review-package-digest><%= review.release.packageDigest %></code></p>
+    </section>
+
+    <section class="cc-review-card" data-deployment-review-runtime>
+      <p class="cc-kicker">Qualified public runtime</p>
+      <h2>Installed Studio provenance → deterministic deployment runtime</h2>
+      <p>Source commit: <code data-review-source-sha><%= review.runtime.sourceSha %></code></p>
+      <p>Source tree: <code data-review-source-tree><%= review.runtime.sourceTree %></code></p>
+      <p>Runtime bundle: <code data-review-runtime-digest><%= review.runtime.bundleDigest %></code></p>
+      <p>Node: <code><%= review.runtime.nodeVersion %></code> · Package: <code><%= review.runtime.packageVersion %></code></p>
+    </section>
+
+    <section class="cc-consequence-card" data-deployment-review-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-deployment-review-held>
+      <h2>What this action will not do</h2>
+      <ul>
+        <% review.held.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+      <p>Working state is not deployed. Hive wallet authority is not used. No customer private key enters this flow.</p>
+    </section>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/deploy-exact"
+      class="cc-consequence-card"
+      data-deployment-exact-confirmation
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="deploy-exact-release"
+          required
+        >
+        I reviewed this exact target, Release, runtime provenance and bounded server consequence.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit" data-confirm-exact-deployment>
+        <%= deployment.state === 'deploying'
+          ? 'Resume and finish this exact deployment'
+          : 'Bootstrap server and deploy this exact Release' %>
+      </button>
+    </form>
+  </main>
+</body>
+</html>
