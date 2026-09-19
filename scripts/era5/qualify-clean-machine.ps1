@@ -30,7 +30,31 @@ function Invoke-Get([string]$Url) {
 }
 
 function Invoke-PostForm([string]$Url, [hashtable]$Body, [string]$Origin) {
-  return Invoke-WebRequest -Uri $Url -Method Post -Body $Body -ContentType 'application/x-www-form-urlencoded' -Headers @{ Origin = $Origin; 'Sec-Fetch-Site' = 'same-origin' } -MaximumRedirection 0 -SkipHttpErrorCheck -UseBasicParsing
+  $handler = [System.Net.Http.HttpClientHandler]::new()
+  $handler.AllowAutoRedirect = $false
+  $client = [System.Net.Http.HttpClient]::new($handler)
+  $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Post, $Url)
+  $pairs = [System.Collections.Generic.List[System.Collections.Generic.KeyValuePair[string,string]]]::new()
+  foreach ($entry in $Body.GetEnumerator()) {
+    $pairs.Add([System.Collections.Generic.KeyValuePair[string,string]]::new([string]$entry.Key, [string]$entry.Value))
+  }
+  $request.Content = [System.Net.Http.FormUrlEncodedContent]::new($pairs)
+  [void]$request.Headers.TryAddWithoutValidation('Origin', $Origin)
+  [void]$request.Headers.TryAddWithoutValidation('Sec-Fetch-Site', 'same-origin')
+  try {
+    $response = $client.Send($request)
+    return [pscustomobject]@{
+      StatusCode = [int]$response.StatusCode
+      Headers = [pscustomobject]@{
+        Location = if ($null -ne $response.Headers.Location) { [string]$response.Headers.Location } else { '' }
+      }
+      Content = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+    }
+  } finally {
+    $request.Dispose()
+    $client.Dispose()
+    $handler.Dispose()
+  }
 }
 
 function Hidden-Value([string]$Html, [string]$Name) {
