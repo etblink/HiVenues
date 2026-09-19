@@ -239,6 +239,7 @@ class SshRemoteDeploymentTarget {
     target,
     expectedHostKeyFingerprint,
     hostSlug,
+    bootstrapUsername = '',
     transport = new Ssh2PinnedMutationTransport(),
   } = {}) {
     if (!authorityStore || typeof authorityStore.withPrivateKey !== 'function') {
@@ -260,7 +261,7 @@ class SshRemoteDeploymentTarget {
       port: Number(target.port || 22),
       username: String(target.username),
     };
-    this.initialUsername = this.connection.username;
+    this.initialUsername = String(bootstrapUsername || this.connection.username).trim();
     this.expectedHostKeyFingerprint = String(expectedHostKeyFingerprint || '');
     this.hostSlug = String(hostSlug);
     this.transport = transport;
@@ -420,7 +421,13 @@ class SshRemoteDeploymentTarget {
   }
 
   async finalizeAuthorityNarrowing(plan = this.lastPlan) {
-    if (!plan || !this.narrowingPending) return false;
+    if (!plan) return false;
+    if (!this.initialUsername || this.initialUsername === plan.deploymentUser) {
+      throw targetError(
+        'DEPLOYMENT_BOOTSTRAP_ACCOUNT_UNAVAILABLE',
+        'Original bootstrap account is unavailable for authority cleanup.',
+      );
+    }
     await this.withSession(this.initialUsername, (session) => (
       session.exec(removeBootstrapKeyCommand(plan, this.publicKey))
     ));
