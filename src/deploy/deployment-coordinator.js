@@ -194,6 +194,10 @@ class ExactReleaseDeploymentCoordinator {
         this.store.setTargetPublicFacts(deploymentId, {
           ...record.targetPublicFacts,
           username: plan.privilegeModel.steadyRemoteAccount,
+          bootstrapUsername: (
+            record.targetPublicFacts.bootstrapUsername
+            || plan.privilegeModel.initialRemoteAccount
+          ),
           bootstrapAuthorityState: 'restricted-login-proven',
         });
         await this.target.finalizeAuthorityNarrowing(plan);
