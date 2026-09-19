@@ -39,6 +39,7 @@ function resolveInstalledPaths(options = {}) {
     deploymentRoot,
     deploymentStatePath: path.join(deploymentRoot, 'state.json'),
     deploymentPackagesRoot: path.join(deploymentRoot, 'packages'),
+    deploymentRuntimeBundlesRoot: path.join(deploymentRoot, 'runtime-bundles'),
     deploymentAuthorityRoot: path.join(deploymentRoot, 'authority'),
     diagnosticsRoot,
     runtimeDiagnosticsPath: path.join(diagnosticsRoot, 'runtime.json'),

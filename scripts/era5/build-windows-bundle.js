@@ -38,6 +38,7 @@ function main() {
   fs.mkdirSync(runtimeRoot, { recursive: true });
 
   for (const item of ['src', 'views', 'public']) copy(path.join(root, item), path.join(appRoot, item));
+  fs.copyFileSync(path.join(root, 'LICENSE'), path.join(appRoot, 'LICENSE'));
   for (const item of ['package.json', 'package-lock.json']) {
     fs.copyFileSync(path.join(root, item), path.join(appRoot, item));
   }
@@ -45,6 +46,15 @@ function main() {
   fs.copyFileSync(
     path.join(root, 'scripts', 'hivenues-installed.js'),
     path.join(appRoot, 'scripts', 'hivenues-installed.js')
+  );
+  fs.copyFileSync(
+    path.join(root, 'scripts', 'hivenues-public-runtime.js'),
+    path.join(appRoot, 'scripts', 'hivenues-public-runtime.js')
+  );
+  fs.mkdirSync(path.join(appRoot, 'scripts', 'era7'), { recursive: true });
+  fs.copyFileSync(
+    path.join(root, 'scripts', 'era7', 'build-public-runtime-bundle.js'),
+    path.join(appRoot, 'scripts', 'era7', 'build-public-runtime-bundle.js')
   );
 
   const install = process.platform === 'win32'
