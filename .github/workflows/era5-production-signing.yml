@@ -39,6 +39,22 @@ jobs:
           if ('${{ inputs.unsigned_sha256 }}' -notmatch '^[a-f0-9]{64}$') { throw 'unsigned_sha256 must be an exact lowercase SHA-256.' }
           if ('${{ inputs.qualification_run_id }}' -notmatch '^\d+$') { throw 'qualification_run_id must be a GitHub Actions run ID.' }
 
+      - name: Verify referenced qualification run
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $uri = "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.qualification_run_id }}"
+          $run = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
+          if ($run.name -ne 'Era 5 clean-machine installer') { throw "Run $($run.id) is not the Era 5 clean-machine installer workflow." }
+          if ($run.conclusion -ne 'success') { throw "Run $($run.id) did not conclude success." }
+          if ($run.head_sha -ne '${{ inputs.source_sha }}') { throw "Run head $($run.head_sha) does not match promoted source ${{ inputs.source_sha }}." }
+
       - name: Check out exact promoted source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
