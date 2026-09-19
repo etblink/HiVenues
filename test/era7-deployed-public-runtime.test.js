@@ -63,6 +63,15 @@ function fileSha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Release and read-back provenance', async (t) => {
   const f = fixture(t);
   const releasePath = path.join(f.packageRecord.packagePath, 'release.json');
@@ -102,8 +111,8 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
   const publicPage = await request(runtime.app)
     .get('/hivenues/' + f.slug)
     .expect(200);
-  assert.equal(publicPage.text.includes(f.release.snapshot.identity.displayName), true);
-  assert.equal(publicPage.text.includes(f.release.snapshot.facts.tagline), true);
+  assert.equal(publicPage.text.includes(escapeHtml(f.release.snapshot.identity.displayName)), true);
+  assert.equal(publicPage.text.includes(escapeHtml(f.release.snapshot.facts.tagline)), true);
 
   await request(runtime.app)
     .get('/hivenues/studio/' + f.slug)
@@ -162,7 +171,7 @@ test('Era 7 Stage 3A: deployed runtime refuses non-loopback bind', async (t) => 
     runtimeStatePath: f.runtimeStatePath,
     provenancePath: f.provenancePath,
   });
-  await assert.rejects(
+  assert.throws(
     () => startDeployedPublicServer(runtime.app, {
       port: 4317,
       host: '0.0.0.0',
