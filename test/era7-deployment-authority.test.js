@@ -346,15 +346,15 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
   assert.deepEqual(deployment.targetPublicFacts, {});
   assert.equal(JSON.stringify(deployment).includes('must-never-persist'), false);
 
-  await request(app)
+  const accepted = await request(app)
     .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/connection')
     .type('form')
     .send({
       host: '203.0.113.10',
       port: '22',
       username: 'root',
-    })
-    .expect(303);
+    });
+  assert.equal(accepted.status, 303, accepted.text);
 
   deployment = services.deploymentStore.get(deployment.id);
   assert.equal(deployment.state, 'target-ready');
