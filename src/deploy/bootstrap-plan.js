@@ -53,6 +53,13 @@ function createReferenceBootstrapPlan({
   const runtimeCurrent = '/opt/hivenues/current';
   const releaseCurrent = '/srv/hivenues/current/' + hostSlug;
   const stateRoot = '/var/lib/hivenues/' + hostSlug;
+  if (runtimeProvenance.nodeVersion !== 'v24.19.0') {
+    throw planError(
+      'DEPLOYED_BOOTSTRAP_PLAN_INVALID',
+      'Reference deployment requires qualified Node v24.19.0.',
+    );
+  }
+  const nodeRoot = '/opt/hivenues/node/v24.19.0';
 
   return Object.freeze({
     version: 1,
@@ -77,6 +84,7 @@ function createReferenceBootstrapPlan({
     paths: Object.freeze({
       runtimeRoot,
       releaseRoot,
+      nodeRoot,
       runtimeCurrent,
       releaseCurrent,
       stateRoot,
@@ -91,14 +99,25 @@ function createReferenceBootstrapPlan({
       runtimeState: 'hivenues:hivenues',
       rootConfiguration: 'root:root',
     }),
+    nodeDistribution: Object.freeze({
+      version: 'v24.19.0',
+      npmVersion: '11.17.0',
+      architecture: 'x86_64',
+      archiveName: 'node-v24.19.0-linux-x64.tar.xz',
+      url: 'https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz',
+      sha256: '14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647',
+      installRoot: nodeRoot,
+      nodePath: nodeRoot + '/bin/node',
+      npmPath: nodeRoot + '/bin/npm',
+    }),
     runtime: Object.freeze({
       sourceSha: runtimeProvenance.sourceSha,
       sourceTree: runtimeProvenance.sourceTree,
       packageVersion: runtimeProvenance.packageVersion,
       nodeVersion: runtimeProvenance.nodeVersion,
       bundleDigest,
-      installCommand: 'npm ci --omit=dev --ignore-scripts',
-      startCommand: 'node scripts/hivenues-public-runtime.js',
+      installCommand: nodeRoot + '/bin/npm ci --omit=dev --ignore-scripts',
+      startCommand: nodeRoot + '/bin/node scripts/hivenues-public-runtime.js',
       bindHost: '127.0.0.1',
     }),
     release: Object.freeze({
@@ -111,6 +130,7 @@ function createReferenceBootstrapPlan({
       'ensure-runtime-user',
       'ensure-deployment-user',
       'ensure-bounded-directories',
+      'install-qualified-node-runtime',
       'install-runtime-bundle',
       'install-locked-production-dependencies',
       'install-exact-release-package',
