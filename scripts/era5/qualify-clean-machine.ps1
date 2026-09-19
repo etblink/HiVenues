@@ -2,7 +2,9 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$ArtifactRoot,
   [Parameter(Mandatory = $true)]
-  [string]$EvidenceOutput
+  [string]$EvidenceOutput,
+  [ValidateSet('unsigned','authenticode-public-trust')]
+  [string]$ExpectedSigning = 'unsigned'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -131,7 +133,30 @@ Assert-True ($actualInstallerHash -eq $expectedInstallerHash) 'Installer SHA-256
 $provenance = Get-Content -LiteralPath $provenanceFile.FullName -Raw | ConvertFrom-Json
 Assert-True ($provenance.installer.sha256 -eq $actualInstallerHash) 'Installer provenance SHA-256 does not match the installer.'
 Assert-True ($provenance.installScope -eq 'per-user') 'Installer provenance does not describe a per-user install.'
-Assert-True ($provenance.signing -eq 'unsigned') 'Tranche-3 candidate unexpectedly changed the explicit unsigned boundary.'
+Assert-True ([string]$provenance.signing -eq $ExpectedSigning) "Installer signing state '$($provenance.signing)' does not match expected state '$ExpectedSigning'."
+
+$signatureEvidence = $null
+if ($ExpectedSigning -eq 'authenticode-public-trust') {
+  $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+  Assert-True ([string]$signature.Status -eq 'Valid') "Signed clean-machine installer is not Authenticode-valid: $($signature.Status) $($signature.StatusMessage)"
+  Assert-True ([string]$signature.SignatureType -eq 'Authenticode') "Expected Authenticode signature, found '$($signature.SignatureType)'."
+  Assert-True ($null -ne $signature.SignerCertificate) 'Signed installer did not expose a signer certificate.'
+  Assert-True ($null -ne $signature.TimeStamperCertificate) 'Signed installer did not expose a trusted time-stamp certificate.'
+  Assert-True ($null -ne $provenance.signature) 'Signed installer provenance is missing signature evidence.'
+  Assert-True (
+    [string]::Equals(
+      ([string]$signature.SignerCertificate.Subject).Trim(),
+      ([string]$provenance.signature.signerSubject).Trim(),
+      [System.StringComparison]::OrdinalIgnoreCase
+    )
+  ) 'Signed installer certificate subject does not match signed provenance.'
+  $signatureEvidence = [ordered]@{
+    status = [string]$signature.Status
+    signatureType = [string]$signature.SignatureType
+    signerSubject = [string]$signature.SignerCertificate.Subject
+    timestampSubject = [string]$signature.TimeStamperCertificate.Subject
+  }
+}
 
 Remove-Item -LiteralPath $installDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $dataRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -255,6 +280,7 @@ $evidence = [ordered]@{
     technology = [string]$provenance.installerTechnology
     technologyVersion = [string]$provenance.installerTechnologyVersion
     signing = [string]$provenance.signing
+    signature = $signatureEvidence
     installScope = [string]$provenance.installScope
   }
   source = [ordered]@{
