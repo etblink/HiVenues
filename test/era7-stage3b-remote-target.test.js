@@ -130,7 +130,10 @@ class ScriptedMutationTransport {
           this.authorityState = 'restricted-deployment-user';
         }
         if (
-          command.includes('systemctl enable --now hivenues-harbor-and-hearth.service')
+          (
+            command.includes('systemctl enable --now')
+            && command.includes('hivenues-harbor-and-hearth.service')
+          )
           || command.includes('sudo -n /usr/bin/systemctl restart')
         ) {
           this.active = true;
