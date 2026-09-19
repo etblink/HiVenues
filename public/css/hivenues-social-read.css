@@ -240,6 +240,19 @@
   outline:3px solid var(--cc-accent);
   outline-offset:3px;
 }
+.cc-identity__creation-resume {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.75rem;
+  padding:.85rem;
+  border:1px dashed currentColor;
+}
+.cc-identity__creation-resume[hidden] { display:none; }
+.cc-identity__creation-resume > span {
+  flex:1 1 14rem;
+  min-height:1.2rem;
+}
 .cc-identity__form label {
   font-size:.78rem;
   font-weight:800;
