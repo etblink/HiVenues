@@ -50,6 +50,12 @@ The production workflow receives actions:read, contents:read, and id-token:write
 
 The Azure federated credential must trust only the intended HiVenues production-signing GitHub identity/environment.
 
+HiVenues was created after GitHub's 2026 immutable-OIDC cutoff, so the environment-bound subject must include the immutable owner and repository IDs:
+
+    repo:etblink@30190328/HiVenues@1351282101:environment:production-signing
+
+Do not substitute the older name-only subject format.
+
 Do not add Azure client secrets, PFX files, exported private keys, signing passwords, or long-lived signing tokens to GitHub repository secrets, source files, build artifacts, or HiVenues application state.
 
 ## Least-privilege Azure authorization
