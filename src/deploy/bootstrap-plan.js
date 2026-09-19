@@ -45,6 +45,8 @@ function createReferenceBootstrapPlan({
   const packageDigest = requireDigest(releaseManifest.packageDigest, 'Release package');
   const runtimeRoot = '/opt/hivenues/runtime/' + bundleDigest;
   const releaseRoot = '/srv/hivenues/releases/' + releaseManifest.releaseId + '-' + releaseDigest.slice(0, 12);
+  const runtimeCurrent = '/opt/hivenues/current';
+  const releaseCurrent = '/srv/hivenues/current/' + hostSlug;
   const stateRoot = '/var/lib/hivenues/' + hostSlug;
 
   return Object.freeze({
@@ -61,6 +63,8 @@ function createReferenceBootstrapPlan({
     paths: Object.freeze({
       runtimeRoot,
       releaseRoot,
+      runtimeCurrent,
+      releaseCurrent,
       stateRoot,
       runtimeState: path.posix.join(stateRoot, 'runtime-state.json'),
       environmentFile: '/etc/hivenues/' + hostSlug + '.env',
@@ -90,10 +94,14 @@ function createReferenceBootstrapPlan({
       'install-runtime-bundle',
       'install-locked-production-dependencies',
       'install-exact-release-package',
-      'write-runtime-environment',
-      'write-systemd-service',
+      'write-runtime-environment-once',
+      'write-systemd-service-once',
+      'write-caddy-http-config-once',
+      'write-bounded-firewall-policy-once',
+      'activate-runtime-pointer',
+      'activate-release-pointer',
+      'restart-named-service',
       'verify-loopback-health',
-      'activate-exact-release',
       'narrow-bootstrap-authority',
       'read-back-runtime-and-release',
     ]),
