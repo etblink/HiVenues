@@ -133,6 +133,35 @@ function renderNftablesPolicy({
   ].join('\n');
 }
 
+function renderCaddySystemdUnit(planInput) {
+  const plan = assertPlan(planInput);
+  return [
+    '[Unit]',
+    'Description=HiVenues Stage 3 reverse proxy',
+    'After=network-online.target hivenues-firewall.service',
+    'Wants=network-online.target',
+    '',
+    '[Service]',
+    'Type=notify',
+    'User=caddy',
+    'Group=caddy',
+    'ExecStart=/usr/bin/caddy run --environ --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
+    'ExecReload=/usr/bin/caddy reload --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
+    'TimeoutStopSec=5s',
+    'LimitNOFILE=1048576',
+    'PrivateTmp=true',
+    'ProtectSystem=strict',
+    'ProtectHome=true',
+    'NoNewPrivileges=true',
+    'AmbientCapabilities=CAP_NET_BIND_SERVICE',
+    'CapabilityBoundingSet=CAP_NET_BIND_SERVICE',
+    '',
+    '[Install]',
+    'WantedBy=multi-user.target',
+    '',
+  ].join('\n');
+}
+
 function renderFirewallSystemdUnit(planInput) {
   const plan = assertPlan(planInput);
   return [
@@ -177,6 +206,7 @@ function renderBootstrapArtifacts(planInput, {
     environment: renderRuntimeEnvironment(plan),
     systemdUnit: renderSystemdUnit(plan),
     caddyHttpConfig: renderCaddyHttpConfig(plan),
+    caddySystemdUnit: renderCaddySystemdUnit(plan),
     nftablesPolicy: renderNftablesPolicy({ sshPort }),
     firewallSystemdUnit: renderFirewallSystemdUnit(plan),
     restrictedSudoers: renderRestrictedSudoers(plan),
@@ -186,6 +216,7 @@ function renderBootstrapArtifacts(planInput, {
 module.exports = {
   renderBootstrapArtifacts,
   renderCaddyHttpConfig,
+  renderCaddySystemdUnit,
   renderFirewallSystemdUnit,
   renderNftablesPolicy,
   renderRestrictedSudoers,
