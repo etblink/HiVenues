@@ -48,7 +48,7 @@ function desiredReadBack(runtime, release) {
   };
 }
 
-function readBackMatches(actual, expected) {
+function readBackArtifactsMatch(actual, expected) {
   if (!actual || actual.status !== 'healthy') return false;
   return (
     actual.runtime?.sourceSha === expected.runtime.sourceSha
@@ -60,6 +60,12 @@ function readBackMatches(actual, expected) {
     && actual.deployment?.releaseId === expected.deployment.releaseId
     && actual.deployment?.releaseDigest === expected.deployment.releaseDigest
     && actual.deployment?.packageDigest === expected.deployment.packageDigest
+  );
+}
+
+function readBackMatches(actual, expected) {
+  return (
+    readBackArtifactsMatch(actual, expected)
     && actual.bootstrap?.authorityState === 'restricted-deployment-user'
   );
 }
@@ -174,10 +180,30 @@ class ExactReleaseDeploymentCoordinator {
         readBack = await this.target.readBack();
       }
 
-      if (!readBackMatches(readBack, expected)) {
+      if (!readBackArtifactsMatch(readBack, expected)) {
         throw coordinatorError(
           'DEPLOYMENT_READBACK_MISMATCH',
           'Server read-back did not match the exact runtime and Release.',
+        );
+      }
+
+      if (
+        readBack.bootstrap?.authorityState === 'restricted-login-proven'
+        && typeof this.target.finalizeAuthorityNarrowing === 'function'
+      ) {
+        this.store.setTargetPublicFacts(deploymentId, {
+          ...record.targetPublicFacts,
+          username: plan.privilegeModel.steadyRemoteAccount,
+          bootstrapAuthorityState: 'restricted-login-proven',
+        });
+        await this.target.finalizeAuthorityNarrowing(plan);
+        readBack = await this.target.readBack();
+      }
+
+      if (!readBackMatches(readBack, expected)) {
+        throw coordinatorError(
+          'DEPLOYMENT_AUTHORITY_NARROWING_INCOMPLETE',
+          'Server authority was not narrowed after exact deployment read-back.',
         );
       }
 
@@ -206,7 +232,7 @@ class ExactReleaseDeploymentCoordinator {
           activeRelease: desiredActive,
           previousRelease,
           targetPublicFacts: {
-            ...record.targetPublicFacts,
+            ...this.store.get(deploymentId).targetPublicFacts,
             username: plan.privilegeModel.steadyRemoteAccount,
             bootstrapAuthorityState: plan.privilegeModel.steadyStateAuthority,
           },
@@ -238,5 +264,6 @@ class ExactReleaseDeploymentCoordinator {
 
 module.exports = {
   ExactReleaseDeploymentCoordinator,
+  readBackArtifactsMatch,
   readBackMatches,
 };
