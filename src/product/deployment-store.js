@@ -29,6 +29,7 @@ const DEPLOYMENT_STATES = Object.freeze([
   'target-draft',
   'awaiting-provider',
   'target-ready',
+  'host-key-review',
   'verifying',
   'bootstrap-ready',
   'deploying',
@@ -44,15 +45,16 @@ const DEPLOYMENT_STATES = Object.freeze([
 const TRANSITIONS = Object.freeze({
   'target-draft': new Set(['awaiting-provider', 'target-ready', 'disconnected']),
   'awaiting-provider': new Set(['target-ready', 'disconnected']),
-  'target-ready': new Set(['verifying', 'disconnected']),
+  'target-ready': new Set(['host-key-review', 'verifying', 'disconnected']),
+  'host-key-review': new Set(['target-ready', 'disconnected']),
   verifying: new Set(['bootstrap-ready', 'degraded', 'unreachable', 'disconnected']),
   'bootstrap-ready': new Set(['deploying', 'disconnected']),
   deploying: new Set(['healthy', 'rollback-available', 'awaiting-dns', 'awaiting-tls', 'degraded', 'unreachable']),
   'awaiting-dns': new Set(['awaiting-tls', 'healthy', 'degraded', 'unreachable', 'disconnected']),
   'awaiting-tls': new Set(['healthy', 'degraded', 'unreachable', 'disconnected']),
   healthy: new Set(['deploying', 'rollback-available', 'degraded', 'unreachable', 'disconnected']),
-  degraded: new Set(['verifying', 'deploying', 'disconnected']),
-  unreachable: new Set(['verifying', 'disconnected']),
+  degraded: new Set(['host-key-review', 'verifying', 'deploying', 'disconnected']),
+  unreachable: new Set(['host-key-review', 'verifying', 'disconnected']),
   'rollback-available': new Set(['deploying', 'healthy', 'degraded', 'unreachable', 'disconnected']),
   disconnected: new Set(),
 });
@@ -248,6 +250,20 @@ class FileDeploymentStore {
     assertNoSecrets(publicFacts);
     return this.update(deploymentId, (record) => {
       record.targetPublicFacts = publicFacts;
+      return record;
+    });
+  }
+
+  setAuthorityRef(deploymentId, authorityRef) {
+    const value = String(authorityRef || '').trim();
+    if (!/^authority-[A-Za-z0-9._-]+$/.test(value)) {
+      throw deploymentError('DEPLOYMENT_AUTHORITY_REF_INVALID', 'Deployment authority reference is invalid.');
+    }
+    return this.update(deploymentId, (record) => {
+      if (record.state === 'disconnected') {
+        throw deploymentError('DEPLOYMENT_DISCONNECTED', 'Disconnected deployment targets cannot acquire authority.');
+      }
+      record.authorityRef = value;
       return record;
     });
   }
