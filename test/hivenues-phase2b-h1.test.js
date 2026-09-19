@@ -67,7 +67,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
       if (/hivenues-identity/.test(tag)) {
         assert.match(
           relative,
-          /^(views\/hivenues\/social\/(poster|editorial|hospitality)-hub\.ejs|views\/hivenues\/support\.ejs)$/,
+          /^(views\/hivenues\/social\/(poster|editorial|hospitality)-hub\.ejs|views\/hivenues\/(support|hive-onboarding)\.ejs)$/,
           `${relative}: identity client escaped an admitted identity surface`,
         );
       }
@@ -109,7 +109,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
       if (/keychain-adapter/.test(tag)) {
         assert.match(
           relative,
-          /^(views\/hivenues\/social\/(poster|editorial|hospitality)-(hub|member|discussion)\.ejs|views\/hivenues\/support\.ejs)$/,
+          /^(views\/hivenues\/social\/(poster|editorial|hospitality)-(hub|member|discussion)\.ejs|views\/hivenues\/(support|hive-onboarding)\.ejs)$/,
           `${relative}: signer client escaped an admitted human-wallet surface`,
         );
       }
@@ -158,6 +158,18 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
   assert.doesNotMatch(support, /\/js\/hivenues-content\.js/);
   assert.doesNotMatch(support, /\/js\/hivenues-vote\.js/);
   assert.doesNotMatch(support, /\/js\/hivenues-reward-claim\.js/);
+
+  const hiveOnboarding = fs.readFileSync(
+    path.join(ROOT, 'views', 'hivenues', 'hive-onboarding.ejs'),
+    'utf8',
+  );
+  assert.match(hiveOnboarding, /\/js\/keychain-adapter\.js/);
+  assert.match(hiveOnboarding, /\/js\/hivenues-identity\.js/);
+  assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-participation\.js/);
+  assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-content\.js/);
+  assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-vote\.js/);
+  assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-reward-claim\.js/);
+  assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-support\.js/);
 });
 
 test('Workstream F: every Studio edit response is one targeted swap plus exactly two OOB regions; E pages ship no script', async () => {

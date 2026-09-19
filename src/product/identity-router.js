@@ -4,6 +4,7 @@ const express = require('express');
 const { rateLimit } = require('express-rate-limit');
 const { requireHiveAccount } = require('../http/validation');
 const {
+  AuthenticationError,
   AuthorizationError,
   FeatureUnavailableError,
 } = require('../lib/errors');
@@ -80,11 +81,17 @@ function createHiVenuesIdentityRouter({
     next();
   });
 
-  router.post('/challenge', attemptLimiter, (req, res) => {
+  router.post('/challenge', attemptLimiter, async (req, res) => {
     try {
       const origin = assertSameOrigin(req, fixedOrigin);
       const active = requireIdentityServices(services);
       const account = requireHiveAccount(req.body?.account);
+      if (typeof active.accountExists === 'function' && !(await active.accountExists(account))) {
+        throw new AuthenticationError('That Hive account does not exist yet', {
+          code: 'AUTH_ACCOUNT_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
       const challenge = active.identityProof.issueChallenge(account, { origin, context });
       return res.status(201).json(challenge);
     } catch (error) {

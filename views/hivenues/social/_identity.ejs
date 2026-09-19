@@ -4,6 +4,14 @@
   const initialState = identity
     ? 'verified'
     : (identityAvailable ? 'not-identified' : 'provider-unavailable');
+  const continueHref = typeof identityContinueHref === 'string' && identityContinueHref
+    ? identityContinueHref
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const createTitle = identityLabels.createTitle || 'Create an account without giving HiVenues your keys';
+  const createBody = identityLabels.createBody || 'The official Hive signup directory lets you choose among current ecosystem account-creation providers. Account creation happens outside HiVenues.';
+  const laterTitle = identityLabels.laterTitle || 'Keep using this host without connecting Hive';
+  const laterBody = identityLabels.laterBody || 'Public browsing stays available. Connect only when a participation action actually needs your identity.';
+  const laterAction = identityLabels.laterAction || 'Continue without Hive';
 %>
 <section
   id="identity"
@@ -39,28 +47,59 @@
       </div>
     </div>
   <% } else { %>
-    <form class="cc-identity__form" data-identity-form>
-      <label for="cc-identity-account"><%= identityLabels.accountLabel %></label>
-      <div class="cc-identity__account-row">
-        <span aria-hidden="true">@</span>
-        <input
-          id="cc-identity-account"
-          name="account"
-          data-identity-account
-          inputmode="text"
-          autocomplete="username"
-          autocapitalize="none"
-          spellcheck="false"
-          maxlength="16"
-          placeholder="<%= identityLabels.placeholder %>"
-        >
-        <button type="submit" data-identity-submit disabled><%= identityLabels.action %></button>
-      </div>
-      <p class="cc-identity__truth">
-        Your wallet signs a fresh identity message only. HiVenues never receives your private key and this step does not post, follow, vote, pay, or broadcast a Hive transaction.
-      </p>
-      <p class="cc-identity__status" data-identity-status role="status" aria-live="polite"><%= identityLabels.ready %></p>
-    </form>
+    <div class="cc-identity__onboarding" data-identity-onboarding>
+      <section class="cc-identity__path cc-identity__path--existing" data-identity-path="existing" aria-labelledby="cc-identity-existing-title">
+        <p class="cc-identity__path-kicker">Already on Hive</p>
+        <h3 id="cc-identity-existing-title">Connect an existing Hive account</h3>
+        <form class="cc-identity__form" data-identity-form>
+          <label for="cc-identity-account"><%= identityLabels.accountLabel %></label>
+          <div class="cc-identity__account-row">
+            <span aria-hidden="true">@</span>
+            <input
+              id="cc-identity-account"
+              name="account"
+              data-identity-account
+              inputmode="text"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              maxlength="16"
+              placeholder="<%= identityLabels.placeholder %>"
+            >
+            <button type="submit" data-identity-submit disabled><%= identityLabels.action %></button>
+          </div>
+          <p class="cc-identity__truth" data-identity-proof-boundary>
+            HiVenues checks that the public account exists before your wallet opens. Your wallet then signs a fresh identity message only. HiVenues never receives your private key and this step does not post, follow, vote, pay, or broadcast a Hive transaction.
+          </p>
+          <p class="cc-identity__status" data-identity-status role="status" aria-live="polite"><%= identityLabels.ready %></p>
+        </form>
+      </section>
+
+      <section class="cc-identity__path cc-identity__path--create" data-identity-path="create" aria-labelledby="cc-identity-create-title">
+        <p class="cc-identity__path-kicker">New to Hive</p>
+        <h3 id="cc-identity-create-title"><%= createTitle %></h3>
+        <p><%= createBody %></p>
+        <a
+          class="cc-identity__path-action"
+          data-identity-create-account
+          href="https://signup.hive.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Open Hive account options</a>
+        <p class="cc-identity__truth" data-identity-recovery-boundary>Save the credentials and recovery material supplied by the provider you choose. Hive does not have an ordinary centralized password reset. When your account is ready, return here and connect it above.</p>
+      </section>
+
+      <section class="cc-identity__path cc-identity__path--later" data-identity-path="later" aria-labelledby="cc-identity-later-title">
+        <p class="cc-identity__path-kicker">Not now</p>
+        <h3 id="cc-identity-later-title"><%= laterTitle %></h3>
+        <p><%= laterBody %></p>
+        <a
+          class="cc-identity__path-action"
+          data-identity-not-now
+          href="<%= continueHref %>"
+        ><%= laterAction %></a>
+      </section>
+    </div>
   <% } %>
 
   <noscript><p class="cc-identity__status">JavaScript is required only for wallet-based identity proof. Public browsing remains available.</p></noscript>

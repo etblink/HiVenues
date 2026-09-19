@@ -108,16 +108,49 @@ test('canonical social hubs introduce one host-native identity mechanic across t
 
     assert.match(response.text, /data-hivenues-identity/);
     assert.match(response.text, /data-identity-state="not-identified"/);
-    assert.match(response.text, new RegExp(host.copy));
-    assert.match(response.text, new RegExp(host.action));
-    assert.match(response.text, /Your wallet signs a fresh identity message only/);
-    assert.match(response.text, /does not post, follow, vote, pay, or broadcast a Hive transaction/);
+    assert.match(response.text, /data-identity-onboarding/);
+    assert.match(response.text, /data-identity-path="existing"/);
+    assert.match(response.text, /data-identity-path="create"/);
+    assert.match(response.text, /data-identity-path="later"/);
+    assert.match(response.text, /data-identity-form/);
+    assert.match(response.text, /data-identity-proof-boundary/);
+    assert.match(response.text, /data-identity-recovery-boundary/);
+    assert.match(response.text, /href="https:\/\/signup\.hive\.io\/"[^>]*data-identity-create-account|data-identity-create-account[^>]*href="https:\/\/signup\.hive\.io\//);
+    assert.match(response.text, /data-identity-not-now/);
     assert.match(response.text, /\/js\/keychain-adapter\.js/);
     assert.match(response.text, /\/js\/hivenues-identity\.js/);
-    assert.doesNotMatch(response.text, />\s*(Follow|Subscribe|Vote|Post|Reply|Pay)\s*</i);
   }
 
   assert.deepEqual(store.diagnostics(), before);
+});
+
+test('Studio exposes optional progressive Hive onboarding without mutating host truth', async () => {
+  const { app, store } = appWith();
+  const before = JSON.stringify(store.snapshot('northline-hall'));
+
+  const studio = await request(app)
+    .get('/hivenues/studio/northline-hall')
+    .expect(200);
+  assert.match(
+    studio.text,
+    /data-studio-hive-onboarding[^>]*href="\/hivenues\/studio\/northline-hall\/hive"|href="\/hivenues\/studio\/northline-hall\/hive"[^>]*data-studio-hive-onboarding/,
+  );
+
+  const response = await request(app)
+    .get('/hivenues/studio/northline-hall/hive')
+    .expect(200);
+
+  assert.match(response.text, /data-hivenues-identity/);
+  assert.match(response.text, /data-identity-onboarding/);
+  assert.match(response.text, /data-identity-path="existing"/);
+  assert.match(response.text, /data-identity-path="create"/);
+  assert.match(response.text, /data-identity-path="later"/);
+  assert.match(response.text, /data-identity-proof-boundary/);
+  assert.match(response.text, /data-identity-recovery-boundary/);
+  assert.match(response.text, /data-identity-authority-boundary/);
+  assert.match(response.text, /href="https:\/\/signup\.hive\.io\/"[^>]*data-identity-create-account|data-identity-create-account[^>]*href="https:\/\/signup\.hive\.io\//);
+  assert.match(response.text, /data-identity-not-now/);
+  assert.equal(JSON.stringify(store.snapshot('northline-hall')), before);
 });
 
 test('identity provider unavailability is explicit and does not fabricate an interactive proof control', async () => {
@@ -127,8 +160,6 @@ test('identity provider unavailability is explicit and does not fabricate an int
     .expect(200);
 
   assert.match(response.text, /data-identity-state="provider-unavailable"/);
-  assert.match(response.text, /Identity proof is temporarily unavailable/);
-  assert.match(response.text, /keep browsing this public community without signing in/);
   assert.doesNotMatch(response.text, /data-identity-form/);
   assert.doesNotMatch(response.text, /data-identity-disconnect/);
 });
@@ -150,7 +181,6 @@ test('verified identity renders as bounded session truth rather than an operatio
   assert.match(response.text, /data-identity-state="verified"/);
   assert.match(response.text, /@etblink/);
   assert.equal(response.text.includes(session.expiresAt), true);
-  assert.match(response.text, /does not authorize a post, vote, follow, payment, or other Hive transaction/);
   assert.match(response.text, /data-identity-disconnect/);
   assert.doesNotMatch(response.text, /data-identity-form/);
 });

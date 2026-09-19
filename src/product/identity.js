@@ -37,6 +37,10 @@ function createHiVenuesIdentityServices({
       return postingAuthorityVerifier.isDirectKeyAuthorized(account, publicKey);
     },
   });
+  const accountExists = async (account) => {
+    const records = await rpcPool.call('condenser_api', 'get_accounts', [[account]]);
+    return Array.isArray(records) && records.some((record) => record?.name === account);
+  };
   const identityProof = new KeychainAuthService({
     challengeStore,
     sessionStore,
@@ -44,6 +48,7 @@ function createHiVenuesIdentityServices({
   });
 
   return Object.freeze({
+    accountExists,
     authorityVerifier,
     postingAuthorityVerifier,
     challengeStore,

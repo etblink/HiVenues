@@ -876,10 +876,20 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
           { waitUntil: 'networkidle' },
         );
         await page.locator('[data-identity-state="not-identified"]').waitFor();
-        const text = await page.locator('.cc-identity').textContent();
-        assert.ok(text.includes(host.heading), host.slug + ': Direction identity heading missing');
-        assert.ok(text.includes('private key'), host.slug + ': key-custody truth missing');
-        assert.ok(text.includes('does not post'), host.slug + ': consequence truth missing');
+        await page.locator('[data-identity-onboarding]').waitFor();
+        await page.locator('[data-identity-path="existing"]').waitFor();
+        await page.locator('[data-identity-path="create"]').waitFor();
+        await page.locator('[data-identity-path="later"]').waitFor();
+        await page.locator('[data-identity-proof-boundary]').waitFor();
+        await page.locator('[data-identity-recovery-boundary]').waitFor();
+        const createAccount = page.locator('[data-identity-create-account]');
+        assert.equal(await createAccount.getAttribute('href'), 'https://signup.hive.io/');
+        assert.equal(await createAccount.getAttribute('target'), '_blank');
+        assert.match(await createAccount.getAttribute('rel'), /noopener/);
+        assert.equal(
+          await page.locator('[data-identity-not-now]').getAttribute('href'),
+          '/hivenues/' + host.slug,
+        );
         const record = await capture(
           page,
           axeSource,
@@ -896,6 +906,43 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
     assert.equal(desktop.length, 3);
     assert.equal(new Set(desktop.map((item) => item.sha256)).size, 3);
     assert.equal(new Set(desktop.map((item) => item.fingerprint.background)).size, 3);
+  } finally {
+    await context.close();
+  }
+}
+
+async function runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+      await page.setViewportSize(viewport);
+      await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
+      const onboardingHref = await page.locator('[data-studio-hive-onboarding]').getAttribute('href');
+      assert.equal(onboardingHref, '/hivenues/studio/northline-hall/hive');
+      await page.goto(origin + onboardingHref, { waitUntil: 'networkidle' });
+      await page.locator('[data-identity-onboarding]').waitFor();
+      await page.locator('[data-identity-path="existing"]').waitFor();
+      await page.locator('[data-identity-path="create"]').waitFor();
+      await page.locator('[data-identity-path="later"]').waitFor();
+      await page.locator('[data-identity-proof-boundary]').waitFor();
+      await page.locator('[data-identity-recovery-boundary]').waitFor();
+      await page.locator('[data-identity-authority-boundary]').waitFor();
+      assert.equal(
+        await page.locator('[data-identity-create-account]').getAttribute('href'),
+        'https://signup.hive.io/',
+      );
+      assert.equal(
+        await page.locator('[data-identity-not-now]').getAttribute('href'),
+        '/hivenues/studio/northline-hall',
+      );
+      await capture(page, axeSource, manifest, 'studio-hive-onboarding-' + viewportName);
+    }
   } finally {
     await context.close();
   }
@@ -2256,6 +2303,8 @@ async function main() {
     audits: [],
     scenarios: [
       'three-direction-not-identified',
+      'progressive-account-onboarding',
+      'studio-progressive-account-onboarding',
       'awaiting-wallet',
       'verified',
       'disconnect',
@@ -2295,6 +2344,7 @@ async function main() {
 
   try {
     await runDirectionEvidence(browser, axeSource, origin, manifest, counters);
+    await runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters);
     await runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey);
     await runCancellationEvidence(browser, axeSource, origin, manifest, counters);
     await runUnavailableEvidence(browser, axeSource, publicKey, manifest);
@@ -2603,7 +2653,22 @@ async function main() {
   };
 
   assert.equal(manifest.summary.directionCount, 3);
-  assert.equal(manifest.summary.screenshotCount, 77);
+  const screenshotLabels = manifest.screenshots.map((item) => item.label);
+  assert.equal(
+    new Set(screenshotLabels).size,
+    screenshotLabels.length,
+    'browser evidence labels must remain unique',
+  );
+  for (const requiredLabel of [
+    'studio-hive-onboarding-desktop',
+    'studio-hive-onboarding-mobile390',
+  ]) {
+    assert.equal(
+      screenshotLabels.includes(requiredLabel),
+      true,
+      'missing required browser evidence: ' + requiredLabel,
+    );
+  }
   assert.equal(manifest.summary.blockingAccessibilityFindings, 0);
   assert.equal(manifest.summary.horizontalOverflowFindings, 0);
   assert.equal(manifest.summary.incompleteImageFindings, 0);
