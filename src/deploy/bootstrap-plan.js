@@ -92,6 +92,7 @@ function createReferenceBootstrapPlan({
       environmentFile: '/etc/hivenues/' + hostSlug + '.env',
       serviceUnit: '/etc/systemd/system/hivenues-' + hostSlug + '.service',
       caddyConfig: '/etc/hivenues/' + hostSlug + '.caddy',
+      caddyService: '/etc/systemd/system/hivenues-caddy.service',
       firewallPolicy: '/etc/hivenues/' + hostSlug + '.nft',
       firewallService: '/etc/systemd/system/hivenues-firewall.service',
       sudoersFile: '/etc/sudoers.d/hivenues-' + hostSlug,
