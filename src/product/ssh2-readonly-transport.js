@@ -193,10 +193,12 @@ class Ssh2ReadOnlyVerificationTransport {
 
       client.once('error', () => {
         if (observed && observed !== expected) {
-          finish(transportError(
+          const error = transportError(
             'DEPLOYMENT_HOST_KEY_CHANGED',
             'SSH host fingerprint changed before authentication.',
-          ));
+          );
+          error.observedHostKeyFingerprint = observed;
+          finish(error);
           return;
         }
         finish(transportError(
