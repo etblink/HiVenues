@@ -132,9 +132,9 @@ Assert-True ($null -eq (Get-Command node -ErrorAction SilentlyContinue)) 'Saniti
 $stop1 = Join-Path $env:TEMP 'hivenues-clean-machine-stop-1'
 $url1 = Start-InstalledRuntime $launcher $stop1 $currentUrlPath
 $origin1 = ([Uri]$url1).GetLeftPart([System.UriPartial]::Authority)
-$home = Invoke-Get $url1
-Assert-True ($home.StatusCode -eq 200) 'Installed Studio did not respond over loopback.'
-Assert-True ($home.Content -match 'HiVenues') 'Installed Studio response was not the HiVenues product.'
+$studioHomeResponse = Invoke-Get $url1
+Assert-True ($studioHomeResponse.StatusCode -eq 200) 'Installed Studio did not respond over loopback.'
+Assert-True ($studioHomeResponse.Content -match 'HiVenues') 'Installed Studio response was not the HiVenues product.'
 
 $slug = 'clean-machine-studio'
 $create = Invoke-PostForm "$origin1/hivenues/new" @{
