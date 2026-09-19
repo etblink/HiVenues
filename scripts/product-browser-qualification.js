@@ -2202,9 +2202,14 @@ async function runCancellationEvidence(browser, axeSource, origin, manifest, cou
     await page.goto(origin + '/hivenues/nova-ashby/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-account]').fill('etblink');
     await page.locator('[data-identity-submit]').click();
+    await page.locator('[data-identity-state="reviewed"]').waitFor();
+    assert.equal(
+      await page.evaluate(() => Boolean(window.__identityApproval)),
+      false,
+      'wallet must not open during public account review',
+    );
+    await page.locator('[data-identity-verify]').click();
     await page.locator('[data-identity-state="cancelled"]').waitFor();
-    const text = await page.locator('.cc-identity').textContent();
-    assert.match(text, /No Hive transaction or participation action occurred/);
     await capture(page, axeSource, manifest, 'editorial-desktop-cancelled');
   } finally {
     await context.close();
@@ -2234,10 +2239,7 @@ async function runUnavailableEvidence(browser, axeSource, publicKey, manifest) {
   try {
     await page.goto(origin + '/hivenues/harbor-and-hearth/community/updates', { waitUntil: 'networkidle' });
     await page.locator('[data-identity-state="provider-unavailable"]').waitFor();
-    assert.match(
-      await page.locator('.cc-identity').textContent(),
-      /keep browsing this public community without signing in/,
-    );
+    assert.equal(await page.locator('[data-identity-form]').count(), 0);
     await capture(page, axeSource, manifest, 'hospitality-desktop-provider-unavailable');
     assert.deepEqual(store.diagnostics(), before);
     assert.deepEqual(counters.externalRequests, []);
