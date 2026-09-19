@@ -141,6 +141,7 @@ function markRuntimeStopped({
   pid = process.pid,
   now = Date.now,
   reason = 'normal',
+  productDiagnostics = null,
 }) {
   try {
     const current = fs.readFileSync(paths.currentUrlPath, 'utf8').trim();
@@ -160,6 +161,7 @@ function markRuntimeStopped({
     stopReason: reason,
     pid,
     url,
+    ...(productDiagnostics ? { productDiagnostics } : {}),
   });
 }
 
