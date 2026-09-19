@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-deployment-stage1>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · Stage 1</p>
+    <h1>Prepare an exact Release without touching a real server.</h1>
+    <p class="cc-task__dek">
+      This screen exercises the deployment product locally. The only admitted target is synthetic/offline.
+      No SSH connection, provider write, DNS change, TLS request, payment or public deployment can occur here.
+    </p>
+
+    <% if (error) { %>
+      <section class="cc-review-card" data-deployment-error>
+        <strong>Deployment simulation stopped</strong>
+        <p><%= error %></p>
+      </section>
+    <% } %>
+
+    <% if (!deploymentAvailable) { %>
+      <section class="cc-review-card" data-deployment-unavailable>
+        <h2>Local deployment simulation is unavailable</h2>
+        <p>This runtime was not started with the Stage-1 deployment services.</p>
+      </section>
+    <% } else { %>
+      <section class="cc-review-card" data-deployment-profile>
+        <p class="cc-kicker">Target family</p>
+        <h2>Offline synthetic target</h2>
+        <p>This adapter exists only to qualify the product state machine before real infrastructure authority is admitted.</p>
+        <details>
+          <summary>Capabilities</summary>
+          <p><code><%= deploymentProfile.capabilities.join(', ') %></code></p>
+          <p>External effects: <strong><%= deploymentProfile.externalEffects ? 'enabled' : 'disabled' %></strong></p>
+        </details>
+        <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets">
+          <button class="cc-button cc-button--ink" type="submit" data-create-deployment-target>Add offline deployment target</button>
+        </form>
+      </section>
+
+      <% if (!releases.length) { %>
+        <section class="cc-review-card" data-deployment-no-release style="margin-top:1.2rem">
+          <h2>Create a Release first</h2>
+          <p>Deployment can use only an immutable HiVenues Release. Working state cannot be deployed.</p>
+          <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/release">Review and create a Release</a>
+        </section>
+      <% } %>
+
+      <section style="margin-top:2rem">
+        <p class="cc-kicker">Local targets</p>
+        <h2>Deployment state</h2>
+
+        <% if (!deployments.length) { %>
+          <p data-deployment-empty>No deployment targets yet.</p>
+        <% } %>
+
+        <div class="cc-release-list">
+          <% deployments.forEach((deployment) => { %>
+            <article class="cc-review-card" data-deployment-record="<%= deployment.id %>">
+              <div>
+                <p class="cc-kicker">Synthetic target</p>
+                <h3><%= deployment.id %></h3>
+                <p>
+                  State:
+                  <strong data-deployment-state><%= deployment.state %></strong>
+                </p>
+                <p>Provider: <%= deployment.providerKind %> · <%= deployment.providerProfile %></p>
+                <p>Provider state: <%= deployment.providerState %> · Payment state: <%= deployment.paymentState %></p>
+                <p>Health: <%= deployment.healthState %> · Rollback: <%= deployment.rollbackState %></p>
+
+                <% if (deployment.selectedRelease) { %>
+                  <p>
+                    Selected Release:
+                    <code data-selected-release><%= deployment.selectedRelease.id %></code>
+                    · <code><%= deployment.selectedRelease.digest %></code>
+                  </p>
+                <% } %>
+
+                <% if (deployment.package) { %>
+                  <p>Prepared package: <code data-package-digest><%= deployment.package.packageDigest %></code></p>
+                <% } %>
+
+                <% if (deployment.activeRelease) { %>
+                  <p>
+                    Synthetic read-back:
+                    <code data-active-release><%= deployment.activeRelease.id %></code>
+                    · <code><%= deployment.activeRelease.digest %></code>
+                  </p>
+                <% } %>
+
+                <% if (deployment.previousRelease) { %>
+                  <p>Rollback candidate: <code data-previous-release><%= deployment.previousRelease.id %></code></p>
+                <% } %>
+              </div>
+
+              <% if (deployment.state !== 'disconnected') { %>
+                <div style="display:grid;gap:.8rem;margin-top:1rem">
+                  <% if (releases.length) { %>
+                    <form
+                      method="post"
+                      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/release"
+                      data-select-deployment-release
+                    >
+                      <label>
+                        Immutable Release
+                        <select name="releaseId" required>
+                          <option value="">Choose Release</option>
+                          <% releases.slice().reverse().forEach((item) => { %>
+                            <option
+                              value="<%= item.id %>"
+                              <%= deployment.selectedRelease && deployment.selectedRelease.id === item.id ? 'selected' : '' %>
+                            >
+                              Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> · <%= item.id %>
+                            </option>
+                          <% }) %>
+                        </select>
+                      </label>
+                      <button class="cc-button" type="submit">Prepare exact Release package</button>
+                    </form>
+                  <% } %>
+
+                  <% if (deployment.state === 'target-draft' || deployment.state === 'awaiting-provider') { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/target-ready">
+                      <button class="cc-button" type="submit" data-mark-target-ready>Simulate provider handoff</button>
+                    </form>
+                  <% } %>
+
+                  <% if (deployment.state === 'target-ready' || deployment.state === 'degraded' || deployment.state === 'unreachable') { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/verify">
+                      <button class="cc-button" type="submit" data-verify-deployment-target>Verify synthetic target</button>
+                    </form>
+                  <% } %>
+
+                  <% if (
+                    deployment.selectedRelease
+                    && deployment.package
+                    && ['bootstrap-ready', 'healthy', 'rollback-available', 'degraded'].includes(deployment.state)
+                  ) { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/deploy">
+                      <button class="cc-button cc-button--ink" type="submit" data-deploy-release>Simulate exact Release deployment</button>
+                    </form>
+                  <% } %>
+
+                  <% if (deployment.state === 'healthy' || deployment.state === 'rollback-available') { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/degrade">
+                      <button class="cc-button" type="submit" data-degrade-deployment>Simulate degraded health</button>
+                    </form>
+                  <% } %>
+
+                  <% if (deployment.previousRelease && ['rollback-available', 'healthy', 'degraded'].includes(deployment.state)) { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/rollback">
+                      <button class="cc-button" type="submit" data-rollback-deployment>Simulate rollback</button>
+                    </form>
+                  <% } %>
+
+                  <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect">
+                    <button class="cc-button" type="submit" data-disconnect-deployment>Disconnect local target</button>
+                  </form>
+                </div>
+              <% } %>
+
+              <details style="margin-top:1rem">
+                <summary>State history</summary>
+                <ol>
+                  <% deployment.history.forEach((item) => { %>
+                    <li><code><%= item.from || 'none' %> → <%= item.to %></code> · <%= item.at %></li>
+                  <% }) %>
+                </ol>
+              </details>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="cc-consequence-card" style="margin-top:2rem" data-deployment-stage1-boundary>
+        <h2>Authority boundary</h2>
+        <p>
+          Stage 1 stores deployment state and deterministic Release packages locally only.
+          It does not generate a production deployment key and cannot contact Privex or any other server.
+        </p>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>
