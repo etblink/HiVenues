@@ -133,6 +133,11 @@ class ExactReleaseDeploymentCoordinator {
       );
     }
 
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: runtime,
+      releaseManifest: release,
+      bootstrapUsername: record.targetPublicFacts?.username || 'root',
+    });
     const expected = desiredReadBack(runtime, release);
     const priorActive = record.activeRelease ? { ...record.activeRelease } : null;
     const priorPrevious = record.previousRelease ? { ...record.previousRelease } : null;
@@ -153,10 +158,6 @@ class ExactReleaseDeploymentCoordinator {
       if (!readBackMatches(readBack, expected)) {
         const installedRuntime = this.target.installRuntime(runtimeRoot);
         const installedRelease = this.target.installRelease(releasePackageRoot);
-        const plan = createReferenceBootstrapPlan({
-          runtimeProvenance: runtime,
-          releaseManifest: release,
-        });
         this.target.activate({
           runtime: installedRuntime,
           release: installedRelease,
@@ -196,6 +197,11 @@ class ExactReleaseDeploymentCoordinator {
         patch: {
           activeRelease: desiredActive,
           previousRelease,
+          targetPublicFacts: {
+            ...record.targetPublicFacts,
+            username: plan.privilegeModel.steadyRemoteAccount,
+            bootstrapAuthorityState: plan.privilegeModel.steadyStateAuthority,
+          },
           runtimeProfile: {
             kind: 'hivenues-public-runtime',
             sourceSha: runtime.sourceSha,
