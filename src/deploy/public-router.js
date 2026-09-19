@@ -13,7 +13,13 @@ const {
 } = require('../product/present');
 
 function publicLocals(snapshot) {
-  return buildViewModel(snapshot);
+  return {
+    ...buildViewModel(snapshot),
+    publicCapabilities: Object.freeze({
+      community: false,
+      support: false,
+    }),
+  };
 }
 
 function createDeployedPublicRouter({ store } = {}) {
@@ -31,6 +37,7 @@ function createDeployedPublicRouter({ store } = {}) {
     return res.render('hivenues/index', {
       pageTitle: 'HiVenues',
       hosts,
+      studioAvailable: false,
     });
   });
 
