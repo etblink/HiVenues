@@ -116,7 +116,7 @@
         return null;
       }
       return intent;
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -132,14 +132,14 @@
     });
     try {
       storage?.setItem(CREATION_INTENT_KEY, JSON.stringify(intent));
-    } catch (_) {}
+    } catch {}
     return intent;
   }
 
   function clearCreationIntent(storage) {
     try {
       storage?.removeItem(CREATION_INTENT_KEY);
-    } catch (_) {}
+    } catch {}
   }
 
   function showCreationResume(root) {
