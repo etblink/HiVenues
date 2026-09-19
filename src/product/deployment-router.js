@@ -52,28 +52,40 @@ const REFERENCE_SSH_CAPABILITIES = Object.freeze([
 
 function requireConnectionFacts(body = {}) {
   const allowed = new Set(['host', 'port', 'username']);
-  if (Object.keys(body).some((key) => !allowed.has(key))) {
+  const unexpected = Object.keys(body).filter((key) => !allowed.has(key));
+  if (unexpected.length) {
     const error = new Error('Server connection details accept public host, port and username only.');
     error.code = 'DEPLOYMENT_TARGET_FIELDS_INVALID';
     throw error;
   }
+
   const host = String(body.host || '').trim();
-  const username = String(body.username || '').trim();
-  const port = Number(body.port || 22);
   if (
     !host
     || host.length > 253
-    || /\s|\/|:///.test(host)
-    || !username
-    || !/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/.test(username)
-    || !Number.isInteger(port)
-    || port < 1
-    || port > 65535
+    || /\s/.test(host)
+    || host.includes('/')
+    || host.includes('://')
   ) {
-    const error = new Error('Enter a plain server host, SSH port and remote account name.');
-    error.code = 'DEPLOYMENT_TARGET_FACTS_INVALID';
+    const error = new Error('Enter a plain server host or IP address without a URL scheme or path.');
+    error.code = 'DEPLOYMENT_TARGET_HOST_INVALID';
     throw error;
   }
+
+  const port = Number(body.port || 22);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    const error = new Error('Enter an SSH port from 1 through 65535.');
+    error.code = 'DEPLOYMENT_TARGET_PORT_INVALID';
+    throw error;
+  }
+
+  const username = String(body.username || '').trim();
+  if (!username || !/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/.test(username)) {
+    const error = new Error('Enter a valid remote account name.');
+    error.code = 'DEPLOYMENT_TARGET_USERNAME_INVALID';
+    throw error;
+  }
+
   return Object.freeze({ host, port, username });
 }
 
@@ -276,4 +288,5 @@ function createHiVenuesDeploymentRouter({
 
 module.exports = {
   createHiVenuesDeploymentRouter,
+  requireConnectionFacts,
 };
