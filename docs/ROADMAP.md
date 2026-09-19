@@ -30,13 +30,15 @@ ERA 3 — HOST-NATIVE SOCIAL & COMMUNITY        COMPLETE / FROZEN
 ERA 4 — REAL HIVE-BACKED PARTICIPATION        COMPLETE / FROZEN
 
 #301 — REPOSITORY_AND_PRODUCT_CORE_NORMALIZATION   COMPLETE
-ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION
+ACTIVE OBJECTIVE = ERA 5 — PRODUCT DISTRIBUTION (FINAL EXTERNAL TRUST GATE PARKED)
 ERA 5 TRANCHE 0 = COMPLETE / FROZEN
 ERA 5 TRANCHE 1 = COMPLETE / QUALIFIED
 ERA 5 TRANCHE 2 = COMPLETE / FROZEN
 ERA 5 TRANCHE 3 = COMPLETE / FROZEN
-NEXT BOUNDED WORK = PRODUCTION SIGNING / REPUTATION QUALIFICATION
-ACTIVE ERA-5 CHARTER = #323
+ERA 5 SIGNING REPOSITORY BOUNDARY = COMPLETE / QUALIFIED
+ERA 5 PAID PUBLIC-TRUST ENROLLMENT = DEFERRED UNTIL EXTERNAL-RELEASE READINESS
+NEXT PRODUCT-BUILDING BOUNDARY = ERA 6 — HIVE ACCOUNT ONBOARDING
+ACTIVE ERA-5 CHARTER = #323 / FINAL TRUST GATE OPEN
 LIVE VALUE QUALIFICATION = HELD
 PRODUCTION DEPLOYMENT / DNS / VPS MUTATION = HELD
 ```
@@ -89,18 +91,23 @@ The first practical target is Windows. Distribution may package the existing loo
 
 Tranche 0 froze the private-Node/app-tree/system-browser architecture. Tranche 1 productized the installed runtime and qualified the native Windows launcher. Tranche 2 supplies a versioned Windows x64 ZIP from exact source with embedded provenance, SHA-256 sidecars, byte-for-byte double-build reproducibility, ordinary Windows extraction, and full installed-runtime/native-launcher qualification from the extracted artifact. Tranche 3 now adds a per-user NSIS installer and has proven the real clean-machine lifecycle: install without source/developer tooling, launch through the normal application entry, create/edit/Release a synthetic host, preserve state through repair-style reinstall, preserve user work through uninstall, and restore the released host after reinstall.
 
-The next bounded work is **production signing / reputation qualification**:
+The repository-side **production signing / reputation boundary** is now complete and qualified. PR #334 proved exact unsigned promotion, manual-only protected signing authority, GitHub OIDC, immutable Azure action pins, rejection of unsigned artifacts at the signed finalizer, and preserved clean-machine lifecycle behavior.
 
-- enroll the selected verified individual publisher identity in the accepted public-trust signing path;
-- keep signing keys/authority outside the repository and ordinary PR CI;
-- establish protected release-signing authority with short-lived/federated authentication where supported;
-- promote only an exact qualified unsigned artifact into signing;
-- Authenticode-sign and trusted-timestamp the production Windows executables/installer;
-- record both the reproducible unsigned hash and final signed-artifact hash/provenance;
-- verify the signed installer on a clean supported Windows environment;
-- document the truthful SmartScreen reputation posture without treating reputation as equivalent to signature validity.
+The remaining Era-5 trust gate requires external paid infrastructure and verified publisher enrollment:
 
-Era 5 does not authorize production hosting/deployment, account-creation onboarding, new commerce classes, Fourth Street work, or independent Astra.
+- Azure Pay-As-You-Go billing;
+- Microsoft Artifact Signing Basic account;
+- individual Public Trust identity validation;
+- Public Trust certificate profile;
+- least-privilege GitHub OIDC workload identity;
+- first real Authenticode-signed and time-stamped installer;
+- signed clean-machine qualification.
+
+The project owner has intentionally **deferred that paid external enrollment until HiVenues is materially closer to external distribution**. This avoids carrying an idle signing subscription while preserving the complete repository-side architecture.
+
+This is an allowed roadmap interleave, not an Era-5 completion claim. Era 5 remains open at its final external trust gate while the next product-building boundary advances to **Era 6 — Hive Account Onboarding**. The deferred signing gate must be resumed before broad external release.
+
+Production hosting/deployment, unrelated new commerce classes, Fourth Street customer work, independent Astra, and broad release remain held unless their roadmap boundary is explicitly opened.
 
 ## Remaining strategic sequence
 
@@ -154,7 +161,7 @@ WHAT IS THE NORTH STAR?
 → The host’s world becomes the interface to Hive.
 
 WHERE ARE WE?
-→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Product Distribution is active under #323, with Tranches 0–3 complete and production signing/reputation qualification next.
+→ Eras 0–4 are complete/frozen; #301 normalization is complete; Era 5 Tranches 0–3 plus the repository-side signing boundary are complete; paid Public Trust enrollment remains an intentionally parked final Era-5 gate; Era 6 Hive Account Onboarding is the next product-building boundary.
 
 WHAT MUST NOT BE LOST?
 → The governing doctrine plus all completed-era acceptance contracts.
