@@ -8,6 +8,7 @@ const path = require('node:path');
 const test = require('node:test');
 const request = require('supertest');
 
+const { buildPublicRuntimeBundle } = require('../scripts/era7/build-public-runtime-bundle');
 const { buildDeploymentPackage } = require('../src/product/deployment-package');
 const { ProvisioningFileHiVenuesStore } = require('../src/product/provisioning-file-store');
 const {
@@ -39,14 +40,13 @@ function fixture(t) {
     publicRoot: path.join(PROJECT_ROOT, 'public'),
     packageRoot: path.join(root, 'packages'),
   });
-  const provenancePath = path.join(root, 'runtime-provenance.json');
-  fs.writeFileSync(provenancePath, JSON.stringify({
-    version: 1,
+  const runtimeRoot = path.join(root, 'runtime-bundle');
+  const runtimeBundle = buildPublicRuntimeBundle({
+    outputRoot: runtimeRoot,
     sourceSha: 'a'.repeat(40),
     sourceTree: 'b'.repeat(40),
-    packageVersion: '1.0.0',
-    nodeVersion: 'v24.19.0',
-  }, null, 2) + '\n');
+    nodeVersion: process.version,
+  });
 
   return {
     root,
@@ -54,7 +54,10 @@ function fixture(t) {
     slug,
     release,
     packageRecord,
-    provenancePath,
+    runtimeRoot,
+    runtimeBundle,
+    provenancePath: path.join(runtimeRoot, 'runtime-provenance.json'),
+    manifestPath: path.join(runtimeRoot, 'runtime-manifest.json'),
     runtimeStatePath: path.join(root, 'runtime-state.json'),
   };
 }
@@ -83,6 +86,8 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
     packagePath: f.packageRecord.packagePath,
     runtimeStatePath: f.runtimeStatePath,
     provenancePath: f.provenancePath,
+    manifestPath: f.manifestPath,
+    root: f.runtimeRoot,
     now: () => Date.parse('2026-09-19T14:00:00.000Z'),
     idFactory: () => 'stage3-rsvp',
   });
@@ -97,7 +102,8 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
       sourceSha: 'a'.repeat(40),
       sourceTree: 'b'.repeat(40),
       packageVersion: '1.0.0',
-      nodeVersion: 'v24.19.0',
+      nodeVersion: process.version,
+      bundleDigest: f.runtimeBundle.bundleDigest,
       platform: process.platform + '-' + process.arch,
     },
     deployment: {
@@ -147,6 +153,43 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
   assert.equal(runtime.store.diagnostics().rsvps, 1);
 });
 
+test('Era 7 Stage 3A: public runtime bundle excludes Studio and carries only admitted production dependencies', (t) => {
+  const f = fixture(t);
+  const runtimePackage = JSON.parse(
+    fs.readFileSync(path.join(f.runtimeRoot, 'package.json'), 'utf8'),
+  );
+  assert.deepEqual(Object.keys(runtimePackage.dependencies), [
+    'ejs',
+    'express',
+    'htmx.org',
+    'zod',
+  ]);
+  assert.equal(fs.existsSync(path.join(f.runtimeRoot, 'views', 'hivenues', 'studio.ejs')), false);
+  assert.equal(fs.existsSync(path.join(f.runtimeRoot, 'src', 'product', 'app.js')), false);
+  assert.equal(fs.existsSync(path.join(f.runtimeRoot, 'src', 'product', 'deployment-router.js')), false);
+  assert.equal(fs.existsSync(path.join(f.runtimeRoot, 'src', 'product', 'ssh2-readonly-transport.js')), false);
+  assert.equal(fs.existsSync(path.join(f.runtimeRoot, 'src', 'deploy', 'public-runtime.js')), true);
+});
+
+test('Era 7 Stage 3A: deployed runtime refuses tampered runtime bundle before serving', (t) => {
+  const f = fixture(t);
+  fs.appendFileSync(
+    path.join(f.runtimeRoot, 'src', 'deploy', 'public-router.js'),
+    '\n// tampered\n',
+  );
+
+  assert.throws(
+    () => createDeployedPublicApp({
+      packagePath: f.packageRecord.packagePath,
+      runtimeStatePath: f.runtimeStatePath,
+      provenancePath: f.provenancePath,
+      manifestPath: f.manifestPath,
+      root: f.runtimeRoot,
+    }),
+    (error) => error.code === 'DEPLOYED_RUNTIME_FILE_DIGEST_MISMATCH',
+  );
+});
+
 test('Era 7 Stage 3A: deployed runtime refuses tampered Release before serving', (t) => {
   const f = fixture(t);
   const releasePath = path.join(f.packageRecord.packagePath, 'release.json');
@@ -159,6 +202,8 @@ test('Era 7 Stage 3A: deployed runtime refuses tampered Release before serving',
       packagePath: f.packageRecord.packagePath,
       runtimeStatePath: f.runtimeStatePath,
       provenancePath: f.provenancePath,
+    manifestPath: f.manifestPath,
+    root: f.runtimeRoot,
     }),
     (error) => error.code === 'DEPLOYED_RELEASE_DIGEST_MISMATCH',
   );
@@ -170,6 +215,8 @@ test('Era 7 Stage 3A: deployed runtime refuses non-loopback bind', async (t) => 
     packagePath: f.packageRecord.packagePath,
     runtimeStatePath: f.runtimeStatePath,
     provenancePath: f.provenancePath,
+    manifestPath: f.manifestPath,
+    root: f.runtimeRoot,
   });
   assert.throws(
     () => startDeployedPublicServer(runtime.app, {
