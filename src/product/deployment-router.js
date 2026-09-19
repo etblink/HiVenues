@@ -51,6 +51,12 @@ const REFERENCE_SSH_CAPABILITIES = Object.freeze([
 ]);
 
 function requireConnectionFacts(body = {}) {
+  const allowed = new Set(['host', 'port', 'username']);
+  if (Object.keys(body).some((key) => !allowed.has(key))) {
+    const error = new Error('Server connection details accept public host, port and username only.');
+    error.code = 'DEPLOYMENT_TARGET_FIELDS_INVALID';
+    throw error;
+  }
   const host = String(body.host || '').trim();
   const username = String(body.username || '').trim();
   const port = Number(body.port || 22);
