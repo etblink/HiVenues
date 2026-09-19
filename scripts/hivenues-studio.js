@@ -91,7 +91,7 @@ async function main() {
   console.log(`Studio:   http://${LOCAL_HOST}:${port}/hivenues`);
   console.log(`Identity: http://${LOCAL_HOST}:${port}/identity/session`);
   console.log('Hive:     public reads available; server signing/broadcast disabled');
-  console.log('Deploy:   local synthetic simulation only; real infrastructure disabled');
+  console.log('Deploy:   local synthetic simulation only; protected production authority disabled');
   console.log('Mutating external effects: disabled');
 
   let closing = false;
