@@ -85,7 +85,7 @@ class ExactReleaseDeploymentCoordinator {
     this.now = now;
   }
 
-  deploy(deploymentId, {
+  async deploy(deploymentId, {
     runtimeRoot,
     releasePackageRoot,
   } = {}) {
@@ -154,16 +154,16 @@ class ExactReleaseDeploymentCoordinator {
     });
 
     try {
-      let readBack = this.target.readBack();
+      let readBack = await this.target.readBack();
       if (!readBackMatches(readBack, expected)) {
-        const installedRuntime = this.target.installRuntime(runtimeRoot);
-        const installedRelease = this.target.installRelease(releasePackageRoot);
-        this.target.activate({
+        const installedRuntime = await this.target.installRuntime(runtimeRoot);
+        const installedRelease = await this.target.installRelease(releasePackageRoot);
+        await this.target.activate({
           runtime: installedRuntime,
           release: installedRelease,
           plan,
         });
-        readBack = this.target.readBack();
+        readBack = await this.target.readBack();
       }
 
       if (!readBackMatches(readBack, expected)) {
