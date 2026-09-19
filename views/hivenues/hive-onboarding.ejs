@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+  <link rel="stylesheet" href="/css/hivenues-social-read.css">
+</head>
+<body class="cc-task-body">
+  <main class="cc-task">
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
+      <span class="cc-draft-status">Working Version <%= revision %></span>
+    </nav>
+
+    <p class="cc-kicker">Site · Hive account</p>
+    <h1>Connect Hive only when it becomes useful.</h1>
+    <p class="cc-task__dek">
+      You can keep building <strong><%= graph.identity.displayName %></strong> without a Hive account.
+      Connect an existing account when you want portable Hive identity, or create one through the wider Hive ecosystem without giving HiVenues your keys.
+    </p>
+
+    <%- include('social/_identity', {
+      graph,
+      hivenuesIdentityAvailable,
+      hivenuesIdentity,
+      identityContinueHref: `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}`,
+      identityLabels: {
+        kicker: 'Portable identity',
+        title: 'Your Hive account',
+        body: 'Use Hive identity only when a host capability benefits from it. Local authoring and your current Working version remain available without connecting.',
+        unavailableTitle: 'Hive identity is temporarily unavailable',
+        verifiedLabel: 'Studio identity',
+        disconnect: 'Disconnect from Studio',
+        accountLabel: 'Existing Hive account',
+        placeholder: 'your-account',
+        action: 'Verify this account',
+        ready: 'Nothing on Hive changes just by connecting your identity.',
+        createTitle: 'Create a Hive account through the ecosystem',
+        createBody: 'HiVenues opens the official Hive signup directory so you can choose a current account provider yourself. The provider creates the account; HiVenues never receives the account keys.',
+        laterTitle: 'Keep building without Hive',
+        laterBody: 'Your Working host, local media, preview, and Release workflow do not require a Hive account just to continue creating.',
+        laterAction: 'Back to Studio without Hive'
+      }
+    }) %>
+
+    <section class="cc-consequence-card">
+      <p class="cc-kicker">What connecting means</p>
+      <h2>Your identity is not blanket signing authority.</h2>
+      <p>A verified HiVenues identity session proves which public Hive account you control. Posting, voting, following, support, payment, or another Hive consequence still requires its own explicit review and approval in your wallet.</p>
+      <p>HiVenues never asks for your master password, Owner key, Active key, Posting key, Memo private key, or another private signing secret.</p>
+    </section>
+  </main>
+
+  <script src="/js/keychain-adapter.js" defer></script>
+  <script src="/js/hivenues-identity.js" defer></script>
+</body>
+</html>
