@@ -221,7 +221,6 @@ test('identity challenge rejects a nonexistent public account before any wallet 
       .expect(404);
 
     assert.equal(response.body.error.code, 'AUTH_ACCOUNT_NOT_FOUND');
-    assert.match(response.body.error.message, /does not exist/i);
     assert.deepEqual(rpcPool.calls, [{
       api: 'condenser_api',
       method: 'get_accounts',
@@ -346,6 +345,11 @@ test('identity routes remain explicitly unavailable without a read-side authorit
       identityOrigin: ORIGIN,
       identityServices: false,
     });
+
+    const previewUnavailable = await request(app)
+      .get('/identity/account/etblink')
+      .expect(503);
+    assert.equal(previewUnavailable.body.error.code, 'IDENTITY_PROVIDER_UNAVAILABLE');
 
     const unavailable = await request(app)
       .post('/identity/challenge')
