@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 
-const { createHiVenuesRouter } = require('../product/router');
+const { createDeployedPublicRouter } = require('./public-router');
 const { DeployedReleaseStore } = require('./release-store');
 
 const LOOPBACK_HOST = '127.0.0.1';
@@ -134,7 +134,7 @@ function createDeployedPublicApp({
     res.redirect(303, '/hivenues/' + encodeURIComponent(store.release.manifest.hostSlug))
   ));
 
-  app.use('/hivenues', createHiVenuesRouter({ store }));
+  app.use('/hivenues', createDeployedPublicRouter({ store }));
 
   app.use((_req, res) => res.sendStatus(404));
   return Object.freeze({ app, store, provenance, readBack });
