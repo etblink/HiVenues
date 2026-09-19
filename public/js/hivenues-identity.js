@@ -82,7 +82,7 @@
       review: root.querySelector('[data-identity-account-review]'),
       reviewAccount: root.querySelector('[data-identity-review-account]'),
       reviewName: root.querySelector('[data-identity-review-name]'),
-      reviewAvatar: root.querySelector('[data-identity-review-avatar]'),
+      reviewAvatarSlot: root.querySelector('[data-identity-review-avatar-slot]'),
       verify: root.querySelector('[data-identity-verify]'),
       disconnect: root.querySelector('[data-identity-disconnect]'),
       reprove: root.querySelector('[data-identity-reprove]'),
@@ -90,25 +90,29 @@
   }
 
   function resetAccountReview(root) {
-    const { review, reviewAccount, reviewName, reviewAvatar } = controls(root);
+    const { review, reviewAccount, reviewName, reviewAvatarSlot } = controls(root);
     root.dataset.identityReviewedAccount = '';
     if (review) review.hidden = true;
     if (reviewAccount) reviewAccount.textContent = '';
     if (reviewName) reviewName.textContent = '';
-    if (reviewAvatar) {
-      reviewAvatar.hidden = true;
-      reviewAvatar.removeAttribute('src');
+    if (reviewAvatarSlot) {
+      reviewAvatarSlot.hidden = true;
+      reviewAvatarSlot.replaceChildren();
     }
   }
 
   function renderAccountReview(root, preview) {
-    const { review, reviewAccount, reviewName, reviewAvatar } = controls(root);
+    const { review, reviewAccount, reviewName, reviewAvatarSlot } = controls(root);
     root.dataset.identityReviewedAccount = normalizedAccount(preview?.account);
     if (reviewAccount) reviewAccount.textContent = root.dataset.identityReviewedAccount;
     if (reviewName) reviewName.textContent = String(preview?.displayName || preview?.account || '');
-    if (reviewAvatar && preview?.profileImage) {
-      reviewAvatar.src = String(preview.profileImage);
-      reviewAvatar.hidden = false;
+    if (reviewAvatarSlot && preview?.profileImage) {
+      const image = root.ownerDocument.createElement('img');
+      image.setAttribute('data-identity-review-avatar', '');
+      image.alt = '';
+      image.src = String(preview.profileImage);
+      reviewAvatarSlot.replaceChildren(image);
+      reviewAvatarSlot.hidden = false;
     }
     if (review) review.hidden = false;
   }
