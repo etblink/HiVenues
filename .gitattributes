@@ -2,6 +2,5 @@
 .nvmrc text eol=lf
 .github/workflows/*.yml text eol=lf
 .github/workflows/*.yaml text eol=lf
-ops/privex/** text eol=lf
 public/hivenues/media/*.svg text eol=lf
 public/images/*.jpg binary
