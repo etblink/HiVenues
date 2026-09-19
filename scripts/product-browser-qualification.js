@@ -933,7 +933,10 @@ async function runStudioOnboardingEvidence(browser, axeSource, origin, manifest,
       assert.match(text, /Connect an existing Hive account/);
       assert.match(text, /Create a Hive account through the ecosystem/);
       assert.match(text, /Keep building without Hive/);
-      assert.match(text, /identity is not blanket signing authority/i);
+      assert.match(
+        await page.locator('.cc-consequence-card').textContent(),
+        /identity is not blanket signing authority/i,
+      );
       assert.equal(
         await page.locator('[data-identity-create-account]').getAttribute('href'),
         'https://signup.hive.io/',
