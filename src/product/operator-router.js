@@ -133,6 +133,15 @@ function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
     return res.redirect(303, `/hivenues/studio/${encodeURIComponent(result.slug)}?created=1`);
   });
 
+  router.get('/studio/:slug/hive', (req, res) => {
+    const snapshot = store.snapshot(req.params.slug);
+    if (!snapshot) return res.sendStatus(404);
+    return res.render('hivenues/hive-onboarding', {
+      pageTitle: `Hive account — ${snapshot.draft.identity.displayName}`,
+      ...buildViewModel(snapshot),
+    });
+  });
+
   router.get('/studio/:slug/content', (req, res) => {
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
