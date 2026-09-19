@@ -17,6 +17,7 @@ const {
   createHiVenuesIdentityServices,
 } = require('../src/product/identity');
 const { createLocalDeploymentServices } = require('../src/product/deployment');
+const { ScriptedSshVerificationTransport } = require('../src/product/deployment-target-verification');
 const { HiVenuesStore } = require('../src/product/store');
 const { seedHiVenuesHosts } = require('../src/product/fixtures');
 
@@ -2487,6 +2488,7 @@ async function runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifes
     mediaRoot: path.join(root, 'media'),
     authorityRoot: path.join(root, 'deployment', 'authority'),
     authorityProtector: protector,
+    verificationTransport: false,
     authorityIdFactory: () => 'browser-stage2a-authority',
     authorityKeyPairFactory: () => Object.freeze({
       algorithm: 'rsa',
@@ -2576,6 +2578,126 @@ async function runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifes
   }
 }
 
+async function runDeploymentStage2BVerificationEvidence(browser, axeSource, manifest) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-browser-era7-stage2b-'));
+  const store = new HiVenuesStore({ hosts: qualificationHosts() });
+  const slug = 'harbor-and-hearth';
+  const beforeDiagnostics = store.diagnostics();
+  const beforeHost = JSON.stringify(store.snapshot(slug));
+  const fingerprint = 'SHA256:Stage2BBrowserHostFingerprint000000000000000';
+  const transport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      os: 'Debian GNU/Linux 13',
+      architecture: 'x86_64',
+      memoryMb: 1024,
+      diskMb: 20480,
+    },
+  });
+  const protector = Object.freeze({
+    kind: 'browser-test-protector',
+    protect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+    unprotect(value) {
+      return Buffer.from(value).subarray().reverse();
+    },
+  });
+  const deploymentServices = createLocalDeploymentServices({
+    store,
+    statePath: path.join(root, 'deployment', 'state.json'),
+    packageRoot: path.join(root, 'deployment', 'packages'),
+    mediaRoot: path.join(root, 'media'),
+    authorityRoot: path.join(root, 'deployment', 'authority'),
+    authorityProtector: protector,
+    verificationTransport: transport,
+    authorityIdFactory: () => 'browser-stage2b-authority',
+    authorityKeyPairFactory: () => Object.freeze({
+      algorithm: 'rsa',
+      modulusLength: 3072,
+      privateKeyPem: 'browser-stage2b-private-material-'.repeat(8),
+      publicKeyOpenSsh: 'ssh-rsa AAAABROWSERSTAGE2B hivenues-deployment',
+      publicKeyFingerprint: 'SHA256:Stage2BDeploymentPublicFingerprint000000000000',
+    }),
+    now: () => Date.parse('2026-09-19T13:00:00.000Z'),
+    idFactory: () => 'browser-stage2b-target',
+  });
+  const app = createHiVenuesApp({
+    store,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices,
+  });
+  const server = await startHiVenuesServer(app, { port: 0 });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const counters = { requests: [], externalRequests: [], consoleErrors: [] };
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    await page.goto(origin + '/hivenues/studio/' + slug + '/deploy', { waitUntil: 'networkidle' });
+    await page.locator('[data-deployment-stage2b]').waitFor();
+
+    await page.locator('[data-create-reference-ssh-target]').click();
+    const record = page.locator('[data-deployment-record]');
+    await record.waitFor();
+    const deploymentId = await record.getAttribute('data-deployment-record');
+    assert.equal(deploymentId, 'deployment-browser-stage2b-target');
+
+    const form = record.locator('[data-deployment-server-connection]');
+    await form.locator('input[name="host"]').fill('203.0.113.20');
+    await form.locator('input[name="port"]').fill('22');
+    await form.locator('input[name="username"]').fill('root');
+    await form.locator('button[type="submit"]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
+    assert.equal(await page.locator('[data-deployment-ssh-verification]').count(), 1);
+
+    await page.locator('[data-observe-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'host-key-review');
+    assert.equal(
+      await page.locator('[data-deployment-observed-host-fingerprint]').textContent(),
+      fingerprint,
+    );
+    assert.equal(await page.locator('[data-deployment-readonly-verified]').count(), 0);
+    await capture(page, axeSource, manifest, 'era7-stage2b-host-key-review-desktop');
+
+    await page.locator('[data-accept-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
+    assert.equal(await page.locator('[data-deployment-ssh-verification]').count(), 1);
+
+    await page.locator('[data-observe-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'bootstrap-ready');
+    assert.equal(await page.locator('[data-deployment-readonly-verified]').count(), 1);
+    assert.equal(await page.locator('[data-deployment-verified-os]').textContent(), 'Debian GNU/Linux 13');
+    assert.equal(await page.locator('[data-deployment-verified-architecture]').textContent(), 'x86_64');
+    assert.equal(await page.locator('[data-deployment-bootstrap-held]').count(), 1);
+    assert.equal(await page.locator('[data-deploy-release]').count(), 0);
+
+    await page.setViewportSize(MOBILE);
+    await capture(page, axeSource, manifest, 'era7-stage2b-readonly-verified-mobile390');
+
+    assert.deepEqual(
+      transport.calls.map((item) => item.kind),
+      ['observe-host-key', 'observe-host-key', 'inspect'],
+    );
+    assert.deepEqual(store.diagnostics(), beforeDiagnostics);
+    assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
+    assert.deepEqual(counters.externalRequests, []);
+    assert.deepEqual(counters.consoleErrors, []);
+
+    await page.locator('[data-disconnect-deployment]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'disconnected');
+  } finally {
+    await context.close();
+    await stopServer(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
 function publicReleaseInvariant(snapshot) {
   return {
     revision: snapshot.revision,
@@ -2640,6 +2762,7 @@ async function main() {
       'external-account-creation-handoff-resume',
       'era7-stage1-local-deployment-lifecycle',
       'era7-stage2a-protected-server-handoff',
+      'era7-stage2b-readonly-ssh-verification',
       'account-reviewed',
       'awaiting-wallet',
       'verified',
@@ -2826,6 +2949,7 @@ async function main() {
     );
     await runDeploymentStage1Evidence(browser, axeSource, manifest);
     await runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifest);
+    await runDeploymentStage2BVerificationEvidence(browser, axeSource, manifest);
   } finally {
     await browser.close();
     await stopServer(server);
@@ -3010,6 +3134,8 @@ async function main() {
     'era7-stage1-disconnected-mobile390',
     'era7-stage2a-protected-authority-desktop',
     'era7-stage2a-server-ready-mobile390',
+    'era7-stage2b-host-key-review-desktop',
+    'era7-stage2b-readonly-verified-mobile390',
   ]) {
     assert.equal(
       screenshotLabels.includes(requiredLabel),
