@@ -33,9 +33,9 @@ function plan() {
 
 test('Era 7 Stage 3A: bootstrap environment uses stable current pointers and loopback runtime port', () => {
   const value = renderRuntimeEnvironment(plan());
-  assert.match(value, /HIVENUES_RELEASE_PACKAGE='\/srv\/hivenues\/current\/harbor-and-hearth'/);
-  assert.match(value, /HIVENUES_RUNTIME_PROVENANCE='\/opt\/hivenues\/current\/runtime-provenance\.json'/);
-  assert.match(value, /HIVENUES_RUNTIME_MANIFEST='\/opt\/hivenues\/current\/runtime-manifest\.json'/);
+  assert.match(value, /HIVENUES_RELEASE_PACKAGE='\/srv\/hivenues\/releases\/current-harbor-and-hearth'/);
+  assert.match(value, /HIVENUES_RUNTIME_PROVENANCE='\/opt\/hivenues\/runtime\/current\/runtime-provenance\.json'/);
+  assert.match(value, /HIVENUES_RUNTIME_MANIFEST='\/opt\/hivenues\/runtime\/current\/runtime-manifest\.json'/);
   assert.match(value, /HIVENUES_RUNTIME_STATE='\/var\/lib\/hivenues\/harbor-and-hearth\/runtime-state\.json'/);
   assert.match(value, /PORT='4317'/);
   assert.match(value, /NODE_ENV='production'/);
@@ -46,10 +46,10 @@ test('Era 7 Stage 3A: systemd unit runs as non-login runtime user against stable
   const value = renderSystemdUnit(plan());
   assert.match(value, /^User=hivenues$/m);
   assert.match(value, /^Group=hivenues$/m);
-  assert.match(value, /^WorkingDirectory=\/opt\/hivenues\/current$/m);
+  assert.match(value, /^WorkingDirectory=\/opt\/hivenues\/runtime\/current$/m);
   assert.match(
     value,
-    /^ExecStart=\/usr\/bin\/node \/opt\/hivenues\/current\/scripts\/hivenues-public-runtime\.js$/m,
+    /^ExecStart=\/usr\/bin\/node \/opt\/hivenues\/runtime\/current\/scripts\/hivenues-public-runtime\.js$/m,
   );
   assert.match(value, /^NoNewPrivileges=true$/m);
   assert.match(value, /^ProtectSystem=strict$/m);
