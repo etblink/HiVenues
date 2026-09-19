@@ -119,6 +119,8 @@ test('canonical social hubs introduce one host-native identity mechanic across t
     assert.match(response.text, /data-identity-proof-boundary/);
     assert.match(response.text, /data-identity-recovery-boundary/);
     assert.match(response.text, /href="https:\/\/signup\.hive\.io\/"[^>]*data-identity-create-account|data-identity-create-account[^>]*href="https:\/\/signup\.hive\.io\//);
+    assert.match(response.text, /data-identity-creation-resume/);
+    assert.match(response.text, /data-identity-created-account-ready/);
     assert.match(response.text, /data-identity-not-now/);
     assert.match(response.text, /\/js\/keychain-adapter\.js/);
     assert.match(response.text, /\/js\/hivenues-identity\.js/);
@@ -153,6 +155,8 @@ test('Studio exposes optional progressive Hive onboarding without mutating host 
   assert.match(response.text, /data-identity-verify/);
   assert.match(response.text, /data-identity-proof-boundary/);
   assert.match(response.text, /data-identity-recovery-boundary/);
+  assert.match(response.text, /data-identity-creation-resume/);
+  assert.match(response.text, /data-identity-created-account-ready/);
   assert.match(response.text, /data-identity-authority-boundary/);
   assert.match(response.text, /href="https:\/\/signup\.hive\.io\/"[^>]*data-identity-create-account|data-identity-create-account[^>]*href="https:\/\/signup\.hive\.io\//);
   assert.match(response.text, /data-identity-not-now/);

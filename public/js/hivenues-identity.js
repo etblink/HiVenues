@@ -2,6 +2,8 @@
 
 (function attachHiVenuesIdentity(global) {
   const ROOT_SELECTOR = '[data-hivenues-identity]';
+  const CREATION_INTENT_KEY = 'hivenues:hive-account-creation:v1';
+  const CREATION_INTENT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
   function normalizedAccount(value) {
     return String(value || '').trim().toLowerCase().replace(/^@+/, '');
@@ -84,9 +86,72 @@
       reviewName: root.querySelector('[data-identity-review-name]'),
       reviewAvatarSlot: root.querySelector('[data-identity-review-avatar-slot]'),
       verify: root.querySelector('[data-identity-verify]'),
+      createAccount: root.querySelector('[data-identity-create-account]'),
+      creationResume: root.querySelector('[data-identity-creation-resume]'),
+      creationPending: root.querySelector('[data-identity-creation-pending]'),
+      createdAccountReady: root.querySelector('[data-identity-created-account-ready]'),
       disconnect: root.querySelector('[data-identity-disconnect]'),
       reprove: root.querySelector('[data-identity-reprove]'),
     };
+  }
+
+  function readCreationIntent(storage, {
+    pathname = global.location?.pathname || '',
+    now = Date.now,
+  } = {}) {
+    if (!storage) return null;
+    try {
+      const raw = storage.getItem(CREATION_INTENT_KEY);
+      if (!raw) return null;
+      const intent = JSON.parse(raw);
+      const startedAtMs = Date.parse(intent?.startedAt || '');
+      const valid = intent?.version === 1
+        && typeof intent?.returnPath === 'string'
+        && intent.returnPath === pathname
+        && Number.isFinite(startedAtMs)
+        && now() - startedAtMs >= 0
+        && now() - startedAtMs <= CREATION_INTENT_MAX_AGE_MS;
+      if (!valid) {
+        storage.removeItem(CREATION_INTENT_KEY);
+        return null;
+      }
+      return intent;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeCreationIntent(storage, {
+    pathname = global.location?.pathname || '',
+    now = Date.now,
+  } = {}) {
+    const intent = Object.freeze({
+      version: 1,
+      returnPath: pathname,
+      startedAt: new Date(now()).toISOString(),
+    });
+    try {
+      storage?.setItem(CREATION_INTENT_KEY, JSON.stringify(intent));
+    } catch {}
+    return intent;
+  }
+
+  function clearCreationIntent(storage) {
+    try {
+      storage?.removeItem(CREATION_INTENT_KEY);
+    } catch {}
+  }
+
+  function showCreationResume(root) {
+    const { creationResume } = controls(root);
+    root.dataset.identityCreationIntent = 'pending';
+    if (creationResume) creationResume.hidden = false;
+  }
+
+  function hideCreationResume(root) {
+    const { creationResume } = controls(root);
+    root.dataset.identityCreationIntent = '';
+    if (creationResume) creationResume.hidden = true;
   }
 
   function resetAccountReview(root) {
@@ -169,13 +234,43 @@
     reload = () => global.location.reload(),
     now = Date.now,
     setTimeoutImpl = global.setTimeout.bind(global),
+    sessionStorageImpl = global.sessionStorage,
   } = {}) {
     if (!root || root.dataset.identityBound === 'true') return root;
     root.dataset.identityBound = 'true';
 
-    const { form, verify, disconnect, reprove } = controls(root);
+    const {
+      form,
+      verify,
+      createAccount,
+      createdAccountReady,
+      disconnect,
+      reprove,
+    } = controls(root);
     armUnverifiedForm(root);
     watchExpiry(root, { now, setTimeoutImpl });
+
+    if (readCreationIntent(sessionStorageImpl, { now })) {
+      showCreationResume(root);
+    }
+
+    if (createAccount) {
+      createAccount.addEventListener('click', () => {
+        writeCreationIntent(sessionStorageImpl, { now });
+        showCreationResume(root);
+      });
+    }
+
+    if (createdAccountReady) {
+      createdAccountReady.addEventListener('click', () => {
+        clearCreationIntent(sessionStorageImpl);
+        hideCreationResume(root);
+        resetAccountReview(root);
+        setState(root, 'not-identified', '');
+        const { input } = controls(root);
+        if (input) input.focus();
+      });
+    }
 
     if (reprove) {
       reprove.addEventListener('click', () => reload());
@@ -309,13 +404,17 @@
 
   const api = Object.freeze({
     ROOT_SELECTOR,
+    CREATION_INTENT_KEY,
+    clearCreationIntent,
     errorState,
     initializeAll,
     initializeIdentityRoot,
     normalizedAccount,
+    readCreationIntent,
     renderAccountReview,
     resetAccountReview,
     setState,
+    writeCreationIntent,
     watchExpiry,
   });
   global.HiVenuesIdentity = api;

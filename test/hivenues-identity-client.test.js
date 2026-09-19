@@ -32,6 +32,11 @@ function unverifiedMarkup() {
     + '</div>'
     + '<p data-identity-status role="status"></p>'
     + '</form>'
+    + '<a data-identity-create-account href="https://signup.hive.io/" target="_blank">Create</a>'
+    + '<div data-identity-creation-resume hidden>'
+    + '<span data-identity-creation-pending></span>'
+    + '<button type="button" data-identity-created-account-ready>Ready</button>'
+    + '</div>'
     + '</section>'
     + '</body>';
 }
@@ -259,6 +264,73 @@ test('changing the selected account invalidates a public review before wallet pr
   assert.equal(root.dataset.identityState, 'invalid');
   assert.deepEqual(calls, ['/identity/account/etblink']);
   dom.window.close();
+});
+
+test('external account creation handoff remembers only local intent and resumes into account review', async () => {
+  const values = new Map();
+  const storage = {
+    getItem(key) { return values.has(key) ? values.get(key) : null; },
+    setItem(key, value) { values.set(key, String(value)); },
+    removeItem(key) { values.delete(key); },
+  };
+  const now = () => Date.parse('2026-09-19T06:00:00.000Z');
+
+  const first = createDom(unverifiedMarkup());
+  const firstRoot = first.window.document.querySelector('[data-hivenues-identity]');
+  first.window.HiVenuesIdentity.initializeIdentityRoot(firstRoot, {
+    sessionStorageImpl: storage,
+    now,
+  });
+
+  const create = firstRoot.querySelector('[data-identity-create-account]');
+  create.addEventListener('click', (event) => event.preventDefault(), { once: true });
+  create.dispatchEvent(new first.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+  assert.equal(firstRoot.dataset.identityCreationIntent, 'pending');
+  assert.equal(firstRoot.querySelector('[data-identity-creation-resume]').hidden, false);
+  const intent = JSON.parse(storage.getItem(first.window.HiVenuesIdentity.CREATION_INTENT_KEY));
+  assert.deepEqual(Object.keys(intent).sort(), ['returnPath', 'startedAt', 'version']);
+  assert.equal(intent.version, 1);
+  assert.equal(intent.returnPath, '/hivenues/northline-hall/community/updates');
+  assert.equal(Object.hasOwn(intent, 'account'), false);
+  first.window.close();
+
+  const returned = createDom(unverifiedMarkup());
+  const returnedRoot = returned.window.document.querySelector('[data-hivenues-identity]');
+  const fetchCalls = [];
+  returned.window.HiVenuesIdentity.initializeIdentityRoot(returnedRoot, {
+    sessionStorageImpl: storage,
+    now,
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      assert.equal(url, '/identity/account/etblink');
+      return response({ account: 'etblink', displayName: 'Evan', profileImage: '' });
+    },
+    KeychainAdapter: class {
+      async signBuffer() { assert.fail('resume/account review must not open the wallet'); }
+    },
+  });
+
+  assert.equal(returnedRoot.dataset.identityCreationIntent, 'pending');
+  assert.equal(returnedRoot.querySelector('[data-identity-creation-resume]').hidden, false);
+
+  returnedRoot.querySelector('[data-identity-created-account-ready]').click();
+  assert.equal(storage.getItem(returned.window.HiVenuesIdentity.CREATION_INTENT_KEY), null);
+  assert.equal(returnedRoot.dataset.identityCreationIntent, '');
+  assert.equal(returnedRoot.querySelector('[data-identity-creation-resume]').hidden, true);
+  assert.equal(returned.window.document.activeElement.hasAttribute('data-identity-account'), true);
+
+  const input = returnedRoot.querySelector('[data-identity-account]');
+  input.value = 'etblink';
+  input.dispatchEvent(new returned.window.Event('input', { bubbles: true }));
+  returnedRoot.querySelector('form').dispatchEvent(
+    new returned.window.Event('submit', { bubbles: true, cancelable: true }),
+  );
+  await settle();
+
+  assert.equal(returnedRoot.dataset.identityState, 'reviewed');
+  assert.deepEqual(fetchCalls, ['/identity/account/etblink']);
+  returned.window.close();
 });
 
 test('verified-session disconnect reads CSRF from server, ends only the session, then reloads', async () => {

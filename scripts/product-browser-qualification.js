@@ -911,6 +911,93 @@ async function runDirectionEvidence(browser, axeSource, origin, manifest, counte
   }
 }
 
+async function runCreationHandoffEvidence(browser, axeSource, origin, manifest, counters) {
+  const context = await createTrackedContext(browser, counters);
+  const page = await context.newPage();
+  page.on('pageerror', (error) => counters.consoleErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') counters.consoleErrors.push(message.text());
+  });
+
+  try {
+    for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
+      await page.setViewportSize(viewport);
+      await page.goto(
+        origin + '/hivenues/northline-hall/community/updates',
+        { waitUntil: 'networkidle' },
+      );
+      await page.evaluate(() => window.sessionStorage.clear());
+
+      await page.evaluate(() => {
+        const link = document.querySelector('[data-identity-create-account]');
+        if (!link) throw new Error('Create-account handoff is missing.');
+        link.addEventListener('click', (event) => event.preventDefault(), { once: true });
+        link.click();
+      });
+
+      await page.locator('[data-identity-creation-resume]').waitFor();
+      assert.equal(
+        await page.locator('[data-hivenues-identity]').getAttribute('data-identity-creation-intent'),
+        'pending',
+      );
+
+      const intent = await page.evaluate(() => {
+        const key = window.HiVenuesIdentity.CREATION_INTENT_KEY;
+        return JSON.parse(window.sessionStorage.getItem(key));
+      });
+      assert.deepEqual(Object.keys(intent).sort(), ['returnPath', 'startedAt', 'version']);
+      assert.equal(intent.version, 1);
+      assert.equal(intent.returnPath, '/hivenues/northline-hall/community/updates');
+      assert.equal(Object.hasOwn(intent, 'account'), false);
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.locator('[data-identity-creation-resume]').waitFor();
+      assert.equal(
+        await page.locator('[data-hivenues-identity]').getAttribute('data-identity-creation-intent'),
+        'pending',
+      );
+
+      await page.locator('[data-identity-created-account-ready]').click();
+      assert.equal(
+        await page.evaluate(() => (
+          window.sessionStorage.getItem(window.HiVenuesIdentity.CREATION_INTENT_KEY)
+        )),
+        null,
+      );
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.hasAttribute('data-identity-account')),
+        true,
+      );
+      assert.equal(
+        await page.locator('[data-identity-creation-resume]').isHidden(),
+        true,
+      );
+
+      await page.locator('[data-identity-account]').fill('etblink');
+      await page.locator('[data-identity-submit]').click();
+      await page.locator('[data-identity-state="reviewed"]').waitFor();
+      assert.equal(
+        await page.locator('[data-identity-review-account]').textContent(),
+        'etblink',
+      );
+      assert.equal(
+        await page.evaluate(() => Boolean(window.__identityApproval)),
+        false,
+        'creation handoff resume must converge through public review before wallet proof',
+      );
+
+      await capture(
+        page,
+        axeSource,
+        manifest,
+        'poster-' + viewportName + '-creation-handoff-resumed',
+      );
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 async function runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters) {
   const context = await createTrackedContext(browser, counters);
   const page = await context.newPage();
@@ -2311,6 +2398,7 @@ async function main() {
       'three-direction-not-identified',
       'progressive-account-onboarding',
       'studio-progressive-account-onboarding',
+      'external-account-creation-handoff-resume',
       'account-reviewed',
       'awaiting-wallet',
       'verified',
@@ -2351,6 +2439,7 @@ async function main() {
 
   try {
     await runDirectionEvidence(browser, axeSource, origin, manifest, counters);
+    await runCreationHandoffEvidence(browser, axeSource, origin, manifest, counters);
     await runStudioOnboardingEvidence(browser, axeSource, origin, manifest, counters);
     await runApprovalEvidence(browser, axeSource, origin, manifest, counters, key, publicKey);
     await runCancellationEvidence(browser, axeSource, origin, manifest, counters);
@@ -2669,6 +2758,8 @@ async function main() {
   for (const requiredLabel of [
     'studio-hive-onboarding-desktop',
     'studio-hive-onboarding-mobile390',
+    'poster-desktop-creation-handoff-resumed',
+    'poster-mobile390-creation-handoff-resumed',
     'poster-desktop-account-reviewed',
   ]) {
     assert.equal(
