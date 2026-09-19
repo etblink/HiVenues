@@ -53,7 +53,11 @@ function createLocalDeploymentServices({
       })
     : null;
   const sshVerificationTransport = authorityStore
-    ? (verificationTransport || new Ssh2ReadOnlyVerificationTransport())
+    ? (
+        verificationTransport === false
+          ? null
+          : (verificationTransport || new Ssh2ReadOnlyVerificationTransport())
+      )
     : null;
   const targetVerifier = authorityStore && sshVerificationTransport
     ? new SshTargetVerificationService({
