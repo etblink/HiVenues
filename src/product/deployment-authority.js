@@ -77,18 +77,20 @@ function generateDeploymentSshKeyPair({
 const DPAPI_SCRIPT = Object.freeze({
   protect: [
     '$ErrorActionPreference = "Stop"',
+    'Add-Type -AssemblyName System.Security',
     '$inputB64 = [Console]::In.ReadToEnd().Trim()',
     '$bytes = [Convert]::FromBase64String($inputB64)',
-    '$scope = [Security.Cryptography.DataProtectionScope]::CurrentUser',
-    '$protected = [Security.Cryptography.ProtectedData]::Protect($bytes, $null, $scope)',
+    '$scope = [System.Security.Cryptography.DataProtectionScope]::CurrentUser',
+    '$protected = [System.Security.Cryptography.ProtectedData]::Protect($bytes, $null, $scope)',
     '[Console]::Out.Write([Convert]::ToBase64String($protected))',
   ].join('; '),
   unprotect: [
     '$ErrorActionPreference = "Stop"',
+    'Add-Type -AssemblyName System.Security',
     '$inputB64 = [Console]::In.ReadToEnd().Trim()',
     '$bytes = [Convert]::FromBase64String($inputB64)',
-    '$scope = [Security.Cryptography.DataProtectionScope]::CurrentUser',
-    '$plain = [Security.Cryptography.ProtectedData]::Unprotect($bytes, $null, $scope)',
+    '$scope = [System.Security.Cryptography.DataProtectionScope]::CurrentUser',
+    '$plain = [System.Security.Cryptography.ProtectedData]::Unprotect($bytes, $null, $scope)',
     '[Console]::Out.Write([Convert]::ToBase64String($plain))',
   ].join('; '),
 });
