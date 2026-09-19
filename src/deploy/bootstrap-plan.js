@@ -28,6 +28,7 @@ function createReferenceBootstrapPlan({
   runtimeProvenance,
   releaseManifest,
   runtimePort = 4317,
+  bootstrapUsername = 'root',
 } = {}) {
   if (
     !runtimeProvenance
@@ -40,6 +41,10 @@ function createReferenceBootstrapPlan({
   }
 
   const hostSlug = requireSlug(releaseManifest.hostSlug);
+  const initialRemoteAccount = String(bootstrapUsername || '').trim();
+  if (!/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/.test(initialRemoteAccount)) {
+    throw planError('DEPLOYED_BOOTSTRAP_PLAN_INVALID', 'Bootstrap remote account is invalid.');
+  }
   const bundleDigest = requireDigest(runtimeProvenance.bundleDigest, 'Runtime bundle');
   const releaseDigest = requireDigest(releaseManifest.releaseDigest, 'Release');
   const packageDigest = requireDigest(releaseManifest.packageDigest, 'Release package');
@@ -56,9 +61,18 @@ function createReferenceBootstrapPlan({
     runtimeUser: 'hivenues',
     deploymentUser: 'hivenues-deploy',
     privilegeModel: Object.freeze({
-      initialAuthority: 'bootstrap-root',
+      initialAuthority: 'bootstrap-admin',
+      initialRemoteAccount,
       steadyStateAuthority: 'restricted-deployment-user',
+      steadyRemoteAccount: 'hivenues-deploy',
       runtimeLogin: false,
+      authorityNarrowing: Object.freeze([
+        'create-restricted-deployment-account',
+        'install-same-deployment-public-key',
+        'prove-restricted-ssh-login',
+        'remove-exact-bootstrap-authorized-key',
+        'persist-restricted-remote-account',
+      ]),
     }),
     paths: Object.freeze({
       runtimeRoot,
@@ -70,6 +84,12 @@ function createReferenceBootstrapPlan({
       environmentFile: '/etc/hivenues/' + hostSlug + '.env',
       serviceUnit: '/etc/systemd/system/hivenues-' + hostSlug + '.service',
       activeRecord: path.posix.join(stateRoot, 'active-deployment.json'),
+    }),
+    ownership: Object.freeze({
+      runtimeArtifacts: 'hivenues-deploy:hivenues',
+      releaseArtifacts: 'hivenues-deploy:hivenues',
+      runtimeState: 'hivenues:hivenues',
+      rootConfiguration: 'root:root',
     }),
     runtime: Object.freeze({
       sourceSha: runtimeProvenance.sourceSha,
