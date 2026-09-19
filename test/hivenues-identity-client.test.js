@@ -25,7 +25,7 @@ function unverifiedMarkup() {
     + '<input data-identity-account>'
     + '<button type="submit" data-identity-submit disabled>Review account</button>'
     + '<div data-identity-account-review hidden>'
-    + '<img data-identity-review-avatar alt="" hidden>'
+    + '<span data-identity-review-avatar-slot hidden></span>'
     + '<span data-identity-review-name></span>'
     + '<span data-identity-review-account></span>'
     + '<button type="button" data-identity-verify>Verify</button>'
@@ -118,6 +118,7 @@ test('identity controller signs only the server challenge and reloads after serv
   assert.equal(root.querySelector('[data-identity-account-review]').hidden, false);
   assert.equal(root.querySelector('[data-identity-review-account]').textContent, 'etblink');
   assert.equal(root.querySelector('[data-identity-review-name]').textContent, 'Evan');
+  assert.equal(root.querySelector('[data-identity-review-avatar]').getAttribute('src'), 'https://images.hive.blog/u/etblink/avatar');
   assert.equal(signed.length, 0);
   assert.deepEqual(calls.map((call) => call.url), ['/identity/account/etblink']);
 
