@@ -91,10 +91,26 @@ class SshTargetVerificationService {
         }),
       );
     } catch (error) {
-      this.store.transition(deploymentId, 'degraded', {
-        reason: 'ssh-read-only-verification-failed',
-        patch: { healthState: 'degraded' },
-      });
+      if (error?.code === 'DEPLOYMENT_HOST_KEY_CHANGED') {
+        const changed = normalizeFingerprint(error.observedHostKeyFingerprint);
+        const current = this.store.get(deploymentId);
+        this.store.transition(deploymentId, 'host-key-review', {
+          reason: 'ssh-host-key-changed-during-auth',
+          patch: {
+            targetPublicFacts: {
+              ...current.targetPublicFacts,
+              observedHostKeyFingerprint: changed,
+              hostKeyTrustState: 'changed-review-required',
+            },
+            healthState: 'review-required',
+          },
+        });
+      } else {
+        this.store.transition(deploymentId, 'degraded', {
+          reason: 'ssh-read-only-verification-failed',
+          patch: { healthState: 'degraded' },
+        });
+      }
       throw error;
     }
 
