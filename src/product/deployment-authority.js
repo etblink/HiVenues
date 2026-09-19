@@ -229,12 +229,21 @@ class FileDeploymentAuthorityStore {
     const record = this.readRecord(id);
     const ciphertext = Buffer.from(record.protectedPrivateKey, 'base64');
     const plaintext = this.protector.unprotect(ciphertext);
+    ciphertext.fill(0);
+
+    let result;
     try {
-      return action(Buffer.from(plaintext));
-    } finally {
+      result = action(plaintext);
+    } catch (error) {
       plaintext.fill(0);
-      ciphertext.fill(0);
+      throw error;
     }
+
+    if (result && typeof result.then === 'function') {
+      return Promise.resolve(result).finally(() => plaintext.fill(0));
+    }
+    plaintext.fill(0);
+    return result;
   }
 
   revoke(id) {
