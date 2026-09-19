@@ -192,11 +192,11 @@ test('Era 7 Stage 3A: reference bootstrap plan is fixed, least-privilege, and ke
   ]);
 });
 
-test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mutates HostGraph', (t) => {
+test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mutates HostGraph', async (t) => {
   const f = fixture(t);
   const hostBefore = JSON.stringify(f.store.snapshot(f.slug));
 
-  let result = f.coordinator.deploy(f.deploymentId, {
+  let result = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -229,7 +229,7 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
     || item === 'activate'
   )).length;
 
-  result = f.coordinator.deploy(f.deploymentId, {
+  result = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -246,9 +246,9 @@ test('Era 7 Stage 3A: exact Release deploy read-back is idempotent and never mut
   externalZero(f.store);
 });
 
-test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activates Release B with rollback provenance', (t) => {
+test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activates Release B with rollback provenance', async (t) => {
   const f = fixture(t);
-  f.coordinator.deploy(f.deploymentId, {
+  await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: f.packageA.packagePath,
   });
@@ -270,7 +270,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   f.deploymentStore.recordPackage(f.deploymentId, packageB);
 
   f.target.failAt = 'activate';
-  assert.throws(
+  await assert.rejects(
     () => f.coordinator.deploy(f.deploymentId, {
       runtimeRoot: f.runtimeRoot,
       releasePackageRoot: packageB.packagePath,
@@ -284,7 +284,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   assert.equal(record.activeRelease.id, f.releaseA.id);
   assert.equal(f.target.readBack().deployment.releaseId, f.releaseA.id);
 
-  record = f.coordinator.deploy(f.deploymentId, {
+  record = await f.coordinator.deploy(f.deploymentId, {
     runtimeRoot: f.runtimeRoot,
     releasePackageRoot: packageB.packagePath,
   });
@@ -302,7 +302,7 @@ test('Era 7 Stage 3A: partial failure preserves Release A and safe retry activat
   externalZero(f.store);
 });
 
-test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation state begins', (t) => {
+test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation state begins', async (t) => {
   const f = fixture(t);
   const releaseB = editAndRelease(f.store, f.slug, 'Mismatched Release B.');
   const packageB = buildDeploymentPackage({
@@ -314,7 +314,7 @@ test('Era 7 Stage 3A: mismatched Release artifact is rejected before mutation st
     packageRoot: path.join(f.root, 'packages'),
   });
 
-  assert.throws(
+  await assert.rejects(
     () => f.coordinator.deploy(f.deploymentId, {
       runtimeRoot: f.runtimeRoot,
       releasePackageRoot: packageB.packagePath,
