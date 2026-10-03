@@ -1294,12 +1294,10 @@ class InstalledRemoteDeploymentService {
       );
     }
 
-    const {
-      authorityDisconnectState,
-      authorityDisconnectFingerprint,
-      reauthorizationState,
-      ...preservedFacts
-    } = record.targetPublicFacts || {};
+    const preservedFacts = { ...(record.targetPublicFacts || {}) };
+    delete preservedFacts.authorityDisconnectState;
+    delete preservedFacts.authorityDisconnectFingerprint;
+    delete preservedFacts.reauthorizationState;
     const nextState = record.previousRelease ? 'rollback-available' : 'healthy';
     const confirmedAt = new Date(this.now()).toISOString();
     return this.deploymentStore.transition(record.id, nextState, {
