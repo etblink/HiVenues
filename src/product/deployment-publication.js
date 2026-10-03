@@ -391,7 +391,7 @@ function recordDnsObservation(preflight, {
     preflight.dns.requirements.map((record) => record.type + ':' + record.name),
   );
   const conflicts = mergeDnsRecords(conflictingRecords).filter((record) => (
-    ['A', 'AAAA'].includes(record.type)
+    DNS_TYPES.has(record.type)
     && record.name === preflight.hostname
     && !requirementKeys.has(record.type + ':' + record.name)
   ));
@@ -782,7 +782,7 @@ function validateDnsEvidence(value, requirements) {
   );
   const conflicts = mergeDnsRecords(observation.conflictingRecords || []);
   if (conflicts.some((record) => (
-    !['A', 'AAAA'].includes(record.type)
+    !DNS_TYPES.has(record.type)
     || record.name !== value.hostname
     || requirementKeys.has(record.type + ':' + record.name)
   ))) {
