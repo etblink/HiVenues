@@ -96,6 +96,28 @@ function sameDeploymentProofIdentity(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function migrateLegacyPublicReadBack(record) {
+  const readBack = record?.publicEndpoint?.publicReadBack;
+  const observation = readBack?.observation;
+  if (
+    !readBack
+    || !['verified', 'mismatch'].includes(readBack.state)
+    || !observation
+  ) return false;
+
+  const hasObserved = Object.hasOwn(observation, 'observed');
+  const hasExpected = Object.hasOwn(observation, 'expected');
+  if (hasObserved || hasExpected) return false;
+
+  record.publicEndpoint.publicReadBack = {
+    state: 'unverified',
+    observation: null,
+    mismatchFields: [],
+    invalidatedReason: 'legacy-readback-evidence-upgrade',
+  };
+  return true;
+}
+
 function assertVerifiedPublicIdentityMatchesDeployment(record) {
   if (record?.publicEndpoint?.publicReadBack?.state !== 'verified') return;
   const expected = record.publicEndpoint.publicReadBack.observation?.expected;
@@ -508,6 +530,7 @@ class FileDeploymentStore {
         throw deploymentError('DEPLOYMENT_STATE_INVALID', 'Deployment record is invalid.');
       }
       normalizedCapabilities(record.capabilities);
+      migrateLegacyPublicReadBack(record);
       if (record.publicEndpoint !== undefined && record.publicEndpoint !== null) {
         requirePreflight(record.publicEndpoint);
         if (
