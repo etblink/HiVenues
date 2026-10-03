@@ -74,9 +74,10 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
     if (!activity) return res.sendStatus(404);
-    const publicActivityPath = `/hivenues/${snapshot.draft.identity.slug}/activities/${activity.slug}`;
-    const draftActivityPath = previewActivityPath(snapshot.draft.identity.slug, activity.slug);
-    const calendar = renderIcs(snapshot.draft, activity).replace(`URL:${publicActivityPath}`, `URL:${draftActivityPath}`);
+    const draftRouteBase = `/hivenues/studio/${encodeURIComponent(snapshot.draft.identity.slug)}/preview`;
+    const calendar = renderIcs(snapshot.draft, activity, {
+      publicRouteBase: draftRouteBase,
+    });
     res.type('text/calendar; charset=utf-8');
     res.set('Content-Disposition', `attachment; filename="${activity.slug}-draft-preview.ics"`);
     res.set('Cache-Control', 'no-store');
