@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 
 const { renderBootstrapArtifacts } = require('./bootstrap-config');
@@ -33,6 +34,29 @@ function readRuntime(root) {
     path.join(absolute, 'runtime-provenance.json'),
     path.join(absolute, 'runtime-manifest.json'),
   );
+}
+
+function runtimeFileDigest(root, relativePath) {
+  const absolute = path.resolve(root);
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(path.join(absolute, 'runtime-manifest.json'), 'utf8'));
+  } catch {
+    throw targetError(
+      'DEPLOYMENT_RUNTIME_MANIFEST_UNREADABLE',
+      'Qualified runtime manifest could not be read for privileged helper installation.',
+    );
+  }
+  const file = Array.isArray(manifest?.files)
+    ? manifest.files.find((item) => item?.path === relativePath)
+    : null;
+  if (!file || !/^[a-f0-9]{64}$/.test(String(file.sha256 || ''))) {
+    throw targetError(
+      'DEPLOYMENT_RUNTIME_HELPER_DIGEST_MISSING',
+      'Qualified runtime does not contain an exact publication-helper digest.',
+    );
+  }
+  return String(file.sha256);
 }
 
 function requirePublicKey(value) {
@@ -128,6 +152,9 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
   }
   lines.push(
     'test -f ' + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js'),
+    'printf "%s  %s\\n" ' + shellQuote(runtime.publicationHelperSha256)
+      + ' ' + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js')
+      + ' | sha256sum -c -',
     'install -m 0755 -o root -g root -- '
       + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js')
       + ' ' + shellQuote(plan.paths.publicationHelper),
@@ -389,6 +416,10 @@ class SshRemoteDeploymentTarget {
     return Object.freeze({
       ...staged,
       provenance,
+      publicationHelperSha256: runtimeFileDigest(
+        runtimeRoot,
+        'src/deploy/publication-helper-runtime.js',
+      ),
     });
   }
 
@@ -414,7 +445,12 @@ class SshRemoteDeploymentTarget {
     release,
     plan,
   }) {
-    if (!runtime?.provenance || !release?.manifest || !plan) {
+    if (
+      !runtime?.provenance
+      || !/^[a-f0-9]{64}$/.test(String(runtime.publicationHelperSha256 || ''))
+      || !release?.manifest
+      || !plan
+    ) {
       throw targetError(
         'DEPLOYMENT_REMOTE_ACTIVATION_INVALID',
         'Remote deployment activation inputs are invalid.',
