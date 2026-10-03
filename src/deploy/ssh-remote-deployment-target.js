@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -346,6 +347,48 @@ function publicationMigrationDirectoriesCommand(plan) {
   ].join('\n') + '\n';
 }
 
+function sha256Text(value) {
+  return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
+}
+
+function publicationMigrationRecoveryEvidenceCommand(plan, {
+  sshPort = 22,
+} = {}) {
+  const artifacts = renderBootstrapArtifacts(plan, { sshPort });
+  const expectedCaddy = sha256Text(artifacts.caddyHttpConfig);
+  const expectedFirewall = sha256Text(artifacts.nftablesPolicy);
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=publication-migration-recovery-inspection\\n" >&2',
+    'test "$(id -u)" = "0"',
+    'if [ -e ' + shellQuote(plan.paths.publicationStatus) + ' ]; then',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_RECOVERY=not-eligible\\n"',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_REASON=publication-status-present\\n"',
+    '  exit 0',
+    'fi',
+    'if [ ! -f ' + shellQuote(plan.paths.caddyConfig)
+      + ' ] || [ ! -f ' + shellQuote(plan.paths.firewallPolicy) + ' ]; then',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_RECOVERY=not-eligible\\n"',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_REASON=baseline-config-missing\\n"',
+    '  exit 0',
+    'fi',
+    'caddy_sha="$(sha256sum ' + shellQuote(plan.paths.caddyConfig) + ' | cut -d" " -f1)"',
+    'firewall_sha="$(sha256sum ' + shellQuote(plan.paths.firewallPolicy) + ' | cut -d" " -f1)"',
+    'if [ "$caddy_sha" != ' + shellQuote(expectedCaddy)
+      + ' ] || [ "$firewall_sha" != ' + shellQuote(expectedFirewall) + ' ]; then',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_RECOVERY=not-eligible\\n"',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_REASON=publication-baseline-changed\\n"',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_CADDY_SHA=%s\\n" "$caddy_sha"',
+    '  printf "HIVENUES_PUBLICATION_MIGRATION_FIREWALL_SHA=%s\\n" "$firewall_sha"',
+    '  exit 0',
+    'fi',
+    'printf "HIVENUES_PUBLICATION_MIGRATION_RECOVERY=eligible\\n"',
+    'printf "HIVENUES_PUBLICATION_MIGRATION_REASON=unpublished-stage3-baseline\\n"',
+    'printf "HIVENUES_PUBLICATION_MIGRATION_CADDY_SHA=%s\\n" "$caddy_sha"',
+    'printf "HIVENUES_PUBLICATION_MIGRATION_FIREWALL_SHA=%s\\n" "$firewall_sha"',
+  ].join('\n') + '\n';
+}
+
 function publicationMigrationActivateCommand(plan, helperSha256) {
   if (!/^[a-f0-9]{64}$/.test(String(helperSha256 || ''))) {
     throw targetError(
@@ -680,6 +723,45 @@ class SshRemoteDeploymentTarget {
     }
   }
 
+  async publicationMigrationRecoveryEvidence(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_PLAN_REQUIRED',
+        'Publication migration recovery inspection requires an exact deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    const result = await this.withSession(this.initialUsername, (session) => (
+      execInitialRootScript(
+        session,
+        plan,
+        publicationMigrationRecoveryEvidenceCommand(plan, {
+          sshPort: this.connection.port,
+        }),
+        { timeoutMs: 15000 },
+      )
+    ));
+    const values = new Map();
+    for (const line of String(result.stdout || '').split(/\r?\n/)) {
+      const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+      if (match) values.set(match[1], match[2]);
+    }
+    const status = values.get('HIVENUES_PUBLICATION_MIGRATION_RECOVERY');
+    const reason = values.get('HIVENUES_PUBLICATION_MIGRATION_REASON') || '';
+    if (!['eligible', 'not-eligible'].includes(status)) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_INVALID',
+        'Publication migration recovery evidence was invalid.',
+      );
+    }
+    return Object.freeze({
+      eligible: status === 'eligible',
+      reason,
+      caddyConfigSha256: values.get('HIVENUES_PUBLICATION_MIGRATION_CADDY_SHA') || '',
+      firewallPolicySha256: values.get('HIVENUES_PUBLICATION_MIGRATION_FIREWALL_SHA') || '',
+    });
+  }
+
   async migratePublicationCapability({
     plan = this.lastPlan,
     helperSource,
@@ -905,6 +987,7 @@ module.exports = {
   initialBootstrapCommand,
   publicationMigrationActivateCommand,
   publicationMigrationDirectoriesCommand,
+  publicationMigrationRecoveryEvidenceCommand,
   qualifiedNodePath,
   removeBootstrapKeyCommand,
   steadyInstallCommand,
