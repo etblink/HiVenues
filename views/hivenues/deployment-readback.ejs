@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-deployment-readback-diagnostic>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+    </nav>
+
+    <p class="cc-kicker">Deployment · read-only diagnostic</p>
+    <h1>Compare the live server read-back with the exact expected deployment.</h1>
+    <p class="cc-task__dek">
+      This inspection reuses the pinned SSH authority and reads the existing HiVenues health/provenance response.
+      It does not upload files, restart services, alter authority, or change deployment state.
+    </p>
+
+    <section class="cc-review-card">
+      <p class="cc-kicker">Target</p>
+      <h2><%= diagnostic.target.username %>@<%= diagnostic.target.host %>:<%= diagnostic.target.port %></h2>
+      <p>Trusted SSH fingerprint: <code><%= diagnostic.target.trustedHostKeyFingerprint %></code></p>
+    </section>
+
+    <section class="cc-review-card" style="margin-top:1rem">
+      <p class="cc-kicker">Result</p>
+      <h2><%= diagnostic.matches ? 'Exact runtime and Release match' : 'Read-back mismatch remains' %></h2>
+      <p>
+        Mismatch fields:
+        <code data-readback-mismatches><%= diagnostic.mismatches.join(', ') || 'none' %></code>
+      </p>
+    </section>
+
+    <section class="cc-review-card" style="margin-top:1rem">
+      <h2>Expected</h2>
+      <p>Status: <code><%= diagnostic.expected.status %></code></p>
+      <p>Runtime source SHA: <code><%= diagnostic.expected.runtime.sourceSha %></code></p>
+      <p>Runtime source tree: <code><%= diagnostic.expected.runtime.sourceTree %></code></p>
+      <p>Runtime package: <code><%= diagnostic.expected.runtime.packageVersion %></code></p>
+      <p>Node: <code><%= diagnostic.expected.runtime.nodeVersion %></code></p>
+      <p>Runtime bundle: <code><%= diagnostic.expected.runtime.bundleDigest %></code></p>
+      <p>Host slug: <code><%= diagnostic.expected.deployment.hostSlug %></code></p>
+      <p>Release ID: <code><%= diagnostic.expected.deployment.releaseId %></code></p>
+      <p>Release digest: <code><%= diagnostic.expected.deployment.releaseDigest %></code></p>
+      <p>Package digest: <code><%= diagnostic.expected.deployment.packageDigest %></code></p>
+    </section>
+
+    <section class="cc-review-card" style="margin-top:1rem">
+      <h2>Observed</h2>
+      <% if (!diagnostic.actual) { %>
+        <p data-readback-unavailable>No deployment read-back was available over the pinned SSH target.</p>
+      <% } else { %>
+        <p>Status: <code data-readback-status><%= diagnostic.actual.status %></code></p>
+        <p>Runtime source SHA: <code><%= diagnostic.actual.runtime.sourceSha || 'missing' %></code></p>
+        <p>Runtime source tree: <code><%= diagnostic.actual.runtime.sourceTree || 'missing' %></code></p>
+        <p>Runtime package: <code><%= diagnostic.actual.runtime.packageVersion || 'missing' %></code></p>
+        <p>Node: <code><%= diagnostic.actual.runtime.nodeVersion || 'missing' %></code></p>
+        <p>Runtime bundle: <code><%= diagnostic.actual.runtime.bundleDigest || 'missing' %></code></p>
+        <p>Host slug: <code><%= diagnostic.actual.deployment.hostSlug || 'missing' %></code></p>
+        <p>Release ID: <code><%= diagnostic.actual.deployment.releaseId || 'missing' %></code></p>
+        <p>Release digest: <code><%= diagnostic.actual.deployment.releaseDigest || 'missing' %></code></p>
+        <p>Package digest: <code><%= diagnostic.actual.deployment.packageDigest || 'missing' %></code></p>
+        <p>Authority state: <code><%= diagnostic.actual.bootstrap.authorityState || 'missing' %></code></p>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>

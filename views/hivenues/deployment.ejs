@@ -364,6 +364,27 @@
                     && deploymentMutationAvailable
                     && deployment.selectedRelease
                     && deployment.package
+                    && deployment.state === 'degraded'
+                  ) { %>
+                    <section class="cc-review-card" data-deployment-readback-link>
+                      <strong>Inspect the current deployed read-back without changing the server</strong>
+                      <p>
+                        Compare the live HiVenues runtime/Release provenance against the exact locally packaged
+                        expectation before authorizing another deployment attempt.
+                      </p>
+                      <a
+                        class="cc-button"
+                        href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/readback"
+                        data-inspect-deployment-readback
+                      >Inspect deployed read-back</a>
+                    </section>
+                  <% } %>
+
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && deploymentMutationAvailable
+                    && deployment.selectedRelease
+                    && deployment.package
                     && (
                       deployment.activeRelease
                       || deployment.targetPublicFacts.verifiedDedicatedTarget === true

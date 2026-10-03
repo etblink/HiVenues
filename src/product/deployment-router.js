@@ -248,6 +248,40 @@ function createHiVenuesDeploymentRouter({
 
   router.get('/studio/:slug/deploy', (req, res) => render(req, res));
 
+  router.get('/studio/:slug/deploy/:deploymentId/readback', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (!active.remoteDeployment || typeof active.remoteDeployment.inspectReadBack !== 'function') {
+        const error = new Error('Exact deployment read-back inspection is unavailable in this runtime.');
+        error.code = 'DEPLOYMENT_MUTATION_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (deployment.providerKind !== 'ssh-server') {
+        const error = new Error('Exact deployment read-back inspection requires an SSH/server target.');
+        error.code = 'DEPLOYMENT_TARGET_KIND_INVALID';
+        throw error;
+      }
+      const diagnostic = await active.remoteDeployment.inspectReadBack(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-readback', {
+        pageTitle: `Deployment read-back — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        diagnostic,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Exact deployment read-back could not be inspected.',
+        ),
+      });
+    }
+  });
+
   router.get('/studio/:slug/deploy/:deploymentId/review', (req, res) => {
     try {
       const active = requireServices(services);

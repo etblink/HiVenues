@@ -48,19 +48,29 @@ function desiredReadBack(runtime, release) {
   };
 }
 
+function readBackMismatchFields(actual, expected) {
+  if (!actual) return Object.freeze(['readback-unavailable']);
+  const fields = [];
+  if (actual.status !== 'healthy') fields.push('status');
+  const checks = [
+    ['runtime.sourceSha', actual.runtime?.sourceSha, expected.runtime.sourceSha],
+    ['runtime.sourceTree', actual.runtime?.sourceTree, expected.runtime.sourceTree],
+    ['runtime.packageVersion', actual.runtime?.packageVersion, expected.runtime.packageVersion],
+    ['runtime.nodeVersion', actual.runtime?.nodeVersion, expected.runtime.nodeVersion],
+    ['runtime.bundleDigest', actual.runtime?.bundleDigest, expected.runtime.bundleDigest],
+    ['deployment.hostSlug', actual.deployment?.hostSlug, expected.deployment.hostSlug],
+    ['deployment.releaseId', actual.deployment?.releaseId, expected.deployment.releaseId],
+    ['deployment.releaseDigest', actual.deployment?.releaseDigest, expected.deployment.releaseDigest],
+    ['deployment.packageDigest', actual.deployment?.packageDigest, expected.deployment.packageDigest],
+  ];
+  for (const [field, actualValue, expectedValue] of checks) {
+    if (actualValue !== expectedValue) fields.push(field);
+  }
+  return Object.freeze(fields);
+}
+
 function readBackArtifactsMatch(actual, expected) {
-  if (!actual || actual.status !== 'healthy') return false;
-  return (
-    actual.runtime?.sourceSha === expected.runtime.sourceSha
-    && actual.runtime?.sourceTree === expected.runtime.sourceTree
-    && actual.runtime?.packageVersion === expected.runtime.packageVersion
-    && actual.runtime?.nodeVersion === expected.runtime.nodeVersion
-    && actual.runtime?.bundleDigest === expected.runtime.bundleDigest
-    && actual.deployment?.hostSlug === expected.deployment.hostSlug
-    && actual.deployment?.releaseId === expected.deployment.releaseId
-    && actual.deployment?.releaseDigest === expected.deployment.releaseDigest
-    && actual.deployment?.packageDigest === expected.deployment.packageDigest
-  );
+  return readBackMismatchFields(actual, expected).length === 0;
 }
 
 function readBackMatches(actual, expected) {
@@ -279,6 +289,8 @@ class ExactReleaseDeploymentCoordinator {
 
 module.exports = {
   ExactReleaseDeploymentCoordinator,
+  desiredReadBack,
   readBackArtifactsMatch,
   readBackMatches,
+  readBackMismatchFields,
 };

@@ -276,3 +276,89 @@ test('Era 7 Stage 3B composition: a stale consequence review cannot mutate a cha
   );
   assert.equal(targetConstructed, false);
 });
+
+test('Era 7 Stage 3C: exact read-back diagnostic is read-only and names the mismatched field', async (t) => {
+  const f = fixture(t);
+  const calls = {
+    readBack: 0,
+    mutation: 0,
+  };
+  let review;
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles'),
+    buildProvenance: f.buildProvenance,
+    targetFactory: () => ({
+      async readBack() {
+        calls.readBack += 1;
+        return {
+          status: 'healthy',
+          runtime: {
+            ...review.runtime,
+            sourceSha: 'f'.repeat(40),
+          },
+          deployment: {
+            hostSlug: f.slug,
+            releaseId: review.release.id,
+            releaseDigest: review.release.digest,
+            packageDigest: review.release.packageDigest,
+          },
+          bootstrap: {
+            authorityState: 'restricted-login-proven',
+          },
+        };
+      },
+      async installRuntime() {
+        calls.mutation += 1;
+        throw new Error('read-back diagnostic must not install runtime');
+      },
+      async installRelease() {
+        calls.mutation += 1;
+        throw new Error('read-back diagnostic must not install release');
+      },
+      async activate() {
+        calls.mutation += 1;
+        throw new Error('read-back diagnostic must not activate');
+      },
+      async finalizeAuthorityNarrowing() {
+        calls.mutation += 1;
+        throw new Error('read-back diagnostic must not narrow authority');
+      },
+    }),
+  });
+  review = service.prepareReview(f.deploymentId);
+
+  const diagnostic = await service.inspectReadBack(f.deploymentId);
+
+  assert.equal(calls.readBack, 1);
+  assert.equal(calls.mutation, 0);
+  assert.equal(diagnostic.matches, false);
+  assert.deepEqual(diagnostic.mismatches, ['runtime.sourceSha']);
+  assert.equal(diagnostic.expected.runtime.sourceSha, f.buildProvenance.sourceSha);
+  assert.equal(diagnostic.actual.runtime.sourceSha, 'f'.repeat(40));
+});
+
+test('Era 7 Stage 3C: exact read-back diagnostic distinguishes unavailable read-back', async (t) => {
+  const f = fixture(t);
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles'),
+    buildProvenance: f.buildProvenance,
+    targetFactory: () => ({
+      async readBack() {
+        return null;
+      },
+    }),
+  });
+
+  const diagnostic = await service.inspectReadBack(f.deploymentId);
+
+  assert.equal(diagnostic.actual, null);
+  assert.equal(diagnostic.matches, false);
+  assert.deepEqual(diagnostic.mismatches, ['readback-unavailable']);
+});
+
