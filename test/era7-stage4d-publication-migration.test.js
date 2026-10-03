@@ -220,6 +220,10 @@ test('Era 7 Stage 4D: migration root commands never redeploy runtime/Release or 
   assert.match(combined, /systemctl daemon-reload/);
   assert.match(combined, /hivenues-caddy\.service/);
   assert.match(combined, /hivenues-firewall\.service/);
+  assert.ok(
+    activate.indexOf(plan.paths.sudoersFile) < activate.lastIndexOf(plan.paths.publicationHelper),
+    'restricted helper sudo authority must be installed before the helper executable becomes canonical',
+  );
   assert.doesNotMatch(combined, /systemctl (?:restart|start|stop|enable)/);
   assert.doesNotMatch(combined, /current-harbor-and-hearth|active-deployment|runtime-state/);
   assert.doesNotMatch(combined, /tcp dport 443|auto_https|acme|certificate/);
