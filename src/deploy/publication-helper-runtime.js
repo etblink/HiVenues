@@ -205,6 +205,7 @@ function publicationStatus({
   metadata,
   paths = canonicalPublicationPaths(metadata?.hostSlug),
   io = fs,
+  execFile = null,
 } = {}) {
   const accepted = requirePublicationMetadata(metadata);
   if (!io.existsSync(paths.status)) {
@@ -265,16 +266,32 @@ function publicationStatus({
     caddyDigest === stored.caddyConfigSha256
     && firewallDigest === stored.firewallPolicySha256
   );
+  let servicesActive = null;
+  if (intact && execFile) {
+    try {
+      command(execFile, '/usr/bin/systemctl', ['is-active', '--quiet', paths.firewallService]);
+      command(execFile, '/usr/bin/systemctl', ['is-active', '--quiet', paths.caddyService]);
+      servicesActive = true;
+    } catch {
+      servicesActive = false;
+    }
+  }
+  const active = intact && servicesActive !== false;
   return Object.freeze({
     version: 1,
     capability: 'ready',
-    state: intact ? 'configured' : 'drifted',
+    state: active ? 'configured' : 'drifted',
     hostSlug: accepted.hostSlug,
     hostname: stored.hostname,
     appliedAt: stored.appliedAt,
     caddyConfigSha256: caddyDigest,
     firewallPolicySha256: firewallDigest,
-    ...(intact ? {} : { reason: 'managed-config-drift' }),
+    ...(servicesActive === null ? {} : { servicesActive }),
+    ...(
+      !intact
+        ? { reason: 'managed-config-drift' }
+        : (servicesActive === false ? { reason: 'managed-service-inactive' } : {})
+    ),
   });
 }
 
@@ -386,7 +403,12 @@ function applyPublication({
         0o600,
         io,
       );
-      const confirmed = publicationStatus({ metadata: accepted, paths, io });
+      const confirmed = publicationStatus({
+        metadata: accepted,
+        paths,
+        io,
+        execFile,
+      });
       if (confirmed.state !== 'configured' || confirmed.hostname !== host) {
         throw helperError(
           'PUBLICATION_STATUS_CONFIRMATION_FAILED',
@@ -450,7 +472,7 @@ function runCli({
   const loaded = loadCanonicalMetadata(hostSlug, io);
   let result;
   if (argv.length === 1 && argv[0] === 'status') {
-    result = publicationStatus({ ...loaded, io });
+    result = publicationStatus({ ...loaded, io, execFile });
   } else if (argv.length === 2 && argv[0] === 'apply') {
     result = applyPublication({
       ...loaded,
