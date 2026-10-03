@@ -5,11 +5,17 @@
 </head>
 <%
   const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
-  const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
-  const activityHref = `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const releasedRouteBase = typeof publicRouteBase === 'string'
+    ? publicRouteBase
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const routeBase = previewMode
+    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    : releasedRouteBase;
+  const hostHref = routeBase || '/';
+  const activityHref = `${routeBase}/activities/${encodeURIComponent(activity.slug)}`;
   const calendarHref = `${activityHref}/calendar.ics`;
-  const consequenceHref = previewMode ? `${hostHref}/consequence/applaud_hive` : `/hivenues/${encodeURIComponent(graph.identity.slug)}/consequence/applaud_hive`;
-  const rsvpHref = `/hivenues/${encodeURIComponent(graph.identity.slug)}/activities/${encodeURIComponent(activity.slug)}/rsvp`;
+  const consequenceHref = `${routeBase}/consequence/applaud_hive`;
+  const rsvpHref = `${activityHref}/rsvp`;
 %>
 <body class="cc-public cc-hospitality cc-activity-page" style="--cc-accent:<%= graph.presentation.accent %>">
   <header class="cc-hospitality-nav cc-hospitality-nav--activity">

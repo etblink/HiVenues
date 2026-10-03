@@ -7,10 +7,16 @@
   const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
   const sparseHost = !primaryActivity && graph.offers.length === 0;
   const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
-  const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const releasedRouteBase = typeof publicRouteBase === 'string'
+    ? publicRouteBase
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const routeBase = previewMode
+    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    : releasedRouteBase;
+  const hostHref = routeBase || '/';
   const communityAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.community !== false;
   const supportAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.support !== false;
-  const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const activityHref = (activity) => `${routeBase}/activities/${encodeURIComponent(activity.slug)}`;
   const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
 %>
 <body class="cc-public cc-hospitality <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
@@ -21,8 +27,8 @@
       <% if (graph.offers.length) { %><a href="#menu">Offerings</a><% } %>
       <% if (primaryActivity) { %><a href="#table">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#more-activities">More dates</a><% } %>
-      <% if (!previewMode && communityAvailable) { %><a href="<%= hostHref %>/community">Table talk</a><% } %>
-      <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
+      <% if (!previewMode && communityAvailable) { %><a href="<%= routeBase %>/community">Table talk</a><% } %>
+      <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %><a href="<%= routeBase %>/support">Support</a><% } %>
       <a href="#visit">Visit</a>
     </nav>
   </header>
@@ -77,7 +83,7 @@
             <p><%= graph.intent.purpose %></p>
             <p><strong><%= graph.intent.participation %></strong></p>
             <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %>
-              <p><a class="cc-link" href="<%= hostHref %>/support"><%= graph.voice.terms.support_hive || 'Leave something for the house' %></a></p>
+              <p><a class="cc-link" href="<%= routeBase %>/support"><%= graph.voice.terms.support_hive || 'Leave something for the house' %></a></p>
             <% } %>
           </div>
         </section>
