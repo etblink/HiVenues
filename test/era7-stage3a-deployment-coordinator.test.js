@@ -442,6 +442,13 @@ test('Era 7 Stage 3B: interrupted authority narrowing resumes after restart with
     bootstrapUsername: 'root',
     bootstrapAuthorityState: 'restricted-login-proven',
   });
+  f.deploymentStore.setPendingRuntimeProfile(f.deploymentId, {
+    sourceSha: runtime.sourceSha,
+    sourceTree: runtime.sourceTree,
+    packageVersion: runtime.packageVersion,
+    nodeVersion: runtime.nodeVersion,
+    bundleDigest: runtime.bundleDigest,
+  });
   f.deploymentStore.transition(f.deploymentId, 'deploying', {
     reason: 'simulated-process-stop-after-restricted-login-proof',
     patch: { healthState: 'checking' },
