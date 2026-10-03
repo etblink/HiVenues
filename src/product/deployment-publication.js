@@ -84,11 +84,13 @@ function isPublicIpv4(value) {
 function isPublicIpv6(value) {
   if (net.isIP(value) !== 6) return false;
   const normalized = String(value).toLowerCase();
-  const first = Number.parseInt(normalized.split(':')[0] || '0', 16);
+  const parts = normalized.split(':');
+  const first = Number.parseInt(parts[0] || '0', 16);
+  const second = Number.parseInt(parts[1] || '0', 16);
   if (!Number.isInteger(first) || first < 0x2000 || first > 0x3fff) return false;
-  if (/^2001:db8(?::|$)/.test(normalized)) return false;
-  if (/^2001:(?:0|00|000|10|0010|20|0020)(?::|$)/.test(normalized)) return false;
-  if (/^3fff:(?:[0-9a-f]{1,3})(?::|$)/.test(normalized)) return false;
+  if (first === 0x2001 && second <= 0x01ff) return false;
+  if (first === 0x2001 && second === 0x0db8) return false;
+  if (first === 0x3fff && second <= 0x0fff) return false;
   return true;
 }
 
