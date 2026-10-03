@@ -500,7 +500,7 @@ function removeDeploymentAuthorityCommand(plan, publicKey) {
     'printf "HIVENUES_MUTATION_STAGE=deployment-authority-remove\\n" >&2',
     'test "$(id -un)" = ' + shellQuote(plan.deploymentUser),
     'test -f ' + shellQuote(authorizedKeys),
-    'tmp=' + shellQuote(authorizedKeys + '.hivenues-remove.$'),
+    'tmp="$(mktemp ' + shellQuote(authorizedKeys + '.hivenues-remove.XXXXXX') + ')"',
     'trap \'rm -f -- "$tmp"\' EXIT',
     'grep -vxF -- ' + shellQuote(key) + ' ' + shellQuote(authorizedKeys) + ' > "$tmp" || true',
     'chmod 0600 "$tmp"',
