@@ -446,7 +446,18 @@
                     </form>
                   <% } %>
 
-                  <% if (releases.length) { %>
+                  <% if (
+                    releases.length
+                    && !(
+                      (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+                      || (
+                        deployment.state === 'degraded'
+                        && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
+                          deployment.stateReason
+                        )
+                      )
+                    )
+                  ) { %>
                     <form
                       method="post"
                       action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/release"
@@ -658,6 +669,13 @@
                       || deployment.targetPublicFacts.verifiedDedicatedTarget === true
                     )
                     && ['bootstrap-ready', 'deploying', 'healthy', 'rollback-available', 'degraded'].includes(deployment.state)
+                    && !(deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+                    && !(
+                      deployment.state === 'degraded'
+                      && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
+                        deployment.stateReason
+                      )
+                    )
                   ) { %>
                     <section class="cc-consequence-card" data-deployment-consequence-review>
                       <strong>
