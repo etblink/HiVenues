@@ -576,6 +576,17 @@ class InstalledRemoteDeploymentService {
       }
       throw publicationStatusError;
     }
+    let exactDeploymentMatches = null;
+    if (
+      result?.capability === 'ready'
+      && typeof target.readBack === 'function'
+    ) {
+      const actual = await target.readBack();
+      exactDeploymentMatches = readBackMatches(
+        actual,
+        activeReadBackExpectation(record),
+      );
+    }
     return Object.freeze({
       deploymentId: record.id,
       hostSlug: record.hostSlug,
@@ -583,6 +594,9 @@ class InstalledRemoteDeploymentService {
       ...(bootstrapAuthorityAccessible === null
         ? {}
         : { bootstrapAuthorityAccessible }),
+      ...(exactDeploymentMatches === null
+        ? {}
+        : { exactDeploymentMatches }),
     });
   }
 
@@ -613,6 +627,27 @@ class InstalledRemoteDeploymentService {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID',
         'This server already has a non-empty publication state and is not eligible for the one-time capability migration.',
+      );
+    }
+    if (
+      capability.capability === 'ready'
+      && capability.status?.state === 'unconfigured'
+      && capability.exactDeploymentMatches === false
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID',
+        'The server publishing capability is present but the active runtime/Release proof no longer matches.',
+      );
+    }
+    if (
+      capability.capability === 'ready'
+      && capability.status?.state === 'unconfigured'
+      && capability.bootstrapAuthorityAccessible === false
+      && capability.exactDeploymentMatches === true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED',
+        'The publication capability is already installed, bootstrap authority is removed, and the exact deployment still matches.',
       );
     }
     if (
