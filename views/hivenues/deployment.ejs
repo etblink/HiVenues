@@ -237,16 +237,32 @@
                     </form>
                   <% } %>
 
-                  <% if (deployment.providerKind === 'ssh-server' && deployment.state === 'target-ready') { %>
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && ['target-ready', 'degraded', 'unreachable'].includes(deployment.state)
+                  ) { %>
                     <% if (deploymentVerificationAvailable) { %>
                       <section class="cc-review-card" data-deployment-ssh-verification>
-                        <strong>Verify this server without changing it</strong>
-                        <p>
-                          HiVenues will first observe the server's SSH host fingerprint. It will not authenticate
-                          until you explicitly accept that exact fingerprint.
-                        </p>
+                        <% if (deployment.targetPublicFacts.trustedHostKeyFingerprint) { %>
+                          <strong>Retry read-only server verification</strong>
+                          <p>
+                            HiVenues will re-observe the server's SSH host fingerprint and require an exact match
+                            with the trusted fingerprint before authenticating and repeating the read-only inspection.
+                            No server changes are made by this retry.
+                          </p>
+                        <% } else { %>
+                          <strong>Verify this server without changing it</strong>
+                          <p>
+                            HiVenues will first observe the server's SSH host fingerprint. It will not authenticate
+                            until you explicitly accept that exact fingerprint.
+                          </p>
+                        <% } %>
                         <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/verify">
-                          <button class="cc-button" type="submit" data-observe-deployment-host-key>Observe server fingerprint</button>
+                          <button class="cc-button" type="submit" data-observe-deployment-host-key>
+                            <%= deployment.targetPublicFacts.trustedHostKeyFingerprint
+                              ? 'Retry read-only verification'
+                              : 'Observe server fingerprint' %>
+                          </button>
                         </form>
                       </section>
                     <% } else { %>
