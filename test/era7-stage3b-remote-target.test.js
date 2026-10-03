@@ -363,7 +363,7 @@ test('Era 7 Stage 3C: non-root Privex bootstrap account uses noninteractive sudo
   assert.equal(
     debianExec.some((item) => (
       item.command.startsWith('sudo -n /bin/sh -c ')
-      && item.stdin.includes('HIVENUES_RELEASE_ID=')
+      && item.stdin.includes('HIVENUES_RELEASE_PACKAGE=')
     )),
     true,
   );
