@@ -73,6 +73,15 @@
       <p>
         This proof is read-only. It does not adopt, finalize or mutate the server.
       </p>
+      <% if (diagnostic.recovery.recoverable) { %>
+        <p>
+          <a
+            class="cc-button cc-button--ink"
+            href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/recovery-review"
+            data-review-recovery-finalization
+          >Review recovery finalization</a>
+        </p>
+      <% } %>
     </section>
 
     <section class="cc-review-card" style="margin-top:1rem">
