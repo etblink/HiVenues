@@ -12,6 +12,7 @@
     <%= deploymentVerificationAvailable ? 'data-deployment-stage2b' : '' %>
     <%= deploymentMutationAvailable ? 'data-deployment-stage3b' : '' %>
     <%= deploymentLifecycleAvailable ? 'data-deployment-stage5a' : '' %>
+    <%= deploymentReauthorizationAvailable ? 'data-deployment-stage5b' : '' %>
   >
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -422,7 +423,58 @@
                 </section>
               <% } %>
 
-              <% if (deployment.state !== 'disconnected') { %>
+              <% if (
+                deployment.providerKind === 'ssh-server'
+                && deployment.state === 'disconnected'
+                && deploymentReauthorizationAvailable
+              ) { %>
+                <section class="cc-consequence-card" style="margin-top:1rem" data-reauthorization-entry>
+                  <p class="cc-kicker">Deployment management</p>
+                  <h4>Reconnect HiVenues to this preserved server without taking the site down</h4>
+                  <p>
+                    This creates a fresh deployment-only SSH authority locally. It does not change the server,
+                    runtime, Release, DNS or TLS. Afterward HiVenues will show the exact public key that must be
+                    restored temporarily to the original bootstrap account before any reviewed server consequence.
+                  </p>
+                  <form
+                    method="post"
+                    action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/reauthorization/prepare"
+                  >
+                    <button class="cc-button cc-button--ink" type="submit" data-prepare-reauthorization>
+                      Prepare management reconnection
+                    </button>
+                  </form>
+                </section>
+              <% } %>
+
+              <% if (
+                deployment.providerKind === 'ssh-server'
+                && deployment.state === 'reauthorizing'
+                && deploymentReauthorizationAvailable
+              ) { %>
+                <section class="cc-consequence-card" style="margin-top:1rem" data-reauthorization-prepared>
+                  <p class="cc-kicker">Temporary bootstrap handoff</p>
+                  <h4>Restore the exact public key above to <code><%= deployment.targetPublicFacts.bootstrapUsername %></code> only when ready</h4>
+                  <p>
+                    Use the server provider's out-of-band console to place only this newly generated public key
+                    in the original bootstrap account's <code>authorized_keys</code>. Do not add it to
+                    <code>hivenues-deploy</code> manually and do not change Caddy, the firewall, TLS, runtime or Release.
+                  </p>
+                  <p>
+                    HiVenues will first perform a read-only proof of the exact preserved server, runtime, Release
+                    and publication state. The later reviewed consequence installs only this key for
+                    <code>hivenues-deploy</code>, proves that login, removes the same temporary key from
+                    <code><%= deployment.targetPublicFacts.bootstrapUsername %></code>, and re-proves the public site.
+                  </p>
+                  <a
+                    class="cc-button cc-button--ink"
+                    href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/reauthorization-review"
+                    data-review-reauthorization
+                  >Review management reconnection</a>
+                </section>
+              <% } %>
+
+              <% if (!['disconnected', 'reauthorizing'].includes(deployment.state)) { %>
                 <div style="display:grid;gap:.8rem;margin-top:1rem">
                   <% if (deployment.providerKind === 'ssh-server' && ['target-draft', 'awaiting-provider'].includes(deployment.state)) { %>
                     <form
