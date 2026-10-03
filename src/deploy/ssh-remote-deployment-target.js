@@ -329,6 +329,64 @@ async function writeRootFile(session, filePath, content, mode, {
   });
 }
 
+function publicationMigrationCandidate(pathValue) {
+  return String(pathValue) + '.hivenues-stage4-migration-new';
+}
+
+function publicationMigrationDirectoriesCommand(plan) {
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=publication-capability-directories\\n" >&2',
+    'test "$(id -u)" = "0"',
+    'install -d -m 0755 -o root -g root /usr/local/libexec /var/lib/hivenues-publication /var/lib/hivenues-caddy',
+    'install -d -m 0700 -o root -g root ' + shellQuote(plan.paths.publicationStateRoot),
+    'install -d -m 0700 -o caddy -g caddy ' + shellQuote(plan.paths.caddyStateRoot)
+      + ' ' + shellQuote(plan.paths.caddyStateRoot + '/data')
+      + ' ' + shellQuote(plan.paths.caddyStateRoot + '/config'),
+  ].join('\n') + '\n';
+}
+
+function publicationMigrationActivateCommand(plan, helperSha256) {
+  if (!/^[a-f0-9]{64}$/.test(String(helperSha256 || ''))) {
+    throw targetError(
+      'DEPLOYMENT_PUBLICATION_HELPER_DIGEST_INVALID',
+      'Publication helper digest is invalid.',
+    );
+  }
+  const helperCandidate = publicationMigrationCandidate(plan.paths.publicationHelper);
+  const metadataCandidate = publicationMigrationCandidate(plan.paths.publicationMetadata);
+  const caddyServiceCandidate = publicationMigrationCandidate(plan.paths.caddyService);
+  const firewallServiceCandidate = publicationMigrationCandidate(plan.paths.firewallService);
+  const sudoersCandidate = publicationMigrationCandidate(plan.paths.sudoersFile);
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=publication-capability-activate\\n" >&2',
+    'test "$(id -u)" = "0"',
+    'printf "%s  %s\\n" ' + shellQuote(helperSha256) + ' ' + shellQuote(helperCandidate)
+      + ' | sha256sum -c -',
+    '/usr/sbin/visudo -cf ' + shellQuote(sudoersCandidate),
+    'install -m 0755 -o root -g root -- ' + shellQuote(helperCandidate)
+      + ' ' + shellQuote(plan.paths.publicationHelper),
+    'install -m 0600 -o root -g root -- ' + shellQuote(metadataCandidate)
+      + ' ' + shellQuote(plan.paths.publicationMetadata),
+    'install -m 0644 -o root -g root -- ' + shellQuote(caddyServiceCandidate)
+      + ' ' + shellQuote(plan.paths.caddyService),
+    'install -m 0644 -o root -g root -- ' + shellQuote(firewallServiceCandidate)
+      + ' ' + shellQuote(plan.paths.firewallService),
+    'install -m 0440 -o root -g root -- ' + shellQuote(sudoersCandidate)
+      + ' ' + shellQuote(plan.paths.sudoersFile),
+    'rm -f -- ' + [
+      helperCandidate,
+      metadataCandidate,
+      caddyServiceCandidate,
+      firewallServiceCandidate,
+      sudoersCandidate,
+    ].map(shellQuote).join(' '),
+    'systemctl daemon-reload',
+    shellQuote(plan.paths.publicationHelper) + ' status >/dev/null',
+  ].join('\n') + '\n';
+}
+
 class SshRemoteDeploymentTarget {
   constructor({
     authorityStore,
@@ -604,6 +662,116 @@ class SshRemoteDeploymentTarget {
     return true;
   }
 
+  async bootstrapAuthorityAccessible(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_PLAN_REQUIRED',
+        'Bootstrap-authority inspection requires an exact deployment plan.',
+      );
+    }
+    try {
+      const result = await this.withSession(this.initialUsername, (session) => (
+        session.exec('id -un', { timeoutMs: 10000 })
+      ));
+      return String(result.stdout || '').trim() === this.initialUsername;
+    } catch (error) {
+      if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+      throw error;
+    }
+  }
+
+  async migratePublicationCapability({
+    plan = this.lastPlan,
+    helperSource,
+    helperSha256,
+  } = {}) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_PLAN_REQUIRED',
+        'Publication capability migration requires an exact deployment plan.',
+      );
+    }
+    const source = Buffer.isBuffer(helperSource)
+      ? Buffer.from(helperSource)
+      : Buffer.from(String(helperSource || ''), 'utf8');
+    if (!source.length || !/^[a-f0-9]{64}$/.test(String(helperSha256 || ''))) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_INVALID',
+        'Publication capability migration artifact is invalid.',
+      );
+    }
+    this.lastPlan = plan;
+    const artifacts = renderBootstrapArtifacts(plan, {
+      sshPort: this.connection.port,
+    });
+
+    await this.withSession(this.initialUsername, async (session) => {
+      const identity = await session.exec('id -un', { timeoutMs: 10000 });
+      if (String(identity.stdout || '').trim() !== this.initialUsername) {
+        throw targetError(
+          'DEPLOYMENT_BOOTSTRAP_ACCOUNT_MISMATCH',
+          'Temporary bootstrap authority does not match the original account.',
+        );
+      }
+      const viaSudo = initialBootstrapUsesSudo(plan);
+      await withMutationStage('publication-capability-directories', () => (
+        execInitialRootScript(
+          session,
+          plan,
+          publicationMigrationDirectoriesCommand(plan),
+          { timeoutMs: 30000 },
+        )
+      ));
+
+      await withMutationStage('publication-helper-candidate', () => writeRootFile(
+        session,
+        publicationMigrationCandidate(plan.paths.publicationHelper),
+        source,
+        '0755',
+        { viaSudo },
+      ));
+      await withMutationStage('publication-metadata-candidate', () => writeRootFile(
+        session,
+        publicationMigrationCandidate(plan.paths.publicationMetadata),
+        artifacts.publicationMetadata,
+        '0600',
+        { viaSudo },
+      ));
+      await withMutationStage('publication-caddy-service-candidate', () => writeRootFile(
+        session,
+        publicationMigrationCandidate(plan.paths.caddyService),
+        artifacts.caddySystemdUnit,
+        '0644',
+        { viaSudo },
+      ));
+      await withMutationStage('publication-firewall-service-candidate', () => writeRootFile(
+        session,
+        publicationMigrationCandidate(plan.paths.firewallService),
+        artifacts.firewallSystemdUnit,
+        '0644',
+        { viaSudo },
+      ));
+      await withMutationStage('publication-sudoers-candidate', () => writeRootFile(
+        session,
+        publicationMigrationCandidate(plan.paths.sudoersFile),
+        artifacts.restrictedSudoers,
+        '0440',
+        { viaSudo },
+      ));
+
+      await withMutationStage('publication-capability-activate', () => (
+        execInitialRootScript(
+          session,
+          plan,
+          publicationMigrationActivateCommand(plan, helperSha256),
+          { timeoutMs: 30000 },
+        )
+      ));
+    });
+
+    return this.publicationStatus(plan);
+  }
+
   async publicationStatus(plan = this.lastPlan) {
     if (!plan) {
       throw targetError(
@@ -735,6 +903,8 @@ module.exports = {
   SshRemoteDeploymentTarget,
   activationCommand,
   initialBootstrapCommand,
+  publicationMigrationActivateCommand,
+  publicationMigrationDirectoriesCommand,
   qualifiedNodePath,
   removeBootstrapKeyCommand,
   steadyInstallCommand,
