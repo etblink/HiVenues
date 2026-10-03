@@ -57,6 +57,21 @@ function loadReleasePackage(packagePath) {
     );
   }
 
+  const {
+    packageDigest: declaredPackageDigest,
+    ...manifestCore
+  } = manifest;
+  const calculatedPackageDigest = stableDigest({
+    manifest: manifestCore,
+    releaseSnapshot: snapshot,
+  });
+  if (calculatedPackageDigest !== declaredPackageDigest) {
+    throw runtimeStoreError(
+      'DEPLOYED_RELEASE_PACKAGE_DIGEST_MISMATCH',
+      'Deployed Release package does not match its immutable package digest.',
+    );
+  }
+
   for (const media of manifest.media) {
     if (
       !media
