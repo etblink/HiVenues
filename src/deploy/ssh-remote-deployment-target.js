@@ -1074,6 +1074,57 @@ class SshRemoteDeploymentTarget {
     });
   }
 
+  async inspectReauthorizationBaseline(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_PLAN_REQUIRED',
+        'Deployment re-authorization inspection requires an exact preserved deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    const bootstrapUsername = String(
+      this.initialUsername || plan.privilegeModel.initialRemoteAccount || '',
+    ).trim();
+    const deploymentUsername = String(plan.deploymentUser || '').trim();
+    if (!bootstrapUsername || !deploymentUsername || bootstrapUsername === deploymentUsername) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Deployment re-authorization requires distinct bootstrap and steady deployment accounts.',
+      );
+    }
+
+    const accessible = async (username) => {
+      try {
+        const result = await this.withSession(username, (session) => (
+          session.exec('true', { timeoutMs: 10000 })
+        ));
+        return Number(result?.code || 0) === 0;
+      } catch (error) {
+        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+        throw error;
+      }
+    };
+
+    const bootstrapAccessible = await accessible(bootstrapUsername);
+    const steadyAccessible = await accessible(deploymentUsername);
+    if (!bootstrapAccessible && !steadyAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
+        'Restore the exact fresh public key to the temporary bootstrap account before reviewing management re-authorization.',
+      );
+    }
+
+    this.connection.username = steadyAccessible ? deploymentUsername : bootstrapUsername;
+    const readBack = await this.readBack();
+    const publication = await this.publicationStatus(plan);
+    return Object.freeze({
+      bootstrapAccessible,
+      steadyAccessible,
+      readBack,
+      publication,
+    });
+  }
+
   async reauthorizeExistingDeployment(plan = this.lastPlan) {
     if (!plan) {
       throw targetError(
