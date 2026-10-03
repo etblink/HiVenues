@@ -6,6 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
+const { normalizeHostname: normalizeStage4Hostname } = require('../src/product/deployment-publication');
 const {
   applyPublication,
   canonicalPublicationPaths,
@@ -216,4 +217,36 @@ test('Era 7 Stage 4B: candidate validation failure has zero managed-config conse
   assert.equal(fs.readFileSync(f.paths.caddyConfig, 'utf8'), 'old-caddy\n');
   assert.equal(fs.readFileSync(f.paths.firewallPolicy, 'utf8'), 'old-firewall\n');
   assert.equal(fs.existsSync(f.paths.status), false);
+});
+
+
+test('Era 7 Stage 4B: privileged hostname validator stays in parity with the Stage-4 domain contract', () => {
+  const values = [
+    'dev.fourthstreetbar.com',
+    'Dev.FourthStreetBar.com.',
+    'a-b.example.com',
+    'localhost',
+    '*.example.com',
+    'https://example.com',
+    'example.com/path',
+    'example.com:443',
+    'bad name.example.com',
+    '-bad.example.com',
+    'bad-.example.com',
+  ];
+  for (const value of values) {
+    let stage4;
+    let helper;
+    try {
+      stage4 = { ok: true, value: normalizeStage4Hostname(value) };
+    } catch {
+      stage4 = { ok: false };
+    }
+    try {
+      helper = { ok: true, value: normalizePublicationHostname(value) };
+    } catch {
+      helper = { ok: false };
+    }
+    assert.deepEqual(helper, stage4, value);
+  }
 });
