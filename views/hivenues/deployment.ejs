@@ -230,6 +230,30 @@
                       <% } %>
                     </p>
 
+                    <% if (
+                      deployment.providerKind === 'ssh-server'
+                      && deploymentPublicationInspectionAvailable
+                      && deployment.activeRelease
+                    ) { %>
+                      <section
+                        class="cc-review-card"
+                        style="margin-top:1rem"
+                        data-publication-capability-check
+                      >
+                        <p class="cc-kicker">Server readiness</p>
+                        <h5>Check whether this server is ready to publish the domain securely.</h5>
+                        <p>
+                          This is a read-only check over the already trusted deployment connection.
+                          It does not change DNS, Caddy, the firewall, TLS, the deployed Release, or server authority.
+                        </p>
+                        <a
+                          class="cc-button"
+                          href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-capability"
+                          data-check-publication-capability
+                        >Check server readiness</a>
+                      </section>
+                    <% } %>
+
                     <% if (deployment.publicationReview) { %>
                       <details data-domain-consequence-review>
                         <summary>Review what a later live connection would do</summary>
