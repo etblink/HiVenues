@@ -637,9 +637,14 @@ class InstalledRemoteDeploymentService {
         'Prepare a domain plan before checking DNS.',
       );
     }
-    const observation = await this.publicationObserver.observeDns(record.publicEndpoint);
-    const endpoint = recordDnsObservation(record.publicEndpoint, observation);
-    this.deploymentStore.setPublicEndpoint(record.id, endpoint);
+    const checkedEndpoint = record.publicEndpoint;
+    const observation = await this.publicationObserver.observeDns(checkedEndpoint);
+    const endpoint = recordDnsObservation(checkedEndpoint, observation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      checkedEndpoint,
+      endpoint,
+    );
     return endpoint;
   }
 
@@ -800,20 +805,29 @@ class InstalledRemoteDeploymentService {
       );
     }
 
-    const tlsObservation = await this.publicationObserver.observeTls(record.publicEndpoint.hostname);
-    const withTls = recordTlsObservation(record.publicEndpoint, tlsObservation);
-    this.deploymentStore.setPublicEndpoint(record.id, withTls);
+    const checkedEndpoint = record.publicEndpoint;
+    const tlsObservation = await this.publicationObserver.observeTls(checkedEndpoint.hostname);
+    const withTls = recordTlsObservation(checkedEndpoint, tlsObservation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      checkedEndpoint,
+      withTls,
+    );
     if (withTls.tls.state !== 'verified') {
       return withTls;
     }
 
-    const publicObservation = await this.publicationObserver.readPublicHealth(record.publicEndpoint.hostname);
+    const publicObservation = await this.publicationObserver.readPublicHealth(checkedEndpoint.hostname);
     const expected = activeReadBackExpectation(record);
     const completed = recordPublicReadBack(withTls, publicObservation, {
       runtime: expected.runtime,
       release: expected.deployment,
     });
-    this.deploymentStore.setPublicEndpoint(record.id, completed);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      withTls,
+      completed,
+    );
     return completed;
   }
 
