@@ -854,6 +854,58 @@ class SshRemoteDeploymentTarget {
     return this.publicationStatus(plan);
   }
 
+  async applyPublication(plan = this.lastPlan, hostname = '') {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_PLAN_REQUIRED',
+        'Hostname publication requires an exact deployment plan.',
+      );
+    }
+    const host = String(hostname || '').trim().toLowerCase();
+    if (!host) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_HOSTNAME_INVALID',
+        'Hostname publication requires one exact hostname.',
+      );
+    }
+    this.lastPlan = plan;
+    const helper = plan.paths.publicationHelper;
+    const result = await this.withSession(this.connection.username, (session) => (
+      withMutationStage('publication-hostname-apply', () => (
+        session.exec(
+          'sudo -n ' + shellQuote(helper) + ' apply ' + shellQuote(host),
+          { timeoutMs: 60000 },
+        )
+      ))
+    ));
+    let status;
+    try {
+      status = JSON.parse(String(result.stdout || '').trim());
+    } catch {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_APPLY_INVALID',
+        'Publication helper did not return a valid configured status.',
+      );
+    }
+    if (
+      !status
+      || status.version !== 1
+      || status.capability !== 'ready'
+      || status.state !== 'configured'
+      || status.hostSlug !== plan.release.hostSlug
+      || status.hostname !== host
+    ) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_APPLY_INVALID',
+        'Publication helper did not confirm the exact reviewed hostname.',
+      );
+    }
+    return Object.freeze({
+      capability: 'ready',
+      status: Object.freeze({ ...status }),
+    });
+  }
+
   async publicationStatus(plan = this.lastPlan) {
     if (!plan) {
       throw targetError(
