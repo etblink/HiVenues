@@ -124,6 +124,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
   }
   lines.push(
     'chown -R hivenues-deploy:hivenues -- ' + shellQuote(runtime.path),
+    'chmod -R g+rX,o-rwx -- ' + shellQuote(runtime.path),
     'runuser -u hivenues-deploy -- env HOME=/var/lib/hivenues-deploy PATH='
       + shellQuote(nodePath) + ' '
       + shellQuote(node.npmPath)
@@ -141,6 +142,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
   }
   lines.push(
     'chown -R hivenues-deploy:hivenues -- ' + shellQuote(release.path),
+    'chmod -R g+rX,o-rwx -- ' + shellQuote(release.path),
     'install -d -m 0700 -o hivenues-deploy -g hivenues /var/lib/hivenues-deploy/.ssh',
     'printf "%s\\n" ' + shellQuote(publicKey.full)
       + ' > /var/lib/hivenues-deploy/.ssh/authorized_keys',
@@ -166,6 +168,7 @@ function steadyInstallCommand(plan, runtime, release) {
     );
   }
   lines.push(
+    'chmod -R g+rX,o-rwx -- ' + shellQuote(runtime.path),
     'cd -- ' + shellQuote(runtime.path),
     'HOME=/var/lib/hivenues-deploy PATH=' + shellQuote(nodePath) + ' '
       + shellQuote(plan.nodeDistribution.npmPath)
@@ -178,6 +181,7 @@ function steadyInstallCommand(plan, runtime, release) {
         + '; else rm -rf -- ' + shellQuote(release.stagingPath) + '; fi',
     );
   }
+  lines.push('chmod -R g+rX,o-rwx -- ' + shellQuote(release.path));
   return lines.join('\n') + '\n';
 }
 
