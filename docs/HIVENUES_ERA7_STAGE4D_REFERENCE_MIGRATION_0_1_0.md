@@ -83,3 +83,17 @@ runtime/Release = unchanged
 ```
 
 The next live hostname/DNS/TLS consequence remains a separate gate.
+
+
+## Interrupted cleanup visibility
+
+A migration interruption after helper installation but before bootstrap-key removal must not look like ordinary readiness.
+
+Read-only server readiness therefore also probes whether the exact HiVenues deployment authority can still reach the original bootstrap account. If the helper is already `ready / unconfigured` but that temporary access remains, Studio presents a cleanup warning and keeps the migration review reachable.
+
+A clean Stage-4 bootstrap or fully completed migration ends with:
+
+```text
+publication capability = ready / unconfigured
+bootstrap authority accessible by deployment key = false
+```
