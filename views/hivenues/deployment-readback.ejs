@@ -55,8 +55,8 @@
         <strong data-recovery-release-match><%= diagnostic.recovery.releaseMatches ? 'yes' : 'no' %></strong>
       </p>
       <p>
-        Provider and restricted account observe the same runtime/Release:
-        <strong data-recovery-account-match><%= diagnostic.recovery.restrictedMatchesObserved ? 'yes' : 'no' %></strong>
+        Provider/restricted authority continuity is consistent:
+        <strong data-recovery-account-match><%= diagnostic.recovery.providerConsistency ? 'yes' : 'no' %></strong>
       </p>
       <% if (diagnostic.recovery.cachedRuntime) { %>
         <p>
@@ -73,6 +73,15 @@
       <p>
         This proof is read-only. It does not adopt, finalize or mutate the server.
       </p>
+      <% if (diagnostic.recovery.recoverable) { %>
+        <p>
+          <a
+            class="cc-button cc-button--ink"
+            href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/recovery-review"
+            data-review-recovery-finalization
+          >Review recovery finalization</a>
+        </p>
+      <% } %>
     </section>
 
     <section class="cc-review-card" style="margin-top:1rem">
