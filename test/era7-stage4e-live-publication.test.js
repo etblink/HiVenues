@@ -996,3 +996,43 @@ test('Era 7 Stage 4E: hostname apply fails closed if exact Release changes befor
   assert.equal(f.remote.publicationState, 'configured');
   assert.equal(f.store.get(f.deploymentId).publicEndpoint.tls.state, 'ready-for-request');
 });
+
+
+test('Era 7 Stage 4E: final HTTPS verification rechecks exact dual-stack DNS before TLS', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+  const review = await f.service.prepareHostnamePublicationReview(f.deploymentId);
+  await f.service.publishHostname(f.deploymentId, {
+    reviewDigest: review.reviewDigest,
+    confirmation: 'publish-reviewed-hostname',
+  });
+
+  f.observer.observeDns = async function observeChangedDns() {
+    this.dnsCalls += 1;
+    return {
+      checkedAt: '2026-10-03T20:04:00.000Z',
+      resolver: 'synthetic-stage4e',
+      records: [{
+        type: 'A',
+        name: 'dev.fourthstreetbar.com',
+        values: ['121.127.34.154'],
+      }],
+      conflictingRecords: [{
+        type: 'AAAA',
+        name: 'dev.fourthstreetbar.com',
+        values: ['2606:4700::9999'],
+      }],
+    };
+  };
+
+  await assert.rejects(
+    () => f.service.verifyPublicHttps(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+  );
+
+  const endpoint = f.store.get(f.deploymentId).publicEndpoint;
+  assert.equal(endpoint.domainState, 'dns-mismatch');
+  assert.equal(endpoint.tls.state, 'awaiting-dns');
+  assert.equal(f.observer.tlsCalls, 0);
+  assert.equal(f.observer.publicCalls, 0);
+});
