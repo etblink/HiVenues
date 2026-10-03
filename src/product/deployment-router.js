@@ -317,11 +317,6 @@ function createHiVenuesDeploymentRouter({
         ...buildViewModel(snapshot),
         deployment,
         diagnostic,
-        publicationMigrationAvailable: Boolean(
-          active.remoteDeployment
-          && typeof active.remoteDeployment.preparePublicationMigrationReview === 'function'
-          && typeof active.remoteDeployment.migratePublicationCapability === 'function'
-        ),
       });
     } catch (error) {
       return render(req, res, {
@@ -372,6 +367,11 @@ function createHiVenuesDeploymentRouter({
         ...buildViewModel(snapshot),
         deployment,
         diagnostic,
+        publicationMigrationAvailable: Boolean(
+          active.remoteDeployment
+          && typeof active.remoteDeployment.preparePublicationMigrationReview === 'function'
+          && typeof active.remoteDeployment.migratePublicationCapability === 'function'
+        ),
       });
     } catch (error) {
       return render(req, res, {
