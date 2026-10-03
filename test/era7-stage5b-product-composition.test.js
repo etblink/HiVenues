@@ -72,6 +72,7 @@ function fixture() {
     begin: 0,
     review: 0,
     execute: null,
+    dnsCheck: null,
   };
   const remoteDeployment = {
     beginReauthorization(id) {
@@ -115,7 +116,9 @@ function fixture() {
     async rollback() {},
     async prepareDisconnectReview() {},
     async disconnectAuthority() {},
-    async checkDns() {},
+    async checkDns(id, options) {
+      calls.dnsCheck = { id, options };
+    },
     async prepareHostnamePublicationReview() {},
     async publishHostname() {},
     async verifyPublicHttps() {},
@@ -196,6 +199,7 @@ test('Era 7 Stage 5B composition: reauthorizing state exposes exact key handoff 
   f.record.stateReason = 'deployment-reauthorization-prepared';
   f.record.authorityRef = 'authority-stage5b-ui';
   f.record.targetPublicFacts.reauthorizationState = 'prepared';
+  f.record.publicEndpoint = { domainState: 'dns-confirmed' };
 
   const response = await request(f.app)
     .get('/hivenues/studio/' + f.slug + '/deploy')
@@ -209,10 +213,46 @@ test('Era 7 Stage 5B composition: reauthorizing state exposes exact key handoff 
   assert.doesNotMatch(response.text, /data-review-exact-deployment/);
 });
 
+test('Era 7 Stage 5B corrective: DNS mismatch exposes read-only recovery and hides reconnection review', async () => {
+  const f = fixture();
+  f.record.state = 'reauthorizing';
+  f.record.stateReason = 'deployment-reauthorization-prepared';
+  f.record.authorityRef = 'authority-stage5b-ui';
+  f.record.targetPublicFacts.reauthorizationState = 'prepared';
+  f.record.publicEndpoint = {
+    domainState: 'dns-mismatch',
+    dns: {
+      requirements: [{
+        type: 'A',
+        name: 'dev.fourthstreetbar.com',
+        values: ['121.127.34.154'],
+      }],
+    },
+  };
+
+  const response = await request(f.app)
+    .get('/hivenues/studio/' + f.slug + '/deploy')
+    .expect(200);
+
+  assert.match(response.text, /data-reauthorization-dns-recovery/);
+  assert.match(response.text, /data-reauthorization-dns-recheck/);
+  assert.doesNotMatch(response.text, /data-review-reauthorization/);
+
+  await request(f.app)
+    .post('/hivenues/studio/' + f.slug + '/deploy/' + f.record.id + '/domain/check')
+    .expect(303);
+
+  assert.deepEqual(f.calls.dnsCheck, {
+    id: f.record.id,
+    options: { allowReauthorizing: true },
+  });
+});
+
 test('Era 7 Stage 5B composition: review shows preserved deployment and bounded authority-only consequence', async () => {
   const f = fixture();
   f.record.state = 'reauthorizing';
   f.record.authorityRef = 'authority-stage5b-ui';
+  f.record.publicEndpoint = { domainState: 'dns-confirmed' };
 
   const response = await request(f.app)
     .get('/hivenues/studio/' + f.slug + '/deploy/' + f.record.id + '/reauthorization-review')
