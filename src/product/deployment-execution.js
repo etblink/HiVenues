@@ -679,8 +679,15 @@ class InstalledRemoteDeploymentService {
       deployment: record,
       publication,
     });
+    const facts = record.targetPublicFacts || {};
     const core = {
       ...review,
+      target: Object.freeze({
+        host: String(facts.host || ''),
+        port: Number(facts.port || 22),
+        username: String(facts.username || ''),
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      }),
       runtime: Object.freeze({ ...record.runtimeProfile }),
       release: Object.freeze({
         hostSlug: record.hostSlug,
