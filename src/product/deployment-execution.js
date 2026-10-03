@@ -86,6 +86,8 @@ const PUBLICATION_MIGRATION_CONSEQUENCES = Object.freeze([
   'reprove-unchanged-runtime-and-immutable-release',
 ]);
 
+const PUBLICATION_DNS_MAX_AGE_MS = 10 * 60 * 1000;
+
 const PUBLICATION_MIGRATION_HELD = Object.freeze([
   'runtime-redeploy-or-replacement',
   'release-redeploy-or-change',
@@ -647,6 +649,19 @@ class InstalledRemoteDeploymentService {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
         'Prepare a domain plan before reviewing hostname publication.',
+      );
+    }
+    const checkedAt = Date.parse(String(record.publicEndpoint.dns?.observation?.checkedAt || ''));
+    const now = Number(this.now());
+    if (
+      !Number.isFinite(checkedAt)
+      || !Number.isFinite(now)
+      || checkedAt > now + 2 * 60 * 1000
+      || now - checkedAt > PUBLICATION_DNS_MAX_AGE_MS
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_STALE',
+        'Check DNS again before reviewing the live hostname publication.',
       );
     }
     const publication = await this.inspectPublicationCapability(deploymentId);
