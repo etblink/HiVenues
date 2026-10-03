@@ -61,6 +61,24 @@
         </details>
       </section>
     <% } else if (diagnostic.capability === 'ready' && diagnostic.status) { %>
+      <% if (diagnostic.bootstrapAuthorityAccessible === true) { %>
+        <section class="cc-consequence-card" data-publication-bootstrap-authority-warning>
+          <h1>Temporary bootstrap access still needs to be removed.</h1>
+          <p class="cc-task__dek">
+            The restricted publishing capability is present, but the exact HiVenues deployment key can still
+            reach the original bootstrap account. HiVenues will not treat the one-time migration as complete
+            until that temporary access is removed and the unchanged runtime/Release are re-proven.
+          </p>
+          <% if (publicationMigrationAvailable && diagnostic.status.state === 'unconfigured') { %>
+            <a
+              class="cc-button cc-button--ink"
+              href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-upgrade-review"
+              data-finalize-publication-upgrade
+            >Review and finish one-time server upgrade</a>
+          <% } %>
+        </section>
+      <% } %>
+
       <% if (diagnostic.status.state === 'drifted') { %>
         <section data-publication-capability-drifted>
           <h1>Server publishing needs attention before we continue.</h1>
