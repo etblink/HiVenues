@@ -87,8 +87,8 @@ function isPublicIpv6(value) {
   const first = Number.parseInt(normalized.split(':')[0] || '0', 16);
   if (!Number.isInteger(first) || first < 0x2000 || first > 0x3fff) return false;
   if (/^2001:db8(?::|$)/.test(normalized)) return false;
-  if (/^2001:0?0?1?0?:/.test(normalized)) return false;
-  if (/^2001:0?0?2?0?:/.test(normalized)) return false;
+  if (/^2001:(?:0|00|000|10|0010|20|0020)(?::|$)/.test(normalized)) return false;
+  if (/^3fff:(?:[0-9a-f]{1,3})(?::|$)/.test(normalized)) return false;
   return true;
 }
 
@@ -267,7 +267,11 @@ function certificateNameMatches(hostname, names) {
 }
 
 function tlsObservationVerified(hostname, observation) {
-  if (!observation || typeof observation !== 'object') return false;
+  if (
+    !observation
+    || typeof observation !== 'object'
+    || !Array.isArray(observation.subjectAltNames)
+  ) return false;
   const checked = requireIsoTime(
     observation.checkedAt,
     'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
@@ -356,6 +360,12 @@ function recordTlsObservation(preflight, observation = {}) {
     'TLS certificate end',
   );
   const hostname = normalizeHostname(observation.hostname);
+  if (!Array.isArray(observation.subjectAltNames)) {
+    throw publicationError(
+      'DEPLOYMENT_TLS_OBSERVATION_INVALID',
+      'TLS certificate names are invalid.',
+    );
+  }
   const normalized = Object.freeze({
     hostname,
     authorized: observation.authorized === true,
