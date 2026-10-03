@@ -382,6 +382,25 @@ function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } =
   });
 }
 
+function markTlsRequesting(preflight) {
+  requirePreflight(preflight);
+  if (preflight.domainState !== 'dns-confirmed') {
+    throw publicationError(
+      'DEPLOYMENT_TLS_DNS_REQUIRED',
+      'TLS publication cannot begin before DNS is confirmed.',
+    );
+  }
+  return Object.freeze({
+    ...preflight,
+    tls: Object.freeze({ state: 'requesting', observation: null }),
+    publicReadBack: Object.freeze({
+      state: 'unverified',
+      observation: null,
+      mismatchFields: Object.freeze([]),
+    }),
+  });
+}
+
 function recordTlsObservation(preflight, observation = {}) {
   requirePreflight(preflight);
   if (preflight.domainState !== 'dns-confirmed') {
@@ -603,6 +622,89 @@ function prepareStage4LiveReview({ preflight, deployment } = {}) {
   });
 }
 
+function prepareStage4PublicationReview({
+  preflight,
+  deployment,
+  publication,
+} = {}) {
+  requirePreflight(preflight);
+  const state = String(deployment?.state || '');
+  if (!['healthy', 'rollback-available'].includes(state) || !deployment?.activeRelease) {
+    throw publicationError(
+      'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED',
+      'A healthy exact deployment is required before hostname publication.',
+    );
+  }
+  if (preflight.domainState !== 'dns-confirmed' || preflight.dns?.observation?.matches !== true) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+      'The exact prepared DNS records must be observed before hostname publication.',
+    );
+  }
+  if (
+    publication?.capability !== 'ready'
+    || !publication.status
+    || !['unconfigured', 'configured'].includes(publication.status.state)
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_CAPABILITY_REQUIRED',
+      'The restricted server publishing capability must be ready before hostname publication.',
+    );
+  }
+  if (publication.exactDeploymentMatches !== true) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_EXACT_DEPLOYMENT_REQUIRED',
+      'The exact active runtime and immutable Release must be confirmed before hostname publication.',
+    );
+  }
+  if (publication.bootstrapAuthorityAccessible === true) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_BOOTSTRAP_AUTHORITY_HELD',
+      'Temporary bootstrap authority must be removed before hostname publication.',
+    );
+  }
+  if (
+    publication.status.state === 'configured'
+    && publication.status.hostname !== preflight.hostname
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_HOSTNAME_CONFLICT',
+      'The server is already configured for a different hostname.',
+    );
+  }
+  return Object.freeze({
+    version: 1,
+    hostname: preflight.hostname,
+    deploymentId: String(deployment.id || ''),
+    activeRelease: Object.freeze({ ...deployment.activeRelease }),
+    dnsObservation: Object.freeze({
+      checkedAt: String(preflight.dns.observation.checkedAt),
+      resolver: String(preflight.dns.observation.resolver || ''),
+      records: preflight.dns.observation.records,
+    }),
+    publicationState: String(publication.status.state),
+    alreadyApplied: publication.status.state === 'configured',
+    consequences: Object.freeze([
+      'apply-only-the-reviewed-hostname-through-the-restricted-publication-helper',
+      'replace-only-hivenues-owned-caddy-and-firewall-managed-files',
+      'open-qualified-http-and-https-publication-policy',
+      'restart-only-hivenues-caddy-and-firewall-services',
+      'allow-caddy-automatic-https-for-the-reviewed-hostname',
+      'persist-bounded-non-secret-publication-status',
+    ]),
+    held: Object.freeze([
+      'runtime-or-release-redeployment',
+      'provider-payment',
+      'arbitrary-root-or-shell-authority',
+      'unrelated-dns-records',
+      'unrelated-server-configuration',
+      'hive-writes',
+      'value-movement',
+      'customer-host-content-mutation',
+    ]),
+  });
+}
+
 function validateDnsEvidence(value, requirements) {
   const observation = value.dns.observation;
   if (['dns-instructions-ready', 'dns-pending'].includes(value.domainState)) {
@@ -749,7 +851,9 @@ module.exports = {
   isPublicIpv6,
   normalizeHostname,
   normalizeDnsRecord,
+  markTlsRequesting,
   prepareStage4LiveReview,
+  prepareStage4PublicationReview,
   recordDnsObservation,
   recordPublicReadBack,
   recordTlsObservation,
