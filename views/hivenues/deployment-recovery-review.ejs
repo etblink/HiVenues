@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-deployment-recovery-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/readback">
+        Back to read-back proof
+      </a>
+      <span class="cc-draft-status">Interrupted deployment recovery</span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · explicit recovery consequence</p>
+    <h1>Finalize the already-running exact deployment without redeploying it.</h1>
+    <p class="cc-task__dek">
+      The live runtime and immutable Release have already been proven healthy through the restricted deployment
+      account and matched to preserved local evidence. This action does not upload or reactivate them.
+    </p>
+
+    <section class="cc-consequence-card">
+      <p class="cc-kicker">Target</p>
+      <h2><code><%= review.target.deploymentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></h2>
+      <p>Original bootstrap account retained only for exact-key cleanup:
+        <code><%= review.target.bootstrapUsername %></code>
+      </p>
+      <p>Trusted SSH fingerprint:
+        <code><%= review.target.trustedHostKeyFingerprint %></code>
+      </p>
+    </section>
+
+    <section class="cc-review-card">
+      <p class="cc-kicker">Proven immutable Release</p>
+      <h2><code><%= review.release.id %></code></h2>
+      <p>Release digest: <code><%= review.release.digest %></code></p>
+      <p>Package digest: <code><%= review.release.packageDigest %></code></p>
+    </section>
+
+    <section class="cc-review-card">
+      <p class="cc-kicker">Proven cached runtime</p>
+      <p>Source commit: <code><%= review.runtime.sourceSha %></code></p>
+      <p>Source tree: <code><%= review.runtime.sourceTree %></code></p>
+      <p>Runtime bundle: <code><%= review.runtime.bundleDigest %></code></p>
+      <p>Node: <code><%= review.runtime.nodeVersion %></code> · Package: <code><%= review.runtime.packageVersion %></code></p>
+    </section>
+
+    <section class="cc-review-card">
+      <p class="cc-kicker">Authority</p>
+      <p>Observed restricted authority state:
+        <code><%= review.authority.observed %></code>
+      </p>
+      <p>Final authority state:
+        <code><%= review.authority.target %></code>
+      </p>
+      <p>
+        Server authority mutation required:
+        <strong><%= review.authority.serverMutationRequired ? 'yes' : 'no' %></strong>
+      </p>
+    </section>
+
+    <section class="cc-consequence-card">
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card">
+      <h2>What this recovery will not do</h2>
+      <ul>
+        <% review.held.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+      <p>
+        In particular, this action will not upload a runtime or Release, run npm, restart HiVenues/Caddy,
+        rewrite the firewall, or issue DNS/TLS changes.
+      </p>
+    </section>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/finalize-recovery"
+      class="cc-consequence-card"
+      data-deployment-recovery-confirmation
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="finalize-interrupted-recovery"
+          required
+        >
+        I reviewed this proven runtime, Release, authority state and bounded recovery consequence.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit" data-confirm-recovery-finalization>
+        Finalize recovered deployment
+      </button>
+    </form>
+  </main>
+</body>
+</html>
