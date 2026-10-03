@@ -545,10 +545,21 @@ class InstalledRemoteDeploymentService {
       );
     }
     const result = await target.publicationStatus(plan);
+    let bootstrapAuthorityAccessible = null;
+    if (
+      bootstrapUsername
+      && bootstrapUsername !== String(facts.username)
+      && typeof target.bootstrapAuthorityAccessible === 'function'
+    ) {
+      bootstrapAuthorityAccessible = await target.bootstrapAuthorityAccessible(plan);
+    }
     return Object.freeze({
       deploymentId: record.id,
       hostSlug: record.hostSlug,
       ...result,
+      ...(bootstrapAuthorityAccessible === null
+        ? {}
+        : { bootstrapAuthorityAccessible }),
     });
   }
 
