@@ -94,6 +94,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_AUTHORITY_REMAINS'
     || error.code === 'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID'
     || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_STATE_AMBIGUOUS'
+    || error.code === 'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS'
     || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_REQUIRED'
   ) return 409;
   return 400;
@@ -858,6 +859,19 @@ function createHiVenuesDeploymentRouter({
 
   router.post('/studio/:slug/deploy/:deploymentId/release', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (
+      (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+      || (
+        deployment.state === 'degraded'
+        && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
+          String(deployment.stateReason || ''),
+        )
+      )
+    ) {
+      const error = new Error('Finish the current rollback or authority-disconnect lifecycle before selecting another Release.');
+      error.code = 'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS';
+      throw error;
+    }
     const releaseId = String(req.body.releaseId || '').trim();
     const snapshot = store.snapshot(req.params.slug);
     const release = snapshot.releases.find((item) => item.id === releaseId);
