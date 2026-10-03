@@ -4,3 +4,6 @@
 .github/workflows/*.yaml text eol=lf
 public/hivenues/media/*.svg text eol=lf
 public/images/*.jpg binary
+
+# Linux-executable publication helper must keep a valid shebang on Windows-built Studio artifacts.
+src/deploy/publication-helper-runtime.js text eol=lf

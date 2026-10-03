@@ -143,3 +143,19 @@ Before exposing the recovery migration, HiVenues uses the temporarily restored b
 Only that evidence permits `migration-incomplete`.
 
 If a publication status record exists, either managed baseline differs, or the evidence cannot be obtained, HiVenues fails closed and does not offer the one-time migration. This prevents a configured or drifted published server from being rewritten merely because its helper status command failed.
+
+
+## Windows-to-Linux executable byte invariant
+
+The real reference-server migration exposed a cross-platform packaging defect: a Windows Studio build supplied the publication helper with CRLF line endings, causing Linux to interpret the shebang interpreter path with a trailing carriage return.
+
+The publication helper is therefore governed by an explicit byte-level invariant:
+
+- repository checkout pins `src/deploy/publication-helper-runtime.js` to LF;
+- public-runtime bundle construction canonicalizes this Linux executable to LF before hashing/copying;
+- one-time migration canonicalizes and validates the same helper before SHA-256 calculation and upload;
+- the first line must be exactly:
+  `#!/opt/hivenues/node/v24.19.0/bin/node\n`;
+- deterministic qualification runs on both Linux and Windows and rejects any carriage return in the helper bytes.
+
+This is a product/build correction. The reference VPS must not be manually edited to bypass it.
