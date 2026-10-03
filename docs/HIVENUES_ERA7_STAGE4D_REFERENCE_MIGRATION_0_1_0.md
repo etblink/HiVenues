@@ -121,3 +121,10 @@ Readiness on a `ready / unconfigured` server also performs the normal exact runt
 If bootstrap authority is already absent and the exact deployment matches, Studio treats the one-time migration as complete and refuses to prepare another migration review. This covers an interruption after exact-key cleanup but before the previous UI request returned.
 
 If the publication capability exists but the runtime/Release read-back no longer matches, domain publication remains held.
+
+
+## Helper-last activation order
+
+The canonical helper executable is installed **after** the validated restricted sudoers fragment and the other root-owned migration assets. Therefore an interruption before the helper becomes visible still reads as `upgrade-required`; an interruption after the helper becomes visible already has its bounded sudo authority in place.
+
+The `migration-incomplete` recovery path remains as a second fail-safe for unexpected partial/status failures.
