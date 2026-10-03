@@ -2563,9 +2563,10 @@ async function runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifes
     assert.equal(rawAuthority.includes('browser-only-private-material'), false);
     assert.equal(rawAuthority.includes('protectedPrivateKey'), true);
 
-    await page.locator('[data-disconnect-deployment]').click();
-    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'disconnected');
-    assert.equal(fs.existsSync(authorityPath), false);
+    assert.equal(await page.locator('[data-disconnect-deployment]').count(), 0);
+    assert.equal(await page.locator('[data-real-disconnect-held]').count(), 1);
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
+    assert.equal(fs.existsSync(authorityPath), true);
 
     assert.deepEqual(store.diagnostics(), beforeDiagnostics);
     assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
