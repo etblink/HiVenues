@@ -7,6 +7,7 @@
   <main
     class="cc-task"
     data-deployment-stage1
+    data-deployment-stage4a
     <%= deploymentAuthorityAvailable ? 'data-deployment-stage2a' : '' %>
     <%= deploymentVerificationAvailable ? 'data-deployment-stage2b' : '' %>
     <%= deploymentMutationAvailable ? 'data-deployment-stage3b' : '' %>
@@ -22,8 +23,9 @@
       Offline simulation remains available everywhere. Installed Windows HiVenues may also create a protected
       deployment-only SSH authority for provider handoff. HiVenues verifies an explicitly trusted SSH target
       without changing it first. In a qualified installed runtime, an exact immutable Release may then advance
-      to a separate deployment consequence review before any server mutation. DNS, TLS and provider payment
-      remain held.
+      to a separate deployment consequence review before any server mutation. After a healthy deployment,
+      Stage 4A can prepare a domain plan and exact DNS instructions locally. DNS changes, server host-routing,
+      TLS issuance and provider payment remain held until a later explicit review.
     </p>
 
     <% if (error) { %>
@@ -153,6 +155,127 @@
                   <p>Rollback candidate: <code data-previous-release><%= deployment.previousRelease.id %></code></p>
                 <% } %>
               </div>
+
+              <% if (
+                deployment.providerKind === 'ssh-server'
+                && deployment.activeRelease
+                && ['healthy', 'rollback-available'].includes(deployment.state)
+              ) { %>
+                <section
+                  class="cc-review-card"
+                  style="margin-top:1rem"
+                  data-domain-connection
+                >
+                  <p class="cc-kicker">Public address</p>
+                  <% if (!deployment.publicEndpoint) { %>
+                    <h4>Connect a domain</h4>
+                    <p>
+                      Choose the address people should eventually use for this deployed site.
+                      HiVenues will prepare the exact DNS instructions first. Nothing on the Internet
+                      or server changes in this step.
+                    </p>
+                    <form
+                      method="post"
+                      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/domain/preflight"
+                      data-domain-preflight-form
+                    >
+                      <label>
+                        Domain name
+                        <input
+                          name="hostname"
+                          required
+                          autocomplete="off"
+                          placeholder="dev.example.com"
+                          data-domain-hostname
+                        >
+                      </label>
+                      <button class="cc-button cc-button--ink" type="submit">Prepare domain setup</button>
+                    </form>
+                  <% } else { %>
+                    <h4>Domain setup prepared</h4>
+                    <p>
+                      Planned public address:
+                      <strong data-domain-hostname-value><%= deployment.publicEndpoint.hostname %></strong>
+                    </p>
+
+                    <% if (
+                      deployment.publicEndpoint.domainState === 'dns-instructions-ready'
+                      || deployment.publicEndpoint.domainState === 'dns-mismatch'
+                    ) { %>
+                      <p>
+                        Next, these exact DNS records will need to point the domain at this deployment.
+                        <strong>Nothing has been changed yet.</strong>
+                      </p>
+                      <dl data-domain-dns-instructions>
+                        <% deployment.publicEndpoint.dns.requirements.forEach((record) => { %>
+                          <div>
+                            <dt><%= record.type %> record</dt>
+                            <dd>
+                              <code><%= record.name %></code>
+                              →
+                              <code><%= record.values.join(', ') %></code>
+                            </dd>
+                          </div>
+                        <% }) %>
+                      </dl>
+                    <% } %>
+
+                    <p data-domain-human-status>
+                      <% if (deployment.publicEndpoint.domainState === 'dns-confirmed') { %>
+                        Domain records confirmed. Secure connection is the next separate proof.
+                      <% } else if (deployment.publicEndpoint.domainState === 'dns-mismatch') { %>
+                        The last DNS check did not match the required destination.
+                      <% } else { %>
+                        DNS has not been checked yet.
+                      <% } %>
+                    </p>
+
+                    <% if (deployment.publicationReview) { %>
+                      <details data-domain-consequence-review>
+                        <summary>Review what a later live connection would do</summary>
+                        <p>
+                          The following are planned consequences only. This Stage-4A screen does not execute them.
+                        </p>
+                        <ol>
+                          <% deployment.publicationReview.consequences.forEach((item) => { %>
+                            <li><code><%= item %></code></li>
+                          <% }) %>
+                        </ol>
+                        <p>Still held:</p>
+                        <ul>
+                          <% deployment.publicationReview.held.forEach((item) => { %>
+                            <li><code><%= item %></code></li>
+                          <% }) %>
+                        </ul>
+                      </details>
+                    <% } %>
+
+                    <% if (
+                      deployment.publicEndpoint.domainState === 'dns-instructions-ready'
+                      || deployment.publicEndpoint.domainState === 'dns-mismatch'
+                    ) { %>
+                      <details>
+                        <summary>Change the planned domain</summary>
+                        <form
+                          method="post"
+                          action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/domain/preflight"
+                        >
+                          <label>
+                            Domain name
+                            <input
+                              name="hostname"
+                              required
+                              autocomplete="off"
+                              value="<%= deployment.publicEndpoint.hostname %>"
+                            >
+                          </label>
+                          <button class="cc-button" type="submit">Update domain plan</button>
+                        </form>
+                      </details>
+                    <% } %>
+                  <% } %>
+                </section>
+              <% } %>
 
               <% if (deployment.state !== 'disconnected') { %>
                 <div style="display:grid;gap:.8rem;margin-top:1rem">
@@ -458,8 +581,9 @@
         <p>
           Synthetic deployment remains local-only. Protected SSH targets require explicit host-fingerprint trust
           and fixed read-only inspection before mutation is even reviewable. A qualified installed runtime may
-          perform only the exact reviewed Stage-3B bootstrap/Release consequence. Provider payment, custom-domain,
-          DNS and TLS consequences remain outside this action.
+          perform only the exact reviewed Stage-3B bootstrap/Release consequence. Stage 4A may now save a local
+          domain plan and show exact DNS instructions, but provider payment, DNS mutation, server host-routing and
+          TLS issuance remain outside this action.
         </p>
       </section>
     <% } %>
