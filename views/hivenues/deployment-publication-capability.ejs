@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-publication-capability-diagnostic>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+    </nav>
+
+    <p class="cc-kicker">Domain · read-only server readiness</p>
+
+    <% if (diagnostic.capability === 'upgrade-required') { %>
+      <section data-publication-capability-upgrade-required>
+        <h1>One-time server upgrade required.</h1>
+        <p class="cc-task__dek">
+          This server was prepared before HiVenues added its restricted secure-publishing capability.
+          The deployed site can remain healthy as it is. HiVenues did not change the server during this check.
+        </p>
+
+        <section class="cc-review-card">
+          <h2>What this means</h2>
+          <p>
+            HiVenues will not fall back to broad administrator access, arbitrary Caddy commands, or manual
+            firewall changes through the deployment account. A separately reviewed one-time development
+            migration is required before this existing server can publish a domain securely.
+          </p>
+          <p>
+            Domain plan:
+            <strong><%= deployment.publicEndpoint.hostname %></strong>
+          </p>
+          <p>
+            Current deployed Release:
+            <code><%= deployment.activeRelease.id %></code>
+          </p>
+        </section>
+
+        <details class="cc-review-card" style="margin-top:1rem">
+          <summary>Technical detail</summary>
+          <p>Capability: <code><%= diagnostic.capability %></code></p>
+          <p>Reason: <code><%= diagnostic.reason || 'publication-capability-upgrade-required' %></code></p>
+          <p>Deployment: <code><%= diagnostic.deploymentId %></code></p>
+          <p>Host: <code><%= diagnostic.hostSlug %></code></p>
+        </details>
+      </section>
+    <% } else if (diagnostic.capability === 'ready' && diagnostic.status) { %>
+      <% if (diagnostic.status.state === 'drifted') { %>
+        <section data-publication-capability-drifted>
+          <h1>Server publishing needs attention before we continue.</h1>
+          <p class="cc-task__dek">
+            The restricted publishing capability is installed, but its current managed configuration or service
+            state does not match its recorded status. This inspection changed nothing.
+          </p>
+        </section>
+      <% } else { %>
+        <section data-publication-capability-ready>
+          <h1>Server ready for secure publishing.</h1>
+          <p class="cc-task__dek">
+            HiVenues confirmed the restricted publishing capability without changing the server.
+            DNS, hostname routing and TLS remain separate later consequences.
+          </p>
+        </section>
+      <% } %>
+
+      <section class="cc-review-card">
+        <p class="cc-kicker">Current publishing state</p>
+        <h2>
+          <%= diagnostic.status.state === 'configured'
+            ? 'Publishing configuration already present'
+            : (diagnostic.status.state === 'drifted' ? 'Publishing state drift detected' : 'Ready, not yet configured') %>
+        </h2>
+        <% if (diagnostic.status.hostname) { %>
+          <p>Observed hostname: <strong><%= diagnostic.status.hostname %></strong></p>
+        <% } %>
+        <% if (diagnostic.status.reason) { %>
+          <p>Reason: <code><%= diagnostic.status.reason %></code></p>
+        <% } %>
+        <p>
+          Planned domain:
+          <strong><%= deployment.publicEndpoint.hostname %></strong>
+        </p>
+      </section>
+
+      <details class="cc-review-card" style="margin-top:1rem">
+        <summary>Technical detail</summary>
+        <p>Capability: <code><%= diagnostic.capability %></code></p>
+        <p>State: <code><%= diagnostic.status.state %></code></p>
+        <p>Deployment: <code><%= diagnostic.deploymentId %></code></p>
+        <p>Host: <code><%= diagnostic.hostSlug %></code></p>
+        <% if (diagnostic.status.appliedAt) { %>
+          <p>Applied at: <code><%= diagnostic.status.appliedAt %></code></p>
+        <% } %>
+        <% if (diagnostic.status.caddyConfigSha256) { %>
+          <p>Caddy config digest: <code><%= diagnostic.status.caddyConfigSha256 %></code></p>
+        <% } %>
+        <% if (diagnostic.status.firewallPolicySha256) { %>
+          <p>Firewall policy digest: <code><%= diagnostic.status.firewallPolicySha256 %></code></p>
+        <% } %>
+      </details>
+    <% } else { %>
+      <section data-publication-capability-invalid>
+        <h1>Server publishing readiness could not be confirmed.</h1>
+        <p class="cc-task__dek">
+          HiVenues received an unsupported readiness result and will not advance the domain workflow.
+        </p>
+      </section>
+    <% } %>
+
+    <section class="cc-consequence-card" style="margin-top:1rem" data-publication-readonly-boundary>
+      <h2>No changes were made</h2>
+      <p>
+        This check does not edit DNS, change provider settings, rewrite Caddy or firewall configuration,
+        request a certificate, restart the deployed Release, or move value.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

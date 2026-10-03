@@ -66,6 +66,8 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_TARGET_NOT_TRUSTED'
     || error.code === 'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED'
     || error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_LOCKED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED'
   ) return 409;
   return 400;
 }
@@ -250,6 +252,10 @@ function createHiVenuesDeploymentRouter({
       deploymentAuthorityAvailable: Boolean(active?.authorityStore),
       deploymentVerificationAvailable: Boolean(active?.targetVerifier),
       deploymentMutationAvailable: Boolean(active?.remoteDeployment),
+      deploymentPublicationInspectionAvailable: Boolean(
+        active?.remoteDeployment
+        && typeof active.remoteDeployment.inspectPublicationCapability === 'function'
+      ),
       deployments,
       error,
     });
@@ -315,6 +321,56 @@ function createHiVenuesDeploymentRouter({
         error: deploymentErrorMessage(
           error,
           'Exact deployment read-back could not be inspected.',
+        ),
+      });
+    }
+  });
+
+  router.get('/studio/:slug/deploy/:deploymentId/publication-capability', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.inspectPublicationCapability !== 'function'
+      ) {
+        const error = new Error('Server publishing readiness inspection is unavailable in this runtime.');
+        error.code = 'DEPLOYMENT_PUBLICATION_CAPABILITY_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (deployment.providerKind !== 'ssh-server') {
+        const error = new Error('Server publishing readiness requires a real server deployment target.');
+        error.code = 'DEPLOYMENT_TARGET_KIND_INVALID';
+        throw error;
+      }
+      if (!deployment.publicEndpoint) {
+        const error = new Error('Prepare a domain plan before checking server publishing readiness.');
+        error.code = 'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED';
+        throw error;
+      }
+      if (
+        !['healthy', 'rollback-available'].includes(deployment.state)
+        || !deployment.activeRelease
+      ) {
+        const error = new Error('Finish a healthy exact Release deployment before checking server publishing readiness.');
+        error.code = 'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED';
+        throw error;
+      }
+      const diagnostic = await active.remoteDeployment.inspectPublicationCapability(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-publication-capability', {
+        pageTitle: `Server publishing readiness — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        diagnostic,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Server publishing readiness could not be inspected.',
         ),
       });
     }
