@@ -8,6 +8,8 @@ const { buildPublicRuntimeBundle } = require('../../scripts/era7/build-public-ru
 const {
   ExactReleaseDeploymentCoordinator,
   desiredReadBack,
+  readBackArtifactsMatch,
+  readBackMatches,
   readBackMismatchFields,
 } = require('../deploy/deployment-coordinator');
 const { loadRuntimeProvenance } = require('../deploy/public-runtime');
@@ -35,6 +37,26 @@ const CONSEQUENCES = Object.freeze([
 ]);
 
 const HELD = Object.freeze([
+  'provider-payment',
+  'custom-domain',
+  'dns-mutation',
+  'tls-issuance',
+]);
+
+const RECOVERY_CONSEQUENCES = Object.freeze([
+  'reprove-exact-cached-runtime-and-release-through-restricted-account',
+  'remove-exact-bootstrap-authorized-key-if-still-present',
+  'persist-restricted-deployment-user-authority',
+  'verify-exact-runtime-release-health-after-authority-narrowing',
+  'adopt-proven-runtime-release-into-local-deployment-state',
+]);
+
+const RECOVERY_HELD = Object.freeze([
+  'runtime-upload',
+  'release-upload',
+  'package-install',
+  'service-restart-or-activation',
+  'caddy-or-firewall-rewrite',
   'provider-payment',
   'custom-domain',
   'dns-mutation',
@@ -348,11 +370,19 @@ class InstalledRemoteDeploymentService {
         && observed.deployment?.releaseDigest === expected.deployment.releaseDigest
         && observed.deployment?.packageDigest === expected.deployment.packageDigest
       );
+      const restrictedAuthorityState = String(
+        restrictedActual?.bootstrap?.authorityState || '',
+      );
       const restrictedMatchesObserved = Boolean(
         actual && restrictedActual && sameReadBackArtifacts(actual, restrictedActual)
       );
-      const restrictedAuthorityState = String(
-        restrictedActual?.bootstrap?.authorityState || '',
+      const providerConsistency = Boolean(
+        restrictedMatchesObserved
+        || (
+          !actual
+          && restrictedActual
+          && restrictedAuthorityState === 'restricted-deployment-user'
+        )
       );
       const recoverable = Boolean(
         observed
@@ -360,7 +390,7 @@ class InstalledRemoteDeploymentService {
         && cachedRuntime
         && releaseMatches
         && restrictedActual
-        && restrictedMatchesObserved
+        && providerConsistency
         && ['restricted-login-proven', 'restricted-deployment-user'].includes(
           restrictedAuthorityState,
         )
@@ -409,11 +439,206 @@ class InstalledRemoteDeploymentService {
             : null,
           releaseMatches,
           restrictedMatchesObserved,
+          providerConsistency,
           restrictedAuthorityState,
           recoverable,
         }),
       });
     });
+  }
+
+  async prepareRecoveryFinalization(deploymentId) {
+    const diagnostic = await this.inspectReadBack(deploymentId);
+    if (!diagnostic.recovery?.recoverable) {
+      throw executionError(
+        'DEPLOYMENT_RECOVERY_PROOF_REQUIRED',
+        'Interrupted deployment recovery has not been proven read-only.',
+      );
+    }
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (record.activeRelease) {
+      throw executionError(
+        'DEPLOYMENT_RECOVERY_ACTIVE_RELEASE_PRESENT',
+        'This recovery finalization is limited to an interrupted first deployment.',
+      );
+    }
+    const cached = diagnostic.recovery.cachedRuntime;
+    const runtime = cached.provenance;
+    const core = {
+      version: 1,
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      state: record.state,
+      target: {
+        host: diagnostic.target.host,
+        port: diagnostic.target.port,
+        bootstrapUsername: diagnostic.recovery.providerUsername,
+        deploymentUsername: diagnostic.recovery.deploymentUsername,
+        trustedHostKeyFingerprint: diagnostic.target.trustedHostKeyFingerprint,
+      },
+      release: {
+        id: record.package.releaseId,
+        digest: record.package.releaseDigest,
+        packageDigest: record.package.packageDigest,
+      },
+      runtime: {
+        sourceSha: runtime.sourceSha,
+        sourceTree: runtime.sourceTree,
+        packageVersion: runtime.packageVersion,
+        nodeVersion: runtime.nodeVersion,
+        bundleDigest: runtime.bundleDigest,
+      },
+      authority: {
+        observed: diagnostic.recovery.restrictedAuthorityState,
+        target: 'restricted-deployment-user',
+        serverMutationRequired:
+          diagnostic.recovery.restrictedAuthorityState === 'restricted-login-proven',
+      },
+      consequences: RECOVERY_CONSEQUENCES,
+      held: RECOVERY_HELD,
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async finalizeInterruptedRecovery(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'finalize-interrupted-recovery') {
+      throw executionError(
+        'DEPLOYMENT_RECOVERY_CONFIRMATION_REQUIRED',
+        'Explicit interrupted-recovery consequence confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.prepareRecoveryFinalization(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_RECOVERY_REVIEW_STALE',
+        'Recovery facts changed after review. Review the exact recovery consequence again.',
+      );
+    }
+
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const cachedRuntime = findCachedRuntimeBundle(this.runtimeBundlesRoot, review.runtime);
+    if (!cachedRuntime) {
+      throw executionError(
+        'DEPLOYMENT_RECOVERY_RUNTIME_CACHE_MISSING',
+        'The proven recovered runtime is no longer available in the local cache.',
+      );
+    }
+    const releasePackage = exactPackage(this.packageBuilder, record);
+    const release = loadReleasePackage(path.resolve(releasePackage.packagePath)).manifest;
+    const expected = desiredReadBack(cachedRuntime.provenance, release);
+    const facts = record.targetPublicFacts;
+    const bootstrapUsername = String(facts.bootstrapUsername || facts.username);
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: cachedRuntime.provenance,
+      releaseManifest: release,
+      bootstrapUsername,
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: plan.deploymentUser,
+      },
+      bootstrapUsername,
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+
+    this.deploymentStore.setPendingRuntimeProfile(
+      deploymentId,
+      cachedRuntime.provenance,
+    );
+    let current = this.deploymentStore.get(deploymentId);
+    if (current.state !== 'deploying') {
+      current = this.deploymentStore.transition(deploymentId, 'deploying', {
+        reason: 'interrupted-recovery-finalization-started',
+        patch: { healthState: 'checking' },
+      });
+    }
+
+    try {
+      let readBack = await target.readBack();
+      if (!readBackArtifactsMatch(readBack, expected)) {
+        throw executionError(
+          'DEPLOYMENT_RECOVERY_READBACK_MISMATCH',
+          'Restricted-account read-back no longer matches the proven runtime and Release.',
+        );
+      }
+      const authorityState = String(readBack.bootstrap?.authorityState || '');
+      if (
+        !['restricted-login-proven', 'restricted-deployment-user'].includes(authorityState)
+      ) {
+        throw executionError(
+          'DEPLOYMENT_RECOVERY_AUTHORITY_STATE_INVALID',
+          'Restricted-account authority state is no longer recoverable.',
+        );
+      }
+
+      if (authorityState === 'restricted-login-proven') {
+        await target.finalizeAuthorityNarrowing(plan);
+        readBack = await target.readBack();
+      }
+
+      if (!readBackMatches(readBack, expected)) {
+        throw executionError(
+          'DEPLOYMENT_RECOVERY_AUTHORITY_NARROWING_INCOMPLETE',
+          'Recovered deployment did not reach exact restricted authority after finalization.',
+        );
+      }
+
+      const confirmedAt = new Date(this.now()).toISOString();
+      return this.deploymentStore.transition(deploymentId, 'healthy', {
+        reason: 'interrupted-deployment-recovered',
+        patch: {
+          activeRelease: {
+            id: release.releaseId,
+            digest: release.releaseDigest,
+            packageDigest: release.packageDigest,
+            deployedAt: confirmedAt,
+          },
+          previousRelease: null,
+          targetPublicFacts: {
+            ...this.deploymentStore.get(deploymentId).targetPublicFacts,
+            username: plan.deploymentUser,
+            bootstrapUsername,
+            bootstrapAuthorityState: 'restricted-deployment-user',
+          },
+          runtimeProfile: {
+            kind: 'hivenues-public-runtime',
+            sourceSha: cachedRuntime.provenance.sourceSha,
+            sourceTree: cachedRuntime.provenance.sourceTree,
+            packageVersion: cachedRuntime.provenance.packageVersion,
+            nodeVersion: cachedRuntime.provenance.nodeVersion,
+            bundleDigest: cachedRuntime.provenance.bundleDigest,
+          },
+          pendingRuntimeProfile: null,
+          healthState: 'healthy',
+          rollbackState: 'unavailable',
+          lastConfirmedAt: confirmedAt,
+        },
+      });
+    } catch (error) {
+      const latest = this.deploymentStore.get(deploymentId);
+      if (latest?.state === 'deploying') {
+        this.deploymentStore.transition(deploymentId, 'degraded', {
+          reason: 'interrupted-recovery-finalization-failed',
+          patch: {
+            healthState: 'degraded',
+            rollbackState: 'unavailable',
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   prepareReview(deploymentId) {
@@ -506,6 +731,8 @@ class InstalledRemoteDeploymentService {
 module.exports = {
   CONSEQUENCES,
   HELD,
+  RECOVERY_CONSEQUENCES,
+  RECOVERY_HELD,
   InstalledRemoteDeploymentService,
   findCachedRuntimeBundle,
   materializeInstalledRuntimeBundle,
