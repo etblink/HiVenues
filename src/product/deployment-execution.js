@@ -1305,16 +1305,6 @@ class InstalledRemoteDeploymentService {
     let remoteAuthorityRemoved = markedRecovery;
     let exactDeploymentConfirmed = markedRecovery;
     if (localAuthorityPresent) {
-      const plan = createReferenceBootstrapPlan({
-        runtimeProvenance: record.runtimeProfile,
-        releaseManifest: {
-          hostSlug: record.hostSlug,
-          releaseId: record.activeRelease.id,
-          releaseDigest: record.activeRelease.digest,
-          packageDigest: record.activeRelease.packageDigest,
-        },
-        bootstrapUsername: String(facts.bootstrapUsername || facts.username),
-      });
       const target = this.targetFactory({
         authorityStore: this.authorityStore,
         authorityId: record.authorityRef,
