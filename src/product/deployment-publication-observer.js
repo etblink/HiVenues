@@ -82,7 +82,7 @@ class NodePublicationObserver {
         'The requested DNS observation type is not supported.',
       );
     } catch (error) {
-      if (['ENODATA', 'ENOTFOUND', 'ENOENT', 'ENOTIMP', 'SERVFAIL'].includes(error?.code)) {
+      if (['ENODATA', 'ENOTFOUND', 'ENOENT', 'ENOTIMP'].includes(error?.code)) {
         return normalizeDnsAnswer(type, name, []);
       }
       if (error?.code === 'DEPLOYMENT_DNS_OBSERVATION_INVALID') throw error;
