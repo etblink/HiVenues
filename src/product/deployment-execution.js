@@ -5,8 +5,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { buildPublicRuntimeBundle } = require('../../scripts/era7/build-public-runtime-bundle');
-const { ExactReleaseDeploymentCoordinator } = require('../deploy/deployment-coordinator');
+const {
+  ExactReleaseDeploymentCoordinator,
+  desiredReadBack,
+  readBackMismatchFields,
+} = require('../deploy/deployment-coordinator');
 const { loadRuntimeProvenance } = require('../deploy/public-runtime');
+const { loadReleasePackage } = require('../deploy/release-store');
 const { SshRemoteDeploymentTarget } = require('../deploy/ssh-remote-deployment-target');
 const { stableDigest } = require('./model');
 
@@ -235,6 +240,49 @@ class InstalledRemoteDeploymentService {
     });
     const releasePackage = exactPackage(this.packageBuilder, record);
     return Object.freeze({ record, runtime, releasePackage });
+  }
+
+  inspectReadBack(deploymentId) {
+    const { record, runtime, releasePackage } = this.artifacts(deploymentId);
+    const facts = record.targetPublicFacts;
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+    const release = loadReleasePackage(path.resolve(releasePackage.packagePath)).manifest;
+    const expected = desiredReadBack(runtime.provenance, release);
+    return Promise.resolve(target.readBack()).then((actual) => Object.freeze({
+      deploymentId: record.id,
+      target: Object.freeze({
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      }),
+      expected: Object.freeze({
+        status: 'healthy',
+        runtime: Object.freeze({ ...expected.runtime }),
+        deployment: Object.freeze({ ...expected.deployment }),
+      }),
+      actual: actual
+        ? Object.freeze({
+            status: actual.status,
+            runtime: Object.freeze({ ...(actual.runtime || {}) }),
+            deployment: Object.freeze({ ...(actual.deployment || {}) }),
+            bootstrap: Object.freeze({ ...(actual.bootstrap || {}) }),
+          })
+        : null,
+      mismatches: readBackMismatchFields(actual, expected),
+      matches: readBackMismatchFields(actual, expected).length === 0,
+    }));
   }
 
   prepareReview(deploymentId) {
