@@ -202,6 +202,7 @@ function serviceFixture(t) {
       return target;
     },
     publicationObserver: observer,
+    now: () => Date.parse('2026-10-03T20:02:00.000Z'),
   });
   return { ...f, service, target, remote, observer };
 }
@@ -665,4 +666,17 @@ test('Era 7 Stage 4E: publication review cannot regress an already-started TLS p
     }),
     (error) => error.code === 'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID',
   );
+});
+
+
+test('Era 7 Stage 4E: stale DNS proof must be checked again before live publication review', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+  f.service.now = () => Date.parse('2026-10-03T20:20:01.000Z');
+
+  await assert.rejects(
+    () => f.service.prepareHostnamePublicationReview(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_DNS_STALE',
+  );
+  assert.equal(f.remote.applyCalls, 0);
 });
