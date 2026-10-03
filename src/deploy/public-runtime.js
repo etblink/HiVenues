@@ -202,11 +202,10 @@ function createDeployedPublicApp({
     return res.json(readBack().deployment);
   });
 
-  app.get('/', (_req, res) => (
-    res.redirect(303, '/hivenues/' + encodeURIComponent(store.release.manifest.hostSlug))
-  ));
-
-  app.use('/hivenues', createDeployedPublicRouter({ store }));
+  app.use(createDeployedPublicRouter({
+    store,
+    hostSlug: store.release.manifest.hostSlug,
+  }));
 
   app.use((_req, res) => res.sendStatus(404));
   return Object.freeze({ app, store, provenance, readBack });
