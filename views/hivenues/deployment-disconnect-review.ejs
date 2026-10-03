@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-real-disconnect-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+      <span class="cc-draft-status">Deployment authority disconnect review</span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · authority lifecycle</p>
+    <h1>Disconnect HiVenues management without taking the published site down.</h1>
+    <p class="cc-task__dek">
+      This action removes the exact HiVenues deployment key from the steady server account, proves that key
+      can no longer authenticate, then revokes the protected local private key and marks this deployment
+      disconnected. It does not delete the host, immutable Releases, running site, DNS or TLS configuration.
+    </p>
+
+    <section class="cc-review-card" data-disconnect-deployment-proof>
+      <p class="cc-kicker">Preserved live deployment</p>
+      <p>Deployment: <code><%= review.deploymentId %></code></p>
+      <p>Release: <code><%= review.release.id %></code></p>
+      <p>Release digest: <code><%= review.release.digest %></code></p>
+      <p>Runtime bundle: <code><%= review.runtime.bundleDigest %></code></p>
+      <p>Public hostname: <strong><%= review.hostname %></strong></p>
+      <p>
+        Exact server read-back before authority removal:
+        <strong><%= review.exactDeploymentConfirmed ? 'confirmed' : (review.authority.remoteAuthorityRemoved ? 'previously confirmed before remote-key removal' : 'not confirmed') %></strong>
+      </p>
+    </section>
+
+    <section class="cc-review-card" data-disconnect-authority-proof>
+      <p class="cc-kicker">Authority being disconnected</p>
+      <p>Authority: <code><%= review.authority.id %></code></p>
+      <p>Public-key fingerprint: <code><%= review.authority.publicKeyFingerprint || 'preserved recovery marker' %></code></p>
+      <p>Local protected authority present: <strong><%= review.authority.localAuthorityPresent ? 'yes' : 'already revoked' %></strong></p>
+      <p>Server-side key already removed: <strong><%= review.authority.remoteAuthorityRemoved ? 'yes' : 'no' %></strong></p>
+      <% if (review.authority.remoteAuthorityRemoved) { %>
+        <p data-disconnect-recovery>
+          HiVenues detected that the exact server-side authority removal already committed. This review resumes
+          only the remaining local revocation/disconnected-state work.
+        </p>
+      <% } %>
+    </section>
+
+    <section class="cc-consequence-card" data-disconnect-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-disconnect-held>
+      <h2>What remains held</h2>
+      <ul>
+        <% review.held.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <details class="cc-review-card">
+      <summary>Technical review identity</summary>
+      <p>Trusted server: <code><%= review.target.username %>@<%= review.target.host %>:<%= review.target.port %></code></p>
+      <p>Host fingerprint: <code><%= review.target.trustedHostKeyFingerprint %></code></p>
+      <p>Review digest: <code><%= review.reviewDigest %></code></p>
+    </details>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect-authority"
+      class="cc-consequence-card"
+      data-confirm-real-disconnect
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input type="checkbox" name="confirmation" value="disconnect-deployment-authority" required>
+        I reviewed this authority disconnect. Keep the site running and remove only HiVenues deployment access.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit">Disconnect deployment authority</button>
+    </form>
+  </main>
+</body>
+</html>
