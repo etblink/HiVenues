@@ -295,19 +295,103 @@ function publicationStatus({
   });
 }
 
+function readKernelText(filePath) {
+  try {
+    return String(fs.readFileSync(filePath, 'utf8')).trim();
+  } catch {
+    return '';
+  }
+}
+
+function processStartTicks(pid) {
+  const value = readKernelText('/proc/' + String(pid) + '/stat');
+  if (!value) return '';
+  const close = value.lastIndexOf(')');
+  if (close < 0) return '';
+  const fields = value.slice(close + 1).trim().split(/\s+/);
+  return fields[19] || '';
+}
+
+function lockOwnerRecord() {
+  return Object.freeze({
+    version: 1,
+    pid: process.pid,
+    bootId: readKernelText('/proc/sys/kernel/random/boot_id'),
+    processStartTicks: processStartTicks(process.pid),
+  });
+}
+
+function lockOwnerAlive(record) {
+  const pid = Number(record?.pid);
+  if (!Number.isInteger(pid) || pid < 1) return false;
+
+  const currentBootId = readKernelText('/proc/sys/kernel/random/boot_id');
+  if (record.bootId && currentBootId && record.bootId !== currentBootId) return false;
+
+  const currentStartTicks = processStartTicks(pid);
+  if (record.processStartTicks && currentStartTicks) {
+    return String(record.processStartTicks) === currentStartTicks;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code !== 'ESRCH';
+  }
+}
+
+function staleLock(lockPath, io = fs) {
+  try {
+    const record = JSON.parse(io.readFileSync(lockPath, 'utf8'));
+    if (record?.version === 1 && Number.isInteger(Number(record.pid))) {
+      return !lockOwnerAlive(record);
+    }
+  } catch {}
+
+  try {
+    const stat = io.statSync(lockPath);
+    return Date.now() - Number(stat.mtimeMs || 0) > 30000;
+  } catch {
+    return true;
+  }
+}
+
 function acquireLock(paths, io = fs) {
   io.mkdirSync(paths.stateRoot, { recursive: true, mode: 0o700 });
   const lockPath = path.join(paths.stateRoot, 'apply.lock');
-  let descriptor;
-  try {
-    descriptor = io.openSync(lockPath, 'wx', 0o600);
-  } catch (error) {
-    if (error?.code === 'EEXIST') {
-      throw helperError('PUBLICATION_APPLY_BUSY', 'Another HiVenues publication operation is in progress.');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let descriptor;
+    try {
+      descriptor = io.openSync(lockPath, 'wx', 0o600);
+      const owner = Buffer.from(JSON.stringify(lockOwnerRecord()) + '\n', 'utf8');
+      io.writeFileSync(descriptor, owner);
+      io.fsyncSync(descriptor);
+      return Object.freeze({ descriptor, lockPath });
+    } catch (error) {
+      if (descriptor !== undefined) {
+        try { io.closeSync(descriptor); } catch {}
+        try { io.unlinkSync(lockPath); } catch {}
+      }
+      if (error?.code !== 'EEXIST') throw error;
+      if (!staleLock(lockPath, io)) {
+        throw helperError('PUBLICATION_APPLY_BUSY', 'Another HiVenues publication operation is in progress.');
+      }
+      try {
+        io.unlinkSync(lockPath);
+      } catch (unlinkError) {
+        if (unlinkError?.code !== 'ENOENT') {
+          throw helperError(
+            'PUBLICATION_APPLY_BUSY',
+            'Another HiVenues publication operation is in progress.',
+          );
+        }
+      }
     }
-    throw error;
   }
-  return Object.freeze({ descriptor, lockPath });
+
+  throw helperError('PUBLICATION_APPLY_BUSY', 'Another HiVenues publication operation is in progress.');
 }
 
 function releaseLock(lock, io = fs) {
