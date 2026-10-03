@@ -207,16 +207,25 @@ function serviceFixture(t) {
   return { ...f, service, target, remote, observer };
 }
 
-test('Era 7 Stage 4E: injected DNS observer returns exact A/AAAA/CNAME records without mutation', async () => {
+test('Era 7 Stage 4E: injected DNS observer checks required and opposite address families without mutation', async () => {
   const calls = [];
+  const noData = () => {
+    const error = new Error('no data');
+    error.code = 'ENODATA';
+    throw error;
+  };
   const observer = new NodePublicationObserver({
     resolver: {
       async resolve4(name) {
         calls.push(['A', name]);
+        if (name === 'a.example.com') return ['121.127.34.154'];
+        if (name === 'v6.example.com') return noData();
         return ['121.127.34.154'];
       },
       async resolve6(name) {
         calls.push(['AAAA', name]);
+        if (name === 'v6.example.com') return ['2606:4700::1111'];
+        if (name === 'a.example.com') return noData();
         return ['2606:4700::1111'];
       },
       async resolveCname(name) {
@@ -241,9 +250,12 @@ test('Era 7 Stage 4E: injected DNS observer returns exact A/AAAA/CNAME records w
     ['A', 'a.example.com'],
     ['AAAA', 'v6.example.com'],
     ['CNAME', 'c.example.com'],
+    ['AAAA', 'a.example.com'],
+    ['A', 'v6.example.com'],
   ]);
   assert.equal(result.checkedAt, '2026-10-03T20:00:00.000Z');
   assert.equal(result.records.length, 3);
+  assert.equal(result.conflictingRecords.length, 0);
 });
 
 test('Era 7 Stage 4E: DNS check persists exact confirmed observation and no server publication', async (t) => {
@@ -681,4 +693,91 @@ test('Era 7 Stage 4E: stale DNS proof must be checked again before live publicat
     (error) => error.code === 'DEPLOYMENT_PUBLICATION_DNS_STALE',
   );
   assert.equal(f.remote.applyCalls, 0);
+});
+
+
+test('Era 7 Stage 4E corrective: unexpected opposite-family DNS address prevents exact confirmation', async () => {
+  const observer = new NodePublicationObserver({
+    resolver: {
+      async resolve4() {
+        return ['121.127.34.154'];
+      },
+      async resolve6() {
+        return ['2606:4700::9999'];
+      },
+      async resolveCname() {
+        return [];
+      },
+    },
+    now: () => Date.parse('2026-10-03T20:33:00.000Z'),
+  });
+  const preflight = createDomainPreflight({
+    hostname: 'dev.fourthstreetbar.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  });
+
+  const observed = await observer.observeDns(preflight);
+  const endpoint = recordDnsObservation(preflight, observed);
+
+  assert.equal(observed.conflictingRecords.length, 1);
+  assert.equal(observed.conflictingRecords[0].type, 'AAAA');
+  assert.equal(endpoint.domainState, 'dns-mismatch');
+  assert.equal(endpoint.dns.observation.matches, false);
+  assert.equal(endpoint.dns.observation.conflictingRecords[0].values[0], '2606:4700::9999');
+});
+
+test('Era 7 Stage 4E corrective: equivalent IPv6 spellings canonicalize before DNS comparison', () => {
+  const preflight = createDomainPreflight({
+    hostname: 'v6.example.com',
+    destinations: [{
+      kind: 'ipv6',
+      value: '2606:4700:0000:0000:0000:0000:0000:1111',
+    }],
+  });
+  const endpoint = recordDnsObservation(preflight, {
+    checkedAt: '2026-10-03T20:34:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'AAAA',
+      name: 'v6.example.com',
+      values: ['2606:4700::1111'],
+    }],
+  });
+
+  assert.equal(preflight.dns.requirements[0].values[0], '2606:4700::1111');
+  assert.equal(endpoint.domainState, 'dns-confirmed');
+  assert.equal(endpoint.dns.observation.matches, true);
+});
+
+test('Era 7 Stage 4E corrective: unsupported resolver operation fails closed instead of persisting mismatch evidence', async () => {
+  const observer = new NodePublicationObserver({
+    resolver: {
+      async resolve4() {
+        const error = new Error('resolver operation unsupported');
+        error.code = 'ENOTIMP';
+        throw error;
+      },
+      async resolve6() {
+        const error = new Error('no data');
+        error.code = 'ENODATA';
+        throw error;
+      },
+      async resolveCname() {
+        return [];
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => observer.observeDns({
+      dns: {
+        requirements: [{
+          type: 'A',
+          name: 'dev.fourthstreetbar.com',
+          values: ['121.127.34.154'],
+        }],
+      },
+    }),
+    (error) => error.code === 'DEPLOYMENT_DNS_OBSERVATION_UNAVAILABLE',
+  );
 });
