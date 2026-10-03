@@ -208,3 +208,15 @@ healthy deployment
 ```
 
 The first live DNS/Caddy/TLS mutation remains a separate explicit gate.
+
+
+## 13. Post-merge corrective invariants
+
+Review of the first Stage-4A implementation established four additional binding invariants:
+
+1. summary states such as `dns-confirmed`, TLS `verified`, and public read-back `verified` are derived from persisted observations and must be rejected when their evidence contradicts them;
+2. an unchanged exact DNS recheck preserves independently established TLS/public evidence, while a DNS mismatch invalidates downstream proof;
+3. a verified public read-back persists the exact observed and expected runtime/Release identity, and any later active runtime/Release change invalidates that public proof without discarding still-valid domain/TLS evidence;
+4. A/AAAA publication requirements may be generated only from publicly routable address destinations; private, loopback, link-local, documentation, unspecified, multicast and reserved address ranges fail closed.
+
+These invariants remain non-mutating and must pass before Stage 4B publication authority advances.

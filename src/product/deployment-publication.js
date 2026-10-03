@@ -36,6 +36,13 @@ function publicationError(code, message) {
   return error;
 }
 
+function invalidPreflight(message) {
+  throw publicationError(
+    'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+    message || 'Domain publication preflight is invalid.',
+  );
+}
+
 function normalizeHostname(value) {
   const raw = String(value || '').trim().toLowerCase().replace(/\.$/, '');
   if (!raw || raw.length > 253 || raw.includes('://') || /[\s/:?#@]/.test(raw)) {
@@ -50,6 +57,82 @@ function normalizeHostname(value) {
     throw publicationError('DEPLOYMENT_DOMAIN_HOSTNAME_INVALID', 'Domain hostname is invalid.');
   }
   return raw;
+}
+
+function isPublicIpv4(value) {
+  if (net.isIP(value) !== 4) return false;
+  const [a, b, c] = value.split('.').map(Number);
+  if (
+    a === 0
+    || a === 10
+    || a === 127
+    || (a === 100 && b >= 64 && b <= 127)
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 0 && c === 0)
+    || (a === 192 && b === 0 && c === 2)
+    || (a === 192 && b === 88 && c === 99)
+    || (a === 192 && b === 168)
+    || (a === 198 && (b === 18 || b === 19))
+    || (a === 198 && b === 51 && c === 100)
+    || (a === 203 && b === 0 && c === 113)
+    || a >= 224
+  ) return false;
+  return true;
+}
+
+function ipv6ToBigInt(value) {
+  if (net.isIP(value) !== 6) return null;
+  let text = String(value).toLowerCase();
+
+  if (text.includes('.')) {
+    const lastColon = text.lastIndexOf(':');
+    const octets = text.slice(lastColon + 1).split('.').map(Number);
+    if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+      return null;
+    }
+    const high = ((octets[0] << 8) | octets[1]).toString(16);
+    const low = ((octets[2] << 8) | octets[3]).toString(16);
+    text = text.slice(0, lastColon + 1) + high + ':' + low;
+  }
+
+  const split = text.split('::');
+  if (split.length > 2) return null;
+  const left = split[0] ? split[0].split(':') : [];
+  const right = split.length === 2 && split[1] ? split[1].split(':') : [];
+  const missing = 8 - left.length - right.length;
+  if ((split.length === 1 && missing !== 0) || (split.length === 2 && missing < 1)) return null;
+  const hextets = split.length === 2
+    ? [...left, ...Array(missing).fill('0'), ...right]
+    : left;
+  if (hextets.length !== 8) return null;
+
+  let result = 0n;
+  for (const hextet of hextets) {
+    if (!/^[0-9a-f]{1,4}$/.test(hextet)) return null;
+    result = (result << 16n) | BigInt(Number.parseInt(hextet, 16));
+  }
+  return result;
+}
+
+function ipv6InPrefix(value, prefix, prefixLength) {
+  const address = ipv6ToBigInt(value);
+  const network = ipv6ToBigInt(prefix);
+  if (address === null || network === null) return false;
+  const shift = 128n - BigInt(prefixLength);
+  return (address >> shift) === (network >> shift);
+}
+
+function isPublicIpv6(value) {
+  if (net.isIP(value) !== 6) return false;
+  if (!ipv6InPrefix(value, '2000::', 3)) return false;
+  const nonPublic = [
+    ['2001::', 23],
+    ['2001:db8::', 32],
+    ['2002::', 16],
+    ['3fff::', 20],
+  ];
+  return !nonPublic.some(([prefix, length]) => ipv6InPrefix(value, prefix, length));
 }
 
 function normalizeDnsValue(type, value) {
@@ -109,9 +192,27 @@ function mergeDnsRecords(records) {
 function destinationRecord(hostname, destination) {
   const kind = String(destination?.kind || '').trim().toLowerCase();
   const value = String(destination?.value || '').trim();
-  if (kind === 'ipv4') return normalizeDnsRecord({ type: 'A', name: hostname, values: [value] });
-  if (kind === 'ipv6') return normalizeDnsRecord({ type: 'AAAA', name: hostname, values: [value] });
-  if (kind === 'hostname') return normalizeDnsRecord({ type: 'CNAME', name: hostname, values: [value] });
+  if (kind === 'ipv4') {
+    if (!isPublicIpv4(value)) {
+      throw publicationError(
+        'DEPLOYMENT_DOMAIN_DESTINATION_NOT_PUBLIC',
+        'Domain setup requires a publicly routable IPv4 destination.',
+      );
+    }
+    return normalizeDnsRecord({ type: 'A', name: hostname, values: [value] });
+  }
+  if (kind === 'ipv6') {
+    if (!isPublicIpv6(value)) {
+      throw publicationError(
+        'DEPLOYMENT_DOMAIN_DESTINATION_NOT_PUBLIC',
+        'Domain setup requires a publicly routable IPv6 destination.',
+      );
+    }
+    return normalizeDnsRecord({ type: 'AAAA', name: hostname, values: [value] });
+  }
+  if (kind === 'hostname') {
+    return normalizeDnsRecord({ type: 'CNAME', name: hostname, values: [value] });
+  }
   throw publicationError('DEPLOYMENT_DOMAIN_DESTINATION_INVALID', 'Domain destination is invalid.');
 }
 
@@ -168,34 +269,32 @@ function requireIsoTime(value, code, label) {
   return { text, timestamp };
 }
 
-function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } = {}) {
-  requirePreflight(preflight);
-  const checked = requireIsoTime(checkedAt, 'DEPLOYMENT_DNS_OBSERVATION_INVALID', 'DNS observation');
-  const observed = relevantObservedRecords(preflight, records);
-  const matches = dnsMatches(preflight.dns.requirements, observed);
-  const domainState = matches ? 'dns-confirmed' : 'dns-mismatch';
-  return Object.freeze({
-    ...preflight,
-    domainState,
-    dns: Object.freeze({
-      ...preflight.dns,
-      observation: Object.freeze({
-        checkedAt: checked.text,
-        resolver: String(resolver || '').trim(),
-        records: Object.freeze(observed),
-        matches,
-      }),
-    }),
-    tls: Object.freeze({
-      state: matches ? 'ready-for-request' : 'awaiting-dns',
-      observation: null,
-    }),
-    publicReadBack: Object.freeze({
-      state: 'unverified',
-      observation: null,
-      mismatchFields: Object.freeze([]),
-    }),
-  });
+function sameStringArray(left, right) {
+  return (
+    Array.isArray(left)
+    && Array.isArray(right)
+    && left.length === right.length
+    && left.every((item, index) => item === right[index])
+  );
+}
+
+function exactHealthUrlMatches(hostname, rawUrl) {
+  let url;
+  try {
+    url = new URL(String(rawUrl || ''));
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === 'https:'
+    && url.hostname.toLowerCase() === hostname
+    && (!url.port || url.port === '443')
+    && url.pathname === '/__hivenues/health'
+    && !url.username
+    && !url.password
+    && !url.search
+    && !url.hash
+  );
 }
 
 function certificateNameMatches(hostname, names) {
@@ -207,6 +306,79 @@ function certificateNameMatches(hostname, names) {
     const suffix = name.slice(2);
     if (!suffix || !host.endsWith('.' + suffix)) return false;
     return host.split('.').length === suffix.split('.').length + 1;
+  });
+}
+
+function tlsObservationVerified(hostname, observation) {
+  if (
+    !observation
+    || typeof observation !== 'object'
+    || !Array.isArray(observation.subjectAltNames)
+  ) return false;
+  const checked = requireIsoTime(
+    observation.checkedAt,
+    'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+    'TLS observation',
+  );
+  const validFrom = requireIsoTime(
+    observation.validFrom,
+    'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+    'TLS certificate start',
+  );
+  const validTo = requireIsoTime(
+    observation.validTo,
+    'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+    'TLS certificate end',
+  );
+  let observedHostname;
+  try {
+    observedHostname = normalizeHostname(observation.hostname);
+  } catch {
+    return false;
+  }
+  const protocol = String(observation.protocol || '').trim();
+  return (
+    observation.authorized === true
+    && observedHostname === hostname
+    && validFrom.timestamp <= checked.timestamp
+    && checked.timestamp <= validTo.timestamp
+    && certificateNameMatches(hostname, observation.subjectAltNames)
+    && /^TLSv1\.[23]$/.test(protocol)
+  );
+}
+
+function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } = {}) {
+  requirePreflight(preflight);
+  const checked = requireIsoTime(checkedAt, 'DEPLOYMENT_DNS_OBSERVATION_INVALID', 'DNS observation');
+  const observed = relevantObservedRecords(preflight, records);
+  const matches = dnsMatches(preflight.dns.requirements, observed);
+  const preserveDownstream = matches && preflight.domainState === 'dns-confirmed';
+  return Object.freeze({
+    ...preflight,
+    domainState: matches ? 'dns-confirmed' : 'dns-mismatch',
+    dns: Object.freeze({
+      ...preflight.dns,
+      observation: Object.freeze({
+        checkedAt: checked.text,
+        resolver: String(resolver || '').trim(),
+        records: Object.freeze(observed),
+        matches,
+      }),
+    }),
+    tls: matches
+      ? (
+          preserveDownstream
+            ? preflight.tls
+            : Object.freeze({ state: 'ready-for-request', observation: null })
+        )
+      : Object.freeze({ state: 'awaiting-dns', observation: null }),
+    publicReadBack: preserveDownstream && preflight.tls.state === 'verified'
+      ? preflight.publicReadBack
+      : Object.freeze({
+          state: 'unverified',
+          observation: null,
+          mismatchFields: Object.freeze([]),
+        }),
   });
 }
 
@@ -231,29 +403,29 @@ function recordTlsObservation(preflight, observation = {}) {
     'TLS certificate end',
   );
   const hostname = normalizeHostname(observation.hostname);
-  const protocol = String(observation.protocol || '').trim();
-  const authorized = observation.authorized === true;
-  const exactHost = hostname === preflight.hostname;
-  const validWindow = validFrom.timestamp <= checked.timestamp && checked.timestamp <= validTo.timestamp;
-  const nameMatches = certificateNameMatches(preflight.hostname, observation.subjectAltNames);
-  const protocolOk = /^TLSv1\.[23]$/.test(protocol);
-  const verified = authorized && exactHost && validWindow && nameMatches && protocolOk;
+  if (!Array.isArray(observation.subjectAltNames)) {
+    throw publicationError(
+      'DEPLOYMENT_TLS_OBSERVATION_INVALID',
+      'TLS certificate names are invalid.',
+    );
+  }
+  const normalized = Object.freeze({
+    hostname,
+    authorized: observation.authorized === true,
+    protocol: String(observation.protocol || '').trim(),
+    subjectAltNames: Object.freeze(
+      [...(observation.subjectAltNames || [])].map((item) => String(item)),
+    ),
+    validFrom: validFrom.text,
+    validTo: validTo.text,
+    checkedAt: checked.text,
+  });
+  const verified = tlsObservationVerified(preflight.hostname, normalized);
   return Object.freeze({
     ...preflight,
     tls: Object.freeze({
       state: verified ? 'verified' : 'degraded',
-      observation: Object.freeze({
-        hostname,
-        authorized,
-        protocol,
-        subjectAltNames: Object.freeze(
-          [...(observation.subjectAltNames || [])].map((item) => String(item)),
-        ),
-        validFrom: validFrom.text,
-        validTo: validTo.text,
-        checkedAt: checked.text,
-        verified,
-      }),
+      observation: Object.freeze({ ...normalized, verified }),
     }),
     publicReadBack: Object.freeze({
       state: 'unverified',
@@ -277,7 +449,13 @@ function requireRuntimeProfile(value) {
       'Expected runtime profile is invalid.',
     );
   }
-  return record;
+  return Object.freeze({
+    sourceSha: String(record.sourceSha),
+    sourceTree: String(record.sourceTree),
+    packageVersion: String(record.packageVersion),
+    nodeVersion: String(record.nodeVersion),
+    bundleDigest: String(record.bundleDigest),
+  });
 }
 
 function requireRelease(value) {
@@ -293,7 +471,31 @@ function requireRelease(value) {
       'Expected Release identity is invalid.',
     );
   }
-  return record;
+  return Object.freeze({
+    hostSlug: String(record.hostSlug),
+    releaseId: String(record.releaseId),
+    releaseDigest: String(record.releaseDigest),
+    packageDigest: String(record.packageDigest),
+  });
+}
+
+function projectObservedReadBack(body) {
+  return Object.freeze({
+    status: String(body?.status || ''),
+    runtime: Object.freeze({
+      sourceSha: String(body?.runtime?.sourceSha || ''),
+      sourceTree: String(body?.runtime?.sourceTree || ''),
+      packageVersion: String(body?.runtime?.packageVersion || ''),
+      nodeVersion: String(body?.runtime?.nodeVersion || ''),
+      bundleDigest: String(body?.runtime?.bundleDigest || ''),
+    }),
+    deployment: Object.freeze({
+      hostSlug: String(body?.deployment?.hostSlug || ''),
+      releaseId: String(body?.deployment?.releaseId || ''),
+      releaseDigest: String(body?.deployment?.releaseDigest || ''),
+      packageDigest: String(body?.deployment?.packageDigest || ''),
+    }),
+  });
 }
 
 function publicReadBackMismatchFields(actual, expectedRuntime, expectedRelease) {
@@ -329,46 +531,41 @@ function recordPublicReadBack(preflight, observation = {}, expected = {}) {
     'DEPLOYMENT_PUBLIC_READBACK_INVALID',
     'Public read-back',
   );
-  let url;
-  try {
-    url = new URL(String(observation.url || ''));
-  } catch {
-    throw publicationError(
-      'DEPLOYMENT_PUBLIC_READBACK_INVALID',
-      'Public read-back URL is invalid.',
-    );
-  }
   const expectedRuntime = requireRuntimeProfile(expected.runtime);
   const expectedRelease = requireRelease(expected.release);
-  const urlMatches = (
-    url.protocol === 'https:'
-    && url.hostname.toLowerCase() === preflight.hostname
-    && (!url.port || url.port === '443')
-    && url.pathname === '/__hivenues/health'
-    && !url.username
-    && !url.password
-    && !url.search
-    && !url.hash
-  );
-  const statusMatches = Number(observation.statusCode) === 200;
-  const mismatchFields = publicReadBackMismatchFields(
-    observation.body,
-    expectedRuntime,
-    expectedRelease,
-  );
-  if (!urlMatches) mismatchFields.unshift('url');
-  if (!statusMatches) mismatchFields.unshift('http-status');
+  const observed = projectObservedReadBack(observation.body);
+  const mismatchFields = publicReadBackMismatchFields(observed, expectedRuntime, expectedRelease);
+  if (!exactHealthUrlMatches(preflight.hostname, observation.url)) mismatchFields.unshift('url');
+  if (Number(observation.statusCode) !== 200) mismatchFields.unshift('http-status');
   const verified = mismatchFields.length === 0;
   return Object.freeze({
     ...preflight,
     publicReadBack: Object.freeze({
       state: verified ? 'verified' : 'mismatch',
       observation: Object.freeze({
-        url: url.toString(),
+        url: String(observation.url || ''),
         statusCode: Number(observation.statusCode),
         checkedAt: checked.text,
+        observed,
+        expected: Object.freeze({
+          runtime: expectedRuntime,
+          release: expectedRelease,
+        }),
       }),
       mismatchFields: Object.freeze(mismatchFields),
+    }),
+  });
+}
+
+function invalidatePublicReadBack(preflight, reason = '') {
+  requirePreflight(preflight);
+  return Object.freeze({
+    ...preflight,
+    publicReadBack: Object.freeze({
+      state: 'unverified',
+      observation: null,
+      mismatchFields: Object.freeze([]),
+      ...(reason ? { invalidatedReason: String(reason) } : {}),
     }),
   });
 }
@@ -406,25 +603,139 @@ function prepareStage4LiveReview({ preflight, deployment } = {}) {
   });
 }
 
+function validateDnsEvidence(value, requirements) {
+  const observation = value.dns.observation;
+  if (['dns-instructions-ready', 'dns-pending'].includes(value.domainState)) {
+    if (observation !== null) invalidPreflight('Unconfirmed DNS state cannot contain a DNS proof.');
+    return;
+  }
+  if (!['dns-confirmed', 'dns-mismatch'].includes(value.domainState) || !observation) {
+    invalidPreflight('DNS summary state is not backed by an observation.');
+  }
+  requireIsoTime(observation.checkedAt, 'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID', 'DNS observation');
+  const records = relevantObservedRecords(value, observation.records);
+  const normalizedStored = mergeDnsRecords(observation.records);
+  if (
+    normalizedStored.length !== records.length
+    || normalizedStored.some((record, index) => recordKey(record) !== recordKey(records[index]))
+  ) {
+    invalidPreflight('DNS observation contains records outside the exact requirement set.');
+  }
+  const matches = dnsMatches(requirements, records);
+  if (observation.matches !== matches) invalidPreflight('DNS match summary contradicts observed records.');
+  if (value.domainState === 'dns-confirmed' && !matches) {
+    invalidPreflight('DNS confirmed state is not supported by the observation.');
+  }
+  if (value.domainState === 'dns-mismatch' && matches) {
+    invalidPreflight('DNS mismatch state contradicts the observation.');
+  }
+}
+
+function validateTlsEvidence(value) {
+  const state = value.tls.state;
+  const observation = value.tls.observation;
+  if (state === 'unconfigured') {
+    if (observation !== null) invalidPreflight('Unconfigured TLS state cannot contain certificate evidence.');
+    return;
+  }
+  if (state === 'awaiting-dns') {
+    if (value.domainState === 'dns-confirmed' || observation !== null) {
+      invalidPreflight('Awaiting-DNS TLS state contradicts domain evidence.');
+    }
+    return;
+  }
+  if (state === 'ready-for-request' || state === 'requesting') {
+    if (value.domainState !== 'dns-confirmed' || observation !== null) {
+      invalidPreflight('TLS request state requires confirmed DNS and no certificate proof yet.');
+    }
+    return;
+  }
+  if (!observation || value.domainState !== 'dns-confirmed') {
+    invalidPreflight('TLS summary state is not backed by confirmed DNS and certificate evidence.');
+  }
+  const verified = tlsObservationVerified(value.hostname, observation);
+  if (observation.verified !== verified) {
+    invalidPreflight('TLS verified summary contradicts certificate evidence.');
+  }
+  if (state === 'verified' && !verified) {
+    invalidPreflight('TLS verified state is not supported by certificate evidence.');
+  }
+  if (state === 'degraded' && verified) {
+    invalidPreflight('TLS degraded state contradicts certificate evidence.');
+  }
+}
+
+function validatePublicReadBackEvidence(value) {
+  const state = value.publicReadBack.state;
+  const observation = value.publicReadBack.observation;
+  const mismatchFields = value.publicReadBack.mismatchFields;
+  if (!Array.isArray(mismatchFields)) invalidPreflight('Public read-back mismatch fields are invalid.');
+  if (state === 'unverified' || state === 'unreachable') {
+    if (observation !== null || mismatchFields.length) {
+      invalidPreflight('Unverified public read-back cannot contain proof evidence.');
+    }
+    return;
+  }
+  if (!observation || value.tls.state !== 'verified') {
+    invalidPreflight('Public read-back proof requires verified TLS and an observation.');
+  }
+  requireIsoTime(
+    observation.checkedAt,
+    'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+    'Public read-back',
+  );
+  const expectedRuntime = requireRuntimeProfile(observation.expected?.runtime);
+  const expectedRelease = requireRelease(observation.expected?.release);
+  const observed = projectObservedReadBack(observation.observed);
+  const recomputed = publicReadBackMismatchFields(observed, expectedRuntime, expectedRelease);
+  if (!exactHealthUrlMatches(value.hostname, observation.url)) recomputed.unshift('url');
+  if (Number(observation.statusCode) !== 200) recomputed.unshift('http-status');
+  if (!sameStringArray(mismatchFields, recomputed)) {
+    invalidPreflight('Public read-back summary contradicts the persisted observation.');
+  }
+  if (state === 'verified' && recomputed.length) {
+    invalidPreflight('Verified public read-back is not supported by its observation.');
+  }
+  if (state === 'mismatch' && !recomputed.length) {
+    invalidPreflight('Public read-back mismatch state contradicts its observation.');
+  }
+}
+
 function requirePreflight(value) {
   if (
     !value
     || value.version !== 1
     || normalizeHostname(value.hostname) !== value.hostname
     || !DOMAIN_STATES.includes(value.domainState)
+    || value.domainState === 'domain-unconfigured'
     || !value.dns
+    || value.dns.mode !== 'guided-handoff'
     || !Array.isArray(value.dns.requirements)
+    || !value.dns.requirements.length
     || !value.tls
     || !TLS_STATES.includes(value.tls.state)
     || !value.publicReadBack
     || !PUBLIC_READBACK_STATES.includes(value.publicReadBack.state)
   ) {
-    throw publicationError(
-      'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
-      'Domain publication preflight is invalid.',
-    );
+    invalidPreflight();
   }
-  mergeDnsRecords(value.dns.requirements);
+  const requirements = mergeDnsRecords(value.dns.requirements);
+  if (
+    requirements.length !== value.dns.requirements.length
+    || requirements.some((record, index) => (
+      recordKey(record) !== recordKey(normalizeDnsRecord(value.dns.requirements[index]))
+      || record.name !== value.hostname
+    ))
+  ) {
+    invalidPreflight('DNS requirements are not canonical for the endpoint hostname.');
+  }
+  const hasCname = requirements.some((record) => record.type === 'CNAME');
+  if (hasCname && requirements.length !== 1) {
+    invalidPreflight('CNAME requirements cannot be mixed with address records.');
+  }
+  validateDnsEvidence(value, requirements);
+  validateTlsEvidence(value);
+  validatePublicReadBackEvidence(value);
   return value;
 }
 
@@ -433,6 +744,9 @@ module.exports = {
   TLS_STATES,
   PUBLIC_READBACK_STATES,
   createDomainPreflight,
+  invalidatePublicReadBack,
+  isPublicIpv4,
+  isPublicIpv6,
   normalizeHostname,
   normalizeDnsRecord,
   prepareStage4LiveReview,

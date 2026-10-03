@@ -9,6 +9,9 @@ const test = require('node:test');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
 const {
   createDomainPreflight,
+  invalidatePublicReadBack,
+  isPublicIpv4,
+  isPublicIpv6,
   normalizeHostname,
   prepareStage4LiveReview,
   recordDnsObservation,
@@ -234,5 +237,298 @@ test('Era 7 Stage 4A: live consequence review is bounded and does not silently a
       },
     }),
     (error) => error.code === 'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED',
+  );
+});
+
+
+test('Era 7 Stage 4A corrective: publication destinations reject non-public and documentation address ranges', () => {
+  for (const value of ['0.0.0.0', '10.0.0.1', '100.64.0.1', '127.0.0.1', '169.254.1.1', '172.16.0.1', '192.168.1.1', '198.51.100.7', '203.0.113.7', '224.0.0.1']) {
+    assert.equal(isPublicIpv4(value), false, value);
+    assert.throws(
+      () => createDomainPreflight({
+        hostname: 'dev.fourthstreetbar.com',
+        destinations: [{ kind: 'ipv4', value }],
+      }),
+      (error) => error.code === 'DEPLOYMENT_DOMAIN_DESTINATION_NOT_PUBLIC',
+    );
+  }
+  assert.equal(isPublicIpv4('121.127.34.154'), true);
+  assert.equal(isPublicIpv6('2001:4860:4860::8888'), true);
+  assert.equal(isPublicIpv6('::1'), false);
+  assert.equal(isPublicIpv6('fe80::1'), false);
+  assert.equal(isPublicIpv6('2001:db8::1'), false);
+  assert.equal(isPublicIpv6('2001:0db8::1'), false);
+  assert.equal(isPublicIpv6('3fff:0000::1'), false);
+  assert.equal(isPublicIpv6('2002:c000:0204::1'), false);
+});
+
+test('Era 7 Stage 4A corrective: asserted DNS/TLS/public verified summaries are rejected without supporting evidence', () => {
+  const assertedDns = JSON.parse(JSON.stringify(preflight()));
+  assertedDns.domainState = 'dns-confirmed';
+  assert.throws(
+    () => requirePreflight(assertedDns),
+    (error) => error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+  );
+
+  const assertedTls = JSON.parse(JSON.stringify(confirmedDns()));
+  assertedTls.tls = { state: 'verified', observation: null };
+  assert.throws(
+    () => requirePreflight(assertedTls),
+    (error) => error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+  );
+
+  const assertedPublic = JSON.parse(JSON.stringify(verifiedTls()));
+  assertedPublic.publicReadBack = {
+    state: 'verified',
+    observation: null,
+    mismatchFields: [],
+  };
+  assert.throws(
+    () => requirePreflight(assertedPublic),
+    (error) => error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+  );
+});
+
+test('Era 7 Stage 4A corrective: exact DNS recheck preserves independent TLS and public proof while mismatch invalidates both', () => {
+  const proven = recordPublicReadBack(verifiedTls(), {
+    url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+    statusCode: 200,
+    checkedAt: '2026-10-03T10:06:00.000Z',
+    body: {
+      version: 1,
+      status: 'healthy',
+      runtime,
+      deployment: release,
+    },
+  }, { runtime, release });
+  assert.equal(proven.publicReadBack.state, 'verified');
+
+  const rechecked = recordDnsObservation(proven, {
+    checkedAt: '2026-10-03T10:07:00.000Z',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+  assert.equal(rechecked.domainState, 'dns-confirmed');
+  assert.equal(rechecked.tls.state, 'verified');
+  assert.equal(rechecked.publicReadBack.state, 'verified');
+  assert.equal(rechecked.publicReadBack.observation.expected.release.releaseId, release.releaseId);
+
+  const changed = recordDnsObservation(rechecked, {
+    checkedAt: '2026-10-03T10:08:00.000Z',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.155'],
+    }],
+  });
+  assert.equal(changed.domainState, 'dns-mismatch');
+  assert.equal(changed.tls.state, 'awaiting-dns');
+  assert.equal(changed.tls.observation, null);
+  assert.equal(changed.publicReadBack.state, 'unverified');
+});
+
+test('Era 7 Stage 4A corrective: verified public read-back persists exact observed and expected runtime/Release identity', () => {
+  const proven = recordPublicReadBack(verifiedTls(), {
+    url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+    statusCode: 200,
+    checkedAt: '2026-10-03T10:06:00.000Z',
+    body: {
+      version: 1,
+      status: 'healthy',
+      runtime,
+      deployment: release,
+    },
+  }, { runtime, release });
+
+  assert.deepEqual(proven.publicReadBack.observation.expected.runtime, runtime);
+  assert.deepEqual(proven.publicReadBack.observation.expected.release, release);
+  assert.equal(proven.publicReadBack.observation.observed.runtime.bundleDigest, runtime.bundleDigest);
+  assert.equal(proven.publicReadBack.observation.observed.deployment.releaseId, release.releaseId);
+  assert.doesNotThrow(() => requirePreflight(JSON.parse(JSON.stringify(proven))));
+
+  const contradicted = JSON.parse(JSON.stringify(proven));
+  contradicted.publicReadBack.observation.observed.deployment.releaseId = 'release-other';
+  assert.throws(
+    () => requirePreflight(contradicted),
+    (error) => error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_INVALID',
+  );
+
+  const invalidated = invalidatePublicReadBack(proven, 'deployment-identity-changed');
+  assert.equal(invalidated.tls.state, 'verified');
+  assert.equal(invalidated.publicReadBack.state, 'unverified');
+  assert.equal(invalidated.publicReadBack.invalidatedReason, 'deployment-identity-changed');
+});
+
+test('Era 7 Stage 4A corrective: deployment identity change invalidates stale public proof but preserves domain/TLS evidence', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era7-stage4a-identity-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const statePath = path.join(root, 'deployment-state.json');
+  const store = new FileDeploymentStore({
+    statePath,
+    now: () => Date.parse('2026-10-03T10:09:00.000Z'),
+    idFactory: () => 'stage4a-identity',
+  });
+  const deployment = store.createDraft({
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: ['DOMAIN', 'DNS', 'TLS', 'HEALTH'],
+  });
+  store.transition(deployment.id, 'target-ready', { reason: 'test' });
+  store.transition(deployment.id, 'verifying', { reason: 'test' });
+  store.transition(deployment.id, 'bootstrap-ready', { reason: 'test' });
+  store.transition(deployment.id, 'deploying', { reason: 'test' });
+  store.transition(deployment.id, 'healthy', {
+    reason: 'test',
+    patch: {
+      activeRelease: {
+        id: release.releaseId,
+        digest: release.releaseDigest,
+        packageDigest: release.packageDigest,
+        deployedAt: '2026-10-03T10:00:00.000Z',
+      },
+      runtimeProfile: { kind: 'hivenues-public-runtime', ...runtime },
+      healthState: 'healthy',
+    },
+  });
+
+  const proven = recordPublicReadBack(verifiedTls(), {
+    url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+    statusCode: 200,
+    checkedAt: '2026-10-03T10:06:00.000Z',
+    body: {
+      version: 1,
+      status: 'healthy',
+      runtime,
+      deployment: release,
+    },
+  }, { runtime, release });
+  store.setPublicEndpoint(deployment.id, proven);
+  assert.equal(store.get(deployment.id).publicEndpoint.publicReadBack.state, 'verified');
+
+  store.transition(deployment.id, 'deploying', { reason: 'release-b-started' });
+  store.transition(deployment.id, 'rollback-available', {
+    reason: 'release-b-readback-match',
+    patch: {
+      activeRelease: {
+        id: 'release-b',
+        digest: '6'.repeat(64),
+        packageDigest: '7'.repeat(64),
+        deployedAt: '2026-10-03T10:10:00.000Z',
+      },
+      runtimeProfile: {
+        kind: 'hivenues-public-runtime',
+        ...runtime,
+        sourceSha: '8'.repeat(40),
+        sourceTree: '9'.repeat(40),
+        bundleDigest: 'a'.repeat(64),
+      },
+    },
+  });
+
+  const changed = store.get(deployment.id);
+  assert.equal(changed.domainState, 'dns-confirmed');
+  assert.equal(changed.tlsState, 'verified');
+  assert.equal(changed.publicEndpoint.publicReadBack.state, 'unverified');
+  assert.equal(
+    changed.publicEndpoint.publicReadBack.invalidatedReason,
+    'deployment-identity-changed',
+  );
+  assert.doesNotThrow(() => new FileDeploymentStore({ statePath }).get(deployment.id));
+});
+
+test('Era 7 Stage 4A corrective: persisted verified proof must match the deployment active identity', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era7-stage4a-tamper-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const statePath = path.join(root, 'deployment-state.json');
+  const store = new FileDeploymentStore({
+    statePath,
+    now: () => Date.parse('2026-10-03T10:09:00.000Z'),
+    idFactory: () => 'stage4a-tamper',
+  });
+  const deployment = store.createDraft({
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: ['DOMAIN', 'DNS', 'TLS', 'HEALTH'],
+  });
+  store.transition(deployment.id, 'target-ready', { reason: 'test' });
+  store.transition(deployment.id, 'verifying', { reason: 'test' });
+  store.transition(deployment.id, 'bootstrap-ready', { reason: 'test' });
+  store.transition(deployment.id, 'deploying', { reason: 'test' });
+  store.transition(deployment.id, 'healthy', {
+    reason: 'test',
+    patch: {
+      activeRelease: {
+        id: release.releaseId,
+        digest: release.releaseDigest,
+        packageDigest: release.packageDigest,
+        deployedAt: '2026-10-03T10:00:00.000Z',
+      },
+      runtimeProfile: { kind: 'hivenues-public-runtime', ...runtime },
+    },
+  });
+  const proven = recordPublicReadBack(verifiedTls(), {
+    url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+    statusCode: 200,
+    checkedAt: '2026-10-03T10:06:00.000Z',
+    body: { version: 1, status: 'healthy', runtime, deployment: release },
+  }, { runtime, release });
+  store.setPublicEndpoint(deployment.id, proven);
+
+  const tampered = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  tampered.deployments[0].activeRelease.id = 'release-tampered';
+  fs.writeFileSync(statePath, JSON.stringify(tampered), 'utf8');
+  assert.throws(
+    () => new FileDeploymentStore({ statePath }).get(deployment.id),
+    (error) => error.code === 'DEPLOYMENT_STATE_INVALID',
+  );
+});
+
+
+test('Era 7 Stage 4A corrective: legacy Stage-4A read-back evidence is invalidated instead of poisoning storage', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era7-stage4a-legacy-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const statePath = path.join(root, 'deployment-state.json');
+  const store = new FileDeploymentStore({
+    statePath,
+    now: () => Date.parse('2026-10-03T10:09:00.000Z'),
+    idFactory: () => 'stage4a-legacy',
+  });
+  const deployment = store.createDraft({
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: ['DOMAIN', 'DNS', 'TLS', 'HEALTH'],
+  });
+
+  const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  legacy.deployments[0].publicEndpoint = JSON.parse(JSON.stringify(verifiedTls()));
+  legacy.deployments[0].publicEndpoint.publicReadBack = {
+    state: 'verified',
+    observation: {
+      url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+      statusCode: 200,
+      checkedAt: '2026-10-03T10:06:00.000Z',
+    },
+    mismatchFields: [],
+  };
+  legacy.deployments[0].domainState = 'dns-confirmed';
+  legacy.deployments[0].tlsState = 'verified';
+  fs.writeFileSync(statePath, JSON.stringify(legacy), 'utf8');
+
+  const recovered = new FileDeploymentStore({ statePath }).get(deployment.id);
+  assert.equal(recovered.publicEndpoint.domainState, 'dns-confirmed');
+  assert.equal(recovered.publicEndpoint.tls.state, 'verified');
+  assert.equal(recovered.publicEndpoint.publicReadBack.state, 'unverified');
+  assert.equal(
+    recovered.publicEndpoint.publicReadBack.invalidatedReason,
+    'legacy-readback-evidence-upgrade',
   );
 });

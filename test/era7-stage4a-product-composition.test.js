@@ -160,3 +160,22 @@ test('Era 7 Stage 4A composition: domain preflight rejects URL-shaped input and 
   assert.match(response.text, /Domain hostname is invalid/);
   assert.equal(f.deploymentStore.get(f.deploymentId).publicEndpoint, null);
 });
+
+
+test('Era 7 Stage 4A corrective composition: non-public server IP cannot become a public DNS instruction', async (t) => {
+  const f = fixture(t);
+  f.deploymentStore.setTargetPublicFacts(f.deploymentId, {
+    host: '10.0.0.7',
+    port: 22,
+    username: 'hivenues-deploy',
+  });
+
+  const response = await request(f.app)
+    .post('/hivenues/studio/harbor-and-hearth/deploy/' + f.deploymentId + '/domain/preflight')
+    .type('form')
+    .send({ hostname: 'dev.fourthstreetbar.com' })
+    .expect(400);
+
+  assert.match(response.text, /publicly routable IPv4 destination/);
+  assert.equal(f.deploymentStore.get(f.deploymentId).publicEndpoint, null);
+});

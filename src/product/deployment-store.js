@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { requirePreflight } = require('./deployment-publication');
+const { invalidatePublicReadBack, requirePreflight } = require('./deployment-publication');
 
 const DEPLOYMENT_STORAGE_VERSION = 1;
 
@@ -73,6 +73,73 @@ function deploymentError(code, message) {
 
 function clone(value) {
   return structuredClone(value);
+}
+
+function deploymentProofIdentity(record) {
+  const release = record?.activeRelease;
+  const runtime = record?.runtimeProfile;
+  if (!release || !runtime) return null;
+  return {
+    hostSlug: String(record.hostSlug || ''),
+    releaseId: String(release.id || ''),
+    releaseDigest: String(release.digest || ''),
+    packageDigest: String(release.packageDigest || ''),
+    sourceSha: String(runtime.sourceSha || ''),
+    sourceTree: String(runtime.sourceTree || ''),
+    packageVersion: String(runtime.packageVersion || ''),
+    nodeVersion: String(runtime.nodeVersion || ''),
+    bundleDigest: String(runtime.bundleDigest || ''),
+  };
+}
+
+function sameDeploymentProofIdentity(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function migrateLegacyPublicReadBack(record) {
+  const readBack = record?.publicEndpoint?.publicReadBack;
+  const observation = readBack?.observation;
+  if (
+    !readBack
+    || !['verified', 'mismatch'].includes(readBack.state)
+    || !observation
+  ) return false;
+
+  const hasObserved = Object.hasOwn(observation, 'observed');
+  const hasExpected = Object.hasOwn(observation, 'expected');
+  if (hasObserved || hasExpected) return false;
+
+  record.publicEndpoint.publicReadBack = {
+    state: 'unverified',
+    observation: null,
+    mismatchFields: [],
+    invalidatedReason: 'legacy-readback-evidence-upgrade',
+  };
+  return true;
+}
+
+function assertVerifiedPublicIdentityMatchesDeployment(record) {
+  if (record?.publicEndpoint?.publicReadBack?.state !== 'verified') return;
+  const expected = record.publicEndpoint.publicReadBack.observation?.expected;
+  const current = deploymentProofIdentity(record);
+  if (
+    !expected
+    || !current
+    || expected.release?.hostSlug !== current.hostSlug
+    || expected.release?.releaseId !== current.releaseId
+    || expected.release?.releaseDigest !== current.releaseDigest
+    || expected.release?.packageDigest !== current.packageDigest
+    || expected.runtime?.sourceSha !== current.sourceSha
+    || expected.runtime?.sourceTree !== current.sourceTree
+    || expected.runtime?.packageVersion !== current.packageVersion
+    || expected.runtime?.nodeVersion !== current.nodeVersion
+    || expected.runtime?.bundleDigest !== current.bundleDigest
+  ) {
+    throw deploymentError(
+      'DEPLOYMENT_STATE_INVALID',
+      'Verified public read-back does not match the active runtime and Release.',
+    );
+  }
 }
 
 function assertNoSecrets(value, pathParts = []) {
@@ -314,6 +381,7 @@ class FileDeploymentStore {
       record.publicEndpoint = value;
       record.domainState = value ? value.domainState : 'domain-unconfigured';
       record.tlsState = value ? value.tls.state : 'unconfigured';
+      if (value) assertVerifiedPublicIdentityMatchesDeployment(record);
       return record;
     });
   }
@@ -348,6 +416,7 @@ class FileDeploymentStore {
           'Deployment state may not transition from ' + record.state + ' to ' + nextState + '.',
         );
       }
+      const beforeProofIdentity = deploymentProofIdentity(record);
       const from = record.state;
       record.state = nextState;
       record.stateReason = String(reason || '');
@@ -367,6 +436,18 @@ class FileDeploymentStore {
         'lastConfirmedAt',
       ]) {
         if (Object.hasOwn(patch, key)) record[key] = clone(patch[key]);
+      }
+      const afterProofIdentity = deploymentProofIdentity(record);
+      if (
+        record.publicEndpoint
+        && !sameDeploymentProofIdentity(beforeProofIdentity, afterProofIdentity)
+      ) {
+        record.publicEndpoint = clone(invalidatePublicReadBack(
+          record.publicEndpoint,
+          'deployment-identity-changed',
+        ));
+        record.domainState = record.publicEndpoint.domainState;
+        record.tlsState = record.publicEndpoint.tls.state;
       }
       const at = new Date(this.now()).toISOString();
       record.history.push({ from, to: nextState, at, reason: String(reason || '') });
@@ -449,6 +530,7 @@ class FileDeploymentStore {
         throw deploymentError('DEPLOYMENT_STATE_INVALID', 'Deployment record is invalid.');
       }
       normalizedCapabilities(record.capabilities);
+      migrateLegacyPublicReadBack(record);
       if (record.publicEndpoint !== undefined && record.publicEndpoint !== null) {
         requirePreflight(record.publicEndpoint);
         if (
@@ -460,6 +542,7 @@ class FileDeploymentStore {
             'Deployment public endpoint summary state is inconsistent.',
           );
         }
+        assertVerifiedPublicIdentityMatchesDeployment(record);
       }
       assertNoSecrets(record);
     }
