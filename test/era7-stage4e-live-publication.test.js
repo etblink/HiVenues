@@ -12,6 +12,7 @@ const { SshRemoteDeploymentTarget } = require('../src/deploy/ssh-remote-deployme
 const { NodePublicationObserver } = require('../src/product/deployment-publication-observer');
 const {
   createDomainPreflight,
+  markTlsRequesting,
   prepareStage4PublicationReview,
   recordDnsObservation,
 } = require('../src/product/deployment-publication');
@@ -620,5 +621,48 @@ test('Era 7 Stage 4E: already-configured different hostname fails closed', () =>
       },
     }),
     (error) => error.code === 'DEPLOYMENT_PUBLICATION_HOSTNAME_CONFLICT',
+  );
+});
+
+
+test('Era 7 Stage 4E: publication review cannot regress an already-started TLS proof', () => {
+  const confirmed = recordDnsObservation(createDomainPreflight({
+    hostname: 'dev.fourthstreetbar.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  }), {
+    checkedAt: '2026-10-03T20:32:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+  const requesting = markTlsRequesting(confirmed);
+
+  assert.throws(
+    () => prepareStage4PublicationReview({
+      preflight: requesting,
+      deployment: {
+        id: 'deployment-stage4e',
+        state: 'healthy',
+        activeRelease: {
+          id: RELEASE.id,
+          digest: RELEASE.digest,
+          packageDigest: RELEASE.packageDigest,
+        },
+      },
+      publication: {
+        capability: 'ready',
+        status: {
+          state: 'configured',
+          hostSlug: 'harbor-and-hearth',
+          hostname: 'dev.fourthstreetbar.com',
+        },
+        exactDeploymentMatches: true,
+        bootstrapAuthorityAccessible: false,
+      },
+    }),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID',
   );
 });
