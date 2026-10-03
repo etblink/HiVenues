@@ -257,6 +257,9 @@ test('Era 7 Stage 4A corrective: publication destinations reject non-public and 
   assert.equal(isPublicIpv6('::1'), false);
   assert.equal(isPublicIpv6('fe80::1'), false);
   assert.equal(isPublicIpv6('2001:db8::1'), false);
+  assert.equal(isPublicIpv6('2001:0db8::1'), false);
+  assert.equal(isPublicIpv6('3fff:0000::1'), false);
+  assert.equal(isPublicIpv6('2002:c000:0204::1'), false);
 });
 
 test('Era 7 Stage 4A corrective: asserted DNS/TLS/public verified summaries are rejected without supporting evidence', () => {
@@ -484,5 +487,48 @@ test('Era 7 Stage 4A corrective: persisted verified proof must match the deploym
   assert.throws(
     () => new FileDeploymentStore({ statePath }).get(deployment.id),
     (error) => error.code === 'DEPLOYMENT_STATE_INVALID',
+  );
+});
+
+
+test('Era 7 Stage 4A corrective: legacy Stage-4A read-back evidence is invalidated instead of poisoning storage', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hivenues-era7-stage4a-legacy-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const statePath = path.join(root, 'deployment-state.json');
+  const store = new FileDeploymentStore({
+    statePath,
+    now: () => Date.parse('2026-10-03T10:09:00.000Z'),
+    idFactory: () => 'stage4a-legacy',
+  });
+  const deployment = store.createDraft({
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: ['DOMAIN', 'DNS', 'TLS', 'HEALTH'],
+  });
+
+  const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  legacy.deployments[0].publicEndpoint = JSON.parse(JSON.stringify(verifiedTls()));
+  legacy.deployments[0].publicEndpoint.publicReadBack = {
+    state: 'verified',
+    observation: {
+      url: 'https://dev.fourthstreetbar.com/__hivenues/health',
+      statusCode: 200,
+      checkedAt: '2026-10-03T10:06:00.000Z',
+    },
+    mismatchFields: [],
+  };
+  legacy.deployments[0].domainState = 'dns-confirmed';
+  legacy.deployments[0].tlsState = 'verified';
+  fs.writeFileSync(statePath, JSON.stringify(legacy), 'utf8');
+
+  const recovered = new FileDeploymentStore({ statePath }).get(deployment.id);
+  assert.equal(recovered.publicEndpoint.domainState, 'dns-confirmed');
+  assert.equal(recovered.publicEndpoint.tls.state, 'verified');
+  assert.equal(recovered.publicEndpoint.publicReadBack.state, 'unverified');
+  assert.equal(
+    recovered.publicEndpoint.publicReadBack.invalidatedReason,
+    'legacy-readback-evidence-upgrade',
   );
 });
