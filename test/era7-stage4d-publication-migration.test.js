@@ -475,6 +475,8 @@ test('Era 7 Stage 4D: ready capability UI warns when temporary bootstrap authori
   assert.match(response.text, /data-publication-bootstrap-authority-warning/);
   assert.match(response.text, /Temporary bootstrap access still needs to be removed/);
   assert.match(response.text, /data-finalize-publication-upgrade/);
+  assert.doesNotMatch(response.text, /data-publication-capability-ready/);
+  assert.match(response.text, /Capability installed · bootstrap cleanup pending/);
 });
 
 
