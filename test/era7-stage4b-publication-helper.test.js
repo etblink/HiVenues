@@ -280,3 +280,45 @@ test('Era 7 Stage 4B: bounded status marks a stopped managed service as drifted'
   assert.equal(result.servicesActive, false);
   assert.equal(result.reason, 'managed-service-inactive');
 });
+
+
+test('Era 7 Stage 4B: interrupted publication lock is recoverable without administrator cleanup', (t) => {
+  const f = fixture(t);
+  const lockPath = path.join(f.paths.stateRoot, 'apply.lock');
+  fs.writeFileSync(lockPath, '{ interrupted before owner metadata }\n', 'utf8');
+  const old = new Date(Date.now() - 60000);
+  fs.utimesSync(lockPath, old, old);
+
+  const result = applyPublication({
+    metadata: metadata(),
+    hostname: 'dev.fourthstreetbar.com',
+    paths: f.paths,
+    execFile: () => '',
+    now: () => Date.parse('2026-10-03T17:31:00.000Z'),
+  });
+
+  assert.equal(result.state, 'configured');
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test('Era 7 Stage 4B: live publication lock still fails closed as busy', (t) => {
+  const f = fixture(t);
+  const lockPath = path.join(f.paths.stateRoot, 'apply.lock');
+  fs.writeFileSync(lockPath, JSON.stringify({
+    version: 1,
+    pid: process.pid,
+    bootId: '',
+    processStartTicks: '',
+  }) + '\n', 'utf8');
+
+  assert.throws(
+    () => applyPublication({
+      metadata: metadata(),
+      hostname: 'dev.fourthstreetbar.com',
+      paths: f.paths,
+      execFile: () => '',
+    }),
+    (error) => error.code === 'PUBLICATION_APPLY_BUSY',
+  );
+  assert.equal(fs.existsSync(lockPath), true);
+});
