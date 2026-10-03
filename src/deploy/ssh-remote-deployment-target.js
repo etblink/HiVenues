@@ -587,7 +587,7 @@ class SshRemoteDeploymentTarget {
       '  printf "HIVENUES_PUBLICATION_CAPABILITY=ready\\n"',
       '  printf "%s\\n" "$output"',
       'else',
-      '  printf "HIVENUES_PUBLICATION_CAPABILITY=upgrade-required\\n"',
+      '  printf "HIVENUES_PUBLICATION_CAPABILITY=error\\n"',
       'fi',
     ].join('\n') + '\n';
 
@@ -601,6 +601,12 @@ class SshRemoteDeploymentTarget {
         capability: 'upgrade-required',
         reason: 'publication-capability-upgrade-required',
       });
+    }
+    if (marker === 'HIVENUES_PUBLICATION_CAPABILITY=error') {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_STATUS_FAILED',
+        'Publication capability exists but its bounded status check failed.',
+      );
     }
     if (marker !== 'HIVENUES_PUBLICATION_CAPABILITY=ready' || !lines[1]) {
       throw targetError(
