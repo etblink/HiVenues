@@ -319,9 +319,17 @@
                       <p>
                         Dedicated-target suitability:
                         <strong data-deployment-dedicated-target>verified</strong>
+                        · Bootstrap root authority:
+                        <strong data-deployment-bootstrap-root-ready><%= deployment.targetPublicFacts.verifiedBootstrapRootReady ? 'verified' : 'unavailable' %></strong>
                         · Public TCP listeners:
                         <code><%= (deployment.targetPublicFacts.verifiedPublicTcpPorts || []).join(', ') || 'none' %></code>
                       </p>
+                      <% if ((deployment.targetPublicFacts.verifiedRemediableBaselineTcpPorts || []).length) { %>
+                        <p data-deployment-remediable-baseline>
+                          Recognized clean-OS baseline listeners to be contained by the bounded HiVenues firewall:
+                          <code><%= deployment.targetPublicFacts.verifiedRemediableBaselineTcpPorts.join(', ') %></code>
+                        </p>
+                      <% } %>
                       <% if (!deploymentMutationAvailable) { %>
                         <p data-deployment-bootstrap-held>
                           Remote bootstrap remains held in this runtime.

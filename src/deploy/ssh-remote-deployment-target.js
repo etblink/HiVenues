@@ -218,16 +218,38 @@ function removeBootstrapKeyCommand(plan, publicKey) {
   ].join('\n') + '\n';
 }
 
-async function writeRootFile(session, filePath, content, mode) {
+function initialBootstrapUsesSudo(plan) {
+  return plan?.privilegeModel?.initialRemoteAccount !== 'root';
+}
+
+async function execInitialRootScript(session, plan, script, {
+  timeoutMs,
+} = {}) {
+  if (!initialBootstrapUsesSudo(plan)) {
+    return session.exec(script, { timeoutMs });
+  }
+  return session.exec('sudo -n /bin/sh -s', {
+    timeoutMs,
+    stdin: Buffer.from(script, 'utf8'),
+  });
+}
+
+async function writeRootFile(session, filePath, content, mode, {
+  viaSudo = false,
+} = {}) {
   const temporary = filePath + '.hivenues-new';
-  await session.exec([
+  const lines = [
     'set -eu',
     'umask 077',
     'cat > ' + shellQuote(temporary),
     'chown root:root -- ' + shellQuote(temporary),
     'chmod ' + mode + ' -- ' + shellQuote(temporary),
     'mv -f -- ' + shellQuote(temporary) + ' ' + shellQuote(filePath),
-  ].join('\n') + '\n', {
+  ];
+  const command = viaSudo
+    ? 'sudo -n /bin/sh -c ' + shellQuote(lines.join('; '))
+    : lines.join('\n') + '\n';
+  await session.exec(command, {
     stdin: Buffer.from(content, 'utf8'),
   });
 }
@@ -376,19 +398,28 @@ class SshRemoteDeploymentTarget {
     });
 
     await this.withSession(this.initialUsername, async (session) => {
-      await session.exec(
+      const viaSudo = initialBootstrapUsesSudo(plan);
+      await execInitialRootScript(
+        session,
+        plan,
         initialBootstrapCommand(plan, runtime, release, this.publicKey),
         { timeoutMs: 240000 },
       );
-      await writeRootFile(session, plan.paths.environmentFile, artifacts.environment, '0600');
-      await writeRootFile(session, plan.paths.serviceUnit, artifacts.systemdUnit, '0644');
-      await writeRootFile(session, plan.paths.caddyConfig, artifacts.caddyHttpConfig, '0644');
-      await writeRootFile(session, plan.paths.caddyService, artifacts.caddySystemdUnit, '0644');
-      await writeRootFile(session, plan.paths.firewallPolicy, artifacts.nftablesPolicy, '0600');
-      await writeRootFile(session, plan.paths.firewallService, artifacts.firewallSystemdUnit, '0644');
-      await writeRootFile(session, plan.paths.sudoersFile, artifacts.restrictedSudoers, '0440');
-      await session.exec(authorityStateCommand(plan, 'restricted-login-pending'));
-      await session.exec(
+      await writeRootFile(session, plan.paths.environmentFile, artifacts.environment, '0600', { viaSudo });
+      await writeRootFile(session, plan.paths.serviceUnit, artifacts.systemdUnit, '0644', { viaSudo });
+      await writeRootFile(session, plan.paths.caddyConfig, artifacts.caddyHttpConfig, '0644', { viaSudo });
+      await writeRootFile(session, plan.paths.caddyService, artifacts.caddySystemdUnit, '0644', { viaSudo });
+      await writeRootFile(session, plan.paths.firewallPolicy, artifacts.nftablesPolicy, '0600', { viaSudo });
+      await writeRootFile(session, plan.paths.firewallService, artifacts.firewallSystemdUnit, '0644', { viaSudo });
+      await writeRootFile(session, plan.paths.sudoersFile, artifacts.restrictedSudoers, '0440', { viaSudo });
+      await execInitialRootScript(
+        session,
+        plan,
+        authorityStateCommand(plan, 'restricted-login-pending'),
+      );
+      await execInitialRootScript(
+        session,
+        plan,
         activationCommand(plan, runtime.path, release.path, { restricted: false }),
         { timeoutMs: 90000 },
       );
@@ -409,7 +440,11 @@ class SshRemoteDeploymentTarget {
     });
 
     await this.withSession(this.initialUsername, (session) => (
-      session.exec(authorityStateCommand(plan, 'restricted-login-proven'))
+      execInitialRootScript(
+        session,
+        plan,
+        authorityStateCommand(plan, 'restricted-login-proven'),
+      )
     ));
 
     this.connection.username = plan.deploymentUser;
@@ -429,7 +464,11 @@ class SshRemoteDeploymentTarget {
       );
     }
     await this.withSession(this.initialUsername, (session) => (
-      session.exec(removeBootstrapKeyCommand(plan, this.publicKey))
+      execInitialRootScript(
+        session,
+        plan,
+        removeBootstrapKeyCommand(plan, this.publicKey),
+      )
     ));
     this.narrowingPending = false;
     return true;
