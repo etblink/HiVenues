@@ -19,6 +19,7 @@ const RUNTIME_FILES = Object.freeze([
   'scripts/hivenues-public-runtime.js',
   'src/deploy/public-router.js',
   'src/deploy/public-runtime.js',
+  'src/deploy/publication-helper-runtime.js',
   'src/deploy/release-store.js',
   'src/product/model.js',
   'src/product/present.js',

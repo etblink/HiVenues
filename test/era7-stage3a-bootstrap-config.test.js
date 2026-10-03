@@ -10,6 +10,7 @@ const {
   renderCaddySystemdUnit,
   renderFirewallSystemdUnit,
   renderNftablesPolicy,
+  renderPublicationMetadata,
   renderRestrictedSudoers,
   renderRuntimeEnvironment,
   renderSystemdUnit,
@@ -80,6 +81,10 @@ test('Era 7 Stage 3B: dedicated Caddy service uses only the bounded Stage 3 conf
   );
   assert.match(value, /^NoNewPrivileges=true$/m);
   assert.match(value, /^CapabilityBoundingSet=CAP_NET_BIND_SERVICE$/m);
+  assert.match(value, /^Environment=HOME=\/var\/lib\/hivenues-caddy\/harbor-and-hearth$/m);
+  assert.match(value, /^Environment=XDG_DATA_HOME=\/var\/lib\/hivenues-caddy\/harbor-and-hearth\/data$/m);
+  assert.match(value, /^Environment=XDG_CONFIG_HOME=\/var\/lib\/hivenues-caddy\/harbor-and-hearth\/config$/m);
+  assert.match(value, /^ReadWritePaths=\/var\/lib\/hivenues-caddy\/harbor-and-hearth$/m);
   assert.doesNotMatch(value, /\/etc\/caddy\/Caddyfile|:443|tls |acme/i);
 });
 
@@ -90,6 +95,7 @@ test('Era 7 Stage 3B: persistent firewall unit can only load the bounded HiVenue
     /^ExecStart=\/usr\/sbin\/nft -f \/etc\/hivenues\/harbor-and-hearth\.nft$/m,
   );
   assert.match(value, /^Type=oneshot$/m);
+  assert.match(value, /^ExecStartPre=-\/usr\/sbin\/nft delete table inet hivenues$/m);
   assert.match(value, /^RemainAfterExit=yes$/m);
   assert.match(value, /^NoNewPrivileges=true$/m);
   assert.doesNotMatch(value, /flush ruleset|shell|bash|sh -c/);
@@ -114,8 +120,26 @@ test('Era 7 Stage 3A: steady-state sudo authority is restricted to the named HiV
   assert.match(value, /systemctl start hivenues-harbor-and-hearth\.service/);
   assert.match(value, /systemctl stop hivenues-harbor-and-hearth\.service/);
   assert.match(value, /systemctl status hivenues-harbor-and-hearth\.service/);
-  assert.match(value, /^hivenues-deploy ALL=\(root\) NOPASSWD: HIVENUES_SERVICE$/m);
+  assert.match(
+    value,
+    /^Cmnd_Alias HIVENUES_PUBLICATION = \/usr\/local\/libexec\/hivenues-publication-harbor-and-hearth status, \/usr\/local\/libexec\/hivenues-publication-harbor-and-hearth apply \*$/m,
+  );
+  assert.match(
+    value,
+    /^hivenues-deploy ALL=\(root\) NOPASSWD: HIVENUES_SERVICE, HIVENUES_PUBLICATION$/m,
+  );
   assert.doesNotMatch(value, /ALL=\(ALL|\/bin\/sh|\/bin\/bash|daemon-reload|caddy|nft|apt|npm/);
+});
+
+test('Era 7 Stage 4B: bootstrap freezes host-scoped publication metadata without a hostname', () => {
+  const value = JSON.parse(renderPublicationMetadata(plan(), { sshPort: 2222 }));
+  assert.deepEqual(value, {
+    version: 1,
+    hostSlug: 'harbor-and-hearth',
+    runtimePort: 4317,
+    sshPort: 2222,
+  });
+  assert.equal(JSON.stringify(value).includes('fourthstreetbar.com'), false);
 });
 
 test('Era 7 Stage 3A: complete bootstrap artifacts contain no Stage 4 domain or TLS mutation', () => {
@@ -126,6 +150,7 @@ test('Era 7 Stage 3A: complete bootstrap artifacts contain no Stage 4 domain or 
     'environment',
     'firewallSystemdUnit',
     'nftablesPolicy',
+    'publicationMetadata',
     'restrictedSudoers',
     'systemdUnit',
   ]);

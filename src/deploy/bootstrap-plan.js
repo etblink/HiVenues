@@ -96,6 +96,11 @@ function createReferenceBootstrapPlan({
       firewallPolicy: '/etc/hivenues/' + hostSlug + '.nft',
       firewallService: '/etc/systemd/system/hivenues-firewall.service',
       sudoersFile: '/etc/sudoers.d/hivenues-' + hostSlug,
+      publicationHelper: '/usr/local/libexec/hivenues-publication-' + hostSlug,
+      publicationMetadata: '/etc/hivenues/' + hostSlug + '.publication.json',
+      publicationStateRoot: '/var/lib/hivenues-publication/' + hostSlug,
+      publicationStatus: '/var/lib/hivenues-publication/' + hostSlug + '/status.json',
+      caddyStateRoot: '/var/lib/hivenues-caddy/' + hostSlug,
       activeRecord: path.posix.join(stateRoot, 'active-deployment.json'),
     }),
     ownership: Object.freeze({

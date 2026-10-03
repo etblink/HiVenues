@@ -607,3 +607,49 @@ test('Era 7 Stage 3C: post-narrowing crash remains recoverable when provider acc
   assert.equal(review.authority.serverMutationRequired, false);
 });
 
+
+
+test('Era 7 Stage 4B composition: installed service reports pre-capability server upgrade requirement read-only', async (t) => {
+  const f = fixture(t);
+  const deployedService = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles'),
+    buildProvenance: f.buildProvenance,
+    targetFactory: exactFakeTargetFactory({}),
+    now: () => Date.parse('2026-09-19T17:15:00.000Z'),
+  });
+  const review = deployedService.prepareReview(f.deploymentId);
+  await deployedService.deploy(f.deploymentId, {
+    reviewDigest: review.reviewDigest,
+    confirmation: 'deploy-exact-release',
+  });
+
+  let observedPlan = null;
+  const inspectionService = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles'),
+    buildProvenance: f.buildProvenance,
+    targetFactory: () => ({
+      async publicationStatus(plan) {
+        observedPlan = plan;
+        return {
+          capability: 'upgrade-required',
+          reason: 'publication-capability-upgrade-required',
+        };
+      },
+    }),
+  });
+
+  const result = await inspectionService.inspectPublicationCapability(f.deploymentId);
+  assert.equal(result.deploymentId, f.deploymentId);
+  assert.equal(result.hostSlug, f.slug);
+  assert.equal(result.capability, 'upgrade-required');
+  assert.equal(result.reason, 'publication-capability-upgrade-required');
+  assert.equal(observedPlan.release.hostSlug, f.slug);
+  assert.equal(observedPlan.release.releaseId, f.released.id);
+  assert.equal(observedPlan.runtime.bundleDigest, f.deploymentStore.get(f.deploymentId).runtimeProfile.bundleDigest);
+});

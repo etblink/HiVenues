@@ -69,7 +69,7 @@ function main() {
 
     execFileSync(
       process.execPath,
-      ['-e', "require('./src/deploy/public-runtime'); require('./src/deploy/public-router');"],
+      ['-e', "require('./src/deploy/public-runtime'); require('./src/deploy/public-router'); require('./src/deploy/publication-helper-runtime');"],
       {
         cwd: bundleRoot,
         stdio: 'inherit',

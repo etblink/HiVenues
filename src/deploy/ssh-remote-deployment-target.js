@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 
 const { renderBootstrapArtifacts } = require('./bootstrap-config');
@@ -33,6 +34,29 @@ function readRuntime(root) {
     path.join(absolute, 'runtime-provenance.json'),
     path.join(absolute, 'runtime-manifest.json'),
   );
+}
+
+function runtimeFileDigest(root, relativePath) {
+  const absolute = path.resolve(root);
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(path.join(absolute, 'runtime-manifest.json'), 'utf8'));
+  } catch {
+    throw targetError(
+      'DEPLOYMENT_RUNTIME_MANIFEST_UNREADABLE',
+      'Qualified runtime manifest could not be read for privileged helper installation.',
+    );
+  }
+  const file = Array.isArray(manifest?.files)
+    ? manifest.files.find((item) => item?.path === relativePath)
+    : null;
+  if (!file || !/^[a-f0-9]{64}$/.test(String(file.sha256 || ''))) {
+    throw targetError(
+      'DEPLOYMENT_RUNTIME_HELPER_DIGEST_MISSING',
+      'Qualified runtime does not contain an exact publication-helper digest.',
+    );
+  }
+  return String(file.sha256);
 }
 
 function requirePublicKey(value) {
@@ -96,9 +120,13 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     'getent group hivenues >/dev/null 2>&1 || groupadd --system hivenues',
     'id -u hivenues >/dev/null 2>&1 || useradd --system --gid hivenues --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin hivenues',
     'id -u hivenues-deploy >/dev/null 2>&1 || useradd --system --gid hivenues --create-home --home-dir /var/lib/hivenues-deploy --shell /bin/bash hivenues-deploy',
-    'install -d -m 0755 -o root -g root /opt/hivenues /opt/hivenues/node /srv/hivenues /etc/hivenues',
+    'install -d -m 0755 -o root -g root /opt/hivenues /opt/hivenues/node /srv/hivenues /etc/hivenues /usr/local/libexec /var/lib/hivenues-publication /var/lib/hivenues-caddy',
     'install -d -m 0750 -o hivenues-deploy -g hivenues /opt/hivenues/runtime /srv/hivenues/releases',
     'install -d -m 0750 -o hivenues -g hivenues ' + shellQuote(plan.paths.stateRoot),
+    'install -d -m 0700 -o root -g root ' + shellQuote(plan.paths.publicationStateRoot),
+    'install -d -m 0700 -o caddy -g caddy ' + shellQuote(plan.paths.caddyStateRoot)
+      + ' ' + shellQuote(plan.paths.caddyStateRoot + '/data')
+      + ' ' + shellQuote(plan.paths.caddyStateRoot + '/config'),
     'printf "HIVENUES_MUTATION_STAGE=node-runtime\\n" >&2',
     'if [ ! -x ' + shellQuote(node.nodePath) + ' ]; then',
     '  tmp="$(mktemp /var/tmp/hivenues-node.XXXXXX)"',
@@ -123,6 +151,13 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     );
   }
   lines.push(
+    'test -f ' + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js'),
+    'printf "%s  %s\\n" ' + shellQuote(runtime.publicationHelperSha256)
+      + ' ' + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js')
+      + ' | sha256sum -c -',
+    'install -m 0755 -o root -g root -- '
+      + shellQuote(runtime.path + '/src/deploy/publication-helper-runtime.js')
+      + ' ' + shellQuote(plan.paths.publicationHelper),
     'chown -R hivenues-deploy:hivenues -- ' + shellQuote(runtime.path),
     'chmod -R g+rX,o-rwx -- ' + shellQuote(runtime.path),
     'runuser -u hivenues-deploy -- env HOME=/var/lib/hivenues-deploy PATH='
@@ -209,6 +244,8 @@ function activationCommand(plan, runtimePath, releasePath, {
       '/usr/bin/caddy validate --config ' + shellQuote(plan.paths.caddyConfig) + ' --adapter caddyfile',
       '/usr/sbin/nft -c -f ' + shellQuote(plan.paths.firewallPolicy),
       '/usr/sbin/visudo -cf ' + shellQuote(plan.paths.sudoersFile),
+      'test -x ' + shellQuote(plan.paths.publicationHelper),
+      shellQuote(plan.paths.publicationHelper) + ' status >/dev/null',
       'systemctl enable --now hivenues-firewall.service',
       'systemctl enable --now hivenues-caddy.service',
       'systemctl enable --now ' + shellQuote(service),
@@ -379,6 +416,10 @@ class SshRemoteDeploymentTarget {
     return Object.freeze({
       ...staged,
       provenance,
+      publicationHelperSha256: runtimeFileDigest(
+        runtimeRoot,
+        'src/deploy/publication-helper-runtime.js',
+      ),
     });
   }
 
@@ -404,7 +445,12 @@ class SshRemoteDeploymentTarget {
     release,
     plan,
   }) {
-    if (!runtime?.provenance || !release?.manifest || !plan) {
+    if (
+      !runtime?.provenance
+      || !/^[a-f0-9]{64}$/.test(String(runtime.publicationHelperSha256 || ''))
+      || !release?.manifest
+      || !plan
+    ) {
       throw targetError(
         'DEPLOYMENT_REMOTE_ACTIVATION_INVALID',
         'Remote deployment activation inputs are invalid.',
@@ -471,6 +517,9 @@ class SshRemoteDeploymentTarget {
       await withMutationStage('write-firewall-service', () => writeRootFile(
         session, plan.paths.firewallService, artifacts.firewallSystemdUnit, '0644', { viaSudo },
       ));
+      await withMutationStage('write-publication-metadata', () => writeRootFile(
+        session, plan.paths.publicationMetadata, artifacts.publicationMetadata, '0600', { viaSudo },
+      ));
       await withMutationStage('write-restricted-sudoers', () => writeRootFile(
         session, plan.paths.sudoersFile, artifacts.restrictedSudoers, '0440', { viaSudo },
       ));
@@ -505,6 +554,12 @@ class SshRemoteDeploymentTarget {
       await withMutationStage('restricted-login-service-proof', () => (
         session.exec(
           'sudo -n /usr/bin/systemctl status ' + shellQuote(serviceName(plan)),
+          { timeoutMs: 15000 },
+        )
+      ));
+      await withMutationStage('restricted-publication-capability-proof', () => (
+        session.exec(
+          'sudo -n ' + shellQuote(plan.paths.publicationHelper) + ' status',
           { timeoutMs: 15000 },
         )
       ));
@@ -547,6 +602,79 @@ class SshRemoteDeploymentTarget {
     ));
     this.narrowingPending = false;
     return true;
+  }
+
+  async publicationStatus(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_PLAN_REQUIRED',
+        'Publication capability inspection requires an exact deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    const helper = plan.paths.publicationHelper;
+    const command = [
+      'set -eu',
+      'if [ ! -x ' + shellQuote(helper) + ' ]; then',
+      '  printf "HIVENUES_PUBLICATION_CAPABILITY=upgrade-required\\n"',
+      '  exit 0',
+      'fi',
+      'if output="$(sudo -n ' + shellQuote(helper) + ' status 2>/dev/null)"; then',
+      '  printf "HIVENUES_PUBLICATION_CAPABILITY=ready\\n"',
+      '  printf "%s\\n" "$output"',
+      'else',
+      '  printf "HIVENUES_PUBLICATION_CAPABILITY=error\\n"',
+      'fi',
+    ].join('\n') + '\n';
+
+    const result = await this.withSession(this.connection.username, (session) => (
+      session.exec(command, { timeoutMs: 15000 })
+    ));
+    const lines = result.stdout.trim().split(/\r?\n/);
+    const marker = String(lines[0] || '').trim();
+    if (marker === 'HIVENUES_PUBLICATION_CAPABILITY=upgrade-required') {
+      return Object.freeze({
+        capability: 'upgrade-required',
+        reason: 'publication-capability-upgrade-required',
+      });
+    }
+    if (marker === 'HIVENUES_PUBLICATION_CAPABILITY=error') {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_STATUS_FAILED',
+        'Publication capability exists but its bounded status check failed.',
+      );
+    }
+    if (marker !== 'HIVENUES_PUBLICATION_CAPABILITY=ready' || !lines[1]) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_STATUS_INVALID',
+        'Publication capability status was not valid.',
+      );
+    }
+    let status;
+    try {
+      status = JSON.parse(lines[1]);
+    } catch {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_STATUS_INVALID',
+        'Publication capability status was not valid JSON.',
+      );
+    }
+    if (
+      !status
+      || status.version !== 1
+      || status.capability !== 'ready'
+      || status.hostSlug !== plan.release.hostSlug
+      || !['unconfigured', 'configured', 'drifted'].includes(status.state)
+    ) {
+      throw targetError(
+        'DEPLOYMENT_PUBLICATION_STATUS_INVALID',
+        'Publication capability status was inconsistent.',
+      );
+    }
+    return Object.freeze({
+      capability: 'ready',
+      status: Object.freeze({ ...status }),
+    });
   }
 
   async readBack() {

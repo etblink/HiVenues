@@ -147,6 +147,9 @@ function renderCaddySystemdUnit(planInput) {
     'Group=caddy',
     'ExecStart=/usr/bin/caddy run --environ --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
     'ExecReload=/usr/bin/caddy reload --config ' + plan.paths.caddyConfig + ' --adapter caddyfile',
+    'Environment=HOME=' + plan.paths.caddyStateRoot,
+    'Environment=XDG_DATA_HOME=' + plan.paths.caddyStateRoot + '/data',
+    'Environment=XDG_CONFIG_HOME=' + plan.paths.caddyStateRoot + '/config',
     'TimeoutStopSec=5s',
     'LimitNOFILE=1048576',
     'PrivateTmp=true',
@@ -155,6 +158,7 @@ function renderCaddySystemdUnit(planInput) {
     'NoNewPrivileges=true',
     'AmbientCapabilities=CAP_NET_BIND_SERVICE',
     'CapabilityBoundingSet=CAP_NET_BIND_SERVICE',
+    'ReadWritePaths=' + plan.paths.caddyStateRoot,
     '',
     '[Install]',
     'WantedBy=multi-user.target',
@@ -172,6 +176,7 @@ function renderFirewallSystemdUnit(planInput) {
     '',
     '[Service]',
     'Type=oneshot',
+    'ExecStartPre=-/usr/sbin/nft delete table inet hivenues',
     'ExecStart=/usr/sbin/nft -f ' + plan.paths.firewallPolicy,
     'RemainAfterExit=yes',
     'NoNewPrivileges=true',
@@ -184,16 +189,34 @@ function renderFirewallSystemdUnit(planInput) {
   ].join('\n');
 }
 
+function renderPublicationMetadata(planInput, {
+  sshPort = 22,
+} = {}) {
+  const plan = assertPlan(planInput);
+  const port = Number(sshPort);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw configError('DEPLOYED_BOOTSTRAP_SSH_PORT_INVALID', 'SSH firewall port is invalid.');
+  }
+  return JSON.stringify({
+    version: 1,
+    hostSlug: plan.release.hostSlug,
+    runtimePort: plan.runtimePort,
+    sshPort: port,
+  }, null, 2) + '\n';
+}
+
 function renderRestrictedSudoers(planInput) {
   const plan = assertPlan(planInput);
   const service = 'hivenues-' + plan.release.hostSlug + '.service';
+  const helper = plan.paths.publicationHelper;
   const deployUser = plan.deploymentUser;
   return [
     'Cmnd_Alias HIVENUES_SERVICE = /usr/bin/systemctl restart ' + service
       + ', /usr/bin/systemctl start ' + service
       + ', /usr/bin/systemctl stop ' + service
       + ', /usr/bin/systemctl status ' + service,
-    deployUser + ' ALL=(root) NOPASSWD: HIVENUES_SERVICE',
+    'Cmnd_Alias HIVENUES_PUBLICATION = ' + helper + ' status, ' + helper + ' apply *',
+    deployUser + ' ALL=(root) NOPASSWD: HIVENUES_SERVICE, HIVENUES_PUBLICATION',
     '',
   ].join('\n');
 }
@@ -209,6 +232,7 @@ function renderBootstrapArtifacts(planInput, {
     caddySystemdUnit: renderCaddySystemdUnit(plan),
     nftablesPolicy: renderNftablesPolicy({ sshPort }),
     firewallSystemdUnit: renderFirewallSystemdUnit(plan),
+    publicationMetadata: renderPublicationMetadata(plan, { sshPort }),
     restrictedSudoers: renderRestrictedSudoers(plan),
   });
 }
@@ -219,6 +243,7 @@ module.exports = {
   renderCaddySystemdUnit,
   renderFirewallSystemdUnit,
   renderNftablesPolicy,
+  renderPublicationMetadata,
   renderRestrictedSudoers,
   renderRuntimeEnvironment,
   renderSystemdUnit,

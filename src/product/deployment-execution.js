@@ -447,6 +447,52 @@ class InstalledRemoteDeploymentService {
     });
   }
 
+  async inspectPublicationCapability(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (!record.activeRelease || !record.runtimeProfile) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED',
+        'Publication capability inspection requires a confirmed active runtime and Release.',
+      );
+    }
+    const facts = record.targetPublicFacts || {};
+    const bootstrapUsername = String(facts.bootstrapUsername || facts.username);
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername,
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername,
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+    if (!target || typeof target.publicationStatus !== 'function') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_CAPABILITY_UNAVAILABLE',
+        'Publication capability inspection is unavailable in this runtime.',
+      );
+    }
+    const result = await target.publicationStatus(plan);
+    return Object.freeze({
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      ...result,
+    });
+  }
+
   async prepareRecoveryFinalization(deploymentId) {
     const diagnostic = await this.inspectReadBack(deploymentId);
     if (!diagnostic.recovery?.recoverable) {
