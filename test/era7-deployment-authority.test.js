@@ -271,6 +271,120 @@ test('Era 7 Stage 2A: first-seen host key blocks private-key use until explicit 
   ]);
 });
 
+test('Era 7 Stage 3C live gate: fresh Debian resolver baseline is remediable only with proved ownership and root authority', async (t) => {
+  const root = tempRoot(t);
+  const authorities = authorityStore(t, root);
+  const authority = authorities.createSshAuthority();
+  const deployments = deploymentStore(root, 'fresh-privex-target');
+  const target = createSshTarget(
+    deployments,
+    authority.id,
+    'deployment-fresh-privex-target',
+  );
+  const fingerprint = 'SHA256:HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH';
+  const transport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      os: 'Debian GNU/Linux 13',
+      architecture: 'x86_64',
+      memoryMb: 1024,
+      diskMb: 51200,
+      publicTcpPorts: [22, 5355],
+      bootstrapRootReady: true,
+      systemdResolvedLlmnrActive: true,
+    },
+  });
+  const verifier = new SshTargetVerificationService({
+    store: deployments,
+    authorityStore: authorities,
+    transport,
+  });
+
+  await verifier.verify(target.id);
+  verifier.acceptObservedHostKey(target.id, fingerprint);
+  const result = await verifier.verify(target.id);
+
+  assert.equal(result.state, 'bootstrap-ready');
+  assert.equal(result.targetPublicFacts.verifiedDedicatedTarget, true);
+  assert.equal(result.targetPublicFacts.verifiedBootstrapRootReady, true);
+  assert.equal(result.targetPublicFacts.verifiedSystemdResolvedLlmnrActive, true);
+  assert.deepEqual(result.targetPublicFacts.verifiedPublicTcpPorts, [22, 5355]);
+  assert.deepEqual(result.targetPublicFacts.verifiedRemediableBaselineTcpPorts, [5355]);
+  assert.deepEqual(result.targetPublicFacts.verifiedUnexpectedPublicTcpPorts, []);
+  assert.deepEqual(result.targetPublicFacts.verifiedTargetConflicts, []);
+});
+
+test('Era 7 Stage 3C live gate: port 5355 is not whitelisted without systemd-resolved ownership proof', async (t) => {
+  const root = tempRoot(t);
+  const authorities = authorityStore(t, root);
+  const authority = authorities.createSshAuthority();
+  const deployments = deploymentStore(root, 'unknown-5355-target');
+  const target = createSshTarget(
+    deployments,
+    authority.id,
+    'deployment-unknown-5355-target',
+  );
+  const fingerprint = 'SHA256:IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII';
+  const transport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      publicTcpPorts: [22, 5355],
+      bootstrapRootReady: true,
+      systemdResolvedLlmnrActive: false,
+    },
+  });
+  const verifier = new SshTargetVerificationService({
+    store: deployments,
+    authorityStore: authorities,
+    transport,
+  });
+
+  await verifier.verify(target.id);
+  verifier.acceptObservedHostKey(target.id, fingerprint);
+  const result = await verifier.verify(target.id);
+
+  assert.equal(result.state, 'degraded');
+  assert.deepEqual(result.targetPublicFacts.verifiedUnexpectedPublicTcpPorts, [5355]);
+  assert.deepEqual(result.targetPublicFacts.verifiedTargetConflicts, [
+    'unexpected-public-tcp-listeners',
+  ]);
+});
+
+test('Era 7 Stage 3C live gate: bootstrap fails closed when provider account lacks noninteractive root authority', async (t) => {
+  const root = tempRoot(t);
+  const authorities = authorityStore(t, root);
+  const authority = authorities.createSshAuthority();
+  const deployments = deploymentStore(root, 'no-sudo-target');
+  const target = createSshTarget(
+    deployments,
+    authority.id,
+    'deployment-no-sudo-target',
+  );
+  const fingerprint = 'SHA256:JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ';
+  const transport = new ScriptedSshVerificationTransport({
+    hostKeyFingerprint: fingerprint,
+    inspection: {
+      publicTcpPorts: [22],
+      bootstrapRootReady: false,
+    },
+  });
+  const verifier = new SshTargetVerificationService({
+    store: deployments,
+    authorityStore: authorities,
+    transport,
+  });
+
+  await verifier.verify(target.id);
+  verifier.acceptObservedHostKey(target.id, fingerprint);
+  const result = await verifier.verify(target.id);
+
+  assert.equal(result.state, 'degraded');
+  assert.equal(result.targetPublicFacts.verifiedBootstrapRootReady, false);
+  assert.deepEqual(result.targetPublicFacts.verifiedTargetConflicts, [
+    'bootstrap-root-authority-unavailable',
+  ]);
+});
+
 test('Era 7 Stage 3B live gate: occupied server fails dedicated-target suitability before mutation', async (t) => {
   const root = tempRoot(t);
   const authorities = authorityStore(t, root);

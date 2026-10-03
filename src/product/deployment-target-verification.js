@@ -29,12 +29,25 @@ function targetSuitability(record, inspection, target) {
     ? [...new Set(inspection.publicTcpPorts.map(Number))].sort((a, b) => a - b)
     : [];
   const firstBootstrap = !record.activeRelease;
+  const remediableBaselineTcpPorts = (
+    firstBootstrap
+    && inspection?.systemdResolvedLlmnrActive === true
+    && publicTcpPorts.includes(5355)
+  )
+    ? [5355]
+    : [];
   const unexpectedPublicTcpPorts = firstBootstrap
-    ? publicTcpPorts.filter((port) => port !== target.port)
+    ? publicTcpPorts.filter((port) => (
+      port !== target.port
+      && !remediableBaselineTcpPorts.includes(port)
+    ))
     : [];
   const conflicts = [];
   if (firstBootstrap && !publicTcpPorts.includes(target.port)) {
     conflicts.push('ssh-listener-not-observed');
+  }
+  if (firstBootstrap && inspection?.bootstrapRootReady !== true) {
+    conflicts.push('bootstrap-root-authority-unavailable');
   }
   if (unexpectedPublicTcpPorts.length) {
     conflicts.push('unexpected-public-tcp-listeners');
@@ -52,6 +65,7 @@ function targetSuitability(record, inspection, target) {
     suitable: conflicts.length === 0,
     firstBootstrap,
     publicTcpPorts: Object.freeze(publicTcpPorts),
+    remediableBaselineTcpPorts: Object.freeze(remediableBaselineTcpPorts),
     unexpectedPublicTcpPorts: Object.freeze(unexpectedPublicTcpPorts),
     conflicts: Object.freeze(conflicts),
   });
@@ -159,7 +173,10 @@ class SshTargetVerificationService {
     };
     const suitability = targetSuitability(refreshed, inspection, target);
     targetPublicFacts.verifiedPublicTcpPorts = suitability.publicTcpPorts;
+    targetPublicFacts.verifiedRemediableBaselineTcpPorts = suitability.remediableBaselineTcpPorts;
     targetPublicFacts.verifiedUnexpectedPublicTcpPorts = suitability.unexpectedPublicTcpPorts;
+    targetPublicFacts.verifiedBootstrapRootReady = inspection?.bootstrapRootReady === true;
+    targetPublicFacts.verifiedSystemdResolvedLlmnrActive = inspection?.systemdResolvedLlmnrActive === true;
     targetPublicFacts.verifiedSystemCaddyActive = Boolean(inspection?.systemCaddyActive);
     targetPublicFacts.verifiedHiVenuesCaddyActive = Boolean(inspection?.hivenuesCaddyActive);
     targetPublicFacts.verifiedHiVenuesFirewallActive = Boolean(inspection?.hivenuesFirewallActive);
@@ -224,6 +241,8 @@ class ScriptedSshVerificationTransport {
       memoryMb: 1024,
       diskMb: 20480,
       publicTcpPorts: null,
+      bootstrapRootReady: true,
+      systemdResolvedLlmnrActive: false,
       systemCaddyActive: false,
       hivenuesCaddyActive: false,
       hivenuesFirewallActive: false,

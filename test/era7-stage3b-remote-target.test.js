@@ -120,21 +120,24 @@ class ScriptedMutationTransport {
         if (command.trim() === 'id -un') {
           return { stdout: username + '\n', stderr: '', exitCode: 0 };
         }
-        if (command.includes("printf \"%s\\n\" 'restricted-login-pending'")) {
+        const semanticCommand = command + '\n' + (options.stdin
+          ? Buffer.from(options.stdin).toString('utf8')
+          : '');
+        if (semanticCommand.includes("printf \"%s\\n\" 'restricted-login-pending'")) {
           this.authorityState = 'restricted-login-pending';
         }
-        if (command.includes("printf \"%s\\n\" 'restricted-login-proven'")) {
+        if (semanticCommand.includes("printf \"%s\\n\" 'restricted-login-proven'")) {
           this.authorityState = 'restricted-login-proven';
         }
-        if (command.includes("printf \"%s\\n\" 'restricted-deployment-user'")) {
+        if (semanticCommand.includes("printf \"%s\\n\" 'restricted-deployment-user'")) {
           this.authorityState = 'restricted-deployment-user';
         }
         if (
           (
-            command.includes('systemctl enable --now')
-            && command.includes('hivenues-harbor-and-hearth.service')
+            semanticCommand.includes('systemctl enable --now')
+            && semanticCommand.includes('hivenues-harbor-and-hearth.service')
           )
-          || command.includes('sudo -n /usr/bin/systemctl restart')
+          || semanticCommand.includes('sudo -n /usr/bin/systemctl restart')
         ) {
           this.active = true;
         }
@@ -299,6 +302,85 @@ test('Era 7 Stage 3B: remote target stages artifacts, proves restricted login, a
 
   const lastSession = transport.calls.filter((item) => item.kind === 'session').at(-1);
   assert.equal(lastSession.username, 'hivenues-deploy');
+});
+
+test('Era 7 Stage 3C: non-root Privex bootstrap account uses noninteractive sudo then narrows authority', async (t) => {
+  const f = artifactFixture(t);
+  const authority = fakeAuthority();
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: f.runtimeProvenance,
+    releaseManifest: f.releaseManifest,
+    bootstrapUsername: 'debian',
+  });
+  const health = {
+    version: 1,
+    status: 'healthy',
+    runtime: {
+      sourceSha: f.runtimeProvenance.sourceSha,
+      sourceTree: f.runtimeProvenance.sourceTree,
+      packageVersion: f.runtimeProvenance.packageVersion,
+      nodeVersion: f.runtimeProvenance.nodeVersion,
+      bundleDigest: f.runtimeProvenance.bundleDigest,
+      platform: 'linux-x64',
+    },
+    deployment: {
+      hostSlug: f.releaseManifest.hostSlug,
+      releaseId: f.releaseManifest.releaseId,
+      releaseDigest: f.releaseManifest.releaseDigest,
+      packageDigest: f.releaseManifest.packageDigest,
+    },
+  };
+  const transport = new ScriptedMutationTransport({ health });
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore: authority.store,
+    authorityId: 'authority-stage3b',
+    target: {
+      host: '203.0.113.46',
+      port: 22,
+      username: 'debian',
+    },
+    expectedHostKeyFingerprint: 'SHA256:' + 'S'.repeat(43),
+    hostSlug: f.slug,
+    transport,
+  });
+
+  const runtime = await target.installRuntime(f.runtimeRoot);
+  const release = await target.installRelease(f.packageRecord.packagePath);
+  await target.activate({ runtime, release, plan });
+  await target.finalizeAuthorityNarrowing(plan);
+
+  const debianExec = transport.calls.filter((item) => (
+    item.kind === 'exec' && item.username === 'debian'
+  ));
+  assert.equal(
+    debianExec.some((item) => (
+      item.command === 'sudo -n /bin/sh -s'
+      && item.stdin.includes('apt-get update')
+      && item.stdin.includes('test "$(id -u)" = "0"')
+    )),
+    true,
+  );
+  assert.equal(
+    debianExec.some((item) => (
+      item.command.startsWith('sudo -n /bin/sh -c ')
+      && item.stdin.includes('HIVENUES_RELEASE_PACKAGE=')
+    )),
+    true,
+  );
+  assert.equal(
+    debianExec.some((item) => (
+      item.command === 'sudo -n /bin/sh -s'
+      && item.stdin.includes('.hivenues-authorized-keys')
+      && item.stdin.includes("restricted-deployment-user")
+    )),
+    true,
+  );
+  assert.equal(
+    transport.calls.some((item) => item.kind === 'session' && item.username === 'root'),
+    false,
+  );
+  assert.equal(target.connection.username, 'hivenues-deploy');
+  assert.equal(target.narrowingPending, false);
 });
 
 test('Era 7 Stage 3B: remote target never exposes private authority through command or upload metadata', async (t) => {

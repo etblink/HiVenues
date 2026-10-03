@@ -74,7 +74,9 @@ async function createLoopbackSshServer(t) {
             'HIVENUES_ARCH=x86_64',
             'HIVENUES_MEMORY_KB=1048576',
             'HIVENUES_DISK_KB=20971520',
+            'HIVENUES_BOOTSTRAP_ROOT_READY=1',
             'HIVENUES_PUBLIC_TCP_PORTS=22',
+            'HIVENUES_SYSTEMD_RESOLVED_LLMNR_ACTIVE=0',
             'HIVENUES_SYSTEM_CADDY_ACTIVE=0',
             'HIVENUES_HIVENUES_CADDY_ACTIVE=0',
             'HIVENUES_HIVENUES_FIREWALL_ACTIVE=0',
@@ -114,7 +116,9 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
       'HIVENUES_ARCH=x86_64',
       'HIVENUES_MEMORY_KB=1048576',
       'HIVENUES_DISK_KB=20971520',
+      'HIVENUES_BOOTSTRAP_ROOT_READY=1',
       'HIVENUES_PUBLIC_TCP_PORTS=22,80,443',
+      'HIVENUES_SYSTEMD_RESOLVED_LLMNR_ACTIVE=0',
       'HIVENUES_SYSTEM_CADDY_ACTIVE=1',
       'HIVENUES_HIVENUES_CADDY_ACTIVE=0',
       'HIVENUES_HIVENUES_FIREWALL_ACTIVE=0',
@@ -126,6 +130,8 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
       memoryMb: 1024,
       diskMb: 20480,
       publicTcpPorts: [22, 80, 443],
+      bootstrapRootReady: true,
+      systemdResolvedLlmnrActive: false,
       systemCaddyActive: true,
       hivenuesCaddyActive: false,
       hivenuesFirewallActive: false,
@@ -136,6 +142,14 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
     () => parseInspectionOutput('HIVENUES_OS=Debian\nHIVENUES_ARCH=x86_64\n'),
     (error) => error.code === 'DEPLOYMENT_INSPECTION_INVALID',
   );
+});
+
+test('Era 7 Stage 3C: read-only command excludes IPv4 loopback range and proves sudo/root plus systemd-resolved ownership', () => {
+  assert.equal(READ_ONLY_INSPECTION_COMMAND.includes('endpoint ~ /^127\\./'), true);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /BOOTSTRAP_ROOT_READY/);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /sudo -n \/usr\/bin\/id -u/);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /SYSTEMD_RESOLVED_LLMNR_ACTIVE/);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /systemd-resolve/);
 });
 
 test('Era 7 Stage 2B: loopback SSH observation and inspection enforce host trust before authentication', async (t) => {
@@ -179,6 +193,8 @@ test('Era 7 Stage 2B: loopback SSH observation and inspection enforce host trust
     memoryMb: 1024,
     diskMb: 20480,
     publicTcpPorts: [22],
+    bootstrapRootReady: true,
+    systemdResolvedLlmnrActive: false,
     systemCaddyActive: false,
     hivenuesCaddyActive: false,
     hivenuesFirewallActive: false,
