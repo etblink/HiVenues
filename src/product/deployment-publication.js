@@ -642,6 +642,15 @@ function prepareStage4PublicationReview({
     );
   }
   if (
+    preflight.tls?.state !== 'ready-for-request'
+    || preflight.publicReadBack?.state !== 'unverified'
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID',
+      'Hostname publication review is only available before TLS publication begins.',
+    );
+  }
+  if (
     publication?.capability !== 'ready'
     || !publication.status
     || !['unconfigured', 'configured'].includes(publication.status.state)
