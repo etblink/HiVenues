@@ -241,6 +241,8 @@ test('Era 7 Stage 4E composition: exact DNS confirmation unlocks explicit public
 
   assert.match(response.text, /Domain records confirmed/);
   assert.match(response.text, /data-domain-dns-observation/);
+  assert.match(response.text, /data-domain-dns-recheck/);
+  assert.match(response.text, />Recheck DNS</);
   assert.match(response.text, /synthetic-ui/);
   assert.match(response.text, /data-review-live-publication/);
 
