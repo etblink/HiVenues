@@ -168,6 +168,7 @@ function fixture(t, {
     username: 'hivenues-deploy',
     bootstrapUsername: 'debian',
     trustedHostKeyFingerprint: 'SHA256:' + 'Z'.repeat(43),
+    hostKeyTrustState: 'trusted',
     verifiedOs: 'Debian GNU/Linux 13 (trixie)',
     verifiedArchitecture: 'x86_64',
     verifiedDedicatedTarget: true,
