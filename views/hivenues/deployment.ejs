@@ -247,6 +247,20 @@
                       <% } %>
                     </p>
 
+                    <% if (
+                      deploymentPublicationExecutionAvailable
+                      && deployment.publicEndpoint.domainState === 'dns-confirmed'
+                    ) { %>
+                      <form
+                        method="post"
+                        action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/domain/check"
+                        style="margin-top:.75rem"
+                        data-domain-dns-recheck
+                      >
+                        <button class="cc-button" type="submit">Recheck DNS</button>
+                      </form>
+                    <% } %>
+
                     <% if (deployment.publicEndpoint.dns.observation) { %>
                       <details class="cc-review-card" style="margin-top:1rem" data-domain-dns-observation>
                         <summary>Last DNS observation</summary>
