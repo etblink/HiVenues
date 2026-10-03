@@ -651,7 +651,16 @@ class InstalledRemoteDeploymentService {
         'Prepare a domain plan before reviewing hostname publication.',
       );
     }
-    const checkedAt = Date.parse(String(record.publicEndpoint.dns?.observation?.checkedAt || ''));
+    if (
+      record.publicEndpoint.domainState !== 'dns-confirmed'
+      || record.publicEndpoint.dns?.observation?.matches !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+        'The exact prepared DNS records must be confirmed before live hostname review.',
+      );
+    }
+    const checkedAt = Date.parse(String(record.publicEndpoint.dns.observation.checkedAt || ''));
     const now = Number(this.now());
     if (
       !Number.isFinite(checkedAt)
