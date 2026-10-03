@@ -83,6 +83,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PUBLICATION_CONFIGURED_REQUIRED'
     || error.code === 'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID'
     || error.code === 'DEPLOYMENT_PUBLIC_ENDPOINT_STALE'
+    || error.code === 'DEPLOYMENT_PUBLICATION_READBACK_CHANGED'
   ) return 409;
   return 400;
 }
