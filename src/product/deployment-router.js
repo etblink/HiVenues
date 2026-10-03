@@ -73,6 +73,13 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID'
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED'
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_UNSAFE'
+    || error.code === 'DEPLOYMENT_PUBLICATION_DNS_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_CAPABILITY_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_EXACT_DEPLOYMENT_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_BOOTSTRAP_AUTHORITY_HELD'
+    || error.code === 'DEPLOYMENT_PUBLICATION_HOSTNAME_CONFLICT'
+    || error.code === 'DEPLOYMENT_PUBLICATION_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_PUBLICATION_CONFIGURED_REQUIRED'
   ) return 409;
   return 400;
 }
@@ -261,6 +268,13 @@ function createHiVenuesDeploymentRouter({
         active?.remoteDeployment
         && typeof active.remoteDeployment.inspectPublicationCapability === 'function'
       ),
+      deploymentPublicationExecutionAvailable: Boolean(
+        active?.remoteDeployment
+        && typeof active.remoteDeployment.checkDns === 'function'
+        && typeof active.remoteDeployment.prepareHostnamePublicationReview === 'function'
+        && typeof active.remoteDeployment.publishHostname === 'function'
+        && typeof active.remoteDeployment.verifyPublicHttps === 'function'
+      ),
       deployments,
       error,
     });
@@ -330,6 +344,104 @@ function createHiVenuesDeploymentRouter({
       });
     }
   });
+
+  router.post(
+    '/studio/:slug/deploy/:deploymentId/domain/check',
+    mutateAsync(async (active, req) => {
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.checkDns !== 'function'
+      ) {
+        const error = new Error('Read-only DNS verification is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_DNS_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.checkDns(deployment.id);
+    }),
+  );
+
+  router.get('/studio/:slug/deploy/:deploymentId/publication-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.prepareHostnamePublicationReview !== 'function'
+      ) {
+        const error = new Error('Secure hostname publication review is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_APPLY_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = await active.remoteDeployment.prepareHostnamePublicationReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-publication-review', {
+        pageTitle: `Secure publication review — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Secure hostname publication review could not be prepared.',
+        ),
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/publication-apply', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.publishHostname !== 'function'
+      ) {
+        const error = new Error('Secure hostname publication is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_APPLY_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.publishHostname(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+      return res.redirect(
+        303,
+        `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy`,
+      );
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Secure hostname publication could not continue.',
+        ),
+      });
+    }
+  });
+
+  router.post(
+    '/studio/:slug/deploy/:deploymentId/publication-verify',
+    mutateAsync(async (active, req) => {
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.verifyPublicHttps !== 'function'
+      ) {
+        const error = new Error('Secure public verification is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_VERIFY_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.verifyPublicHttps(deployment.id);
+    }),
+  );
 
   router.get('/studio/:slug/deploy/:deploymentId/publication-capability', async (req, res) => {
     try {
