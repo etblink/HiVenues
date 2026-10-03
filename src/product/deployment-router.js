@@ -71,6 +71,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_REVIEW_STALE'
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_BOOTSTRAP_AUTHORITY_REQUIRED'
     || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED'
   ) return 409;
   return 400;
 }
