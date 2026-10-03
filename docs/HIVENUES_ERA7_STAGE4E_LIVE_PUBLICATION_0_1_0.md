@@ -157,3 +157,14 @@ public runtime/Release identity = exact
 ```
 
 Stage 5 remains separate.
+
+
+## Review freshness and target binding
+
+A live publication review is not reusable indefinitely.
+
+The DNS observation must be recent (within ten minutes, with only a small future-clock-skew allowance) when the review is prepared and again when its confirmation is submitted.
+
+The review digest also binds the exact server host, SSH port, steady deployment username and trusted SSH host fingerprint alongside the hostname, DNS observation, runtime and immutable Release. If any of those facts change, the prior review becomes stale and cannot authorize publication.
+
+Once TLS publication has begun, the hostname-publication review is no longer available. This prevents a direct or repeated submission from resetting verified TLS/public-read-back evidence back to an earlier state.
