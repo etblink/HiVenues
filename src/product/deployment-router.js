@@ -282,6 +282,58 @@ function createHiVenuesDeploymentRouter({
     }
   });
 
+  router.get('/studio/:slug/deploy/:deploymentId/recovery-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.prepareRecoveryFinalization !== 'function'
+      ) {
+        const error = new Error('Interrupted deployment recovery finalization is unavailable.');
+        error.code = 'DEPLOYMENT_MUTATION_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = await active.remoteDeployment.prepareRecoveryFinalization(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-recovery-review', {
+        pageTitle: `Recovery finalization — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Interrupted deployment recovery review could not be prepared.',
+        ),
+      });
+    }
+  });
+
+  router.post(
+    '/studio/:slug/deploy/:deploymentId/finalize-recovery',
+    mutateAsync(async (active, req) => {
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.finalizeInterruptedRecovery !== 'function'
+      ) {
+        const error = new Error('Interrupted deployment recovery finalization is unavailable.');
+        error.code = 'DEPLOYMENT_MUTATION_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.finalizeInterruptedRecovery(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+    }),
+  );
+
   router.get('/studio/:slug/deploy/:deploymentId/review', (req, res) => {
     try {
       const active = requireServices(services);
