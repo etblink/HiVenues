@@ -294,7 +294,9 @@ function sameReadBackArtifacts(left, right) {
   );
 }
 
-function requireRemoteRecord(record) {
+function requireRemoteRecord(record, {
+  allowReauthorizing = false,
+} = {}) {
   if (!record) {
     throw executionError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
   }
@@ -304,7 +306,10 @@ function requireRemoteRecord(record) {
       'Remote deployment consequence review requires a verified server target.',
     );
   }
-  if (!MUTATION_STATES.has(record.state)) {
+  if (
+    !MUTATION_STATES.has(record.state)
+    && !(allowReauthorizing && record.state === 'reauthorizing')
+  ) {
     throw executionError(
       'DEPLOYMENT_MUTATION_STATE_INVALID',
       'Server target is not ready for an exact Release deployment review.',
@@ -676,8 +681,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async inspectPublicationCapability(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async inspectPublicationCapability(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.activeRelease || !record.runtimeProfile) {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED',
@@ -988,8 +998,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async verifyPublicHttps(deploymentId) {
-    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async verifyPublicHttps(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    let record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.publicEndpoint || record.publicEndpoint.domainState !== 'dns-confirmed') {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
@@ -1011,9 +1026,15 @@ class InstalledRemoteDeploymentService {
         'DNS no longer exactly matches the reviewed deployment destination.',
       );
     }
-    record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
 
-    const publication = await this.inspectPublicationCapability(deploymentId);
+    const publication = await this.inspectPublicationCapability(
+      deploymentId,
+      { allowReauthorizing },
+    );
     if (
       publication.capability !== 'ready'
       || publication.status?.state !== 'configured'
@@ -1083,7 +1104,10 @@ class InstalledRemoteDeploymentService {
   }
 
   async prepareReauthorizationReview(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
     if (record.state !== 'reauthorizing' || !record.authorityRef) {
       throw executionError(
         'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID',
@@ -1220,7 +1244,10 @@ class InstalledRemoteDeploymentService {
       );
     }
 
-    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    let record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
     const authority = this.authorityStore.publicRecord(record.authorityRef);
     const currentStateDigest = stableDigest({
       deploymentId: record.id,
@@ -1285,8 +1312,11 @@ class InstalledRemoteDeploymentService {
       );
     }
 
-    await this.verifyPublicHttps(deploymentId);
-    record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    await this.verifyPublicHttps(deploymentId, { allowReauthorizing: true });
+    record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
     if (record.publicEndpoint?.publicReadBack?.state !== 'verified') {
       throw executionError(
         'DEPLOYMENT_REAUTHORIZATION_PUBLIC_PROOF_FAILED',
