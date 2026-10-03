@@ -127,6 +127,12 @@ function fixture(t) {
         dnsObservation: deploymentStore.get(deployment.id).publicEndpoint.dns.observation,
         publicationState: 'unconfigured',
         alreadyApplied: false,
+        target: {
+          host: '121.127.34.154',
+          port: 22,
+          username: 'hivenues-deploy',
+          trustedHostKeyFingerprint: 'SHA256:' + 'Z'.repeat(43),
+        },
         consequences: [
           'apply-only-the-reviewed-hostname-through-the-restricted-publication-helper',
           'restart-only-hivenues-caddy-and-firewall-services',
@@ -245,6 +251,7 @@ test('Era 7 Stage 4E composition: exact DNS confirmation unlocks explicit public
   assert.match(response.text, /data-live-publication-review/);
   assert.match(response.text, /data-live-publication-dns-proof/);
   assert.match(response.text, /data-live-publication-release-proof/);
+  assert.match(response.text, /hivenues-deploy@121\.127\.34\.154:22/);
   assert.match(response.text, /data-live-publication-consequences/);
   assert.match(response.text, /data-live-publication-held/);
   assert.match(response.text, /data-confirm-live-publication/);
