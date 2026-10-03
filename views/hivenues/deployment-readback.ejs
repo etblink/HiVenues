@@ -31,6 +31,50 @@
       </p>
     </section>
 
+    <section class="cc-review-card" style="margin-top:1rem" data-interrupted-recovery-proof>
+      <p class="cc-kicker">Interrupted deployment recovery proof</p>
+      <h2><%= diagnostic.recovery.recoverable
+        ? 'Recoverable interrupted deployment proven'
+        : 'Recovery proof is not yet complete' %></h2>
+      <p>
+        Restricted account:
+        <code><%= diagnostic.recovery.deploymentUsername %></code>
+        · Read-back:
+        <strong><%= diagnostic.recovery.restrictedActual ? 'available' : 'unavailable' %></strong>
+      </p>
+      <p>
+        Restricted authority state:
+        <code data-recovery-authority-state><%= diagnostic.recovery.restrictedAuthorityState || 'unavailable' %></code>
+      </p>
+      <p>
+        Observed runtime matches preserved local cache:
+        <strong data-recovery-cache-match><%= diagnostic.recovery.cachedRuntimeMatch ? 'yes' : 'no' %></strong>
+      </p>
+      <p>
+        Exact immutable Release matches:
+        <strong data-recovery-release-match><%= diagnostic.recovery.releaseMatches ? 'yes' : 'no' %></strong>
+      </p>
+      <p>
+        Provider and restricted account observe the same runtime/Release:
+        <strong data-recovery-account-match><%= diagnostic.recovery.restrictedMatchesObserved ? 'yes' : 'no' %></strong>
+      </p>
+      <% if (diagnostic.recovery.cachedRuntime) { %>
+        <p>
+          Preserved runtime source:
+          <code><%= diagnostic.recovery.cachedRuntime.provenance.sourceSha %></code>
+          · tree
+          <code><%= diagnostic.recovery.cachedRuntime.provenance.sourceTree %></code>
+        </p>
+        <p>
+          Preserved runtime bundle:
+          <code><%= diagnostic.recovery.cachedRuntime.provenance.bundleDigest %></code>
+        </p>
+      <% } %>
+      <p>
+        This proof is read-only. It does not adopt, finalize or mutate the server.
+      </p>
+    </section>
+
     <section class="cc-review-card" style="margin-top:1rem">
       <h2>Expected</h2>
       <p>Status: <code><%= diagnostic.expected.status %></code></p>
