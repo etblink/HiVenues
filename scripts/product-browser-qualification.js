@@ -2709,8 +2709,8 @@ async function runDeploymentStage2BVerificationEvidence(browser, axeSource, mani
     assert.deepEqual(counters.externalRequests, []);
     assert.deepEqual(counters.consoleErrors, []);
 
-    await page.locator('[data-disconnect-deployment]').click();
-    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'disconnected');
+    assert.equal(await page.locator('[data-disconnect-deployment]').count(), 0);
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'bootstrap-ready');
   } finally {
     await context.close();
     await stopServer(server);
