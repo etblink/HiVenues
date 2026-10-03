@@ -7,8 +7,14 @@
   const hasRealHero = heroMedia.kind !== 'bootstrap-art' && heroMedia.asset;
   const sparseHost = !primaryActivity && graph.offers.length === 0;
   const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
-  const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
-  const activityHref = (activity) => `${hostHref}/activities/${encodeURIComponent(activity.slug)}`;
+  const releasedRouteBase = typeof publicRouteBase === 'string'
+    ? publicRouteBase
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const routeBase = previewMode
+    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    : releasedRouteBase;
+  const hostHref = routeBase || '/';
+  const activityHref = (activity) => `${routeBase}/activities/${encodeURIComponent(activity.slug)}`;
   const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
   const communityAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.community !== false;
   const supportAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.support !== false;
@@ -19,8 +25,8 @@
     <nav aria-label="Primary">
       <% if (primaryActivity) { %><a href="#what-is-on">Activity</a><% } %>
       <% if (discoverableActivities.length) { %><a href="#more-activities">More</a><% } %>
-      <% if (!previewMode && communityAvailable) { %><a href="<%= hostHref %>/community">Community</a><% } %>
-      <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %><a href="<%= hostHref %>/support">Support</a><% } %>
+      <% if (!previewMode && communityAvailable) { %><a href="<%= routeBase %>/community">Community</a><% } %>
+      <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %><a href="<%= routeBase %>/support">Support</a><% } %>
       <a href="#visit">Where</a>
       <a href="#story">Story</a>
     </nav>
@@ -86,7 +92,7 @@
           <p class="cc-poster-story__small"><%= graph.intent.purpose %></p>
           <p class="cc-poster-story__small"><%= graph.intent.participation %></p>
           <% if (!previewMode && supportAvailable && graph.bindings.hive.valueRecipient) { %>
-            <p class="cc-poster-story__small"><a class="cc-link cc-link--light" href="<%= hostHref %>/support"><%= graph.voice.terms.support_hive || 'Support this place' %></a></p>
+            <p class="cc-poster-story__small"><a class="cc-link cc-link--light" href="<%= routeBase %>/support"><%= graph.voice.terms.support_hive || 'Support this place' %></a></p>
           <% } %>
         </section>
       <% } %>
