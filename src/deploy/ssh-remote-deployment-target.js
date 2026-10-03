@@ -365,8 +365,6 @@ function publicationMigrationActivateCommand(plan, helperSha256) {
     'printf "%s  %s\\n" ' + shellQuote(helperSha256) + ' ' + shellQuote(helperCandidate)
       + ' | sha256sum -c -',
     '/usr/sbin/visudo -cf ' + shellQuote(sudoersCandidate),
-    'install -m 0755 -o root -g root -- ' + shellQuote(helperCandidate)
-      + ' ' + shellQuote(plan.paths.publicationHelper),
     'install -m 0600 -o root -g root -- ' + shellQuote(metadataCandidate)
       + ' ' + shellQuote(plan.paths.publicationMetadata),
     'install -m 0644 -o root -g root -- ' + shellQuote(caddyServiceCandidate)
@@ -375,6 +373,8 @@ function publicationMigrationActivateCommand(plan, helperSha256) {
       + ' ' + shellQuote(plan.paths.firewallService),
     'install -m 0440 -o root -g root -- ' + shellQuote(sudoersCandidate)
       + ' ' + shellQuote(plan.paths.sudoersFile),
+    'install -m 0755 -o root -g root -- ' + shellQuote(helperCandidate)
+      + ' ' + shellQuote(plan.paths.publicationHelper),
     'rm -f -- ' + [
       helperCandidate,
       metadataCandidate,
