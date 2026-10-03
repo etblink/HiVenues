@@ -362,10 +362,9 @@ function applyPublication({
 
     writeCandidate(paths.firewallPolicy, firewall, 0o600, io);
 
-    io.renameSync(caddyCandidate, paths.caddyConfig);
-    io.renameSync(firewallCandidate, paths.firewallPolicy);
-
     try {
+      io.renameSync(caddyCandidate, paths.caddyConfig);
+      io.renameSync(firewallCandidate, paths.firewallPolicy);
       command(execFile, '/usr/bin/systemctl', ['restart', paths.firewallService]);
       command(execFile, '/usr/bin/systemctl', ['restart', paths.caddyService]);
       command(execFile, '/usr/bin/systemctl', ['is-active', '--quiet', paths.firewallService]);
