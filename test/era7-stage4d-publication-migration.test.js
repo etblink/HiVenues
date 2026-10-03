@@ -407,3 +407,72 @@ test('Era 7 Stage 4D: installed UI presents public key, bounded consequences, an
     },
   });
 });
+
+
+test('Era 7 Stage 4D: readiness keeps interrupted key-cleanup discoverable after capability install', async (t) => {
+  const f = serviceFixture(t);
+  f.state.capabilityReady = true;
+  f.state.bootstrapAvailable = true;
+
+  const diagnostic = await f.service.inspectPublicationCapability(f.deploymentId);
+
+  assert.equal(diagnostic.capability, 'ready');
+  assert.equal(diagnostic.status.state, 'unconfigured');
+  assert.equal(diagnostic.bootstrapAuthorityAccessible, true);
+});
+
+test('Era 7 Stage 4D: ready capability UI warns when temporary bootstrap authority still remains', async (t) => {
+  const f = deploymentFixture(t);
+  const hostStore = new ProvisioningFileHiVenuesStore({
+    statePath: path.join(f.root, 'workspace-interrupted.json'),
+    mediaRoot: path.join(f.root, 'media-interrupted'),
+  });
+  const services = {
+    deploymentStore: f.deploymentStore,
+    packageBuilder: {},
+    authorityStore: {},
+    adapters: {
+      synthetic: {
+        profile() {
+          return { kind: 'synthetic-offline', profile: 'synthetic-local', capabilities: [], externalEffects: false };
+        },
+      },
+    },
+    remoteDeployment: {
+      async inspectPublicationCapability() {
+        return {
+          deploymentId: f.deploymentId,
+          hostSlug: 'harbor-and-hearth',
+          capability: 'ready',
+          status: {
+            version: 1,
+            capability: 'ready',
+            state: 'unconfigured',
+            hostSlug: 'harbor-and-hearth',
+          },
+          bootstrapAuthorityAccessible: true,
+        };
+      },
+      async preparePublicationMigrationReview() {
+        return {};
+      },
+      async migratePublicationCapability() {
+        return {};
+      },
+    },
+  };
+  const app = createHiVenuesApp({
+    store: hostStore,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices: services,
+  });
+
+  const response = await request(app)
+    .get('/hivenues/studio/harbor-and-hearth/deploy/' + f.deploymentId + '/publication-capability')
+    .expect(200);
+
+  assert.match(response.text, /data-publication-bootstrap-authority-warning/);
+  assert.match(response.text, /Temporary bootstrap access still needs to be removed/);
+  assert.match(response.text, /data-finalize-publication-upgrade/);
+});
