@@ -511,7 +511,7 @@ test('Era 7 Stage 2B: host-key change between observation and authentication ret
 });
 
 
-test('Era 7 Stage 2A: protected server handoff UI persists only public target facts and revokes authority on disconnect', async (t) => {
+test('Era 7 Stage 2A: protected server handoff persists only public target facts and legacy real-target disconnect is blocked', async (t) => {
   const root = tempRoot(t);
   const statePath = path.join(root, 'workspace', 'state.json');
   const mediaRoot = path.join(root, 'media');
@@ -614,14 +614,18 @@ test('Era 7 Stage 2A: protected server handoff UI persists only public target fa
   assert.match(page.text, /data-deployment-ssh-verification-held/);
   assert.doesNotMatch(page.text, /data-verify-deployment-target/);
 
-  await request(app)
+  const disconnect = await request(app)
     .post('/hivenues/studio/' + slug + '/deploy/' + deployment.id + '/disconnect')
-    .expect(303);
+    .expect(409);
+  assert.match(
+    disconnect.text,
+    /must use the reviewed deployment-authority disconnect flow/,
+  );
 
   deployment = services.deploymentStore.get(deployment.id);
-  assert.equal(deployment.state, 'disconnected');
-  assert.equal(deployment.authorityRef, null);
-  assert.equal(fs.existsSync(authorityPath), false);
+  assert.equal(deployment.state, 'target-ready');
+  assert.equal(deployment.authorityRef, 'authority-ssh-router-authority');
+  assert.equal(fs.existsSync(authorityPath), true);
   assert.deepEqual(store.diagnostics().external, {
     hiveRpcAttempts: 0,
     hiveWrites: 0,

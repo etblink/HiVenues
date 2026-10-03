@@ -22,6 +22,7 @@ const {
 const {
   Ssh2PinnedMutationTransport,
   listTree,
+  preReadyConnectionError,
 } = require('../src/deploy/ssh2-mutation-transport');
 const { hostKeyFingerprint } = require('../src/product/ssh2-readonly-transport');
 
@@ -247,4 +248,22 @@ test('Era 7 Stage 3B: upload tree rejects symlinks before any remote session', (
     () => listTree(root),
     (error) => error.code === 'DEPLOYMENT_UPLOAD_SYMLINK_REJECTED',
   );
+});
+
+
+test('Era 7 Stage 5A corrective: pre-ready transport classifies only explicit authentication rejection as auth failure', () => {
+  const auth = new Error('All configured authentication methods failed');
+  auth.level = 'client-authentication';
+  const authFailure = preReadyConnectionError(auth);
+  assert.equal(authFailure.code, 'DEPLOYMENT_SSH_AUTH_FAILED');
+
+  const timeout = new Error('connect ETIMEDOUT 203.0.113.10:22');
+  timeout.code = 'ETIMEDOUT';
+  const timeoutFailure = preReadyConnectionError(timeout);
+  assert.equal(timeoutFailure.code, 'DEPLOYMENT_SSH_CONNECTION_FAILED');
+
+  const refused = new Error('connect ECONNREFUSED 203.0.113.10:22');
+  refused.code = 'ECONNREFUSED';
+  const refusedFailure = preReadyConnectionError(refused);
+  assert.equal(refusedFailure.code, 'DEPLOYMENT_SSH_CONNECTION_FAILED');
 });

@@ -60,6 +60,24 @@ function shellQuote(value) {
   return "'" + text.replaceAll("'", "'\\''") + "'";
 }
 
+function preReadyConnectionError(error) {
+  const level = String(error?.level || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  const authenticationRejected = (
+    level === 'client-authentication'
+    || level === 'authentication'
+    || message.includes('all configured authentication methods failed')
+  );
+  return mutationError(
+    authenticationRejected
+      ? 'DEPLOYMENT_SSH_AUTH_FAILED'
+      : 'DEPLOYMENT_SSH_CONNECTION_FAILED',
+    authenticationRejected
+      ? 'SSH authentication was rejected for remote mutation.'
+      : 'SSH connection failed before authentication could be proven.',
+  );
+}
+
 function boundedBuffer(chunks, bytes, maxBytes, label) {
   if (bytes > maxBytes) {
     throw mutationError(
@@ -291,7 +309,7 @@ class Ssh2PinnedMutationTransport {
         try { client.end(); } catch {}
         reject(error);
       };
-      client.once('error', () => {
+      client.once('error', (cause) => {
         if (observed && observed !== expected) {
           const error = mutationError(
             'DEPLOYMENT_HOST_KEY_CHANGED',
@@ -301,11 +319,13 @@ class Ssh2PinnedMutationTransport {
           rejectConnection(error);
           return;
         }
+        if (!ready) {
+          rejectConnection(preReadyConnectionError(cause));
+          return;
+        }
         rejectConnection(mutationError(
-          ready ? 'DEPLOYMENT_REMOTE_SESSION_FAILED' : 'DEPLOYMENT_SSH_AUTH_FAILED',
-          ready
-            ? 'Remote mutation SSH session failed.'
-            : 'SSH authentication failed for remote mutation.',
+          'DEPLOYMENT_REMOTE_SESSION_FAILED',
+          'Remote mutation SSH session failed.',
         ));
       });
       client.once('ready', () => {
@@ -323,11 +343,8 @@ class Ssh2PinnedMutationTransport {
             return observed === expected;
           },
         });
-      } catch {
-        rejectConnection(mutationError(
-          'DEPLOYMENT_SSH_AUTH_FAILED',
-          'SSH mutation session could not start.',
-        ));
+      } catch (cause) {
+        rejectConnection(preReadyConnectionError(cause));
       }
     });
 
@@ -401,5 +418,6 @@ module.exports = {
   Ssh2PinnedMutationTransport,
   execRemote,
   listTree,
+  preReadyConnectionError,
   shellQuote,
 };
