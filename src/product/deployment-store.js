@@ -359,6 +359,7 @@ class FileDeploymentStore {
       record.publicEndpoint = value;
       record.domainState = value ? value.domainState : 'domain-unconfigured';
       record.tlsState = value ? value.tls.state : 'unconfigured';
+      if (value) assertVerifiedPublicIdentityMatchesDeployment(record);
       return record;
     });
   }
