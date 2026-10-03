@@ -195,3 +195,25 @@ test('Era 7 Stage 4B: status detects managed-config drift without exposing arbit
   assert.equal(result.reason, 'managed-config-drift');
   assert.equal(Object.hasOwn(result, 'content'), false);
 });
+
+
+test('Era 7 Stage 4B: candidate validation failure has zero managed-config consequence', (t) => {
+  const f = fixture(t);
+  const execFile = (command) => {
+    if (command === '/usr/bin/caddy') throw new Error('synthetic invalid config');
+    return '';
+  };
+
+  assert.throws(
+    () => applyPublication({
+      metadata: metadata(),
+      hostname: 'dev.fourthstreetbar.com',
+      paths: f.paths,
+      execFile,
+    }),
+    (error) => error.code === 'PUBLICATION_VALIDATION_FAILED',
+  );
+  assert.equal(fs.readFileSync(f.paths.caddyConfig, 'utf8'), 'old-caddy\n');
+  assert.equal(fs.readFileSync(f.paths.firewallPolicy, 'utf8'), 'old-firewall\n');
+  assert.equal(fs.existsSync(f.paths.status), false);
+});
