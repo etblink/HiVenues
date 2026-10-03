@@ -791,8 +791,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async checkDns(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async checkDns(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.publicEndpoint) {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
@@ -1137,6 +1142,15 @@ class InstalledRemoteDeploymentService {
       throw executionError(
         'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
         'Re-authorization requires the preserved active Release, runtime and public deployment evidence.',
+      );
+    }
+    if (
+      record.publicEndpoint.domainState !== 'dns-confirmed'
+      || record.publicEndpoint.dns?.observation?.matches !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED',
+        'Recheck DNS and restore the exact prepared destination before reviewing management reconnection.',
       );
     }
     const facts = record.targetPublicFacts || {};
