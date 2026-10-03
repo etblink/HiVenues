@@ -5,7 +5,13 @@
 </head>
 <%
   const previewMode = typeof draftPreview !== 'undefined' && draftPreview === true;
-  const hostHref = previewMode ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview` : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const releasedRouteBase = typeof publicRouteBase === 'string'
+    ? publicRouteBase
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
+  const routeBase = previewMode
+    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    : releasedRouteBase;
+  const hostHref = routeBase || '/';
 %>
 <body class="cc-task-body" style="--cc-accent:<%= graph.presentation.accent %>">
   <main class="cc-task">
