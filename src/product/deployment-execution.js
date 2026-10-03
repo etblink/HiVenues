@@ -88,6 +88,44 @@ const PUBLICATION_MIGRATION_CONSEQUENCES = Object.freeze([
 
 const PUBLICATION_DNS_MAX_AGE_MS = 10 * 60 * 1000;
 
+const ROLLBACK_CONSEQUENCES = Object.freeze([
+  'activate-only-the-already-installed-exact-previous-release',
+  'preserve-the-qualified-runtime-without-upload-or-replacement',
+  'restart-only-the-dedicated-hivenues-host-service',
+  'reprove-exact-runtime-and-rollback-release-readback',
+  'invalidate-stale-public-release-proof-until-https-is-reverified',
+]);
+
+const ROLLBACK_HELD = Object.freeze([
+  'runtime-upload-or-replacement',
+  'release-upload',
+  'bootstrap-or-root-authority',
+  'dns-mutation',
+  'caddy-or-firewall-reconfiguration',
+  'tls-issuance',
+  'provider-payment',
+  'hive-writes',
+  'value-movement',
+]);
+
+const DISCONNECT_CONSEQUENCES = Object.freeze([
+  'remove-only-the-exact-hivenues-deployment-public-key-from-the-steady-server-account',
+  'prove-a-new-authentication-attempt-with-that-authority-fails',
+  'revoke-the-local-protected-deployment-private-key',
+  'mark-the-local-deployment-record-disconnected',
+  'preserve-the-running-site-hostgraph-and-immutable-release-history',
+]);
+
+const DISCONNECT_HELD = Object.freeze([
+  'stop-or-delete-the-running-site',
+  'runtime-or-release-change',
+  'dns-mutation',
+  'caddy-firewall-or-tls-reconfiguration',
+  'provider-payment',
+  'hive-writes',
+  'value-movement',
+]);
+
 const PUBLICATION_MIGRATION_HELD = Object.freeze([
   'runtime-redeploy-or-replacement',
   'release-redeploy-or-change',
@@ -355,6 +393,65 @@ function publicationReviewIdentity(record) {
 
 function publicationReviewStateDigest(record) {
   return stableDigest(publicationReviewIdentity(record));
+}
+
+function rollbackReviewIdentity(record) {
+  const facts = record?.targetPublicFacts || {};
+  return Object.freeze({
+    deploymentId: String(record?.id || ''),
+    state: String(record?.state || ''),
+    stateReason: String(record?.stateReason || ''),
+    authorityRef: String(record?.authorityRef || ''),
+    target: Object.freeze({
+      host: String(facts.host || ''),
+      port: Number(facts.port || 22),
+      username: String(facts.username || ''),
+      bootstrapUsername: String(facts.bootstrapUsername || ''),
+      trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+    }),
+    activeRelease: record?.activeRelease ? Object.freeze({ ...record.activeRelease }) : null,
+    previousRelease: record?.previousRelease ? Object.freeze({ ...record.previousRelease }) : null,
+    runtimeProfile: record?.runtimeProfile ? Object.freeze({ ...record.runtimeProfile }) : null,
+    publicEndpoint: record?.publicEndpoint
+      ? JSON.parse(JSON.stringify(record.publicEndpoint))
+      : null,
+  });
+}
+
+function rollbackReviewStateDigest(record) {
+  return stableDigest(rollbackReviewIdentity(record));
+}
+
+function releaseReadBackExpectation(record, release) {
+  if (!record?.runtimeProfile || !release) {
+    throw executionError(
+      'DEPLOYMENT_ROLLBACK_UNAVAILABLE',
+      'Rollback requires an exact preserved runtime and previous Release.',
+    );
+  }
+  return Object.freeze({
+    runtime: Object.freeze({
+      sourceSha: record.runtimeProfile.sourceSha,
+      sourceTree: record.runtimeProfile.sourceTree,
+      packageVersion: record.runtimeProfile.packageVersion,
+      nodeVersion: record.runtimeProfile.nodeVersion,
+      bundleDigest: record.runtimeProfile.bundleDigest,
+    }),
+    deployment: Object.freeze({
+      hostSlug: record.hostSlug,
+      releaseId: release.id,
+      releaseDigest: release.digest,
+      packageDigest: release.packageDigest,
+    }),
+  });
+}
+
+function disconnectRecoveryMarked(record) {
+  return (
+    record?.state === 'degraded'
+    && record?.stateReason === 'authority-disconnect-remote-removed'
+    && record?.targetPublicFacts?.authorityDisconnectState === 'remote-removed'
+  );
 }
 
 function publicationHelperArtifact() {
@@ -927,6 +1024,447 @@ class InstalledRemoteDeploymentService {
     return completed;
   }
 
+  async prepareRollbackReview(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const rollbackRecovery = (
+      (record.state === 'deploying' && record.stateReason === 'rollback-started')
+      || (record.state === 'degraded' && record.stateReason === 'rollback-failed')
+    );
+    if (
+      !record.previousRelease
+      || !record.activeRelease
+      || !record.runtimeProfile
+      || (!['rollback-available', 'healthy'].includes(record.state) && !rollbackRecovery)
+    ) {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_UNAVAILABLE',
+        'This deployment does not have an exact previous Release available for rollback.',
+      );
+    }
+    if (record.publicEndpoint?.publicReadBack?.state !== 'verified') {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_PUBLIC_PROOF_REQUIRED',
+        'Verify the currently active public Release before reviewing rollback.',
+      );
+    }
+
+    const facts = record.targetPublicFacts || {};
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+    if (
+      !target
+      || typeof target.readBack !== 'function'
+      || typeof target.publicationStatus !== 'function'
+      || typeof target.bootstrapAuthorityAccessible !== 'function'
+      || typeof target.activateExistingRelease !== 'function'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_UNAVAILABLE',
+        'Exact server rollback is unavailable in this runtime.',
+      );
+    }
+
+    const currentExpected = activeReadBackExpectation(record);
+    const previousExpected = releaseReadBackExpectation(record, record.previousRelease);
+    const actual = await target.readBack();
+    let remoteState = '';
+    if (readBackMatches(actual, currentExpected)) {
+      remoteState = 'active-release';
+    } else if (readBackMatches(actual, previousExpected)) {
+      remoteState = 'previous-release-already-active';
+    } else {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_READBACK_MISMATCH',
+        'The server matches neither the current active Release nor the exact rollback candidate.',
+      );
+    }
+
+    const publication = await target.publicationStatus(plan);
+    const bootstrapAccessible = await target.bootstrapAuthorityAccessible(plan);
+    const hostname = String(record.publicEndpoint?.hostname || '');
+    if (
+      publication.capability !== 'ready'
+      || publication.status?.state !== 'configured'
+      || publication.status?.hostname !== hostname
+      || bootstrapAccessible !== false
+    ) {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_PUBLICATION_REQUIRED',
+        'Rollback requires the existing restricted published hostname with bootstrap authority removed.',
+      );
+    }
+
+    const core = {
+      version: 1,
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      },
+      hostname,
+      runtime: Object.freeze({ ...record.runtimeProfile }),
+      currentRelease: Object.freeze({ ...record.activeRelease }),
+      rollbackRelease: Object.freeze({ ...record.previousRelease }),
+      remoteState,
+      consequences: ROLLBACK_CONSEQUENCES,
+      held: ROLLBACK_HELD,
+      stateDigest: rollbackReviewStateDigest(record),
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async rollback(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'rollback-to-previous-release') {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_CONFIRMATION_REQUIRED',
+        'Explicit exact-Release rollback confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.prepareRollbackReview(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_REVIEW_STALE',
+        'Rollback facts changed after review. Review the current deployment again.',
+      );
+    }
+
+    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (rollbackReviewStateDigest(record) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_ROLLBACK_REVIEW_STALE',
+        'Deployment state changed after rollback review.',
+      );
+    }
+    const facts = record.targetPublicFacts || {};
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.previousRelease.id,
+        releaseDigest: record.previousRelease.digest,
+        packageDigest: record.previousRelease.packageDigest,
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+
+    const displaced = Object.freeze({ ...record.activeRelease });
+    const rollbackRelease = Object.freeze({ ...record.previousRelease });
+    const beforeExpected = activeReadBackExpectation(record);
+    const afterExpected = releaseReadBackExpectation(record, rollbackRelease);
+
+    if (!(record.state === 'deploying' && record.stateReason === 'rollback-started')) {
+      this.deploymentStore.transition(record.id, 'deploying', {
+        reason: 'rollback-started',
+        patch: { healthState: 'checking' },
+      });
+    }
+
+    try {
+      const before = await target.readBack();
+      if (readBackMatches(before, beforeExpected)) {
+        await target.activateExistingRelease(plan, rollbackRelease);
+      } else if (!readBackMatches(before, afterExpected)) {
+        throw executionError(
+          'DEPLOYMENT_ROLLBACK_READBACK_MISMATCH',
+          'The server changed before rollback and matches neither admitted Release.',
+        );
+      }
+
+      const after = await target.readBack();
+      if (!readBackMatches(after, afterExpected)) {
+        throw executionError(
+          'DEPLOYMENT_ROLLBACK_READBACK_MISMATCH',
+          'Server read-back did not match the exact rollback Release.',
+        );
+      }
+
+      record = this.deploymentStore.get(record.id);
+      if (
+        record.state !== 'deploying'
+        || record.stateReason !== 'rollback-started'
+        || record.activeRelease?.id !== displaced.id
+        || record.previousRelease?.id !== rollbackRelease.id
+      ) {
+        throw executionError(
+          'DEPLOYMENT_ROLLBACK_REVIEW_STALE',
+          'Local deployment state changed while rollback was in progress.',
+        );
+      }
+
+      return this.deploymentStore.transition(record.id, 'rollback-available', {
+        reason: 'rollback-readback-match',
+        patch: {
+          activeRelease: {
+            ...rollbackRelease,
+            deployedAt: new Date(this.now()).toISOString(),
+          },
+          previousRelease: displaced,
+          healthState: 'healthy',
+          rollbackState: 'available',
+          lastConfirmedAt: new Date(this.now()).toISOString(),
+        },
+      });
+    } catch (error) {
+      const current = this.deploymentStore.get(deploymentId);
+      if (current?.state === 'deploying' && current.stateReason === 'rollback-started') {
+        this.deploymentStore.transition(deploymentId, 'degraded', {
+          reason: 'rollback-failed',
+          patch: {
+            healthState: 'degraded',
+            rollbackState: 'available',
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  async prepareDisconnectReview(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const markedRecovery = disconnectRecoveryMarked(record);
+    if (
+      !markedRecovery
+      && (
+        !['healthy', 'rollback-available'].includes(record.state)
+        || record.publicEndpoint?.publicReadBack?.state !== 'verified'
+      )
+    ) {
+      throw executionError(
+        'DEPLOYMENT_DISCONNECT_PUBLIC_PROOF_REQUIRED',
+        'Verify the current public Release before disconnecting deployment authority.',
+      );
+    }
+
+    const facts = record.targetPublicFacts || {};
+    let authority = null;
+    let localAuthorityPresent = true;
+    try {
+      authority = this.authorityStore.publicRecord(record.authorityRef);
+    } catch (error) {
+      if (!markedRecovery || error?.code !== 'DEPLOYMENT_AUTHORITY_NOT_FOUND') throw error;
+      localAuthorityPresent = false;
+      authority = {
+        id: record.authorityRef,
+        publicKey: '',
+        publicKeyFingerprint: String(facts.authorityDisconnectFingerprint || ''),
+      };
+    }
+
+    let remoteAuthorityRemoved = markedRecovery;
+    let exactDeploymentConfirmed = markedRecovery;
+    if (localAuthorityPresent) {
+      const plan = createReferenceBootstrapPlan({
+        runtimeProvenance: record.runtimeProfile,
+        releaseManifest: {
+          hostSlug: record.hostSlug,
+          releaseId: record.activeRelease.id,
+          releaseDigest: record.activeRelease.digest,
+          packageDigest: record.activeRelease.packageDigest,
+        },
+        bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      });
+      const target = this.targetFactory({
+        authorityStore: this.authorityStore,
+        authorityId: record.authorityRef,
+        target: {
+          host: String(facts.host),
+          port: Number(facts.port || 22),
+          username: String(facts.username),
+        },
+        bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+        expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+        hostSlug: record.hostSlug,
+      });
+      if (
+        !target
+        || typeof target.deploymentAuthorityAccessible !== 'function'
+        || typeof target.removeDeploymentAuthority !== 'function'
+        || typeof target.readBack !== 'function'
+      ) {
+        throw executionError(
+          'DEPLOYMENT_DISCONNECT_UNAVAILABLE',
+          'Deployment authority disconnect is unavailable in this runtime.',
+        );
+      }
+
+      const accessible = await target.deploymentAuthorityAccessible();
+      remoteAuthorityRemoved = accessible === false;
+      if (!remoteAuthorityRemoved) {
+        const actual = await target.readBack();
+        exactDeploymentConfirmed = readBackMatches(actual, activeReadBackExpectation(record));
+        if (!exactDeploymentConfirmed) {
+          throw executionError(
+            'DEPLOYMENT_DISCONNECT_READBACK_REQUIRED',
+            'The exact active runtime and Release must be confirmed before deployment authority is removed.',
+          );
+        }
+      }
+    }
+
+    const core = {
+      version: 1,
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      },
+      hostname: String(record.publicEndpoint?.hostname || ''),
+      release: Object.freeze({ ...record.activeRelease }),
+      runtime: Object.freeze({ ...record.runtimeProfile }),
+      authority: {
+        id: String(record.authorityRef || ''),
+        publicKeyFingerprint: String(authority.publicKeyFingerprint || ''),
+        localAuthorityPresent,
+        remoteAuthorityRemoved,
+      },
+      exactDeploymentConfirmed,
+      consequences: DISCONNECT_CONSEQUENCES,
+      held: DISCONNECT_HELD,
+      stateDigest: rollbackReviewStateDigest(record),
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async disconnectAuthority(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'disconnect-deployment-authority') {
+      throw executionError(
+        'DEPLOYMENT_DISCONNECT_CONFIRMATION_REQUIRED',
+        'Explicit deployment-authority disconnect confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.prepareDisconnectReview(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_DISCONNECT_REVIEW_STALE',
+        'Disconnect facts changed after review. Review the current deployment again.',
+      );
+    }
+
+    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (rollbackReviewStateDigest(record) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_DISCONNECT_REVIEW_STALE',
+        'Deployment state changed after disconnect review.',
+      );
+    }
+
+    if (!review.authority.remoteAuthorityRemoved) {
+      const facts = record.targetPublicFacts || {};
+      const authority = this.authorityStore.publicRecord(record.authorityRef);
+      const plan = createReferenceBootstrapPlan({
+        runtimeProvenance: record.runtimeProfile,
+        releaseManifest: {
+          hostSlug: record.hostSlug,
+          releaseId: record.activeRelease.id,
+          releaseDigest: record.activeRelease.digest,
+          packageDigest: record.activeRelease.packageDigest,
+        },
+        bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      });
+      const target = this.targetFactory({
+        authorityStore: this.authorityStore,
+        authorityId: record.authorityRef,
+        target: {
+          host: String(facts.host),
+          port: Number(facts.port || 22),
+          username: String(facts.username),
+        },
+        bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+        expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+        hostSlug: record.hostSlug,
+      });
+
+      await target.removeDeploymentAuthority(plan, authority.publicKey);
+      if (await target.deploymentAuthorityAccessible()) {
+        throw executionError(
+          'DEPLOYMENT_DISCONNECT_REMOTE_AUTHORITY_REMAINS',
+          'The deployment authority could still authenticate after server-side key removal.',
+        );
+      }
+
+      const current = this.deploymentStore.get(deploymentId);
+      this.deploymentStore.transition(deploymentId, 'degraded', {
+        reason: 'authority-disconnect-remote-removed',
+        patch: {
+          targetPublicFacts: {
+            ...current.targetPublicFacts,
+            authorityDisconnectState: 'remote-removed',
+            authorityDisconnectFingerprint: authority.publicKeyFingerprint,
+          },
+          healthState: 'unknown',
+          rollbackState: current.rollbackState,
+        },
+      });
+    }
+
+    record = this.deploymentStore.get(deploymentId);
+    if (!disconnectRecoveryMarked(record)) {
+      throw executionError(
+        'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID',
+        'Server-side authority removal was not persisted before local key revocation.',
+      );
+    }
+
+    try {
+      this.authorityStore.revoke(record.authorityRef);
+    } catch (error) {
+      if (error?.code !== 'DEPLOYMENT_AUTHORITY_NOT_FOUND') throw error;
+    }
+    return this.deploymentStore.disconnect(deploymentId, 'deployment-authority-disconnected');
+  }
+
   async preparePublicationMigrationReview(deploymentId) {
     const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
     if (
@@ -1461,6 +1999,10 @@ module.exports = {
   RECOVERY_HELD,
   PUBLICATION_MIGRATION_CONSEQUENCES,
   PUBLICATION_MIGRATION_HELD,
+  ROLLBACK_CONSEQUENCES,
+  ROLLBACK_HELD,
+  DISCONNECT_CONSEQUENCES,
+  DISCONNECT_HELD,
   InstalledRemoteDeploymentService,
   findCachedRuntimeBundle,
   materializeInstalledRuntimeBundle,
