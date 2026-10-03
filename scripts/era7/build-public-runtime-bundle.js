@@ -14,6 +14,10 @@ const RUNTIME_DEPENDENCIES = Object.freeze([
   'zod',
 ]);
 
+const EXECUTABLE_RUNTIME_SHEBANGS = Object.freeze(new Map([
+  ['src/deploy/publication-helper-runtime.js', '#!/opt/hivenues/node/v24.19.0/bin/node'],
+]));
+
 const RUNTIME_FILES = Object.freeze([
   'LICENSE',
   'scripts/hivenues-public-runtime.js',
@@ -61,6 +65,28 @@ function bundleError(code, message) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function canonicalRuntimeFileBytes(relativePath, value) {
+  const bytes = Buffer.isBuffer(value) ? Buffer.from(value) : Buffer.from(value);
+  const expectedShebang = EXECUTABLE_RUNTIME_SHEBANGS.get(String(relativePath));
+  if (!expectedShebang) return bytes;
+
+  const text = bytes.toString('utf8');
+  if (text.includes('\u0000')) {
+    throw bundleError(
+      'DEPLOYED_RUNTIME_EXECUTABLE_INVALID',
+      'Runtime executable contains a NUL byte: ' + relativePath,
+    );
+  }
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (!normalized.startsWith(expectedShebang + '\n')) {
+    throw bundleError(
+      'DEPLOYED_RUNTIME_EXECUTABLE_SHEBANG_INVALID',
+      'Runtime executable has an unexpected Linux shebang: ' + relativePath,
+    );
+  }
+  return Buffer.from(normalized, 'utf8');
 }
 
 function gitValue(args) {
@@ -165,8 +191,8 @@ function copyRuntimeFiles(outputRoot) {
     }
     const destination = path.join(outputRoot, relative);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.copyFileSync(source, destination);
-    const bytes = fs.readFileSync(destination);
+    const bytes = canonicalRuntimeFileBytes(relative, fs.readFileSync(source));
+    fs.writeFileSync(destination, bytes);
     entries.push({
       path: relative.replaceAll('\\', '/'),
       bytes: bytes.length,
@@ -297,8 +323,10 @@ if (require.main === module) {
 }
 
 module.exports = {
+  EXECUTABLE_RUNTIME_SHEBANGS,
   RUNTIME_DEPENDENCIES,
   RUNTIME_FILES,
+  canonicalRuntimeFileBytes,
   buildPublicRuntimeBundle,
   buildRuntimeLock,
 };
