@@ -298,6 +298,14 @@ test('Era 7 Stage 5A: rollback transport validates the already-installed exact R
   const command = rollbackPreflightCommand(plan, runtimePath, releasePath, RELEASE_A);
 
   assert.match(command, /rollback-preflight/);
+  assert.match(
+    command,
+    /'\/opt\/hivenues\/node\/v24\.19\.0\/bin\/node' -e /,
+  );
+  assert.doesNotMatch(
+    command,
+    /'\/opt\/hivenues\/node\/v24\.19\.0\/bin:\/usr\/bin:\/bin' -e /,
+  );
   assert.match(command, /loadReleasePackage/);
   assert.match(command, new RegExp(RELEASE_A.id));
   assert.match(command, new RegExp(RELEASE_A.packageDigest));
@@ -320,6 +328,8 @@ test('Era 7 Stage 5A: authority removal command touches only the steady account 
 
   assert.match(command, /deployment-authority-remove/);
   assert.match(command, /\/var\/lib\/hivenues-deploy\/\.ssh\/authorized_keys/);
+  assert.match(command, /mktemp/);
+  assert.match(command, /authorized_keys\.hivenues-remove\.XXXXXX/);
   assert.match(command, /grep -vxF/);
   assert.doesNotMatch(command, /systemctl|caddy|nft|\/etc\/ssh|sshd_config|sudo -n/);
 });
