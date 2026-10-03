@@ -115,10 +115,16 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
   });
 
   const publicPage = await request(runtime.app)
-    .get('/hivenues/' + f.slug)
+    .get('/')
     .expect(200);
   assert.equal(publicPage.text.includes(escapeHtml(f.release.snapshot.identity.displayName)), true);
   assert.equal(publicPage.text.includes(escapeHtml(f.release.snapshot.facts.tagline)), true);
+  assert.equal(publicPage.text.includes('/hivenues/' + f.slug), false);
+
+  const legacyHome = await request(runtime.app)
+    .get('/hivenues/' + f.slug)
+    .expect(308);
+  assert.equal(legacyHome.headers.location, '/');
 
   await request(runtime.app)
     .get('/hivenues/studio/' + f.slug)
@@ -136,11 +142,15 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
 
   const activity = f.release.snapshot.activities.find((item) => item.lifecycle === 'scheduled');
   assert(activity);
-  await request(runtime.app)
-    .post('/hivenues/' + f.slug + '/activities/' + activity.slug + '/rsvp')
+  const rsvp = await request(runtime.app)
+    .post('/activities/' + activity.slug + '/rsvp')
     .type('form')
     .send({ name: 'Stage Three Guest' })
     .expect(303);
+  assert.equal(
+    rsvp.headers.location,
+    '/activities/' + activity.slug + '?rsvp=recorded',
+  );
 
   const runtimeState = JSON.parse(fs.readFileSync(f.runtimeStatePath, 'utf8'));
   assert.equal(runtimeState.rsvps.length, 1);
