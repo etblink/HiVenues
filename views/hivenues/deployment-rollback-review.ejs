@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-real-rollback-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+      <span class="cc-draft-status">Exact Release rollback review</span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · explicit rollback consequence</p>
+    <h1>Review the exact previous Release before HiVenues switches the live site.</h1>
+    <p class="cc-task__dek">
+      HiVenues will keep the same qualified runtime and activate only the already-installed previous immutable
+      Release. DNS, Caddy/firewall publication state, TLS configuration and provider state remain unchanged.
+      The public HTTPS Release proof becomes stale until you verify the site again.
+    </p>
+
+    <section class="cc-review-card" data-rollback-current-release>
+      <p class="cc-kicker">Currently public</p>
+      <h2><code><%= review.currentRelease.id %></code></h2>
+      <p>Release digest: <code><%= review.currentRelease.digest %></code></p>
+      <p>Package digest: <code><%= review.currentRelease.packageDigest %></code></p>
+    </section>
+
+    <section class="cc-consequence-card" data-rollback-target-release>
+      <p class="cc-kicker">Rollback target</p>
+      <h2><code><%= review.rollbackRelease.id %></code></h2>
+      <p>Release digest: <code><%= review.rollbackRelease.digest %></code></p>
+      <p>Package digest: <code><%= review.rollbackRelease.packageDigest %></code></p>
+      <% if (review.remoteState === 'previous-release-already-active') { %>
+        <p data-rollback-recovery>
+          The server already reports this exact previous Release. This is an interrupted rollback recovery:
+          HiVenues will not activate a different Release; it will re-prove and persist the already-committed rollback.
+        </p>
+      <% } %>
+    </section>
+
+    <section class="cc-review-card" data-rollback-preserved-runtime>
+      <p class="cc-kicker">Runtime preserved</p>
+      <p>Source: <code><%= review.runtime.sourceSha %></code></p>
+      <p>Tree: <code><%= review.runtime.sourceTree %></code></p>
+      <p>Node: <code><%= review.runtime.nodeVersion %></code></p>
+      <p>Bundle: <code><%= review.runtime.bundleDigest %></code></p>
+    </section>
+
+    <section class="cc-review-card" data-rollback-target-identity>
+      <p class="cc-kicker">Trusted server</p>
+      <p><code><%= review.target.username %>@<%= review.target.host %>:<%= review.target.port %></code></p>
+      <p>Host fingerprint: <code><%= review.target.trustedHostKeyFingerprint %></code></p>
+      <p>Published hostname: <strong><%= review.hostname %></strong></p>
+    </section>
+
+    <section class="cc-consequence-card" data-rollback-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-rollback-held>
+      <h2>What remains held</h2>
+      <ul>
+        <% review.held.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <details class="cc-review-card">
+      <summary>Technical review identity</summary>
+      <p>Remote state: <code><%= review.remoteState %></code></p>
+      <p>Review digest: <code><%= review.reviewDigest %></code></p>
+    </details>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/rollback-exact"
+      class="cc-consequence-card"
+      data-confirm-real-rollback
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input type="checkbox" name="confirmation" value="rollback-to-previous-release" required>
+        I reviewed the exact active and previous immutable Releases. Roll back only to the Release shown above.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit">
+        Roll back to <%= review.rollbackRelease.id %>
+      </button>
+    </form>
+  </main>
+</body>
+</html>
