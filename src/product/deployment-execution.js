@@ -446,10 +446,19 @@ function releaseReadBackExpectation(record, release) {
   });
 }
 
-function disconnectRecoveryMarked(record) {
+function disconnectRemovalStarted(record) {
   return (
     record?.state === 'degraded'
-    && record?.stateReason === 'authority-disconnect-remote-removed'
+    && record?.stateReason === 'authority-disconnect-removal-started'
+    && ['removal-started', 'remote-removed'].includes(
+      String(record?.targetPublicFacts?.authorityDisconnectState || ''),
+    )
+  );
+}
+
+function disconnectRecoveryMarked(record) {
+  return (
+    disconnectRemovalStarted(record)
     && record?.targetPublicFacts?.authorityDisconnectState === 'remote-removed'
   );
 }
@@ -1263,9 +1272,10 @@ class InstalledRemoteDeploymentService {
 
   async prepareDisconnectReview(deploymentId) {
     const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const removalStarted = disconnectRemovalStarted(record);
     const markedRecovery = disconnectRecoveryMarked(record);
     if (
-      !markedRecovery
+      !removalStarted
       && (
         !['healthy', 'rollback-available'].includes(record.state)
         || record.publicEndpoint?.publicReadBack?.state !== 'verified'
@@ -1331,6 +1341,12 @@ class InstalledRemoteDeploymentService {
 
       const accessible = await target.deploymentAuthorityAccessible();
       remoteAuthorityRemoved = accessible === false;
+      if (remoteAuthorityRemoved && !removalStarted) {
+        throw executionError(
+          'DEPLOYMENT_DISCONNECT_REMOTE_STATE_AMBIGUOUS',
+          'Deployment authority is already unavailable before the reviewed disconnect began. Do not revoke local authority automatically.',
+        );
+      }
       if (!remoteAuthorityRemoved) {
         const actual = await target.readBack();
         exactDeploymentConfirmed = readBackMatches(actual, activeReadBackExpectation(record));
@@ -1400,9 +1416,38 @@ class InstalledRemoteDeploymentService {
       );
     }
 
+    let authority = null;
+    if (review.authority.localAuthorityPresent) {
+      authority = this.authorityStore.publicRecord(record.authorityRef);
+    }
+
+    if (!disconnectRemovalStarted(record)) {
+      if (!authority) {
+        throw executionError(
+          'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID',
+          'Local deployment authority is unavailable before server-side disconnect intent was persisted.',
+        );
+      }
+      this.deploymentStore.transition(deploymentId, 'degraded', {
+        reason: 'authority-disconnect-removal-started',
+        patch: {
+          targetPublicFacts: {
+            ...record.targetPublicFacts,
+            authorityDisconnectState: 'removal-started',
+            authorityDisconnectFingerprint: authority.publicKeyFingerprint,
+          },
+          healthState: 'unknown',
+          rollbackState: record.rollbackState,
+        },
+      });
+      record = this.deploymentStore.get(deploymentId);
+    }
+
     if (!review.authority.remoteAuthorityRemoved) {
+      if (!authority) {
+        authority = this.authorityStore.publicRecord(record.authorityRef);
+      }
       const facts = record.targetPublicFacts || {};
-      const authority = this.authorityStore.publicRecord(record.authorityRef);
       const plan = createReferenceBootstrapPlan({
         runtimeProvenance: record.runtimeProfile,
         releaseManifest: {
@@ -1433,23 +1478,22 @@ class InstalledRemoteDeploymentService {
           'The deployment authority could still authenticate after server-side key removal.',
         );
       }
-
-      const current = this.deploymentStore.get(deploymentId);
-      this.deploymentStore.transition(deploymentId, 'degraded', {
-        reason: 'authority-disconnect-remote-removed',
-        patch: {
-          targetPublicFacts: {
-            ...current.targetPublicFacts,
-            authorityDisconnectState: 'remote-removed',
-            authorityDisconnectFingerprint: authority.publicKeyFingerprint,
-          },
-          healthState: 'unknown',
-          rollbackState: current.rollbackState,
-        },
-      });
     }
 
     record = this.deploymentStore.get(deploymentId);
+    if (!disconnectRecoveryMarked(record)) {
+      this.deploymentStore.setTargetPublicFacts(deploymentId, {
+        ...record.targetPublicFacts,
+        authorityDisconnectState: 'remote-removed',
+        authorityDisconnectFingerprint: (
+          record.targetPublicFacts.authorityDisconnectFingerprint
+          || authority?.publicKeyFingerprint
+          || review.authority.publicKeyFingerprint
+        ),
+      });
+      record = this.deploymentStore.get(deploymentId);
+    }
+
     if (!disconnectRecoveryMarked(record)) {
       throw executionError(
         'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID',
