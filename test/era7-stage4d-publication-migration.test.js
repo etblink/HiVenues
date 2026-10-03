@@ -11,6 +11,7 @@ const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan')
 const {
   publicationMigrationActivateCommand,
   publicationMigrationDirectoriesCommand,
+  publicationMigrationRecoveryEvidenceCommand,
 } = require('../src/deploy/ssh-remote-deployment-target');
 const { createHiVenuesApp } = require('../src/product/app');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
@@ -166,6 +167,14 @@ function serviceFixture(t) {
     },
     async bootstrapAuthorityAccessible() {
       return state.bootstrapAvailable;
+    },
+    async publicationMigrationRecoveryEvidence() {
+      return {
+        eligible: true,
+        reason: 'unpublished-stage3-baseline',
+        caddyConfigSha256: 'b'.repeat(64),
+        firewallPolicySha256: 'c'.repeat(64),
+      };
     },
     async migratePublicationCapability({ helperSource, helperSha256 }) {
       assert.ok(Buffer.byteLength(helperSource) > 1000);
@@ -495,6 +504,14 @@ test('Era 7 Stage 4D: partial helper/sudo state remains recoverable when bootstr
     async bootstrapAuthorityAccessible() {
       return true;
     },
+    async publicationMigrationRecoveryEvidence() {
+      return {
+        eligible: true,
+        reason: 'unpublished-stage3-baseline',
+        caddyConfigSha256: 'b'.repeat(64),
+        firewallPolicySha256: 'c'.repeat(64),
+      };
+    },
   };
   const service = new InstalledRemoteDeploymentService({
     deploymentStore: f.deploymentStore,
@@ -588,5 +605,70 @@ test('Era 7 Stage 4D: ready capability readiness also proves the exact active ru
   await assert.rejects(
     () => f.service.preparePublicationMigrationReview(f.deploymentId),
     (error) => error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED',
+  );
+});
+
+
+test('Era 7 Stage 4D: recovery eligibility command proves no prior publication state and exact Stage-3 baseline', () => {
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: RUNTIME,
+    releaseManifest: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE.id,
+      releaseDigest: RELEASE.digest,
+      packageDigest: RELEASE.packageDigest,
+    },
+    bootstrapUsername: 'debian',
+  });
+
+  const command = publicationMigrationRecoveryEvidenceCommand(plan, { sshPort: 22 });
+
+  assert.match(command, /status\.json/);
+  assert.match(command, /publication-status-present/);
+  assert.match(command, /publication-baseline-changed/);
+  assert.match(command, /unpublished-stage3-baseline/);
+  assert.match(command, /sha256sum/);
+  assert.doesNotMatch(command, /\brm\b|\bmv\b|\binstall\b|systemctl|nft -f|caddy validate/);
+});
+
+test('Era 7 Stage 4D: helper failure on a published or drifted server is not accepted as interrupted migration', async (t) => {
+  const f = deploymentFixture(t);
+  const target = {
+    async publicationStatus() {
+      const error = new Error('synthetic helper status failure on a published server');
+      error.code = 'DEPLOYMENT_PUBLICATION_STATUS_FAILED';
+      throw error;
+    },
+    async bootstrapAuthorityAccessible() {
+      return true;
+    },
+    async publicationMigrationRecoveryEvidence() {
+      return {
+        eligible: false,
+        reason: 'publication-status-present',
+        caddyConfigSha256: '',
+        firewallPolicySha256: '',
+      };
+    },
+  };
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: { build() { throw new Error('not used'); } },
+    authorityStore: authorityStore(),
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles-published-failure'),
+    buildProvenance: {
+      sourceSha: 'a'.repeat(40),
+      sourceTree: 'b'.repeat(40),
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+    targetFactory() {
+      return target;
+    },
+  });
+
+  await assert.rejects(
+    () => service.inspectPublicationCapability(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_UNSAFE',
   );
 });
