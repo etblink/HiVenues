@@ -231,7 +231,8 @@ test('Era 7 Stage 4E: injected DNS observer checks required and opposite address
       },
       async resolveCname(name) {
         calls.push(['CNAME', name]);
-        return ['target.example.com'];
+        if (name === 'c.example.com') return ['target.example.com'];
+        return noData();
       },
     },
     now: () => Date.parse('2026-10-03T20:00:00.000Z'),
@@ -251,7 +252,9 @@ test('Era 7 Stage 4E: injected DNS observer checks required and opposite address
     ['A', 'a.example.com'],
     ['AAAA', 'v6.example.com'],
     ['CNAME', 'c.example.com'],
+    ['CNAME', 'a.example.com'],
     ['AAAA', 'a.example.com'],
+    ['CNAME', 'v6.example.com'],
     ['A', 'v6.example.com'],
   ]);
   assert.equal(result.checkedAt, '2026-10-03T20:00:00.000Z');
@@ -903,4 +906,36 @@ test('Era 7 Stage 4E corrective: in-flight DNS recheck cannot regress newer TLS-
     (error) => error.code === 'DEPLOYMENT_PUBLIC_ENDPOINT_STALE',
   );
   assert.equal(f.store.get(f.deploymentId).publicEndpoint.tls.state, 'requesting');
+});
+
+
+test('Era 7 Stage 4E: address requirement fails exact DNS proof when the hostname is actually an alias', async () => {
+  const observer = new NodePublicationObserver({
+    resolver: {
+      async resolve4() {
+        return ['121.127.34.154'];
+      },
+      async resolve6() {
+        const error = new Error('no data');
+        error.code = 'ENODATA';
+        throw error;
+      },
+      async resolveCname() {
+        return ['other.example.com'];
+      },
+    },
+    now: () => Date.parse('2026-10-03T20:38:00.000Z'),
+  });
+  const preflight = createDomainPreflight({
+    hostname: 'dev.fourthstreetbar.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  });
+
+  const observed = await observer.observeDns(preflight);
+  const endpoint = recordDnsObservation(preflight, observed);
+
+  assert.equal(endpoint.domainState, 'dns-mismatch');
+  assert.equal(endpoint.dns.observation.matches, false);
+  assert.equal(endpoint.dns.observation.conflictingRecords[0].type, 'CNAME');
+  assert.equal(endpoint.dns.observation.conflictingRecords[0].values[0], 'other.example.com');
 });
