@@ -145,7 +145,7 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
 });
 
 test('Era 7 Stage 3C: read-only command excludes IPv4 loopback range and proves sudo/root plus systemd-resolved ownership', () => {
-  assert.match(READ_ONLY_INSPECTION_COMMAND, /endpoint ~ \/\^127\\\\\.\//);
+  assert.equal(READ_ONLY_INSPECTION_COMMAND.includes('endpoint ~ /^127\\./'), true);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /BOOTSTRAP_ROOT_READY/);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /sudo -n \/usr\/bin\/id -u/);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /SYSTEMD_RESOLVED_LLMNR_ACTIVE/);
