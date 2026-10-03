@@ -93,6 +93,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_STALE'
     || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_AUTHORITY_REMAINS'
     || error.code === 'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_STATE_AMBIGUOUS'
     || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_REQUIRED'
   ) return 409;
   return 400;
