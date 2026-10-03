@@ -78,6 +78,7 @@ function fixture(t) {
     username: 'hivenues-deploy',
     bootstrapUsername: 'debian',
     trustedHostKeyFingerprint: 'SHA256:' + 'Z'.repeat(43),
+    hostKeyTrustState: 'trusted',
     verifiedDedicatedTarget: true,
   });
   store.selectRelease(deployment.id, {
