@@ -195,3 +195,6 @@ If the hostname plan, DNS proof or later TLS/public state changes while an obser
 The live publication review also carries a digest of the exact deployment/publication state used to prepare it. A change while readiness is being proved invalidates the review.
 
 After the restricted helper applies a hostname, HiVenues re-reads the server and requires the exact reviewed runtime + immutable Release before advancing local state to TLS requesting. If that identity changed concurrently, the helper's configured state remains observable for recovery, but the stale local review is not accepted as success.
+
+
+Immediately before TLS/public HTTPS verification, HiVenues performs another exact DNS observation, including opposite-family and alias-conflict checks. If DNS has changed, TLS/public verification does not run and the persisted downstream proof is invalidated.
