@@ -1,7 +1,14 @@
 'use strict';
 
+const net = require('node:net');
+
 const express = require('express');
 
+const {
+  createDomainPreflight,
+  normalizeHostname,
+  prepareStage4LiveReview,
+} = require('./deployment-publication');
 const { buildViewModel } = require('./present');
 
 function mutationSubstage(stderr) {
@@ -57,6 +64,8 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PACKAGE_STALE'
     || error.code === 'DEPLOYMENT_CONSEQUENCE_REVIEW_STALE'
     || error.code === 'DEPLOYMENT_TARGET_NOT_TRUSTED'
+    || error.code === 'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED'
+    || error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_LOCKED'
   ) return 409;
   return 400;
 }
@@ -163,6 +172,26 @@ function requireDeploymentConsequenceSubmission(body = {}) {
   });
 }
 
+function requireDomainPreflightSubmission(body = {}) {
+  if (Object.keys(body).some((key) => key !== 'hostname')) {
+    const error = new Error('Domain setup accepts only one hostname.');
+    error.code = 'DEPLOYMENT_DOMAIN_FIELDS_INVALID';
+    throw error;
+  }
+  return normalizeHostname(body.hostname);
+}
+
+function domainDestination(deployment) {
+  const host = String(deployment?.targetPublicFacts?.host || '').trim();
+  const family = net.isIP(host);
+  if (family === 4) return Object.freeze({ kind: 'ipv4', value: host });
+  if (family === 6) return Object.freeze({ kind: 'ipv6', value: host });
+  if (host) return Object.freeze({ kind: 'hostname', value: normalizeHostname(host) });
+  const error = new Error('The deployment target has no public destination for domain setup.');
+  error.code = 'DEPLOYMENT_DOMAIN_DESTINATION_INVALID';
+  throw error;
+}
+
 function requireHostKeyAcceptance(body = {}) {
   if (Object.keys(body).some((key) => key !== 'fingerprint')) {
     const error = new Error('Host-key review accepts only the exact observed fingerprint.');
@@ -201,7 +230,16 @@ function createHiVenuesDeploymentRouter({
               authorityPublic = active.authorityStore.publicRecord(deployment.authorityRef);
             } catch {}
           }
-          return { ...deployment, authorityPublic };
+          let publicationReview = null;
+          if (deployment.publicEndpoint) {
+            try {
+              publicationReview = prepareStage4LiveReview({
+                preflight: deployment.publicEndpoint,
+                deployment,
+              });
+            } catch {}
+          }
+          return { ...deployment, authorityPublic, publicationReview };
         })
       : [];
     return res.status(status).render('hivenues/deployment', {
@@ -455,6 +493,36 @@ function createHiVenuesDeploymentRouter({
     active.deploymentStore.recordPackage(deployment.id, manifest);
   }));
 
+  router.post('/studio/:slug/deploy/:deploymentId/domain/preflight', mutate((active, req) => {
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (deployment.providerKind !== 'ssh-server') {
+      const error = new Error('Domain setup requires a real server deployment target.');
+      error.code = 'DEPLOYMENT_TARGET_KIND_INVALID';
+      throw error;
+    }
+    if (!['healthy', 'rollback-available'].includes(deployment.state) || !deployment.activeRelease) {
+      const error = new Error('Finish a healthy exact Release deployment before connecting a domain.');
+      error.code = 'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED';
+      throw error;
+    }
+    if (
+      deployment.publicEndpoint
+      && !['dns-instructions-ready', 'dns-mismatch'].includes(deployment.publicEndpoint.domainState)
+    ) {
+      const error = new Error(
+        'This domain has already advanced beyond editable preflight. Preserve its proof before changing it.',
+      );
+      error.code = 'DEPLOYMENT_DOMAIN_PREFLIGHT_LOCKED';
+      throw error;
+    }
+    const hostname = requireDomainPreflightSubmission(req.body);
+    const endpoint = createDomainPreflight({
+      hostname,
+      destinations: [domainDestination(deployment)],
+    });
+    active.deploymentStore.setPublicEndpoint(deployment.id, endpoint);
+  }));
+
   router.post('/studio/:slug/deploy/:deploymentId/target-ready', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
     requireSyntheticTarget(deployment);
@@ -539,5 +607,6 @@ module.exports = {
   deploymentErrorMessage,
   requireConnectionFacts,
   requireDeploymentConsequenceSubmission,
+  requireDomainPreflightSubmission,
   requireHostKeyAcceptance,
 };
