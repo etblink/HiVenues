@@ -430,6 +430,80 @@ function publicationMigrationActivateCommand(plan, helperSha256) {
   ].join('\n') + '\n';
 }
 
+function existingReleasePath(release) {
+  const id = String(release?.id || release?.releaseId || '').trim();
+  const digest = String(release?.digest || release?.releaseDigest || '').trim().toLowerCase();
+  if (!id || !/^[a-f0-9]{64}$/.test(digest)) {
+    throw targetError(
+      'DEPLOYMENT_ROLLBACK_RELEASE_INVALID',
+      'Rollback requires an exact prior immutable Release identity.',
+    );
+  }
+  return '/srv/hivenues/releases/' + id + '-' + digest.slice(0, 12);
+}
+
+function rollbackPreflightCommand(plan, runtimePath, releasePath, release) {
+  const nodePath = qualifiedNodePath(plan.nodeDistribution);
+  const expected = {
+    hostSlug: String(plan.release.hostSlug),
+    releaseId: String(release.id || release.releaseId),
+    releaseDigest: String(release.digest || release.releaseDigest).toLowerCase(),
+    packageDigest: String(release.packageDigest || '').toLowerCase(),
+  };
+  if (!/^[a-f0-9]{64}$/.test(expected.packageDigest)) {
+    throw targetError(
+      'DEPLOYMENT_ROLLBACK_RELEASE_INVALID',
+      'Rollback requires the exact prior Release package digest.',
+    );
+  }
+  const verificationScript = [
+    "const { loadReleasePackage } = require(process.argv[1]);",
+    "const pkg = loadReleasePackage(process.argv[2]);",
+    "const expected = JSON.parse(process.argv[3]);",
+    "const m = pkg.manifest;",
+    "if (m.hostSlug !== expected.hostSlug",
+    " || m.releaseId !== expected.releaseId",
+    " || m.releaseDigest !== expected.releaseDigest",
+    " || m.packageDigest !== expected.packageDigest) process.exit(23);",
+  ].join('');
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=rollback-preflight\\n" >&2',
+    'test "$(id -un)" = ' + shellQuote(plan.deploymentUser),
+    'test -d ' + shellQuote(runtimePath),
+    'test -d ' + shellQuote(releasePath),
+    shellQuote(nodePath)
+      + ' -e ' + shellQuote(verificationScript)
+      + ' ' + shellQuote(runtimePath + '/src/deploy/release-store.js')
+      + ' ' + shellQuote(releasePath)
+      + ' ' + shellQuote(JSON.stringify(expected)),
+  ].join('\n') + '\n';
+}
+
+function removeDeploymentAuthorityCommand(plan, publicKey) {
+  const key = String(publicKey || '').trim();
+  if (!/^ssh-(?:rsa|ed25519|ecdsa-[^ ]+)\s+\S+(?:\s+.*)?$/.test(key)) {
+    throw targetError(
+      'DEPLOYMENT_AUTHORITY_PUBLIC_KEY_INVALID',
+      'Deployment authority removal requires the exact public SSH key.',
+    );
+  }
+  const authorizedKeys = '/var/lib/hivenues-deploy/.ssh/authorized_keys';
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=deployment-authority-remove\\n" >&2',
+    'test "$(id -un)" = ' + shellQuote(plan.deploymentUser),
+    'test -f ' + shellQuote(authorizedKeys),
+    'tmp=' + shellQuote(authorizedKeys + '.hivenues-remove.$'),
+    'trap \'rm -f -- "$tmp"\' EXIT',
+    'grep -vxF -- ' + shellQuote(key) + ' ' + shellQuote(authorizedKeys) + ' > "$tmp" || true',
+    'chmod 0600 "$tmp"',
+    'mv -f -- "$tmp" ' + shellQuote(authorizedKeys),
+    'trap - EXIT',
+    'if grep -qxF -- ' + shellQuote(key) + ' ' + shellQuote(authorizedKeys) + '; then exit 72; fi',
+  ].join('\n') + '\n';
+}
+
 class SshRemoteDeploymentTarget {
   constructor({
     authorityStore,
@@ -906,6 +980,81 @@ class SshRemoteDeploymentTarget {
     });
   }
 
+  async activateExistingRelease(plan = this.lastPlan, release = null) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_ROLLBACK_PLAN_REQUIRED',
+        'Rollback requires an exact deployment plan.',
+      );
+    }
+    const runtimeDigest = String(plan.runtime?.bundleDigest || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(runtimeDigest)) {
+      throw targetError(
+        'DEPLOYMENT_ROLLBACK_RUNTIME_INVALID',
+        'Rollback requires the exact preserved runtime identity.',
+      );
+    }
+    const runtimePath = '/opt/hivenues/runtime/' + runtimeDigest;
+    const releasePath = existingReleasePath(release);
+    this.lastPlan = plan;
+
+    await this.withSession(this.connection.username, async (session) => {
+      await withMutationStage('rollback-preflight', () => (
+        session.exec(
+          rollbackPreflightCommand(plan, runtimePath, releasePath, release),
+          { timeoutMs: 30000 },
+        )
+      ));
+      await withMutationStage('rollback-activation', () => (
+        session.exec(
+          activationCommand(plan, runtimePath, releasePath, { restricted: true }),
+          { timeoutMs: 60000 },
+        )
+      ));
+    });
+
+    return Object.freeze({
+      runtimePath,
+      releasePath,
+      release: Object.freeze({
+        id: String(release.id || release.releaseId),
+        digest: String(release.digest || release.releaseDigest).toLowerCase(),
+        packageDigest: String(release.packageDigest).toLowerCase(),
+      }),
+    });
+  }
+
+  async deploymentAuthorityAccessible() {
+    try {
+      const result = await this.withSession(this.connection.username, (session) => (
+        session.exec('true', { timeoutMs: 10000 })
+      ));
+      return Number(result?.code || 0) === 0;
+    } catch (error) {
+      if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+      throw error;
+    }
+  }
+
+  async removeDeploymentAuthority(plan = this.lastPlan, publicKey = '') {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_DISCONNECT_PLAN_REQUIRED',
+        'Deployment authority removal requires an exact deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    await this.withSession(this.connection.username, (session) => (
+      withMutationStage('deployment-authority-remove', () => (
+        session.exec(
+          removeDeploymentAuthorityCommand(plan, publicKey),
+          { timeoutMs: 15000 },
+        )
+      ))
+    ));
+    return Object.freeze({ removed: true });
+  }
+
   async publicationStatus(plan = this.lastPlan) {
     if (!plan) {
       throw targetError(
@@ -1040,6 +1189,9 @@ module.exports = {
   publicationMigrationActivateCommand,
   publicationMigrationDirectoriesCommand,
   publicationMigrationRecoveryEvidenceCommand,
+  rollbackPreflightCommand,
+  removeDeploymentAuthorityCommand,
+  existingReleasePath,
   qualifiedNodePath,
   removeBootstrapKeyCommand,
   steadyInstallCommand,
