@@ -106,7 +106,12 @@ function utcStamp(value) {
   return new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
 
-function renderIcs(graph, activity) {
+function renderIcs(graph, activity, {
+  publicRouteBase,
+} = {}) {
+  const routeBase = typeof publicRouteBase === 'string'
+    ? publicRouteBase
+    : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
   const location = activity.presence.mode === 'online'
     ? activity.presence.platformLabel
     : activity.presence.address;
@@ -124,7 +129,7 @@ function renderIcs(graph, activity) {
     `DESCRIPTION:${escapeIcs(activity.statusNote ? `${activity.statusNote}\n\n${activity.description}` : activity.description)}`,
     `STATUS:${activity.lifecycle === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
     `LOCATION:${escapeIcs(location)}`,
-    `URL:/hivenues/${escapeIcs(graph.identity.slug)}/activities/${escapeIcs(activity.slug)}`,
+    `URL:${routeBase}/activities/${encodeURIComponent(activity.slug)}`,
     'END:VEVENT',
     'END:VCALENDAR',
     '',
