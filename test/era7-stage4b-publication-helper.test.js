@@ -250,3 +250,33 @@ test('Era 7 Stage 4B: privileged hostname validator stays in parity with the Sta
     assert.deepEqual(helper, stage4, value);
   }
 });
+
+
+test('Era 7 Stage 4B: bounded status marks a stopped managed service as drifted', (t) => {
+  const f = fixture(t);
+  applyPublication({
+    metadata: metadata(),
+    hostname: 'dev.fourthstreetbar.com',
+    paths: f.paths,
+    execFile: () => '',
+    now: () => Date.parse('2026-10-03T17:30:00.000Z'),
+  });
+
+  const result = publicationStatus({
+    metadata: metadata(),
+    paths: f.paths,
+    execFile: (command, args) => {
+      if (
+        command === '/usr/bin/systemctl'
+        && args[0] === 'is-active'
+        && args[2] === 'hivenues-caddy.service'
+      ) {
+        throw new Error('inactive');
+      }
+      return '';
+    },
+  });
+  assert.equal(result.state, 'drifted');
+  assert.equal(result.servicesActive, false);
+  assert.equal(result.reason, 'managed-service-inactive');
+});
