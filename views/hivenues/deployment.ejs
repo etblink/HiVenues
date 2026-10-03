@@ -749,15 +749,17 @@
                       )
                       || (
                         deployment.state === 'degraded'
-                        && deployment.stateReason === 'authority-disconnect-remote-removed'
-                        && deployment.targetPublicFacts.authorityDisconnectState === 'remote-removed'
+                        && deployment.stateReason === 'authority-disconnect-removal-started'
+                        && ['removal-started', 'remote-removed'].includes(
+                          deployment.targetPublicFacts.authorityDisconnectState
+                        )
                       )
                     )
                   ) { %>
                     <section class="cc-review-card" data-real-disconnect-entry>
                       <p class="cc-kicker">Deployment authority</p>
                       <h4>
-                        <%= deployment.stateReason === 'authority-disconnect-remote-removed'
+                        <%= deployment.stateReason === 'authority-disconnect-removal-started'
                           ? 'Finish the interrupted authority disconnect'
                           : 'Disconnect HiVenues management without taking the site down' %>
                       </h4>
