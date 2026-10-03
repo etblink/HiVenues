@@ -190,7 +190,13 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
 }
 
 function steadyInstallCommand(plan, runtime, release) {
-  const nodePath = qualifiedNodePath(plan.nodeDistribution);
+  const nodePath = String(plan.nodeDistribution?.nodePath || '');
+  if (!nodePath.startsWith('/')) {
+    throw targetError(
+      'DEPLOYMENT_ROLLBACK_RUNTIME_INVALID',
+      'Rollback requires the exact qualified Node executable path.',
+    );
+  }
   const lines = [
     'set -eu',
     'printf "HIVENUES_MUTATION_STAGE=steady-install\\n" >&2',
