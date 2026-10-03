@@ -11,6 +11,7 @@ const {
   readBackMismatchFields,
 } = require('../deploy/deployment-coordinator');
 const { loadRuntimeProvenance } = require('../deploy/public-runtime');
+const { createReferenceBootstrapPlan } = require('../deploy/bootstrap-plan');
 const { loadReleasePackage } = require('../deploy/release-store');
 const { SshRemoteDeploymentTarget } = require('../deploy/ssh-remote-deployment-target');
 const { stableDigest } = require('./model');
@@ -131,6 +132,50 @@ function materializeInstalledRuntimeBundle({
   }
 }
 
+function sameExactRuntime(actual, expected) {
+  return Boolean(
+    actual
+    && expected
+    && actual.sourceSha === expected.sourceSha
+    && actual.sourceTree === expected.sourceTree
+    && actual.packageVersion === expected.packageVersion
+    && actual.nodeVersion === expected.nodeVersion
+    && actual.bundleDigest === expected.bundleDigest
+  );
+}
+
+function findCachedRuntimeBundle(runtimeBundlesRoot, expected) {
+  if (!expected || !fs.existsSync(runtimeBundlesRoot)) return null;
+  for (const name of fs.readdirSync(runtimeBundlesRoot)) {
+    if (!name.startsWith('runtime-')) continue;
+    const root = path.join(runtimeBundlesRoot, name);
+    let provenance;
+    try {
+      provenance = readRuntimeBundle(root);
+    } catch {
+      continue;
+    }
+    if (sameExactRuntime(provenance, expected)) {
+      return Object.freeze({ root, provenance, reused: true });
+    }
+  }
+  return null;
+}
+
+function sameReadBackArtifacts(left, right) {
+  return Boolean(
+    left
+    && right
+    && left.status === 'healthy'
+    && right.status === 'healthy'
+    && sameExactRuntime(left.runtime, right.runtime)
+    && left.deployment?.hostSlug === right.deployment?.hostSlug
+    && left.deployment?.releaseId === right.deployment?.releaseId
+    && left.deployment?.releaseDigest === right.deployment?.releaseDigest
+    && left.deployment?.packageDigest === right.deployment?.packageDigest
+  );
+}
+
 function requireRemoteRecord(record) {
   if (!record) {
     throw executionError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
@@ -233,11 +278,25 @@ class InstalledRemoteDeploymentService {
 
   artifacts(deploymentId) {
     const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
-    const runtime = materializeInstalledRuntimeBundle({
-      runtimeBundlesRoot: this.runtimeBundlesRoot,
-      buildProvenance: this.buildProvenance,
-      runtimeBuilder: this.runtimeBuilder,
-    });
+    let runtime = null;
+    if (record.pendingRuntimeProfile) {
+      runtime = findCachedRuntimeBundle(
+        this.runtimeBundlesRoot,
+        record.pendingRuntimeProfile,
+      );
+      if (!runtime) {
+        throw executionError(
+          'DEPLOYMENT_PENDING_RUNTIME_BUNDLE_MISSING',
+          'The exact pending runtime bundle is not available in the preserved local cache.',
+        );
+      }
+    } else {
+      runtime = materializeInstalledRuntimeBundle({
+        runtimeBundlesRoot: this.runtimeBundlesRoot,
+        buildProvenance: this.buildProvenance,
+        runtimeBuilder: this.runtimeBuilder,
+      });
+    }
     const releasePackage = exactPackage(this.packageBuilder, record);
     return Object.freeze({ record, runtime, releasePackage });
   }
@@ -245,44 +304,116 @@ class InstalledRemoteDeploymentService {
   inspectReadBack(deploymentId) {
     const { record, runtime, releasePackage } = this.artifacts(deploymentId);
     const facts = record.targetPublicFacts;
-    const target = this.targetFactory({
+    const release = loadReleasePackage(path.resolve(releasePackage.packagePath)).manifest;
+    const expected = desiredReadBack(runtime.provenance, release);
+    const targetOptions = (username) => ({
       authorityStore: this.authorityStore,
       authorityId: record.authorityRef,
       target: {
         host: String(facts.host),
         port: Number(facts.port || 22),
-        username: String(facts.username),
+        username,
       },
       bootstrapUsername: String(facts.bootstrapUsername || facts.username),
       expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
       hostSlug: record.hostSlug,
     });
-    const release = loadReleasePackage(path.resolve(releasePackage.packagePath)).manifest;
-    const expected = desiredReadBack(runtime.provenance, release);
-    return Promise.resolve(target.readBack()).then((actual) => Object.freeze({
-      deploymentId: record.id,
-      target: Object.freeze({
-        host: String(facts.host),
-        port: Number(facts.port || 22),
-        username: String(facts.username),
-        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
-      }),
-      expected: Object.freeze({
-        status: 'healthy',
-        runtime: Object.freeze({ ...expected.runtime }),
-        deployment: Object.freeze({ ...expected.deployment }),
-      }),
-      actual: actual
-        ? Object.freeze({
-            status: actual.status,
-            runtime: Object.freeze({ ...(actual.runtime || {}) }),
-            deployment: Object.freeze({ ...(actual.deployment || {}) }),
-            bootstrap: Object.freeze({ ...(actual.bootstrap || {}) }),
-          })
-        : null,
-      mismatches: readBackMismatchFields(actual, expected),
-      matches: readBackMismatchFields(actual, expected).length === 0,
-    }));
+    const providerUsername = String(facts.username);
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: runtime.provenance,
+      releaseManifest: release,
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+    });
+    const deploymentUsername = plan.deploymentUser;
+    const providerTarget = this.targetFactory(targetOptions(providerUsername));
+
+    return Promise.resolve(providerTarget.readBack()).then(async (actual) => {
+      let restrictedActual = null;
+      if (deploymentUsername !== providerUsername) {
+        const restrictedTarget = this.targetFactory(targetOptions(deploymentUsername));
+        restrictedActual = await restrictedTarget.readBack();
+      } else {
+        restrictedActual = actual;
+      }
+
+      const observed = restrictedActual || actual;
+      const cachedRuntime = observed?.runtime
+        ? findCachedRuntimeBundle(this.runtimeBundlesRoot, observed.runtime)
+        : null;
+      const releaseMatches = Boolean(
+        observed
+        && observed.status === 'healthy'
+        && observed.deployment?.hostSlug === expected.deployment.hostSlug
+        && observed.deployment?.releaseId === expected.deployment.releaseId
+        && observed.deployment?.releaseDigest === expected.deployment.releaseDigest
+        && observed.deployment?.packageDigest === expected.deployment.packageDigest
+      );
+      const restrictedMatchesObserved = Boolean(
+        actual && restrictedActual && sameReadBackArtifacts(actual, restrictedActual)
+      );
+      const restrictedAuthorityState = String(
+        restrictedActual?.bootstrap?.authorityState || '',
+      );
+      const recoverable = Boolean(
+        observed
+        && observed.status === 'healthy'
+        && cachedRuntime
+        && releaseMatches
+        && restrictedActual
+        && restrictedMatchesObserved
+        && ['restricted-login-proven', 'restricted-deployment-user'].includes(
+          restrictedAuthorityState,
+        )
+      );
+
+      return Object.freeze({
+        deploymentId: record.id,
+        target: Object.freeze({
+          host: String(facts.host),
+          port: Number(facts.port || 22),
+          username: providerUsername,
+          trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+        }),
+        expected: Object.freeze({
+          status: 'healthy',
+          runtime: Object.freeze({ ...expected.runtime }),
+          deployment: Object.freeze({ ...expected.deployment }),
+        }),
+        actual: actual
+          ? Object.freeze({
+              status: actual.status,
+              runtime: Object.freeze({ ...(actual.runtime || {}) }),
+              deployment: Object.freeze({ ...(actual.deployment || {}) }),
+              bootstrap: Object.freeze({ ...(actual.bootstrap || {}) }),
+            })
+          : null,
+        mismatches: readBackMismatchFields(actual, expected),
+        matches: readBackMismatchFields(actual, expected).length === 0,
+        recovery: Object.freeze({
+          providerUsername,
+          deploymentUsername,
+          restrictedActual: restrictedActual
+            ? Object.freeze({
+                status: restrictedActual.status,
+                runtime: Object.freeze({ ...(restrictedActual.runtime || {}) }),
+                deployment: Object.freeze({ ...(restrictedActual.deployment || {}) }),
+                bootstrap: Object.freeze({ ...(restrictedActual.bootstrap || {}) }),
+              })
+            : null,
+          cachedRuntimeMatch: Boolean(cachedRuntime),
+          cachedRuntime: cachedRuntime
+            ? Object.freeze({
+                root: cachedRuntime.root,
+                provenance: Object.freeze({ ...cachedRuntime.provenance }),
+              })
+            : null,
+          releaseMatches,
+          restrictedMatchesObserved,
+          restrictedAuthorityState,
+          recoverable,
+        }),
+      });
+    });
   }
 
   prepareReview(deploymentId) {
@@ -376,6 +507,8 @@ module.exports = {
   CONSEQUENCES,
   HELD,
   InstalledRemoteDeploymentService,
+  findCachedRuntimeBundle,
   materializeInstalledRuntimeBundle,
   requireBuildProvenance,
+  sameExactRuntime,
 };
