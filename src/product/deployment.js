@@ -87,6 +87,7 @@ function createInstalledDeploymentServices({
   buildProvenance,
   remoteTargetFactory,
   runtimeBuilder,
+  publicationObserver,
   ...options
 } = {}) {
   const local = createLocalDeploymentServices(options);
@@ -101,6 +102,7 @@ function createInstalledDeploymentServices({
     buildProvenance,
     ...(remoteTargetFactory ? { targetFactory: remoteTargetFactory } : {}),
     ...(runtimeBuilder ? { runtimeBuilder } : {}),
+    ...(publicationObserver ? { publicationObserver } : {}),
     ...(options.now ? { now: options.now } : {}),
   });
   return Object.freeze({
