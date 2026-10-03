@@ -1075,11 +1075,30 @@ class InstalledRemoteDeploymentService {
   }
 
   beginReauthorization(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
-    if (record.state !== 'disconnected') {
+    const record = this.deploymentStore.get(deploymentId);
+    if (!record) {
+      throw executionError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
+    }
+    if (record.providerKind !== 'ssh-server' || record.state !== 'disconnected') {
       throw executionError(
         'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID',
-        'Only a deliberately disconnected deployment can begin management re-authorization.',
+        'Only a deliberately disconnected server deployment can begin management re-authorization.',
+      );
+    }
+    const facts = record.targetPublicFacts || {};
+    if (
+      record.authorityRef
+      || !record.activeRelease
+      || !record.runtimeProfile
+      || !record.publicEndpoint
+      || !String(facts.host || '').trim()
+      || !String(facts.bootstrapUsername || '').trim()
+      || !String(facts.trustedHostKeyFingerprint || '').trim()
+      || facts.hostKeyTrustState !== 'trusted'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Disconnected deployment re-authorization requires preserved exact server, runtime, Release, public endpoint and trusted host-key facts with no live local authority.',
       );
     }
     if (!this.authorityStore || typeof this.authorityStore.createSshAuthority !== 'function') {
