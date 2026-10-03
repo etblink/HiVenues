@@ -331,6 +331,32 @@ function activeReadBackExpectation(record) {
   });
 }
 
+function publicationReviewIdentity(record) {
+  const facts = record?.targetPublicFacts || {};
+  return Object.freeze({
+    deploymentId: String(record?.id || ''),
+    state: String(record?.state || ''),
+    authorityRef: String(record?.authorityRef || ''),
+    target: Object.freeze({
+      host: String(facts.host || ''),
+      port: Number(facts.port || 22),
+      username: String(facts.username || ''),
+      bootstrapUsername: String(facts.bootstrapUsername || ''),
+      trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      hostKeyTrustState: String(facts.hostKeyTrustState || ''),
+    }),
+    activeRelease: record?.activeRelease ? Object.freeze({ ...record.activeRelease }) : null,
+    runtimeProfile: record?.runtimeProfile ? Object.freeze({ ...record.runtimeProfile }) : null,
+    publicEndpoint: record?.publicEndpoint
+      ? JSON.parse(JSON.stringify(record.publicEndpoint))
+      : null,
+  });
+}
+
+function publicationReviewStateDigest(record) {
+  return stableDigest(publicationReviewIdentity(record));
+}
+
 function publicationHelperArtifact() {
   const filePath = path.resolve(__dirname, '../deploy/publication-helper-runtime.js');
   const content = canonicalRuntimeFileBytes(
@@ -678,7 +704,15 @@ class InstalledRemoteDeploymentService {
         'Check DNS again before reviewing the live hostname publication.',
       );
     }
+    const stateDigest = publicationReviewStateDigest(record);
     const publication = await this.inspectPublicationCapability(deploymentId);
+    const latest = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (publicationReviewStateDigest(latest) !== stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed while the publication review was being prepared. Review the current state again.',
+      );
+    }
     const review = prepareStage4PublicationReview({
       preflight: record.publicEndpoint,
       deployment: record,
@@ -686,6 +720,7 @@ class InstalledRemoteDeploymentService {
     });
     const facts = record.targetPublicFacts || {};
     const core = {
+      stateDigest,
       ...review,
       target: Object.freeze({
         host: String(facts.host || ''),
@@ -727,6 +762,13 @@ class InstalledRemoteDeploymentService {
     }
 
     const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (publicationReviewStateDigest(record) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed after publication review. Review the current state again.',
+      );
+    }
+    const endpointBeforePublication = record.publicEndpoint;
     const facts = record.targetPublicFacts || {};
     const plan = createReferenceBootstrapPlan({
       runtimeProvenance: record.runtimeProfile,
@@ -750,7 +792,11 @@ class InstalledRemoteDeploymentService {
       expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
       hostSlug: record.hostSlug,
     });
-    if (!target || typeof target.applyPublication !== 'function') {
+    if (
+      !target
+      || typeof target.applyPublication !== 'function'
+      || typeof target.readBack !== 'function'
+    ) {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_APPLY_UNAVAILABLE',
         'Restricted hostname publication is unavailable in this runtime.',
@@ -771,9 +817,30 @@ class InstalledRemoteDeploymentService {
       }
     }
 
+    const exactReadBack = await target.readBack();
+    if (!readBackMatches(exactReadBack, {
+      runtime: review.runtime,
+      deployment: review.release,
+    })) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_READBACK_CHANGED',
+        'The active runtime or immutable Release changed during hostname publication.',
+      );
+    }
+
     const current = requireRemoteRecord(this.deploymentStore.get(deploymentId));
-    const requesting = markTlsRequesting(current.publicEndpoint);
-    this.deploymentStore.setPublicEndpoint(current.id, requesting);
+    if (publicationReviewStateDigest(current) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed while hostname publication was in progress. Re-open the current publication state.',
+      );
+    }
+    const requesting = markTlsRequesting(endpointBeforePublication);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      current.id,
+      endpointBeforePublication,
+      requesting,
+    );
     return Object.freeze({
       deploymentId: current.id,
       hostname: review.hostname,
