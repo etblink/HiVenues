@@ -795,6 +795,7 @@ class InstalledRemoteDeploymentService {
     if (
       !target
       || typeof target.applyPublication !== 'function'
+      || typeof target.publicationStatus !== 'function'
       || typeof target.readBack !== 'function'
     ) {
       throw executionError(
@@ -827,6 +828,17 @@ class InstalledRemoteDeploymentService {
         'The active runtime or immutable Release changed during hostname publication.',
       );
     }
+    const confirmedPublication = await target.publicationStatus(plan);
+    if (
+      confirmedPublication.capability !== 'ready'
+      || confirmedPublication.status?.state !== 'configured'
+      || confirmedPublication.status?.hostname !== review.hostname
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_APPLY_FAILED',
+        'The server no longer confirms the exact reviewed hostname publication.',
+      );
+    }
 
     const current = requireRemoteRecord(this.deploymentStore.get(deploymentId));
     if (publicationReviewStateDigest(current) !== review.stateDigest) {
@@ -851,13 +863,30 @@ class InstalledRemoteDeploymentService {
   }
 
   async verifyPublicHttps(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
     if (!record.publicEndpoint || record.publicEndpoint.domainState !== 'dns-confirmed') {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
         'Confirmed DNS is required before secure public verification.',
       );
     }
+
+    const dnsEndpoint = record.publicEndpoint;
+    const dnsObservation = await this.publicationObserver.observeDns(dnsEndpoint);
+    const refreshedDns = recordDnsObservation(dnsEndpoint, dnsObservation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      dnsEndpoint,
+      refreshedDns,
+    );
+    if (refreshedDns.domainState !== 'dns-confirmed') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+        'DNS no longer exactly matches the reviewed deployment destination.',
+      );
+    }
+    record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+
     const publication = await this.inspectPublicationCapability(deploymentId);
     if (
       publication.capability !== 'ready'
