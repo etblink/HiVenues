@@ -299,6 +299,13 @@ test('Era 7 Stage 3B: remote target stages artifacts, proves restricted login, a
     )),
     true,
   );
+  assert.equal(
+    rootExecBeforeFinalize.some((item) => (
+      item.command.includes('sha256sum -c -')
+      && item.command.includes(runtime.publicationHelperSha256)
+    )),
+    true,
+  );
 
   const uploads = transport.calls.filter((item) => item.kind === 'upload');
   assert.equal(uploads.length, 2);
@@ -462,6 +469,7 @@ test('Era 7 Stage 3C: mutation failures preserve the stable product-owned stage'
         provenance: f.runtimeProvenance,
         path: plan.paths.runtimeRoot,
         stagingPath: null,
+        publicationHelperSha256: 'a'.repeat(64),
       },
       release: {
         manifest: f.releaseManifest,
