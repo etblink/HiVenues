@@ -565,14 +565,25 @@ class InstalledRemoteDeploymentService {
       bootstrapAuthorityAccessible = await target.bootstrapAuthorityAccessible(plan);
     }
     if (publicationStatusError) {
-      if (bootstrapAuthorityAccessible === true) {
-        return Object.freeze({
-          deploymentId: record.id,
-          hostSlug: record.hostSlug,
-          capability: 'migration-incomplete',
-          reason: String(publicationStatusError.code),
-          bootstrapAuthorityAccessible: true,
-        });
+      if (
+        bootstrapAuthorityAccessible === true
+        && typeof target.publicationMigrationRecoveryEvidence === 'function'
+      ) {
+        const recoveryEvidence = await target.publicationMigrationRecoveryEvidence(plan);
+        if (recoveryEvidence.eligible === true) {
+          return Object.freeze({
+            deploymentId: record.id,
+            hostSlug: record.hostSlug,
+            capability: 'migration-incomplete',
+            reason: String(publicationStatusError.code),
+            bootstrapAuthorityAccessible: true,
+            migrationRecoveryEvidence: recoveryEvidence,
+          });
+        }
+        throw executionError(
+          'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_UNSAFE',
+          'Publication helper status failed, but the server no longer proves the unpublished Stage-3 baseline required for migration recovery.',
+        );
       }
       throw publicationStatusError;
     }
@@ -767,6 +778,7 @@ class InstalledRemoteDeploymentService {
       || typeof target.readBack !== 'function'
       || typeof target.publicationStatus !== 'function'
       || typeof target.bootstrapAuthorityAccessible !== 'function'
+      || typeof target.publicationMigrationRecoveryEvidence !== 'function'
       || typeof target.migratePublicationCapability !== 'function'
       || typeof target.finalizeAuthorityNarrowing !== 'function'
     ) {
