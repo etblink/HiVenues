@@ -4,6 +4,43 @@ const express = require('express');
 
 const { buildViewModel } = require('./present');
 
+function mutationSubstage(stderr) {
+  const prefix = 'HIVENUES_MUTATION_STAGE=';
+  const markers = String(stderr || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^HIVENUES_MUTATION_STAGE=[A-Za-z0-9._:-]+$/.test(line));
+  if (!markers.length) return '';
+  return markers.at(-1).slice(prefix.length);
+}
+
+function deploymentErrorMessage(error, fallback = 'Deployment verification could not continue.') {
+  if (!error) return fallback;
+  const base = error.message || fallback;
+  if (
+    error.code !== 'DEPLOYMENT_REMOTE_COMMAND_FAILED'
+    && error.code !== 'DEPLOYMENT_SFTP_UPLOAD_FAILED'
+  ) {
+    return base;
+  }
+  const outerStage = /^[A-Za-z0-9._:-]+$/.test(String(error.deploymentStage || ''))
+    ? String(error.deploymentStage)
+    : 'remote-mutation';
+  const innerStage = mutationSubstage(error.remoteStderr);
+  const stage = innerStage && innerStage !== outerStage
+    ? outerStage + ' / ' + innerStage
+    : outerStage;
+  const status = Number.isInteger(error.remoteExitCode)
+    ? ' (status ' + String(error.remoteExitCode) + ')'
+    : '';
+  return 'Remote deployment operation failed during '
+    + stage
+    + status
+    + '. ['
+    + String(error.code || 'DEPLOYMENT_REMOTE_FAILURE')
+    + ']';
+}
+
 function deploymentErrorStatus(error) {
   if (!error || !error.code) return 400;
   if (error.code === 'DEPLOYMENT_NOT_FOUND') return 404;
@@ -201,7 +238,10 @@ function createHiVenuesDeploymentRouter({
     } catch (error) {
       return render(req, res, {
         status: deploymentErrorStatus(error),
-        error: error.message || 'Deployment verification could not continue.',
+        error: deploymentErrorMessage(
+          error,
+          'Deployment verification could not continue.',
+        ),
       });
     }
   };
@@ -410,6 +450,7 @@ function createHiVenuesDeploymentRouter({
 
 module.exports = {
   createHiVenuesDeploymentRouter,
+  deploymentErrorMessage,
   requireConnectionFacts,
   requireDeploymentConsequenceSubmission,
   requireHostKeyAcceptance,
