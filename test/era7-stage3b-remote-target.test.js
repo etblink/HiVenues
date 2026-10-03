@@ -268,9 +268,15 @@ test('Era 7 Stage 3B: remote target stages artifacts, proves restricted login, a
     restrictedExec.some((item) => item.command.includes('sudo -n /usr/bin/systemctl status')),
     true,
   );
+  assert.equal(
+    restrictedExec.some((item) => item.command.includes(
+      "sudo -n '/usr/local/libexec/hivenues-publication-harbor-and-hearth' status",
+    )),
+    true,
+  );
 
   const configWrites = rootExecBeforeFinalize.filter((item) => item.stdin);
-  assert.equal(configWrites.length >= 7, true);
+  assert.equal(configWrites.length >= 8, true);
   assert.equal(
     configWrites.some((item) => item.stdin.includes('auto_https off')),
     true,
@@ -281,6 +287,16 @@ test('Era 7 Stage 3B: remote target stages artifacts, proves restricted login, a
   );
   assert.equal(
     configWrites.some((item) => item.stdin.includes('NOPASSWD: HIVENUES_SERVICE')),
+    true,
+  );
+  assert.equal(
+    configWrites.some((item) => item.stdin.includes('"hostSlug": "harbor-and-hearth"')),
+    true,
+  );
+  assert.equal(
+    rootExecBeforeFinalize.some((item) => item.command.includes(
+      '/src/deploy/publication-helper-runtime.js',
+    )),
     true,
   );
 
