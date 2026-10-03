@@ -68,6 +68,11 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_DOMAIN_PREFLIGHT_LOCKED'
     || error.code === 'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED'
     || error.code === 'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_BOOTSTRAP_AUTHORITY_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED'
+    || error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_UNSAFE'
   ) return 409;
   return 400;
 }
@@ -364,6 +369,11 @@ function createHiVenuesDeploymentRouter({
         ...buildViewModel(snapshot),
         deployment,
         diagnostic,
+        publicationMigrationAvailable: Boolean(
+          active.remoteDeployment
+          && typeof active.remoteDeployment.preparePublicationMigrationReview === 'function'
+          && typeof active.remoteDeployment.migratePublicationCapability === 'function'
+        ),
       });
     } catch (error) {
       return render(req, res, {
@@ -371,6 +381,71 @@ function createHiVenuesDeploymentRouter({
         error: deploymentErrorMessage(
           error,
           'Server publishing readiness could not be inspected.',
+        ),
+      });
+    }
+  });
+
+  router.get('/studio/:slug/deploy/:deploymentId/publication-upgrade-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.preparePublicationMigrationReview !== 'function'
+      ) {
+        const error = new Error('One-time server publishing upgrade review is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_MIGRATION_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = await active.remoteDeployment.preparePublicationMigrationReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-publication-upgrade-review', {
+        pageTitle: `One-time server upgrade — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'One-time server publishing upgrade review could not be prepared.',
+        ),
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/publication-upgrade', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.migratePublicationCapability !== 'function'
+      ) {
+        const error = new Error('One-time server publishing upgrade is unavailable.');
+        error.code = 'DEPLOYMENT_PUBLICATION_MIGRATION_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.migratePublicationCapability(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+      return res.redirect(
+        303,
+        `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy/`
+          + `${encodeURIComponent(deployment.id)}/publication-capability`,
+      );
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'One-time server publishing upgrade could not continue.',
         ),
       });
     }

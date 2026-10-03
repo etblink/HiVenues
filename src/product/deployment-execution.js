@@ -63,6 +63,31 @@ const RECOVERY_HELD = Object.freeze([
   'tls-issuance',
 ]);
 
+const PUBLICATION_MIGRATION_CONSEQUENCES = Object.freeze([
+  'temporarily-use-owner-restored-bootstrap-key',
+  'install-root-owned-publication-helper',
+  'install-root-owned-publication-metadata',
+  'prepare-caddy-certificate-state-directory',
+  'update-hivenues-caddy-and-firewall-service-units-without-restarting-them',
+  'add-helper-only-restricted-sudo-authority',
+  'prove-restricted-publication-helper-status',
+  'remove-the-exact-temporary-bootstrap-key-again',
+  'reprove-unchanged-runtime-and-immutable-release',
+]);
+
+const PUBLICATION_MIGRATION_HELD = Object.freeze([
+  'runtime-redeploy-or-replacement',
+  'release-redeploy-or-change',
+  'hostname-publication',
+  'dns-mutation',
+  'open-tcp-443',
+  'caddy-publication-apply',
+  'tls-issuance',
+  'provider-payment',
+  'hive-writes',
+  'value-movement',
+]);
+
 function executionError(code, message) {
   const error = new Error(message);
   error.code = code;
@@ -267,6 +292,40 @@ function exactPackage(packageBuilder, record) {
     );
   }
   return prepared;
+}
+
+function activeReadBackExpectation(record) {
+  if (!record?.activeRelease || !record?.runtimeProfile) {
+    throw executionError(
+      'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED',
+      'Publication capability migration requires a confirmed active runtime and Release.',
+    );
+  }
+  return Object.freeze({
+    runtime: Object.freeze({
+      sourceSha: record.runtimeProfile.sourceSha,
+      sourceTree: record.runtimeProfile.sourceTree,
+      packageVersion: record.runtimeProfile.packageVersion,
+      nodeVersion: record.runtimeProfile.nodeVersion,
+      bundleDigest: record.runtimeProfile.bundleDigest,
+    }),
+    deployment: Object.freeze({
+      hostSlug: record.hostSlug,
+      releaseId: record.activeRelease.id,
+      releaseDigest: record.activeRelease.digest,
+      packageDigest: record.activeRelease.packageDigest,
+    }),
+  });
+}
+
+function publicationHelperArtifact() {
+  const filePath = path.resolve(__dirname, '../deploy/publication-helper-runtime.js');
+  const content = fs.readFileSync(filePath);
+  return Object.freeze({
+    filePath,
+    content,
+    sha256: crypto.createHash('sha256').update(content).digest('hex'),
+  });
 }
 
 class InstalledRemoteDeploymentService {
@@ -485,11 +544,316 @@ class InstalledRemoteDeploymentService {
         'Publication capability inspection is unavailable in this runtime.',
       );
     }
-    const result = await target.publicationStatus(plan);
+    let result;
+    let publicationStatusError = null;
+    try {
+      result = await target.publicationStatus(plan);
+    } catch (error) {
+      if (
+        error?.code !== 'DEPLOYMENT_PUBLICATION_STATUS_FAILED'
+        && error?.code !== 'DEPLOYMENT_PUBLICATION_STATUS_INVALID'
+      ) throw error;
+      publicationStatusError = error;
+      result = null;
+    }
+    let bootstrapAuthorityAccessible = null;
+    if (
+      bootstrapUsername
+      && bootstrapUsername !== String(facts.username)
+      && typeof target.bootstrapAuthorityAccessible === 'function'
+    ) {
+      bootstrapAuthorityAccessible = await target.bootstrapAuthorityAccessible(plan);
+    }
+    if (publicationStatusError) {
+      if (
+        bootstrapAuthorityAccessible === true
+        && typeof target.publicationMigrationRecoveryEvidence === 'function'
+      ) {
+        const recoveryEvidence = await target.publicationMigrationRecoveryEvidence(plan);
+        if (recoveryEvidence.eligible === true) {
+          return Object.freeze({
+            deploymentId: record.id,
+            hostSlug: record.hostSlug,
+            capability: 'migration-incomplete',
+            reason: String(publicationStatusError.code),
+            bootstrapAuthorityAccessible: true,
+            migrationRecoveryEvidence: recoveryEvidence,
+          });
+        }
+        throw executionError(
+          'DEPLOYMENT_PUBLICATION_MIGRATION_RECOVERY_UNSAFE',
+          'Publication helper status failed, but the server no longer proves the unpublished Stage-3 baseline required for migration recovery.',
+        );
+      }
+      throw publicationStatusError;
+    }
+    let exactDeploymentMatches = null;
+    if (
+      result?.capability === 'ready'
+      && typeof target.readBack === 'function'
+    ) {
+      const actual = await target.readBack();
+      exactDeploymentMatches = readBackMatches(
+        actual,
+        activeReadBackExpectation(record),
+      );
+    }
     return Object.freeze({
       deploymentId: record.id,
       hostSlug: record.hostSlug,
       ...result,
+      ...(bootstrapAuthorityAccessible === null
+        ? {}
+        : { bootstrapAuthorityAccessible }),
+      ...(exactDeploymentMatches === null
+        ? {}
+        : { exactDeploymentMatches }),
+    });
+  }
+
+  async preparePublicationMigrationReview(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (
+      !['healthy', 'rollback-available'].includes(record.state)
+      || !record.activeRelease
+      || !record.runtimeProfile
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED',
+        'Finish a healthy exact deployment before preparing the server upgrade.',
+      );
+    }
+    if (!record.publicEndpoint) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
+        'Prepare a domain plan before preparing the server publishing upgrade.',
+      );
+    }
+
+    const capability = await this.inspectPublicationCapability(deploymentId);
+    if (
+      capability.capability === 'ready'
+      && capability.status?.state !== 'unconfigured'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID',
+        'This server already has a non-empty publication state and is not eligible for the one-time capability migration.',
+      );
+    }
+    if (
+      capability.capability === 'ready'
+      && capability.status?.state === 'unconfigured'
+      && capability.exactDeploymentMatches === false
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID',
+        'The server publishing capability is present but the active runtime/Release proof no longer matches.',
+      );
+    }
+    if (
+      capability.capability === 'ready'
+      && capability.status?.state === 'unconfigured'
+      && capability.bootstrapAuthorityAccessible === false
+      && capability.exactDeploymentMatches === true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED',
+        'The publication capability is already installed, bootstrap authority is removed, and the exact deployment still matches.',
+      );
+    }
+    if (
+      capability.capability !== 'upgrade-required'
+      && capability.capability !== 'migration-incomplete'
+      && !(capability.capability === 'ready' && capability.status?.state === 'unconfigured')
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_STATE_INVALID',
+        'Server publication capability state is not eligible for the one-time migration.',
+      );
+    }
+
+    const facts = record.targetPublicFacts || {};
+    const bootstrapUsername = String(facts.bootstrapUsername || '').trim();
+    const currentUsername = String(facts.username || '').trim();
+    if (!bootstrapUsername || bootstrapUsername === currentUsername) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_BOOTSTRAP_ACCOUNT_INVALID',
+        'The original bootstrap account is not available as a separate temporary migration authority.',
+      );
+    }
+
+    const authority = this.authorityStore.publicRecord(record.authorityRef);
+    const helper = publicationHelperArtifact();
+    const core = {
+      version: 1,
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        currentUsername,
+        bootstrapUsername,
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      },
+      authority: {
+        id: String(record.authorityRef),
+        publicKey: String(authority.publicKey || ''),
+        publicKeyFingerprint: String(authority.publicKeyFingerprint || ''),
+      },
+      current: {
+        release: {
+          id: record.activeRelease.id,
+          digest: record.activeRelease.digest,
+          packageDigest: record.activeRelease.packageDigest,
+        },
+        runtime: {
+          sourceSha: record.runtimeProfile.sourceSha,
+          sourceTree: record.runtimeProfile.sourceTree,
+          packageVersion: record.runtimeProfile.packageVersion,
+          nodeVersion: record.runtimeProfile.nodeVersion,
+          bundleDigest: record.runtimeProfile.bundleDigest,
+        },
+        publicationCapability: capability.capability,
+        publicationState: capability.status?.state || 'upgrade-required',
+      },
+      helper: {
+        sha256: helper.sha256,
+        installedPath: '/usr/local/libexec/hivenues-publication-' + record.hostSlug,
+      },
+      consequences: PUBLICATION_MIGRATION_CONSEQUENCES,
+      held: PUBLICATION_MIGRATION_HELD,
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async migratePublicationCapability(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'upgrade-reference-publication-capability') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_CONFIRMATION_REQUIRED',
+        'Explicit one-time reference-server upgrade confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.preparePublicationMigrationReview(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_REVIEW_STALE',
+        'Server upgrade facts changed after review. Review the one-time upgrade again.',
+      );
+    }
+
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    const facts = record.targetPublicFacts || {};
+    const bootstrapUsername = String(facts.bootstrapUsername || '');
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername,
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername,
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+    if (
+      !target
+      || typeof target.readBack !== 'function'
+      || typeof target.publicationStatus !== 'function'
+      || typeof target.bootstrapAuthorityAccessible !== 'function'
+      || typeof target.publicationMigrationRecoveryEvidence !== 'function'
+      || typeof target.migratePublicationCapability !== 'function'
+      || typeof target.finalizeAuthorityNarrowing !== 'function'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_UNAVAILABLE',
+        'One-time server publication-capability migration is unavailable in this runtime.',
+      );
+    }
+
+    const expected = activeReadBackExpectation(record);
+    const before = await target.readBack();
+    if (!readBackMatches(before, expected)) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_READBACK_REQUIRED',
+        'The server no longer matches the exact healthy runtime and Release frozen for this upgrade.',
+      );
+    }
+
+    const bootstrapAvailable = await target.bootstrapAuthorityAccessible(plan);
+    if (!bootstrapAvailable) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_BOOTSTRAP_AUTHORITY_REQUIRED',
+        'Temporarily restore the exact reviewed deployment public key to the original bootstrap account before running this one-time server upgrade.',
+      );
+    }
+
+    const helper = publicationHelperArtifact();
+    const migrated = await target.migratePublicationCapability({
+      plan,
+      helperSource: helper.content,
+      helperSha256: helper.sha256,
+    });
+    if (
+      migrated.capability !== 'ready'
+      || migrated.status?.state !== 'unconfigured'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_CAPABILITY_FAILED',
+        'The restricted publication capability was not proven ready after migration.',
+      );
+    }
+
+    await target.finalizeAuthorityNarrowing(plan);
+    if (await target.bootstrapAuthorityAccessible(plan)) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_AUTHORITY_CLEANUP_FAILED',
+        'Temporary bootstrap authority remained accessible after migration.',
+      );
+    }
+
+    const after = await target.readBack();
+    if (!readBackMatches(after, expected)) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_READBACK_CHANGED',
+        'The active runtime or immutable Release changed during the server capability upgrade.',
+      );
+    }
+    const finalCapability = await target.publicationStatus(plan);
+    if (
+      finalCapability.capability !== 'ready'
+      || finalCapability.status?.state !== 'unconfigured'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_MIGRATION_FINAL_PROOF_FAILED',
+        'Final restricted publication capability proof did not remain ready and unconfigured.',
+      );
+    }
+
+    return Object.freeze({
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      publication: finalCapability,
+      runtime: Object.freeze({ ...expected.runtime }),
+      release: Object.freeze({ ...expected.deployment }),
+      bootstrapAuthorityRemoved: true,
     });
   }
 
@@ -779,6 +1143,8 @@ module.exports = {
   HELD,
   RECOVERY_CONSEQUENCES,
   RECOVERY_HELD,
+  PUBLICATION_MIGRATION_CONSEQUENCES,
+  PUBLICATION_MIGRATION_HELD,
   InstalledRemoteDeploymentService,
   findCachedRuntimeBundle,
   materializeInstalledRuntimeBundle,
