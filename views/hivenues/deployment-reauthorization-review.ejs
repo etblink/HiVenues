@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-reauthorization-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+      <span class="cc-draft-status">Management reconnection review</span>
+    </nav>
+
+    <p class="cc-kicker">Deployment · explicit re-authorization consequence</p>
+    <h1>Reconnect HiVenues management without re-bootstrapping this live server.</h1>
+    <p class="cc-task__dek">
+      HiVenues has re-proven the preserved server, runtime, immutable Release and hostname publication through
+      the temporarily restored bootstrap authority. This review changes deployment access only. It does not
+      upload or activate a runtime/Release and does not rewrite Caddy, firewall, TLS or DNS configuration.
+    </p>
+
+    <section class="cc-review-card" data-reauthorization-deployment>
+      <p class="cc-kicker">Preserved live deployment</p>
+      <p>Deployment: <code><%= review.deploymentId %></code></p>
+      <p>Release: <code><%= review.release.id %></code></p>
+      <p>Release digest: <code><%= review.release.digest %></code></p>
+      <p>Package digest: <code><%= review.release.packageDigest %></code></p>
+      <p>Runtime bundle: <code><%= review.runtime.bundleDigest %></code></p>
+      <p>Public hostname: <strong><%= review.hostname %></strong></p>
+    </section>
+
+    <section class="cc-review-card" data-reauthorization-target>
+      <p class="cc-kicker">Pinned server</p>
+      <p>
+        Bootstrap:
+        <code><%= review.target.bootstrapUsername %>@<%= review.target.host %>:<%= review.target.port %></code>
+      </p>
+      <p>
+        Steady deployment account:
+        <code><%= review.target.deploymentUsername %>@<%= review.target.host %>:<%= review.target.port %></code>
+      </p>
+      <p>Trusted host fingerprint: <code><%= review.target.trustedHostKeyFingerprint %></code></p>
+      <p>Observed recovery state: <strong><%= review.remoteState %></strong></p>
+    </section>
+
+    <section class="cc-review-card" data-reauthorization-authority>
+      <p class="cc-kicker">Fresh authority</p>
+      <p>Authority: <code><%= review.authority.id %></code></p>
+      <p>Public-key fingerprint: <code><%= review.authority.publicKeyFingerprint %></code></p>
+      <details>
+        <summary>Exact public key</summary>
+        <textarea rows="5" readonly><%= review.authority.publicKey %></textarea>
+      </details>
+    </section>
+
+    <section class="cc-consequence-card" data-reauthorization-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-reauthorization-held>
+      <h2>What remains held</h2>
+      <ul>
+        <% review.held.forEach((item) => { %><li><code><%= item %></code></li><% }) %>
+      </ul>
+    </section>
+
+    <details class="cc-review-card">
+      <summary>Technical review identity</summary>
+      <p>Review digest: <code><%= review.reviewDigest %></code></p>
+    </details>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/reauthorize-authority"
+      class="cc-consequence-card"
+      data-confirm-reauthorization
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input type="checkbox" name="confirmation" value="reauthorize-deployment-management" required>
+        I reviewed this management reconnection. Restore only the fresh HiVenues deployment authority and keep
+        the live site/runtime/Release/publication configuration unchanged.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit">Reconnect HiVenues management</button>
+    </form>
+  </main>
+</body>
+</html>
