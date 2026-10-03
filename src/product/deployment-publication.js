@@ -657,10 +657,10 @@ function prepareStage4PublicationReview({
       'The exact active runtime and immutable Release must be confirmed before hostname publication.',
     );
   }
-  if (publication.bootstrapAuthorityAccessible === true) {
+  if (publication.bootstrapAuthorityAccessible !== false) {
     throw publicationError(
       'DEPLOYMENT_PUBLICATION_BOOTSTRAP_AUTHORITY_HELD',
-      'Temporary bootstrap authority must be removed before hostname publication.',
+      'Temporary bootstrap authority removal must be explicitly proven before hostname publication.',
     );
   }
   if (
