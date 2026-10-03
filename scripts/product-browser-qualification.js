@@ -2669,12 +2669,31 @@ async function runDeploymentStage2BVerificationEvidence(browser, axeSource, mani
     assert.equal(await page.locator('[data-deployment-state]').textContent(), 'target-ready');
     assert.equal(await page.locator('[data-deployment-ssh-verification]').count(), 1);
 
+    // First authenticated inspection fails closed on an unknown public listener.
+    // The exact target and trusted authority must survive so the operator can retry.
+    transport.inspection.publicTcpPorts = [22, 5355];
+    transport.inspection.systemdResolvedLlmnrActive = false;
+    await page.locator('[data-observe-deployment-host-key]').click();
+    assert.equal(await page.locator('[data-deployment-state]').textContent(), 'degraded');
+    assert.equal(await record.getAttribute('data-deployment-record'), deploymentId);
+    assert.equal(await page.locator('[data-deployment-ssh-verification]').count(), 1);
+    assert.match(
+      await page.locator('[data-observe-deployment-host-key]').textContent(),
+      /Retry read-only verification/,
+    );
+    assert.equal(await page.locator('[data-deployment-readonly-verified]').count(), 0);
+
+    // The same persisted target can pass when the listener is proved to be the
+    // recognized clean-OS systemd-resolved baseline.
+    transport.inspection.systemdResolvedLlmnrActive = true;
     await page.locator('[data-observe-deployment-host-key]').click();
     assert.equal(await page.locator('[data-deployment-state]').textContent(), 'bootstrap-ready');
+    assert.equal(await record.getAttribute('data-deployment-record'), deploymentId);
     assert.equal(await page.locator('[data-deployment-readonly-verified]').count(), 1);
     assert.equal(await page.locator('[data-deployment-verified-os]').textContent(), 'Debian GNU/Linux 13');
     assert.equal(await page.locator('[data-deployment-verified-architecture]').textContent(), 'x86_64');
     assert.equal(await page.locator('[data-deployment-bootstrap-held]').count(), 1);
+    assert.equal(await page.locator('[data-deployment-remediable-baseline]').count(), 1);
     assert.equal(await page.locator('[data-deploy-release]').count(), 0);
 
     await page.setViewportSize(MOBILE);
@@ -2682,7 +2701,7 @@ async function runDeploymentStage2BVerificationEvidence(browser, axeSource, mani
 
     assert.deepEqual(
       transport.calls.map((item) => item.kind),
-      ['observe-host-key', 'observe-host-key', 'inspect'],
+      ['observe-host-key', 'observe-host-key', 'inspect', 'observe-host-key', 'inspect'],
     );
     assert.deepEqual(store.diagnostics(), beforeDiagnostics);
     assert.equal(JSON.stringify(store.snapshot(slug)), beforeHost);
