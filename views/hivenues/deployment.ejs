@@ -255,6 +255,12 @@
                         <% deployment.publicEndpoint.dns.observation.records.forEach((record) => { %>
                           <p><code><%= record.type %> <%= record.name %> → <%= record.values.join(', ') %></code></p>
                         <% }) %>
+                        <% if ((deployment.publicEndpoint.dns.observation.conflictingRecords || []).length) { %>
+                          <p><strong>Conflicting address-family records:</strong></p>
+                          <% deployment.publicEndpoint.dns.observation.conflictingRecords.forEach((record) => { %>
+                            <p><code><%= record.type %> <%= record.name %> → <%= record.values.join(', ') %></code></p>
+                          <% }) %>
+                        <% } %>
                       </details>
                     <% } %>
 
