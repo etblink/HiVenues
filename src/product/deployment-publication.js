@@ -135,6 +135,40 @@ function isPublicIpv6(value) {
   return !nonPublic.some(([prefix, length]) => ipv6InPrefix(value, prefix, length));
 }
 
+function canonicalIpv6(value) {
+  const address = ipv6ToBigInt(value);
+  if (address === null) {
+    throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'AAAA record value must be an IPv6 address.');
+  }
+  const parts = [];
+  for (let index = 7; index >= 0; index -= 1) {
+    const shift = BigInt(index * 16);
+    parts.push(Number((address >> shift) & 0xffffn).toString(16));
+  }
+
+  let bestStart = -1;
+  let bestLength = 0;
+  for (let start = 0; start < parts.length;) {
+    if (parts[start] !== '0') {
+      start += 1;
+      continue;
+    }
+    let end = start;
+    while (end < parts.length && parts[end] === '0') end += 1;
+    const length = end - start;
+    if (length >= 2 && length > bestLength) {
+      bestStart = start;
+      bestLength = length;
+    }
+    start = end;
+  }
+
+  if (bestStart < 0) return parts.join(':');
+  const left = parts.slice(0, bestStart).join(':');
+  const right = parts.slice(bestStart + bestLength).join(':');
+  return left + '::' + right;
+}
+
 function normalizeDnsValue(type, value) {
   const raw = String(value || '').trim();
   if (type === 'A') {
@@ -144,10 +178,7 @@ function normalizeDnsValue(type, value) {
     return raw;
   }
   if (type === 'AAAA') {
-    if (net.isIP(raw) !== 6) {
-      throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'AAAA record value must be an IPv6 address.');
-    }
-    return raw.toLowerCase();
+    return canonicalIpv6(raw);
   }
   if (type === 'CNAME') return normalizeHostname(raw);
   throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'DNS record type is not supported.');
@@ -347,11 +378,24 @@ function tlsObservationVerified(hostname, observation) {
   );
 }
 
-function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } = {}) {
+function recordDnsObservation(preflight, {
+  records,
+  conflictingRecords = [],
+  checkedAt,
+  resolver = '',
+} = {}) {
   requirePreflight(preflight);
   const checked = requireIsoTime(checkedAt, 'DEPLOYMENT_DNS_OBSERVATION_INVALID', 'DNS observation');
   const observed = relevantObservedRecords(preflight, records);
-  const matches = dnsMatches(preflight.dns.requirements, observed);
+  const requirementKeys = new Set(
+    preflight.dns.requirements.map((record) => record.type + ':' + record.name),
+  );
+  const conflicts = mergeDnsRecords(conflictingRecords).filter((record) => (
+    ['A', 'AAAA'].includes(record.type)
+    && record.name === preflight.hostname
+    && !requirementKeys.has(record.type + ':' + record.name)
+  ));
+  const matches = dnsMatches(preflight.dns.requirements, observed) && conflicts.length === 0;
   const preserveDownstream = matches && preflight.domainState === 'dns-confirmed';
   return Object.freeze({
     ...preflight,
@@ -362,6 +406,7 @@ function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } =
         checkedAt: checked.text,
         resolver: String(resolver || '').trim(),
         records: Object.freeze(observed),
+        conflictingRecords: Object.freeze(conflicts),
         matches,
       }),
     }),
@@ -732,7 +777,18 @@ function validateDnsEvidence(value, requirements) {
   ) {
     invalidPreflight('DNS observation contains records outside the exact requirement set.');
   }
-  const matches = dnsMatches(requirements, records);
+  const requirementKeys = new Set(
+    requirements.map((record) => record.type + ':' + record.name),
+  );
+  const conflicts = mergeDnsRecords(observation.conflictingRecords || []);
+  if (conflicts.some((record) => (
+    !['A', 'AAAA'].includes(record.type)
+    || record.name !== value.hostname
+    || requirementKeys.has(record.type + ':' + record.name)
+  ))) {
+    invalidPreflight('DNS observation contains invalid conflicting address-family evidence.');
+  }
+  const matches = dnsMatches(requirements, records) && conflicts.length === 0;
   if (observation.matches !== matches) invalidPreflight('DNS match summary contradicts observed records.');
   if (value.domainState === 'dns-confirmed' && !matches) {
     invalidPreflight('DNS confirmed state is not supported by the observation.');
@@ -854,6 +910,7 @@ module.exports = {
   DOMAIN_STATES,
   TLS_STATES,
   PUBLIC_READBACK_STATES,
+  canonicalIpv6,
   createDomainPreflight,
   invalidatePublicReadBack,
   isPublicIpv4,
