@@ -11,7 +11,10 @@ const READ_ONLY_INSPECTION_COMMAND = [
   'printf "HIVENUES_ARCH=%s\\n" "$(uname -m)"',
   'printf "HIVENUES_MEMORY_KB=%s\\n" "$(awk \'/^MemTotal:/ { print $2; exit }\' /proc/meminfo)"',
   'printf "HIVENUES_DISK_KB=%s\\n" "$(df -Pk / | awk \'NR==2 { print $2; exit }\')"',
-  'ss_bin="$(command -v ss)"',
+  'printf "HIVENUES_DIAG_STAGE=listener-discovery\\n" >&2',
+  'ss_bin="$(command -v ss || true)"',
+  'if [ -z "$ss_bin" ]; then printf "HIVENUES_DIAG_FAILURE=ss-unavailable\\n" >&2; exit 41; fi',
+  'printf "HIVENUES_DIAG_STAGE=bootstrap-authority\\n" >&2',
   'bootstrap_root_ready=0',
   'if [ "$(id -u)" = "0" ]; then',
   '  bootstrap_root_ready=1',
@@ -20,6 +23,7 @@ const READ_ONLY_INSPECTION_COMMAND = [
   'fi',
   'printf "HIVENUES_BOOTSTRAP_ROOT_READY=%s\\n" "$bootstrap_root_ready"',
   'printf "HIVENUES_PUBLIC_TCP_PORTS=%s\\n" "$("$ss_bin" -H -ltn | awk \'{ endpoint=$4; if (endpoint ~ /^127\\./ || endpoint ~ /^\\[::1\\]:/) next; sub(/^.*:/, "", endpoint); if (endpoint ~ /^[0-9]+$/) print endpoint }\' | sort -nu | paste -sd, -)"',
+  'printf "HIVENUES_DIAG_STAGE=resolver-baseline\\n" >&2',
   'resolved_llmnr=0',
   'if systemctl is-active --quiet systemd-resolved.service 2>/dev/null; then',
   '  if [ "$(id -u)" = "0" ]; then',
@@ -34,6 +38,7 @@ const READ_ONLY_INSPECTION_COMMAND = [
   '  fi',
   'fi',
   'printf "HIVENUES_SYSTEMD_RESOLVED_LLMNR_ACTIVE=%s\\n" "$resolved_llmnr"',
+  'printf "HIVENUES_DIAG_STAGE=service-state\\n" >&2',
   'if systemctl is-active --quiet caddy.service 2>/dev/null; then printf "HIVENUES_SYSTEM_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_SYSTEM_CADDY_ACTIVE=0\\n"; fi',
   'if systemctl is-active --quiet hivenues-caddy.service 2>/dev/null; then printf "HIVENUES_HIVENUES_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_CADDY_ACTIVE=0\\n"; fi',
   'if systemctl is-active --quiet hivenues-firewall.service 2>/dev/null; then printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=0\\n"; fi',
@@ -41,6 +46,7 @@ const READ_ONLY_INSPECTION_COMMAND = [
 
 const DEFAULT_READY_TIMEOUT_MS = 10000;
 const MAX_INSPECTION_OUTPUT_BYTES = 32768;
+const MAX_INSPECTION_DIAGNOSTIC_BYTES = 4096;
 
 function transportError(code, message) {
   const error = new Error(message);
@@ -135,6 +141,18 @@ function strictBoolean(value, label) {
     'DEPLOYMENT_INSPECTION_INVALID',
     'SSH inspection returned an invalid ' + label + ' state.',
   );
+}
+
+function boundedInspectionDiagnostic(stderr) {
+  const raw = Buffer.isBuffer(stderr) ? stderr : Buffer.from(String(stderr || ''), 'utf8');
+  const bounded = raw.subarray(0, MAX_INSPECTION_DIAGNOSTIC_BYTES).toString('utf8');
+  const lines = bounded
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const markers = lines.filter((line) => /^HIVENUES_DIAG_(?:STAGE|FAILURE)=[A-Za-z0-9._:-]+$/.test(line));
+  if (markers.length) return markers.slice(-3).join(' | ');
+  return 'remote diagnostic unavailable';
 }
 
 function parseInspectionOutput(stdout) {
@@ -302,7 +320,9 @@ class Ssh2ReadOnlyVerificationTransport {
           }
 
           const stdout = [];
+          const stderr = [];
           let stdoutBytes = 0;
+          let stderrBytes = 0;
           let overflow = false;
           stream.on('data', (chunk) => {
             const value = Buffer.from(chunk);
@@ -314,7 +334,11 @@ class Ssh2ReadOnlyVerificationTransport {
             }
             stdout.push(value);
           });
-          stream.stderr.on('data', () => {});
+          stream.stderr.on('data', (chunk) => {
+            const value = Buffer.from(chunk);
+            stderrBytes += value.length;
+            if (stderrBytes <= MAX_INSPECTION_DIAGNOSTIC_BYTES) stderr.push(value);
+          });
           stream.once('close', (code) => {
             if (overflow) {
               client.end();
@@ -325,11 +349,19 @@ class Ssh2ReadOnlyVerificationTransport {
               return;
             }
             if (code !== 0) {
-              client.end();
-              finish(transportError(
+              const diagnostic = boundedInspectionDiagnostic(Buffer.concat(stderr));
+              const failure = transportError(
                 'DEPLOYMENT_SSH_INSPECTION_FAILED',
-                'Read-only SSH inspection returned a nonzero status.',
-              ));
+                'Read-only SSH inspection returned status '
+                  + String(code)
+                  + '. Diagnostic: '
+                  + diagnostic
+                  + '.',
+              );
+              failure.remoteExitStatus = code;
+              failure.inspectionDiagnostic = diagnostic;
+              client.end();
+              finish(failure);
               return;
             }
             try {
@@ -365,6 +397,7 @@ class Ssh2ReadOnlyVerificationTransport {
 }
 
 module.exports = {
+  MAX_INSPECTION_DIAGNOSTIC_BYTES,
   MAX_INSPECTION_OUTPUT_BYTES,
   READ_ONLY_INSPECTION_COMMAND,
   Ssh2ReadOnlyVerificationTransport,
