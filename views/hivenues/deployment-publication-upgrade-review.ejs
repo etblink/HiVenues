@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-publication-upgrade-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-capability">Back to Server Readiness</a>
+      <span class="cc-draft-status">Development reference-server migration</span>
+    </nav>
+
+    <p class="cc-kicker">Domain · one-time development server upgrade</p>
+    <h1>Review the exact capability migration before touching the server.</h1>
+    <p class="cc-task__dek">
+      This migration upgrades only the pre-Stage-4 reference server's restricted publishing capability.
+      It does not redeploy the site, change the immutable Release, publish the domain, edit DNS, open HTTPS,
+      request TLS, or broaden the steady deployment account into a server administrator.
+    </p>
+
+    <section class="cc-review-card" data-publication-upgrade-current>
+      <p class="cc-kicker">Preserved deployment</p>
+      <h2><code><%= review.target.currentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></h2>
+      <p>Deployment: <code><%= review.deploymentId %></code></p>
+      <p>Release: <code><%= review.current.release.id %></code></p>
+      <p>Release digest: <code><%= review.current.release.digest %></code></p>
+      <p>Package digest: <code><%= review.current.release.packageDigest %></code></p>
+      <p>Runtime source: <code><%= review.current.runtime.sourceSha %></code></p>
+      <p>Runtime tree: <code><%= review.current.runtime.sourceTree %></code></p>
+      <p>Runtime bundle: <code><%= review.current.runtime.bundleDigest %></code></p>
+    </section>
+
+    <section class="cc-consequence-card" data-publication-upgrade-bootstrap-key>
+      <p class="cc-kicker">Temporary development-only bootstrap step</p>
+      <h2>Restore this exact public key to <code><%= review.target.bootstrapUsername %></code> only when instructed.</h2>
+      <p>
+        The original bootstrap key was intentionally removed after the first deployment. Before the upgrade can run,
+        the environment owner must temporarily restore this exact public key to the original bootstrap account using
+        the provider's out-of-band console. HiVenues will prove that account, perform only the reviewed migration,
+        and remove this exact key again before success is accepted.
+      </p>
+      <p>Public-key fingerprint: <code data-publication-upgrade-key-fingerprint><%= review.authority.publicKeyFingerprint %></code></p>
+      <textarea
+        readonly
+        rows="5"
+        style="width:100%;font-family:monospace"
+        data-publication-upgrade-public-key
+      ><%= review.authority.publicKey %></textarea>
+      <p>
+        Trusted server host fingerprint:
+        <code><%= review.target.trustedHostKeyFingerprint %></code>
+      </p>
+    </section>
+
+    <section class="cc-consequence-card" data-publication-upgrade-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-publication-upgrade-held>
+      <h2>What remains held</h2>
+      <ul>
+        <% review.held.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <details class="cc-review-card">
+      <summary>Technical migration artifact</summary>
+      <p>Publication helper path: <code><%= review.helper.installedPath %></code></p>
+      <p>Publication helper SHA-256: <code><%= review.helper.sha256 %></code></p>
+      <p>Current capability: <code><%= review.current.publicationCapability %></code></p>
+      <p>Current publication state: <code><%= review.current.publicationState %></code></p>
+      <p>Review digest: <code><%= review.reviewDigest %></code></p>
+    </details>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-upgrade"
+      class="cc-consequence-card"
+      data-confirm-publication-upgrade
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="upgrade-reference-publication-capability"
+          required
+        >
+        I reviewed this one-time development migration and have restored only the exact public key above to the original bootstrap account.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit">
+        Upgrade server publishing capability
+      </button>
+    </form>
+  </main>
+</body>
+</html>
