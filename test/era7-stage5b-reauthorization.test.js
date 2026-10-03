@@ -441,6 +441,59 @@ test('Era 7 Stage 5B: retry accepts already-finalized remote authority without c
   assert.equal(result.previousRelease.id, RELEASE_B.id);
 });
 
+test('Era 7 Stage 5B corrective: transient DNS mismatch remains recoverable after remote authority restoration', async (t) => {
+  const f = fixture(t);
+  f.service.beginReauthorization(f.deploymentId);
+
+  const current = f.store.get(f.deploymentId);
+  const mismatched = recordDnsObservation(current.publicEndpoint, {
+    checkedAt: '2026-10-03T23:22:30.000Z',
+    resolver: 'stage5b-transient-mismatch',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['203.0.113.77'],
+    }],
+  });
+  f.store.setPublicEndpoint(f.deploymentId, mismatched);
+
+  await assert.rejects(
+    () => f.service.prepareReauthorizationReview(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED',
+  );
+
+  await assert.rejects(
+    () => f.service.checkDns(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_MUTATION_STATE_INVALID',
+  );
+
+  f.service.publicationObserver = {
+    async observeDns() {
+      return {
+        checkedAt: '2026-10-03T23:22:40.000Z',
+        resolver: 'stage5b-recovery',
+        records: [{
+          type: 'A',
+          name: 'dev.fourthstreetbar.com',
+          values: ['121.127.34.154'],
+        }],
+      };
+    },
+  };
+
+  const recovered = await f.service.checkDns(
+    f.deploymentId,
+    { allowReauthorizing: true },
+  );
+
+  assert.equal(recovered.domainState, 'dns-confirmed');
+  assert.equal(recovered.dns.observation.matches, true);
+  assert.equal(f.store.get(f.deploymentId).state, 'reauthorizing');
+
+  const review = await f.service.prepareReauthorizationReview(f.deploymentId);
+  assert.equal(review.remoteState, 'bootstrap-temporary-only');
+});
+
 test('Era 7 Stage 5B: reauthorizing state and fresh authority survive store restart', (t) => {
   const f = fixture(t);
   const prepared = f.service.beginReauthorization(f.deploymentId);
