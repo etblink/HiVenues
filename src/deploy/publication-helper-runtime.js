@@ -317,6 +317,9 @@ function applyPublication({
   try {
     const priorCaddy = readRegularFile(paths.caddyConfig, io);
     const priorFirewall = readRegularFile(paths.firewallPolicy, io);
+    const priorStatus = io.existsSync(paths.status)
+      ? readRegularFile(paths.status, io)
+      : null;
     const caddy = renderPublicationCaddyConfig({
       hostname: host,
       runtimePort: accepted.runtimePort,
@@ -341,14 +344,21 @@ function applyPublication({
     }
     io.chmodSync(firewallCheck, 0o600);
 
-    command(execFile, '/usr/bin/caddy', [
-      'validate',
-      '--config',
-      caddyCandidate,
-      '--adapter',
-      'caddyfile',
-    ]);
-    command(execFile, '/usr/sbin/nft', ['-c', '-f', firewallCheck]);
+    try {
+      command(execFile, '/usr/bin/caddy', [
+        'validate',
+        '--config',
+        caddyCandidate,
+        '--adapter',
+        'caddyfile',
+      ]);
+      command(execFile, '/usr/sbin/nft', ['-c', '-f', firewallCheck]);
+    } catch {
+      throw helperError(
+        'PUBLICATION_VALIDATION_FAILED',
+        'HiVenues publication candidate validation failed before activation.',
+      );
+    }
 
     writeCandidate(paths.firewallPolicy, firewall, 0o600, io);
 
@@ -360,9 +370,39 @@ function applyPublication({
       command(execFile, '/usr/bin/systemctl', ['restart', paths.caddyService]);
       command(execFile, '/usr/bin/systemctl', ['is-active', '--quiet', paths.firewallService]);
       command(execFile, '/usr/bin/systemctl', ['is-active', '--quiet', paths.caddyService]);
+
+      const appliedAt = new Date(now()).toISOString();
+      const status = {
+        version: 1,
+        hostSlug: accepted.hostSlug,
+        hostname: host,
+        appliedAt,
+        caddyConfigSha256: sha256(Buffer.from(caddy, 'utf8')),
+        firewallPolicySha256: sha256(Buffer.from(firewall, 'utf8')),
+      };
+      io.mkdirSync(paths.stateRoot, { recursive: true, mode: 0o700 });
+      atomicRestore(
+        paths.status,
+        Buffer.from(JSON.stringify(status, null, 2) + '\n', 'utf8'),
+        0o600,
+        io,
+      );
+      const confirmed = publicationStatus({ metadata: accepted, paths, io });
+      if (confirmed.state !== 'configured' || confirmed.hostname !== host) {
+        throw helperError(
+          'PUBLICATION_STATUS_CONFIRMATION_FAILED',
+          'HiVenues publication status did not confirm the exact applied hostname.',
+        );
+      }
+      return confirmed;
     } catch {
       atomicRestore(paths.caddyConfig, priorCaddy, 0o644, io);
       atomicRestore(paths.firewallPolicy, priorFirewall, 0o600, io);
+      if (priorStatus) {
+        atomicRestore(paths.status, priorStatus, 0o600, io);
+      } else {
+        try { io.rmSync(paths.status, { force: true }); } catch {}
+      }
       try { command(execFile, '/usr/bin/systemctl', ['restart', paths.firewallService]); } catch {}
       try { command(execFile, '/usr/bin/systemctl', ['restart', paths.caddyService]); } catch {}
       throw helperError(
@@ -370,24 +410,6 @@ function applyPublication({
         'HiVenues publication activation failed and the prior managed configuration was restored.',
       );
     }
-
-    const appliedAt = new Date(now()).toISOString();
-    const status = {
-      version: 1,
-      hostSlug: accepted.hostSlug,
-      hostname: host,
-      appliedAt,
-      caddyConfigSha256: sha256(Buffer.from(caddy, 'utf8')),
-      firewallPolicySha256: sha256(Buffer.from(firewall, 'utf8')),
-    };
-    io.mkdirSync(paths.stateRoot, { recursive: true, mode: 0o700 });
-    atomicRestore(
-      paths.status,
-      Buffer.from(JSON.stringify(status, null, 2) + '\n', 'utf8'),
-      0o600,
-      io,
-    );
-    return publicationStatus({ metadata: accepted, paths, io });
   } finally {
     try { io.rmSync(caddyCandidate, { force: true }); } catch {}
     try { io.rmSync(firewallCandidate, { force: true }); } catch {}
