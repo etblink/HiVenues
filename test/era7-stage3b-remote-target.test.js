@@ -527,3 +527,98 @@ test('Era 7 Stage 3B: remote target never exposes private authority through comm
   assert.equal(transcript.includes(authority.pair.privateKeyPem), false);
   assert.equal(transcript.includes(authority.pair.publicKeyOpenSsh), true);
 });
+
+
+test('Era 7 Stage 4B: pre-capability server reports publication upgrade required without mutation', async (t) => {
+  const f = artifactFixture(t);
+  const authority = fakeAuthority();
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: f.runtimeProvenance,
+    releaseManifest: f.releaseManifest,
+    bootstrapUsername: 'debian',
+  });
+  const calls = [];
+  const transport = {
+    async withSession(input, action) {
+      calls.push({ kind: 'session', username: input.target.username });
+      return action({
+        exec: async (command) => {
+          calls.push({ kind: 'exec', username: input.target.username, command });
+          return {
+            stdout: 'HIVENUES_PUBLICATION_CAPABILITY=upgrade-required\n',
+            stderr: '',
+            exitCode: 0,
+          };
+        },
+      });
+    },
+  };
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore: authority.store,
+    authorityId: 'authority-stage3b',
+    target: {
+      host: '203.0.113.48',
+      port: 22,
+      username: 'hivenues-deploy',
+    },
+    bootstrapUsername: 'debian',
+    expectedHostKeyFingerprint: 'SHA256:' + 'U'.repeat(43),
+    hostSlug: f.slug,
+    transport,
+  });
+
+  const result = await target.publicationStatus(plan);
+  assert.deepEqual(result, {
+    capability: 'upgrade-required',
+    reason: 'publication-capability-upgrade-required',
+  });
+  assert.equal(
+    calls.some((item) => item.kind === 'exec' && /systemctl restart|caddy reload|nft -f/.test(item.command)),
+    false,
+  );
+});
+
+test('Era 7 Stage 4B: clean-capability status is bounded to helper JSON', async (t) => {
+  const f = artifactFixture(t);
+  const authority = fakeAuthority();
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: f.runtimeProvenance,
+    releaseManifest: f.releaseManifest,
+    bootstrapUsername: 'debian',
+  });
+  const status = {
+    version: 1,
+    capability: 'ready',
+    state: 'unconfigured',
+    hostSlug: f.slug,
+  };
+  const transport = {
+    async withSession(input, action) {
+      return action({
+        exec: async () => ({
+          stdout: 'HIVENUES_PUBLICATION_CAPABILITY=ready\n'
+            + JSON.stringify(status) + '\n',
+          stderr: '',
+          exitCode: 0,
+        }),
+      });
+    },
+  };
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore: authority.store,
+    authorityId: 'authority-stage3b',
+    target: {
+      host: '203.0.113.49',
+      port: 22,
+      username: 'hivenues-deploy',
+    },
+    bootstrapUsername: 'debian',
+    expectedHostKeyFingerprint: 'SHA256:' + 'V'.repeat(43),
+    hostSlug: f.slug,
+    transport,
+  });
+
+  const result = await target.publicationStatus(plan);
+  assert.equal(result.capability, 'ready');
+  assert.deepEqual(result.status, status);
+});
