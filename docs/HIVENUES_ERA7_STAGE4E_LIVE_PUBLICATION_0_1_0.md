@@ -181,3 +181,6 @@ This avoids a hostname that sends IPv4 clients to the reviewed VPS while sending
 AAAA values are canonicalized before comparison so equivalent textual IPv6 spellings do not create false mismatches.
 
 Resolver inability such as an unsupported query is not treated as proof that a record is absent; it fails the DNS check closed.
+
+
+For address-record plans, HiVenues also checks that the hostname is not actually a CNAME alias. A resolver that follows an alias and returns the expected final address is not sufficient to prove the operator created the exact reviewed A/AAAA record.
