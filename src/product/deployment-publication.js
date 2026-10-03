@@ -81,17 +81,58 @@ function isPublicIpv4(value) {
   return true;
 }
 
+function ipv6ToBigInt(value) {
+  if (net.isIP(value) !== 6) return null;
+  let text = String(value).toLowerCase();
+
+  if (text.includes('.')) {
+    const lastColon = text.lastIndexOf(':');
+    const octets = text.slice(lastColon + 1).split('.').map(Number);
+    if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+      return null;
+    }
+    const high = ((octets[0] << 8) | octets[1]).toString(16);
+    const low = ((octets[2] << 8) | octets[3]).toString(16);
+    text = text.slice(0, lastColon + 1) + high + ':' + low;
+  }
+
+  const split = text.split('::');
+  if (split.length > 2) return null;
+  const left = split[0] ? split[0].split(':') : [];
+  const right = split.length === 2 && split[1] ? split[1].split(':') : [];
+  const missing = 8 - left.length - right.length;
+  if ((split.length === 1 && missing !== 0) || (split.length === 2 && missing < 1)) return null;
+  const hextets = split.length === 2
+    ? [...left, ...Array(missing).fill('0'), ...right]
+    : left;
+  if (hextets.length !== 8) return null;
+
+  let result = 0n;
+  for (const hextet of hextets) {
+    if (!/^[0-9a-f]{1,4}$/.test(hextet)) return null;
+    result = (result << 16n) | BigInt(Number.parseInt(hextet, 16));
+  }
+  return result;
+}
+
+function ipv6InPrefix(value, prefix, prefixLength) {
+  const address = ipv6ToBigInt(value);
+  const network = ipv6ToBigInt(prefix);
+  if (address === null || network === null) return false;
+  const shift = 128n - BigInt(prefixLength);
+  return (address >> shift) === (network >> shift);
+}
+
 function isPublicIpv6(value) {
   if (net.isIP(value) !== 6) return false;
-  const normalized = String(value).toLowerCase();
-  const parts = normalized.split(':');
-  const first = Number.parseInt(parts[0] || '0', 16);
-  const second = Number.parseInt(parts[1] || '0', 16);
-  if (!Number.isInteger(first) || first < 0x2000 || first > 0x3fff) return false;
-  if (first === 0x2001 && second <= 0x01ff) return false;
-  if (first === 0x2001 && second === 0x0db8) return false;
-  if (first === 0x3fff && second <= 0x0fff) return false;
-  return true;
+  if (!ipv6InPrefix(value, '2000::', 3)) return false;
+  const nonPublic = [
+    ['2001::', 23],
+    ['2001:db8::', 32],
+    ['2002::', 16],
+    ['3fff::', 20],
+  ];
+  return !nonPublic.some(([prefix, length]) => ipv6InPrefix(value, prefix, length));
 }
 
 function normalizeDnsValue(type, value) {
