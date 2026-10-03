@@ -92,9 +92,7 @@
             domain workflow from this state.
           </p>
         </section>
-      <% } %>
-
-      <% if (diagnostic.bootstrapAuthorityAccessible === true) { %>
+      <% } else if (diagnostic.bootstrapAuthorityAccessible === true) { %>
         <section class="cc-consequence-card" data-publication-bootstrap-authority-warning>
           <h1>Temporary bootstrap access still needs to be removed.</h1>
           <p class="cc-task__dek">
@@ -110,9 +108,7 @@
             >Review and finish one-time server upgrade</a>
           <% } %>
         </section>
-      <% } %>
-
-      <% if (diagnostic.status.state === 'drifted') { %>
+      <% } else if (diagnostic.status.state === 'drifted') { %>
         <section data-publication-capability-drifted>
           <h1>Server publishing needs attention before we continue.</h1>
           <p class="cc-task__dek">
@@ -138,9 +134,13 @@
       <section class="cc-review-card">
         <p class="cc-kicker">Current publishing state</p>
         <h2>
-          <%= diagnostic.status.state === 'configured'
-            ? 'Publishing configuration already present'
-            : (diagnostic.status.state === 'drifted' ? 'Publishing state drift detected' : 'Ready, not yet configured') %>
+          <%= diagnostic.exactDeploymentMatches === false
+            ? 'Capability installed · deployment proof mismatch'
+            : (diagnostic.bootstrapAuthorityAccessible === true
+              ? 'Capability installed · bootstrap cleanup pending'
+              : (diagnostic.status.state === 'configured'
+                ? 'Publishing configuration already present'
+                : (diagnostic.status.state === 'drifted' ? 'Publishing state drift detected' : 'Ready, not yet configured'))) %>
         </h2>
         <% if (diagnostic.status.hostname) { %>
           <p>Observed hostname: <strong><%= diagnostic.status.hostname %></strong></p>
