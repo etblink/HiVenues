@@ -939,3 +939,60 @@ test('Era 7 Stage 4E: address requirement fails exact DNS proof when the hostnam
   assert.equal(endpoint.dns.observation.conflictingRecords[0].type, 'CNAME');
   assert.equal(endpoint.dns.observation.conflictingRecords[0].values[0], 'other.example.com');
 });
+
+
+test('Era 7 Stage 4E: publication review rejects state that changes during remote readiness proof', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+
+  let releaseStatus;
+  const pendingStatus = new Promise((resolve) => {
+    releaseStatus = resolve;
+  });
+  const originalStatus = f.target.publicationStatus.bind(f.target);
+  f.target.publicationStatus = async () => pendingStatus;
+
+  const pendingReview = f.service.prepareHostnamePublicationReview(f.deploymentId);
+  const current = f.store.get(f.deploymentId).publicEndpoint;
+  f.store.setPublicEndpoint(f.deploymentId, recordDnsObservation(current, {
+    checkedAt: '2026-10-03T20:02:30.000Z',
+    resolver: 'synthetic-concurrent-recheck',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  }));
+  releaseStatus(await originalStatus());
+
+  await assert.rejects(
+    () => pendingReview,
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+  );
+});
+
+test('Era 7 Stage 4E: hostname apply fails closed if exact Release changes before post-apply read-back', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+  const review = await f.service.prepareHostnamePublicationReview(f.deploymentId);
+
+  let readBackCalls = 0;
+  f.target.readBack = async () => {
+    readBackCalls += 1;
+    const result = exactReadBack();
+    if (readBackCalls >= 2) result.deployment.releaseId = 'release-concurrent-change';
+    return result;
+  };
+
+  await assert.rejects(
+    () => f.service.publishHostname(f.deploymentId, {
+      reviewDigest: review.reviewDigest,
+      confirmation: 'publish-reviewed-hostname',
+    }),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_READBACK_CHANGED',
+  );
+
+  assert.equal(f.remote.applyCalls, 1);
+  assert.equal(f.remote.publicationState, 'configured');
+  assert.equal(f.store.get(f.deploymentId).publicEndpoint.tls.state, 'ready-for-request');
+});
