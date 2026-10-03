@@ -128,3 +128,18 @@ If the publication capability exists but the runtime/Release read-back no longer
 The canonical helper executable is installed **after** the validated restricted sudoers fragment and the other root-owned migration assets. Therefore an interruption before the helper becomes visible still reads as `upgrade-required`; an interruption after the helper becomes visible already has its bounded sudo authority in place.
 
 The `migration-incomplete` recovery path remains as a second fail-safe for unexpected partial/status failures.
+
+
+## Recovery eligibility is evidence-backed
+
+A helper-status failure is **not** enough to call a server `migration-incomplete`.
+
+Before exposing the recovery migration, HiVenues uses the temporarily restored bootstrap authority read-only to prove all of the following on the server:
+
+- no publication status record exists;
+- the managed Caddy configuration still exactly matches the qualified unpublished Stage-3 HTTP baseline;
+- the managed firewall policy still exactly matches the qualified Stage-3 baseline.
+
+Only that evidence permits `migration-incomplete`.
+
+If a publication status record exists, either managed baseline differs, or the evidence cannot be obtained, HiVenues fails closed and does not offer the one-time migration. This prevents a configured or drifted published server from being rewritten merely because its helper status command failed.
