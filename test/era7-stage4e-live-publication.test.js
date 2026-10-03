@@ -782,3 +782,43 @@ test('Era 7 Stage 4E corrective: unsupported resolver operation fails closed ins
     (error) => error.code === 'DEPLOYMENT_DNS_OBSERVATION_UNAVAILABLE',
   );
 });
+
+
+test('Era 7 Stage 4E corrective: conflicting opposite-family DNS recheck invalidates downstream TLS and public proof', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+  const review = await f.service.prepareHostnamePublicationReview(f.deploymentId);
+  await f.service.publishHostname(f.deploymentId, {
+    reviewDigest: review.reviewDigest,
+    confirmation: 'publish-reviewed-hostname',
+  });
+  let endpoint = await f.service.verifyPublicHttps(f.deploymentId);
+  assert.equal(endpoint.tls.state, 'verified');
+  assert.equal(endpoint.publicReadBack.state, 'verified');
+
+  f.observer.observeDns = async function observeConflictingDns() {
+    this.dnsCalls += 1;
+    return {
+      checkedAt: '2026-10-03T20:03:00.000Z',
+      resolver: 'synthetic-stage4e',
+      records: [{
+        type: 'A',
+        name: 'dev.fourthstreetbar.com',
+        values: ['121.127.34.154'],
+      }],
+      conflictingRecords: [{
+        type: 'AAAA',
+        name: 'dev.fourthstreetbar.com',
+        values: ['2606:4700::9999'],
+      }],
+    };
+  };
+
+  endpoint = await f.service.checkDns(f.deploymentId);
+
+  assert.equal(endpoint.domainState, 'dns-mismatch');
+  assert.equal(endpoint.dns.observation.matches, false);
+  assert.equal(endpoint.tls.state, 'awaiting-dns');
+  assert.equal(endpoint.tls.observation, null);
+  assert.equal(endpoint.publicReadBack.state, 'unverified');
+});
