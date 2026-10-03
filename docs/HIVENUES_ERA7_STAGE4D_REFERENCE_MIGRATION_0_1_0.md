@@ -97,3 +97,18 @@ A clean Stage-4 bootstrap or fully completed migration ends with:
 publication capability = ready / unconfigured
 bootstrap authority accessible by deployment key = false
 ```
+
+
+## Partial-install recovery
+
+A process interruption can occur after the root-owned helper exists but before the restricted sudoers fragment is fully active. In that state the normal helper status command may fail.
+
+If the exact temporary bootstrap authority is still reachable, read-only readiness classifies this as:
+
+```text
+migration-incomplete
+```
+
+rather than treating the deployment as unrecoverable or ready. Studio keeps the bounded migration review available so the same idempotent candidate can be resumed and bootstrap-key cleanup can still be proven.
+
+If helper status fails and bootstrap authority is not available, HiVenues fails closed and requires the owner to restore the exact reviewed bootstrap public key again before migration recovery.
