@@ -565,3 +565,22 @@ test('Era 7 Stage 4D: partial migration UI keeps bounded resume path visible', a
   assert.match(response.text, /needs to be resumed/);
   assert.match(response.text, /data-resume-publication-upgrade/);
 });
+
+
+test('Era 7 Stage 4D: ready capability readiness also proves the exact active runtime and Release', async (t) => {
+  const f = serviceFixture(t);
+  f.state.capabilityReady = true;
+  f.state.bootstrapAvailable = false;
+
+  const diagnostic = await f.service.inspectPublicationCapability(f.deploymentId);
+
+  assert.equal(diagnostic.capability, 'ready');
+  assert.equal(diagnostic.status.state, 'unconfigured');
+  assert.equal(diagnostic.bootstrapAuthorityAccessible, false);
+  assert.equal(diagnostic.exactDeploymentMatches, true);
+
+  await assert.rejects(
+    () => f.service.preparePublicationMigrationReview(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_MIGRATION_NOT_REQUIRED',
+  );
+});
