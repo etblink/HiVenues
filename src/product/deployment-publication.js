@@ -286,8 +286,8 @@ function recordKey(record) {
 }
 
 function dnsMatches(requirements, observed) {
-  const left = requirements.map(recordKey).sort();
-  const right = observed.map(recordKey).sort();
+  const left = mergeDnsRecords(requirements).map(recordKey).sort();
+  const right = mergeDnsRecords(observed).map(recordKey).sort();
   return left.length === right.length && left.every((item, index) => item === right[index]);
 }
 
