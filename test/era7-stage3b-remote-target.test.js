@@ -237,6 +237,18 @@ test('Era 7 Stage 3B: remote target stages artifacts, proves restricted login, a
     true,
   );
   assert.equal(
+    rootExecBeforeFinalize.some((item) => item.command.includes(
+      'HIVENUES_MUTATION_STAGE=base-packages',
+    )),
+    true,
+  );
+  assert.equal(
+    rootExecBeforeFinalize.some((item) => item.command.includes(
+      'HIVENUES_MUTATION_STAGE=node-runtime',
+    )),
+    true,
+  );
+  assert.equal(
     rootExecBeforeFinalize.some((item) => item.command.includes(plan.nodeDistribution.url)),
     true,
   );
@@ -357,6 +369,8 @@ test('Era 7 Stage 3C: non-root Privex bootstrap account uses noninteractive sudo
       item.command === 'sudo -n /bin/sh -s'
       && item.stdin.includes('apt-get update')
       && item.stdin.includes('test "$(id -u)" = "0"')
+      && item.stdin.includes('HIVENUES_MUTATION_STAGE=base-packages')
+      && item.stdin.includes('HIVENUES_MUTATION_STAGE=runtime-dependencies')
     )),
     true,
   );
@@ -381,6 +395,72 @@ test('Era 7 Stage 3C: non-root Privex bootstrap account uses noninteractive sudo
   );
   assert.equal(target.connection.username, 'hivenues-deploy');
   assert.equal(target.narrowingPending, false);
+});
+
+test('Era 7 Stage 3C: mutation failures preserve the stable product-owned stage', async (t) => {
+  const f = artifactFixture(t);
+  const authority = fakeAuthority();
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: f.runtimeProvenance,
+    releaseManifest: f.releaseManifest,
+    bootstrapUsername: 'debian',
+  });
+  const failure = new Error('Remote command returned a nonzero status.');
+  failure.code = 'DEPLOYMENT_REMOTE_COMMAND_FAILED';
+  failure.remoteExitCode = 100;
+  failure.remoteStderr = [
+    'apt output that must not become a product diagnostic',
+    'HIVENUES_MUTATION_STAGE=base-packages',
+    '',
+  ].join('\n');
+  const transport = {
+    async withSession(input, action) {
+      return action({
+        exec: async (command, options = {}) => {
+          const semantic = command + '\n' + (options.stdin
+            ? Buffer.from(options.stdin).toString('utf8')
+            : '');
+          if (semantic.includes('HIVENUES_MUTATION_STAGE=base-packages')) throw failure;
+          return { stdout: '', stderr: '', exitCode: 0 };
+        },
+        uploadTree: async () => {},
+      });
+    },
+  };
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore: authority.store,
+    authorityId: 'authority-stage3b',
+    target: {
+      host: '203.0.113.47',
+      port: 22,
+      username: 'debian',
+    },
+    expectedHostKeyFingerprint: 'SHA256:' + 'T'.repeat(43),
+    hostSlug: f.slug,
+    transport,
+  });
+
+  await assert.rejects(
+    () => target.activate({
+      runtime: {
+        provenance: f.runtimeProvenance,
+        path: plan.paths.runtimeRoot,
+        stagingPath: null,
+      },
+      release: {
+        manifest: f.releaseManifest,
+        path: plan.paths.releaseRoot,
+        stagingPath: null,
+      },
+      plan,
+    }),
+    (error) => {
+      assert.equal(error.code, 'DEPLOYMENT_REMOTE_COMMAND_FAILED');
+      assert.equal(error.deploymentStage, 'bootstrap-initial');
+      assert.equal(error.remoteExitCode, 100);
+      return true;
+    },
+  );
 });
 
 test('Era 7 Stage 3B: remote target never exposes private authority through command or upload metadata', async (t) => {

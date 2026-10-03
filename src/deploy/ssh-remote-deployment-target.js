@@ -16,6 +16,17 @@ function targetError(code, message) {
   return error;
 }
 
+async function withMutationStage(stage, action) {
+  try {
+    return await action();
+  } catch (error) {
+    if (error && typeof error === 'object' && !error.deploymentStage) {
+      error.deploymentStage = stage;
+    }
+    throw error;
+  }
+}
+
 function readRuntime(root) {
   const absolute = path.resolve(root);
   return loadRuntimeProvenance(
@@ -61,10 +72,13 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
   const node = plan.nodeDistribution;
   const lines = [
     'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=bootstrap-root\\n" >&2',
     'test "$(id -u)" = "0"',
     'export DEBIAN_FRONTEND=noninteractive',
+    'printf "HIVENUES_MUTATION_STAGE=base-packages\\n" >&2',
     'apt-get update',
     'apt-get install -y --no-install-recommends ca-certificates curl xz-utils gnupg debian-keyring debian-archive-keyring apt-transport-https nftables sudo',
+    'printf "HIVENUES_MUTATION_STAGE=caddy-install\\n" >&2',
     'if ! command -v caddy >/dev/null 2>&1; then',
     "  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg",
     "  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' -o /etc/apt/sources.list.d/caddy-stable.list",
@@ -72,6 +86,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     '  apt-get update',
     '  apt-get install -y --no-install-recommends caddy',
     'fi',
+    'printf "HIVENUES_MUTATION_STAGE=users-directories\\n" >&2',
     'systemctl disable --now caddy >/dev/null 2>&1 || true',
     'getent group hivenues >/dev/null 2>&1 || groupadd --system hivenues',
     'id -u hivenues >/dev/null 2>&1 || useradd --system --gid hivenues --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin hivenues',
@@ -79,6 +94,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     'install -d -m 0755 -o root -g root /opt/hivenues /opt/hivenues/node /srv/hivenues /etc/hivenues',
     'install -d -m 0750 -o hivenues-deploy -g hivenues /opt/hivenues/runtime /srv/hivenues/releases',
     'install -d -m 0750 -o hivenues -g hivenues ' + shellQuote(plan.paths.stateRoot),
+    'printf "HIVENUES_MUTATION_STAGE=node-runtime\\n" >&2',
     'if [ ! -x ' + shellQuote(node.nodePath) + ' ]; then',
     '  tmp="$(mktemp /var/tmp/hivenues-node.XXXXXX)"',
     '  curl -fsSL --proto "=https" --tlsv1.2 ' + shellQuote(node.url) + ' -o "$tmp"',
@@ -92,6 +108,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     'test "$(' + shellQuote(node.npmPath) + ' --version)" = ' + shellQuote(node.npmVersion),
   ];
 
+  lines.push('printf "HIVENUES_MUTATION_STAGE=runtime-dependencies\\n" >&2');
   if (runtime.stagingPath) {
     lines.push(
       'if [ ! -d ' + shellQuote(runtime.path) + ' ]; then mv -- '
@@ -107,6 +124,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
       + ' ci --omit=dev --ignore-scripts --no-audit --no-fund',
   );
 
+  lines.push('printf "HIVENUES_MUTATION_STAGE=release-authority\\n" >&2');
   if (release.stagingPath) {
     lines.push(
       'if [ ! -d ' + shellQuote(release.path) + ' ]; then mv -- '
@@ -127,7 +145,11 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
 }
 
 function steadyInstallCommand(plan, runtime, release) {
-  const lines = ['set -eu', 'test "$(id -un)" = ' + shellQuote(plan.deploymentUser)];
+  const lines = [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=steady-install\\n" >&2',
+    'test "$(id -un)" = ' + shellQuote(plan.deploymentUser),
+  ];
   if (runtime.stagingPath) {
     lines.push(
       'if [ ! -d ' + shellQuote(runtime.path) + ' ]; then mv -- '
@@ -156,6 +178,7 @@ function activationCommand(plan, runtimePath, releasePath, {
   const service = serviceName(plan);
   const lines = [
     'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=service-activation\\n" >&2',
     restricted
       ? 'test "$(id -un)" = ' + shellQuote(plan.deploymentUser)
       : 'test "$(id -u)" = "0"',
@@ -192,6 +215,7 @@ function activationCommand(plan, runtimePath, releasePath, {
 function authorityStateCommand(plan, value) {
   return [
     'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=authority-state\\n" >&2',
     'printf "%s\\n" ' + shellQuote(value) + ' > ' + shellQuote(plan.paths.stateRoot + '/authority-state'),
     'chown hivenues:hivenues -- ' + shellQuote(plan.paths.stateRoot + '/authority-state'),
     'chmod 0640 -- ' + shellQuote(plan.paths.stateRoot + '/authority-state'),
@@ -202,6 +226,7 @@ function removeBootstrapKeyCommand(plan, publicKey) {
   const initial = plan.privilegeModel.initialRemoteAccount;
   return [
     'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=authority-narrowing\\n" >&2',
     'test "$(id -u)" = "0"',
     'home="$(getent passwd ' + shellQuote(initial) + ' | cut -d: -f6)"',
     'test -n "$home"',
@@ -308,20 +333,24 @@ class SshRemoteDeploymentTarget {
 
   async stageTree(kind, localRoot, digest, finalPath) {
     const stagingPath = stagePath(kind, digest);
-    const exists = await this.withSession(this.connection.username, async (session) => {
-      const result = await session.exec(
-        'if [ -d ' + shellQuote(finalPath) + ' ]; then printf "yes"; else printf "no"; fi',
-      );
-      return result.stdout.trim() === 'yes';
-    });
+    const exists = await withMutationStage(kind + '-stage-probe', () => (
+      this.withSession(this.connection.username, async (session) => {
+        const result = await session.exec(
+          'if [ -d ' + shellQuote(finalPath) + ' ]; then printf "yes"; else printf "no"; fi',
+        );
+        return result.stdout.trim() === 'yes';
+      })
+    ));
     if (exists) {
       return Object.freeze({ reused: true, stagingPath: null, path: finalPath });
     }
 
-    await this.withSession(this.connection.username, async (session) => {
-      await session.exec('rm -rf -- ' + shellQuote(stagingPath));
-      await session.uploadTree(localRoot, stagingPath);
-    });
+    await withMutationStage(kind + '-stage-upload', () => (
+      this.withSession(this.connection.username, async (session) => {
+        await session.exec('rm -rf -- ' + shellQuote(stagingPath));
+        await session.uploadTree(localRoot, stagingPath);
+      })
+    ));
     return Object.freeze({ reused: false, stagingPath, path: finalPath });
   }
 
@@ -372,13 +401,17 @@ class SshRemoteDeploymentTarget {
 
     if (this.connection.username === plan.deploymentUser) {
       await this.withSession(plan.deploymentUser, async (session) => {
-        await session.exec(steadyInstallCommand(plan, runtime, release), {
+        await withMutationStage('steady-install', () => (
+        session.exec(steadyInstallCommand(plan, runtime, release), {
           timeoutMs: 120000,
-        });
-        await session.exec(
+        })
+      ));
+      await withMutationStage('steady-service-activation', () => (
+        session.exec(
           activationCommand(plan, runtime.path, release.path, { restricted: true }),
           { timeoutMs: 60000 },
-        );
+        )
+      ));
       });
       return Object.freeze({
         authorityState: 'restricted-deployment-user',
@@ -399,52 +432,79 @@ class SshRemoteDeploymentTarget {
 
     await this.withSession(this.initialUsername, async (session) => {
       const viaSudo = initialBootstrapUsesSudo(plan);
-      await execInitialRootScript(
-        session,
-        plan,
-        initialBootstrapCommand(plan, runtime, release, this.publicKey),
-        { timeoutMs: 240000 },
-      );
-      await writeRootFile(session, plan.paths.environmentFile, artifacts.environment, '0600', { viaSudo });
-      await writeRootFile(session, plan.paths.serviceUnit, artifacts.systemdUnit, '0644', { viaSudo });
-      await writeRootFile(session, plan.paths.caddyConfig, artifacts.caddyHttpConfig, '0644', { viaSudo });
-      await writeRootFile(session, plan.paths.caddyService, artifacts.caddySystemdUnit, '0644', { viaSudo });
-      await writeRootFile(session, plan.paths.firewallPolicy, artifacts.nftablesPolicy, '0600', { viaSudo });
-      await writeRootFile(session, plan.paths.firewallService, artifacts.firewallSystemdUnit, '0644', { viaSudo });
-      await writeRootFile(session, plan.paths.sudoersFile, artifacts.restrictedSudoers, '0440', { viaSudo });
-      await execInitialRootScript(
-        session,
-        plan,
-        authorityStateCommand(plan, 'restricted-login-pending'),
-      );
-      await execInitialRootScript(
-        session,
-        plan,
-        activationCommand(plan, runtime.path, release.path, { restricted: false }),
-        { timeoutMs: 90000 },
-      );
+      await withMutationStage('bootstrap-initial', () => (
+        execInitialRootScript(
+          session,
+          plan,
+          initialBootstrapCommand(plan, runtime, release, this.publicKey),
+          { timeoutMs: 240000 },
+        )
+      ));
+      await withMutationStage('write-environment', () => writeRootFile(
+        session, plan.paths.environmentFile, artifacts.environment, '0600', { viaSudo },
+      ));
+      await withMutationStage('write-runtime-service', () => writeRootFile(
+        session, plan.paths.serviceUnit, artifacts.systemdUnit, '0644', { viaSudo },
+      ));
+      await withMutationStage('write-caddy-config', () => writeRootFile(
+        session, plan.paths.caddyConfig, artifacts.caddyHttpConfig, '0644', { viaSudo },
+      ));
+      await withMutationStage('write-caddy-service', () => writeRootFile(
+        session, plan.paths.caddyService, artifacts.caddySystemdUnit, '0644', { viaSudo },
+      ));
+      await withMutationStage('write-firewall-policy', () => writeRootFile(
+        session, plan.paths.firewallPolicy, artifacts.nftablesPolicy, '0600', { viaSudo },
+      ));
+      await withMutationStage('write-firewall-service', () => writeRootFile(
+        session, plan.paths.firewallService, artifacts.firewallSystemdUnit, '0644', { viaSudo },
+      ));
+      await withMutationStage('write-restricted-sudoers', () => writeRootFile(
+        session, plan.paths.sudoersFile, artifacts.restrictedSudoers, '0440', { viaSudo },
+      ));
+      await withMutationStage('authority-state-pending', () => (
+        execInitialRootScript(
+          session,
+          plan,
+          authorityStateCommand(plan, 'restricted-login-pending'),
+        )
+      ));
+      await withMutationStage('first-service-activation', () => (
+        execInitialRootScript(
+          session,
+          plan,
+          activationCommand(plan, runtime.path, release.path, { restricted: false }),
+          { timeoutMs: 90000 },
+        )
+      ));
     });
 
     await this.withSession(plan.deploymentUser, async (session) => {
-      const identity = await session.exec('id -un');
+      const identity = await withMutationStage(
+        'restricted-login-identity',
+        () => session.exec('id -un'),
+      );
       if (identity.stdout.trim() !== plan.deploymentUser) {
         throw targetError(
           'DEPLOYMENT_RESTRICTED_LOGIN_FAILED',
           'Restricted deployment account identity could not be proven.',
         );
       }
-      await session.exec(
-        'sudo -n /usr/bin/systemctl status ' + shellQuote(serviceName(plan)),
-        { timeoutMs: 15000 },
-      );
+      await withMutationStage('restricted-login-service-proof', () => (
+        session.exec(
+          'sudo -n /usr/bin/systemctl status ' + shellQuote(serviceName(plan)),
+          { timeoutMs: 15000 },
+        )
+      ));
     });
 
-    await this.withSession(this.initialUsername, (session) => (
-      execInitialRootScript(
-        session,
-        plan,
-        authorityStateCommand(plan, 'restricted-login-proven'),
-      )
+    await withMutationStage('authority-state-proven', () => (
+      this.withSession(this.initialUsername, (session) => (
+        execInitialRootScript(
+          session,
+          plan,
+          authorityStateCommand(plan, 'restricted-login-proven'),
+        )
+      ))
     ));
 
     this.connection.username = plan.deploymentUser;
@@ -463,12 +523,14 @@ class SshRemoteDeploymentTarget {
         'Original bootstrap account is unavailable for authority cleanup.',
       );
     }
-    await this.withSession(this.initialUsername, (session) => (
-      execInitialRootScript(
-        session,
-        plan,
-        removeBootstrapKeyCommand(plan, this.publicKey),
-      )
+    await withMutationStage('authority-narrowing', () => (
+      this.withSession(this.initialUsername, (session) => (
+        execInitialRootScript(
+          session,
+          plan,
+          removeBootstrapKeyCommand(plan, this.publicKey),
+        )
+      ))
     ));
     this.narrowingPending = false;
     return true;
