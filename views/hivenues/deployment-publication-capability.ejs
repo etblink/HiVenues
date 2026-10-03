@@ -83,6 +83,17 @@
         </details>
       </section>
     <% } else if (diagnostic.capability === 'ready' && diagnostic.status) { %>
+      <% if (diagnostic.exactDeploymentMatches === false) { %>
+        <section class="cc-consequence-card" data-publication-exact-deployment-mismatch>
+          <h1>Server deployment proof needs attention before publishing.</h1>
+          <p class="cc-task__dek">
+            The restricted publishing capability exists, but the current server read-back no longer matches
+            the exact active runtime and immutable Release recorded by Studio. HiVenues will not advance the
+            domain workflow from this state.
+          </p>
+        </section>
+      <% } %>
+
       <% if (diagnostic.bootstrapAuthorityAccessible === true) { %>
         <section class="cc-consequence-card" data-publication-bootstrap-authority-warning>
           <h1>Temporary bootstrap access still needs to be removed.</h1>
@@ -116,6 +127,11 @@
             HiVenues confirmed the restricted publishing capability without changing the server.
             DNS, hostname routing and TLS remain separate later consequences.
           </p>
+          <% if (diagnostic.exactDeploymentMatches === true) { %>
+            <p data-publication-exact-deployment-match>
+              Exact active runtime and immutable Release read-back: <strong>confirmed</strong>.
+            </p>
+          <% } %>
         </section>
       <% } %>
 
