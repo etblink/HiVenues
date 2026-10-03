@@ -7,6 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan');
+const { SshRemoteDeploymentTarget } = require('../src/deploy/ssh-remote-deployment-target');
 const { NodePublicationObserver } = require('../src/product/deployment-publication-observer');
 const { createDomainPreflight } = require('../src/product/deployment-publication');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
@@ -381,4 +382,77 @@ test('Era 7 Stage 4E: target plan remains the exact qualified runtime and Releas
   assert.equal(plan.release.releaseId, RELEASE.id);
   assert.equal(plan.runtime.bundleDigest, RUNTIME.bundleDigest);
   assert.equal(plan.paths.publicationHelper, '/usr/local/libexec/hivenues-publication-harbor-and-hearth');
+});
+
+
+test('Era 7 Stage 4E: remote publication transport invokes only helper apply with the exact hostname', async () => {
+  let observedCommand = '';
+  let observedUsername = '';
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: RUNTIME,
+    releaseManifest: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE.id,
+      releaseDigest: RELEASE.digest,
+      packageDigest: RELEASE.packageDigest,
+    },
+    bootstrapUsername: 'debian',
+  });
+  const authorityStore = {
+    publicRecord() {
+      return {
+        publicKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCstage4e hivenues-stage4e',
+      };
+    },
+    withPrivateKey(_id, action) {
+      return action('synthetic-private-key');
+    },
+  };
+  const transport = {
+    withSession(options, action) {
+      observedUsername = options.target.username;
+      return action({
+        async exec(command) {
+          observedCommand = command;
+          return {
+            stdout: JSON.stringify({
+              version: 1,
+              capability: 'ready',
+              state: 'configured',
+              hostSlug: 'harbor-and-hearth',
+              hostname: 'dev.fourthstreetbar.com',
+              appliedAt: '2026-10-03T20:03:00.000Z',
+              caddyConfigSha256: '6'.repeat(64),
+              firewallPolicySha256: '7'.repeat(64),
+            }) + '\n',
+            stderr: '',
+            code: 0,
+          };
+        },
+      });
+    },
+  };
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore,
+    authorityId: 'authority-stage4e',
+    target: {
+      host: '121.127.34.154',
+      port: 22,
+      username: 'hivenues-deploy',
+    },
+    expectedHostKeyFingerprint: 'SHA256:' + 'Z'.repeat(43),
+    hostSlug: 'harbor-and-hearth',
+    bootstrapUsername: 'debian',
+    transport,
+  });
+
+  const result = await target.applyPublication(plan, 'dev.fourthstreetbar.com');
+
+  assert.equal(observedUsername, 'hivenues-deploy');
+  assert.equal(
+    observedCommand,
+    "sudo -n '/usr/local/libexec/hivenues-publication-harbor-and-hearth' apply 'dev.fourthstreetbar.com'",
+  );
+  assert.equal(result.status.state, 'configured');
+  assert.equal(result.status.hostname, 'dev.fourthstreetbar.com');
 });
