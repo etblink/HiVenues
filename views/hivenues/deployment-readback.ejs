@@ -55,8 +55,8 @@
         <strong data-recovery-release-match><%= diagnostic.recovery.releaseMatches ? 'yes' : 'no' %></strong>
       </p>
       <p>
-        Provider and restricted account observe the same runtime/Release:
-        <strong data-recovery-account-match><%= diagnostic.recovery.restrictedMatchesObserved ? 'yes' : 'no' %></strong>
+        Provider/restricted authority continuity is consistent:
+        <strong data-recovery-account-match><%= diagnostic.recovery.providerConsistency ? 'yes' : 'no' %></strong>
       </p>
       <% if (diagnostic.recovery.cachedRuntime) { %>
         <p>
