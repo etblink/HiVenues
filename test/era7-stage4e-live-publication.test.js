@@ -277,6 +277,8 @@ test('Era 7 Stage 4E: live publication review binds DNS proof, exact Release and
 
   assert.equal(review.hostname, 'dev.fourthstreetbar.com');
   assert.equal(review.dnsObservation.records[0].values[0], '121.127.34.154');
+  assert.equal(review.target.host, '121.127.34.154');
+  assert.equal(review.target.username, 'hivenues-deploy');
   assert.equal(review.release.releaseId, RELEASE.id);
   assert.equal(review.runtime.bundleDigest, RUNTIME.bundleDigest);
   assert.equal(review.publicationState, 'unconfigured');
