@@ -82,7 +82,7 @@ class NodePublicationObserver {
         'The requested DNS observation type is not supported.',
       );
     } catch (error) {
-      if (['ENODATA', 'ENOTFOUND', 'ENOENT', 'ENOTIMP'].includes(error?.code)) {
+      if (['ENODATA', 'ENOTFOUND'].includes(error?.code)) {
         return normalizeDnsAnswer(type, name, []);
       }
       if (error?.code === 'DEPLOYMENT_DNS_OBSERVATION_INVALID') throw error;
@@ -109,8 +109,30 @@ class NodePublicationObserver {
       const answer = await this.resolveRequirement(requirement);
       if (answer.values.length) records.push(answer);
     }
+
+    const requirementTypesByName = new Map();
+    for (const requirement of requirements) {
+      const name = String(requirement.name || '');
+      if (!requirementTypesByName.has(name)) requirementTypesByName.set(name, new Set());
+      requirementTypesByName.get(name).add(String(requirement.type || '').toUpperCase());
+    }
+
+    const conflictingRecords = [];
+    for (const [name, types] of requirementTypesByName.entries()) {
+      if (types.has('CNAME')) continue;
+      if (types.has('A') && !types.has('AAAA')) {
+        const opposite = await this.resolveRequirement({ type: 'AAAA', name });
+        if (opposite.values.length) conflictingRecords.push(opposite);
+      }
+      if (types.has('AAAA') && !types.has('A')) {
+        const opposite = await this.resolveRequirement({ type: 'A', name });
+        if (opposite.values.length) conflictingRecords.push(opposite);
+      }
+    }
+
     return Object.freeze({
       records: Object.freeze(records),
+      conflictingRecords: Object.freeze(conflictingRecords),
       checkedAt: new Date(this.now()).toISOString(),
       resolver: 'system-dns',
     });
