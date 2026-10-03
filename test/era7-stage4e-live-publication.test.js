@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -455,4 +456,84 @@ test('Era 7 Stage 4E: remote publication transport invokes only helper apply wit
   );
   assert.equal(result.status.state, 'configured');
   assert.equal(result.status.hostname, 'dev.fourthstreetbar.com');
+});
+
+
+test('Era 7 Stage 4E: TLS observer records independent certificate identity and authorization', async () => {
+  let observedOptions = null;
+  const observer = new NodePublicationObserver({
+    tlsConnect(options) {
+      observedOptions = options;
+      const socket = new EventEmitter();
+      socket.authorized = true;
+      socket.setTimeout = () => {};
+      socket.getProtocol = () => 'TLSv1.3';
+      socket.getPeerCertificate = () => ({
+        subjectaltname: 'DNS:dev.fourthstreetbar.com, DNS:other.example.com',
+        valid_from: 'Oct  3 19:00:00 2026 GMT',
+        valid_to: 'Jan  1 00:00:00 2027 GMT',
+      });
+      socket.end = () => {};
+      socket.destroy = () => {};
+      process.nextTick(() => socket.emit('secureConnect'));
+      return socket;
+    },
+    httpsRequest() {
+      throw new Error('not used');
+    },
+    now: () => Date.parse('2026-10-03T20:20:00.000Z'),
+  });
+
+  const result = await observer.observeTls('dev.fourthstreetbar.com');
+
+  assert.equal(observedOptions.host, 'dev.fourthstreetbar.com');
+  assert.equal(observedOptions.servername, 'dev.fourthstreetbar.com');
+  assert.equal(observedOptions.port, 443);
+  assert.equal(observedOptions.rejectUnauthorized, false);
+  assert.equal(result.authorized, true);
+  assert.equal(result.protocol, 'TLSv1.3');
+  assert.deepEqual(result.subjectAltNames, [
+    'dev.fourthstreetbar.com',
+    'other.example.com',
+  ]);
+  assert.equal(result.checkedAt, '2026-10-03T20:20:00.000Z');
+});
+
+test('Era 7 Stage 4E: HTTPS observer requests only the exact health URL with normal certificate verification', async () => {
+  let observedUrl = '';
+  let observedOptions = null;
+  const observer = new NodePublicationObserver({
+    resolver: {},
+    tlsConnect() {
+      throw new Error('not used');
+    },
+    httpsRequest(url, options, callback) {
+      observedUrl = url;
+      observedOptions = options;
+      const request = new EventEmitter();
+      request.setTimeout = () => {};
+      request.destroy = (error) => request.emit('error', error);
+      request.end = () => {
+        const response = new EventEmitter();
+        response.statusCode = 200;
+        response.destroy = (error) => response.emit('error', error);
+        callback(response);
+        process.nextTick(() => {
+          response.emit('data', Buffer.from(JSON.stringify(exactReadBack()), 'utf8'));
+          response.emit('end');
+        });
+      };
+      return request;
+    },
+    now: () => Date.parse('2026-10-03T20:21:00.000Z'),
+  });
+
+  const result = await observer.readPublicHealth('dev.fourthstreetbar.com');
+
+  assert.equal(observedUrl, 'https://dev.fourthstreetbar.com/__hivenues/health');
+  assert.equal(observedOptions.rejectUnauthorized, true);
+  assert.equal(observedOptions.servername, 'dev.fourthstreetbar.com');
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.checkedAt, '2026-10-03T20:21:00.000Z');
+  assert.equal(result.body.deployment.releaseId, RELEASE.id);
 });
