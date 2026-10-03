@@ -30,6 +30,29 @@ function readRuntime(runtimeRoot) {
   );
 }
 
+function runtimeProfile(runtime) {
+  return {
+    kind: 'hivenues-public-runtime',
+    sourceSha: runtime.sourceSha,
+    sourceTree: runtime.sourceTree,
+    packageVersion: runtime.packageVersion,
+    nodeVersion: runtime.nodeVersion,
+    bundleDigest: runtime.bundleDigest,
+  };
+}
+
+function sameRuntimeProfile(left, right) {
+  return Boolean(
+    left
+    && right
+    && left.sourceSha === right.sourceSha
+    && left.sourceTree === right.sourceTree
+    && left.packageVersion === right.packageVersion
+    && left.nodeVersion === right.nodeVersion
+    && left.bundleDigest === right.bundleDigest
+  );
+}
+
 function desiredReadBack(runtime, release) {
   return {
     runtime: {
@@ -157,6 +180,24 @@ class ExactReleaseDeploymentCoordinator {
       );
     }
 
+    const attemptedRuntime = runtimeProfile(runtime);
+    if (['degraded', 'deploying'].includes(record.state)) {
+      if (!record.pendingRuntimeProfile) {
+        throw coordinatorError(
+          'DEPLOYMENT_PENDING_RUNTIME_REQUIRED',
+          'Interrupted deployment has no persisted pending runtime identity. Run the read-only recovery proof before resuming.',
+        );
+      }
+      if (!sameRuntimeProfile(record.pendingRuntimeProfile, attemptedRuntime)) {
+        throw coordinatorError(
+          'DEPLOYMENT_PENDING_RUNTIME_MISMATCH',
+          'Interrupted deployment must resume the exact previously attempted runtime.',
+        );
+      }
+    } else if (typeof this.store.setPendingRuntimeProfile === 'function') {
+      this.store.setPendingRuntimeProfile(deploymentId, attemptedRuntime);
+    }
+
     const plan = createReferenceBootstrapPlan({
       runtimeProvenance: runtime,
       releaseManifest: release,
@@ -261,14 +302,8 @@ class ExactReleaseDeploymentCoordinator {
             username: plan.privilegeModel.steadyRemoteAccount,
             bootstrapAuthorityState: plan.privilegeModel.steadyStateAuthority,
           },
-          runtimeProfile: {
-            kind: 'hivenues-public-runtime',
-            sourceSha: runtime.sourceSha,
-            sourceTree: runtime.sourceTree,
-            packageVersion: runtime.packageVersion,
-            nodeVersion: runtime.nodeVersion,
-            bundleDigest: runtime.bundleDigest,
-          },
+          runtimeProfile: runtimeProfile(runtime),
+          pendingRuntimeProfile: null,
           healthState: 'healthy',
           rollbackState: previousRelease ? 'available' : 'unavailable',
           lastConfirmedAt: new Date(this.now()).toISOString(),
@@ -291,6 +326,8 @@ module.exports = {
   ExactReleaseDeploymentCoordinator,
   desiredReadBack,
   readBackArtifactsMatch,
+  runtimeProfile,
+  sameRuntimeProfile,
   readBackMatches,
   readBackMismatchFields,
 };
