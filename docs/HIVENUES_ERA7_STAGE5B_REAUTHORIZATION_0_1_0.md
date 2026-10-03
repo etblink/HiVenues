@@ -72,6 +72,8 @@ Retries re-prove exact runtime/Release/publication identity before continuing.
 
 If neither the temporary bootstrap account nor steady deployment account accepts the fresh authority, or if runtime/Release/publication identity differs from the preserved record, HiVenues fails closed.
 
+A transient DNS mismatch discovered by the final public proof is also recoverable. The deployment remains `reauthorizing`, exposes only a read-only DNS recheck against the already prepared destination, and does not expose the reconnection consequence again until DNS is exact. Correcting DNS and rechecking resumes the same lifecycle without runtime/Release/publication reconfiguration.
+
 ## Finalization ordering
 
 The bounded finalization writes server authority metadata to `restricted-deployment-user` before removing the temporary bootstrap key.
