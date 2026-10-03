@@ -163,6 +163,61 @@ test('Era 7 Stage 3A: deployed public runtime serves only the exact immutable Re
   assert.equal(runtime.store.diagnostics().rsvps, 1);
 });
 
+test('Era 7 public routing: dedicated hostname owns canonical visitor paths and legacy host routes redirect safely', async (t) => {
+  const f = fixture(t);
+  const runtime = createDeployedPublicApp({
+    packagePath: f.packageRecord.packagePath,
+    runtimeStatePath: f.runtimeStatePath,
+    provenancePath: f.provenancePath,
+    manifestPath: f.manifestPath,
+    root: f.runtimeRoot,
+    now: () => Date.parse('2026-10-03T23:00:00.000Z'),
+    idFactory: () => 'dedicated-routing-rsvp',
+  });
+  const activity = f.release.snapshot.activities.find((item) => item.lifecycle === 'scheduled');
+  assert(activity);
+
+  const home = await request(runtime.app).get('/').expect(200);
+  assert.equal(home.text.includes('/hivenues/' + f.slug), false);
+  assert.equal(home.text.includes('href="/activities/' + activity.slug + '"'), true);
+
+  const detail = await request(runtime.app)
+    .get('/activities/' + activity.slug)
+    .expect(200);
+  assert.equal(detail.text.includes('/hivenues/' + f.slug), false);
+  assert.equal(detail.text.includes('action="/activities/' + activity.slug + '/rsvp"'), true);
+  assert.equal(detail.text.includes('href="/activities/' + activity.slug + '/calendar.ics"'), true);
+
+  const calendar = await request(runtime.app)
+    .get('/activities/' + activity.slug + '/calendar.ics')
+    .expect(200);
+  assert.equal(calendar.text.includes('URL:/activities/' + activity.slug), true);
+  assert.equal(calendar.text.includes('/hivenues/' + f.slug), false);
+
+  const legacyDetail = await request(runtime.app)
+    .get('/hivenues/' + f.slug + '/activities/' + activity.slug)
+    .expect(308);
+  assert.equal(legacyDetail.headers.location, '/activities/' + activity.slug);
+
+  const legacyCalendar = await request(runtime.app)
+    .get('/hivenues/' + f.slug + '/activities/' + activity.slug + '/calendar.ics')
+    .expect(308);
+  assert.equal(legacyCalendar.headers.location, '/activities/' + activity.slug + '/calendar.ics');
+
+  const legacyRsvp = await request(runtime.app)
+    .post('/hivenues/' + f.slug + '/activities/' + activity.slug + '/rsvp')
+    .type('form')
+    .send({ name: 'Legacy Guest' })
+    .expect(308);
+  assert.equal(legacyRsvp.headers.location, '/activities/' + activity.slug + '/rsvp');
+
+  await request(runtime.app)
+    .get('/hivenues/not-' + f.slug)
+    .expect(404);
+
+  const afterLegacy = JSON.parse(fs.readFileSync(f.runtimeStatePath, 'utf8'));
+  assert.equal(afterLegacy.rsvps.length, 0);
+});
 test('Era 7 Stage 3A: public runtime bundle excludes Studio and carries only admitted production dependencies', (t) => {
   const f = fixture(t);
   const runtimePackage = JSON.parse(
