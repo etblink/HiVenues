@@ -168,3 +168,16 @@ The DNS observation must be recent (within ten minutes, with only a small future
 The review digest also binds the exact server host, SSH port, steady deployment username and trusted SSH host fingerprint alongside the hostname, DNS observation, runtime and immutable Release. If any of those facts change, the prior review becomes stale and cannot authorize publication.
 
 Once TLS publication has begun, the hostname-publication review is no longer available. This prevents a direct or repeated submission from resetting verified TLS/public-read-back evidence back to an earlier state.
+
+
+## Dual-stack exactness
+
+An exact A-only or AAAA-only plan must not silently ignore the opposite address family.
+
+For an A-only hostname, HiVenues also performs a read-only AAAA lookup. For an AAAA-only hostname, it also performs a read-only A lookup. Any unexpected opposite-family address is persisted as conflicting DNS evidence and prevents `dns-confirmed`.
+
+This avoids a hostname that sends IPv4 clients to the reviewed VPS while sending IPv6 clients somewhere else, or vice versa.
+
+AAAA values are canonicalized before comparison so equivalent textual IPv6 spellings do not create false mismatches.
+
+Resolver inability such as an unsupported query is not treated as proof that a record is absent; it fails the DNS check closed.
