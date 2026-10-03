@@ -5,11 +5,13 @@ const express = require('express');
 const { buildViewModel } = require('./present');
 
 function mutationSubstage(stderr) {
-  const matches = String(stderr || '').match(
-    /(?:^|\n)HIVENUES_MUTATION_STAGE=([A-Za-z0-9._:-]+)/g,
-  ) || [];
-  if (!matches.length) return '';
-  return matches.at(-1).split('=').at(-1);
+  const prefix = 'HIVENUES_MUTATION_STAGE=';
+  const markers = String(stderr || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^HIVENUES_MUTATION_STAGE=[A-Za-z0-9._:-]+$/.test(line));
+  if (!markers.length) return '';
+  return markers.at(-1).slice(prefix.length);
 }
 
 function deploymentErrorMessage(error, fallback = 'Deployment verification could not continue.') {
