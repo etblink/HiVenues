@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { requirePreflight } = require('./deployment-publication');
+
 const DEPLOYMENT_STORAGE_VERSION = 1;
 
 const DEPLOYMENT_CAPABILITIES = Object.freeze([
@@ -224,6 +226,7 @@ class FileDeploymentStore {
         previousRelease: null,
         runtimeProfile: null,
         pendingRuntimeProfile: null,
+        publicEndpoint: null,
         domainState: 'domain-unconfigured',
         tlsState: 'unconfigured',
         healthState: 'unknown',
@@ -295,6 +298,22 @@ class FileDeploymentStore {
         );
       }
       record.pendingRuntimeProfile = value ? clone(value) : null;
+      return record;
+    });
+  }
+
+  setPublicEndpoint(deploymentId, endpoint) {
+    const value = endpoint === null ? null : clone(requirePreflight(clone(endpoint)));
+    return this.update(deploymentId, (record) => {
+      if (record.state === 'disconnected') {
+        throw deploymentError(
+          'DEPLOYMENT_DISCONNECTED',
+          'Disconnected deployment targets cannot change public endpoint state.',
+        );
+      }
+      record.publicEndpoint = value;
+      record.domainState = value ? value.domainState : 'domain-unconfigured';
+      record.tlsState = value ? value.tls.state : 'unconfigured';
       return record;
     });
   }
@@ -430,6 +449,18 @@ class FileDeploymentStore {
         throw deploymentError('DEPLOYMENT_STATE_INVALID', 'Deployment record is invalid.');
       }
       normalizedCapabilities(record.capabilities);
+      if (record.publicEndpoint !== undefined && record.publicEndpoint !== null) {
+        requirePreflight(record.publicEndpoint);
+        if (
+          record.domainState !== record.publicEndpoint.domainState
+          || record.tlsState !== record.publicEndpoint.tls.state
+        ) {
+          throw deploymentError(
+            'DEPLOYMENT_STATE_INVALID',
+            'Deployment public endpoint summary state is inconsistent.',
+          );
+        }
+      }
       assertNoSecrets(record);
     }
     return envelope;
