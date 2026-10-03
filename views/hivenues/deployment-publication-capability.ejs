@@ -60,6 +60,28 @@
           <p>Host: <code><%= diagnostic.hostSlug %></code></p>
         </details>
       </section>
+    <% } else if (diagnostic.capability === 'migration-incomplete') { %>
+      <section data-publication-migration-incomplete>
+        <h1>One-time server upgrade needs to be resumed.</h1>
+        <p class="cc-task__dek">
+          HiVenues found a partial publication-capability migration while the temporary bootstrap authority is
+          still available. The active runtime and Release are not treated as changed, and domain publication
+          remains held until the migration is completed and bootstrap access is removed again.
+        </p>
+        <% if (publicationMigrationAvailable) { %>
+          <a
+            class="cc-button cc-button--ink"
+            href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-upgrade-review"
+            data-resume-publication-upgrade
+          >Review and resume one-time server upgrade</a>
+        <% } %>
+        <details class="cc-review-card" style="margin-top:1rem">
+          <summary>Technical detail</summary>
+          <p>Capability: <code><%= diagnostic.capability %></code></p>
+          <p>Reason: <code><%= diagnostic.reason %></code></p>
+          <p>Bootstrap authority accessible: <code>true</code></p>
+        </details>
+      </section>
     <% } else if (diagnostic.capability === 'ready' && diagnostic.status) { %>
       <% if (diagnostic.bootstrapAuthorityAccessible === true) { %>
         <section class="cc-consequence-card" data-publication-bootstrap-authority-warning>
