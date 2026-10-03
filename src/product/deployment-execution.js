@@ -544,7 +544,18 @@ class InstalledRemoteDeploymentService {
         'Publication capability inspection is unavailable in this runtime.',
       );
     }
-    const result = await target.publicationStatus(plan);
+    let result;
+    let publicationStatusError = null;
+    try {
+      result = await target.publicationStatus(plan);
+    } catch (error) {
+      if (
+        error?.code !== 'DEPLOYMENT_PUBLICATION_STATUS_FAILED'
+        && error?.code !== 'DEPLOYMENT_PUBLICATION_STATUS_INVALID'
+      ) throw error;
+      publicationStatusError = error;
+      result = null;
+    }
     let bootstrapAuthorityAccessible = null;
     if (
       bootstrapUsername
@@ -552,6 +563,18 @@ class InstalledRemoteDeploymentService {
       && typeof target.bootstrapAuthorityAccessible === 'function'
     ) {
       bootstrapAuthorityAccessible = await target.bootstrapAuthorityAccessible(plan);
+    }
+    if (publicationStatusError) {
+      if (bootstrapAuthorityAccessible === true) {
+        return Object.freeze({
+          deploymentId: record.id,
+          hostSlug: record.hostSlug,
+          capability: 'migration-incomplete',
+          reason: String(publicationStatusError.code),
+          bootstrapAuthorityAccessible: true,
+        });
+      }
+      throw publicationStatusError;
     }
     return Object.freeze({
       deploymentId: record.id,
@@ -594,6 +617,7 @@ class InstalledRemoteDeploymentService {
     }
     if (
       capability.capability !== 'upgrade-required'
+      && capability.capability !== 'migration-incomplete'
       && !(capability.capability === 'ready' && capability.status?.state === 'unconfigured')
     ) {
       throw executionError(
