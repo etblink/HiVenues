@@ -184,3 +184,14 @@ Resolver inability such as an unsupported query is not treated as proof that a r
 
 
 For address-record plans, HiVenues also checks that the hostname is not actually a CNAME alias. A resolver that follows an alias and returns the expected final address is not sufficient to prove the operator created the exact reviewed A/AAAA record.
+
+
+## Asynchronous evidence race boundary
+
+DNS, publication readiness, TLS and public HTTPS checks cross asynchronous network boundaries. Evidence is therefore persisted with compare-and-set semantics against the exact public-endpoint snapshot that was observed.
+
+If the hostname plan, DNS proof or later TLS/public state changes while an observation is in flight, the older observation is rejected as stale rather than overwriting newer state.
+
+The live publication review also carries a digest of the exact deployment/publication state used to prepare it. A change while readiness is being proved invalidates the review.
+
+After the restricted helper applies a hostname, HiVenues re-reads the server and requires the exact reviewed runtime + immutable Release before advancing local state to TLS requesting. If that identity changed concurrently, the helper's configured state remains observable for recovery, but the stale local review is not accepted as success.
