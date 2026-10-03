@@ -1120,7 +1120,7 @@ class SshRemoteDeploymentTarget {
           execInitialRootScript(
             session,
             plan,
-            restoreDeploymentAuthorityCommand(plan, this.publicKey),
+            restoreDeploymentAuthorityCommand(plan, this.publicKey.full),
             { timeoutMs: 20000 },
           )
         ))
@@ -1144,7 +1144,7 @@ class SshRemoteDeploymentTarget {
           execInitialRootScript(
             session,
             plan,
-            finalizeReauthorizationCommand(plan, this.publicKey),
+            finalizeReauthorizationCommand(plan, this.publicKey.full),
             { timeoutMs: 20000 },
           )
         ))
