@@ -135,6 +135,40 @@ function isPublicIpv6(value) {
   return !nonPublic.some(([prefix, length]) => ipv6InPrefix(value, prefix, length));
 }
 
+function canonicalIpv6(value) {
+  const address = ipv6ToBigInt(value);
+  if (address === null) {
+    throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'AAAA record value must be an IPv6 address.');
+  }
+  const parts = [];
+  for (let index = 7; index >= 0; index -= 1) {
+    const shift = BigInt(index * 16);
+    parts.push(Number((address >> shift) & 0xffffn).toString(16));
+  }
+
+  let bestStart = -1;
+  let bestLength = 0;
+  for (let start = 0; start < parts.length;) {
+    if (parts[start] !== '0') {
+      start += 1;
+      continue;
+    }
+    let end = start;
+    while (end < parts.length && parts[end] === '0') end += 1;
+    const length = end - start;
+    if (length >= 2 && length > bestLength) {
+      bestStart = start;
+      bestLength = length;
+    }
+    start = end;
+  }
+
+  if (bestStart < 0) return parts.join(':');
+  const left = parts.slice(0, bestStart).join(':');
+  const right = parts.slice(bestStart + bestLength).join(':');
+  return left + '::' + right;
+}
+
 function normalizeDnsValue(type, value) {
   const raw = String(value || '').trim();
   if (type === 'A') {
@@ -144,10 +178,7 @@ function normalizeDnsValue(type, value) {
     return raw;
   }
   if (type === 'AAAA') {
-    if (net.isIP(raw) !== 6) {
-      throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'AAAA record value must be an IPv6 address.');
-    }
-    return raw.toLowerCase();
+    return canonicalIpv6(raw);
   }
   if (type === 'CNAME') return normalizeHostname(raw);
   throw publicationError('DEPLOYMENT_DNS_RECORD_INVALID', 'DNS record type is not supported.');
@@ -255,8 +286,8 @@ function recordKey(record) {
 }
 
 function dnsMatches(requirements, observed) {
-  const left = requirements.map(recordKey).sort();
-  const right = observed.map(recordKey).sort();
+  const left = mergeDnsRecords(requirements).map(recordKey).sort();
+  const right = mergeDnsRecords(observed).map(recordKey).sort();
   return left.length === right.length && left.every((item, index) => item === right[index]);
 }
 
@@ -347,11 +378,24 @@ function tlsObservationVerified(hostname, observation) {
   );
 }
 
-function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } = {}) {
+function recordDnsObservation(preflight, {
+  records,
+  conflictingRecords = [],
+  checkedAt,
+  resolver = '',
+} = {}) {
   requirePreflight(preflight);
   const checked = requireIsoTime(checkedAt, 'DEPLOYMENT_DNS_OBSERVATION_INVALID', 'DNS observation');
   const observed = relevantObservedRecords(preflight, records);
-  const matches = dnsMatches(preflight.dns.requirements, observed);
+  const requirementKeys = new Set(
+    preflight.dns.requirements.map((record) => record.type + ':' + record.name),
+  );
+  const conflicts = mergeDnsRecords(conflictingRecords).filter((record) => (
+    DNS_TYPES.has(record.type)
+    && record.name === preflight.hostname
+    && !requirementKeys.has(record.type + ':' + record.name)
+  ));
+  const matches = dnsMatches(preflight.dns.requirements, observed) && conflicts.length === 0;
   const preserveDownstream = matches && preflight.domainState === 'dns-confirmed';
   return Object.freeze({
     ...preflight,
@@ -362,6 +406,7 @@ function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } =
         checkedAt: checked.text,
         resolver: String(resolver || '').trim(),
         records: Object.freeze(observed),
+        conflictingRecords: Object.freeze(conflicts),
         matches,
       }),
     }),
@@ -379,6 +424,25 @@ function recordDnsObservation(preflight, { records, checkedAt, resolver = '' } =
           observation: null,
           mismatchFields: Object.freeze([]),
         }),
+  });
+}
+
+function markTlsRequesting(preflight) {
+  requirePreflight(preflight);
+  if (preflight.domainState !== 'dns-confirmed') {
+    throw publicationError(
+      'DEPLOYMENT_TLS_DNS_REQUIRED',
+      'TLS publication cannot begin before DNS is confirmed.',
+    );
+  }
+  return Object.freeze({
+    ...preflight,
+    tls: Object.freeze({ state: 'requesting', observation: null }),
+    publicReadBack: Object.freeze({
+      state: 'unverified',
+      observation: null,
+      mismatchFields: Object.freeze([]),
+    }),
   });
 }
 
@@ -603,6 +667,98 @@ function prepareStage4LiveReview({ preflight, deployment } = {}) {
   });
 }
 
+function prepareStage4PublicationReview({
+  preflight,
+  deployment,
+  publication,
+} = {}) {
+  requirePreflight(preflight);
+  const state = String(deployment?.state || '');
+  if (!['healthy', 'rollback-available'].includes(state) || !deployment?.activeRelease) {
+    throw publicationError(
+      'DEPLOYMENT_DOMAIN_HEALTHY_REQUIRED',
+      'A healthy exact deployment is required before hostname publication.',
+    );
+  }
+  if (preflight.domainState !== 'dns-confirmed' || preflight.dns?.observation?.matches !== true) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+      'The exact prepared DNS records must be observed before hostname publication.',
+    );
+  }
+  if (
+    preflight.tls?.state !== 'ready-for-request'
+    || preflight.publicReadBack?.state !== 'unverified'
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID',
+      'Hostname publication review is only available before TLS publication begins.',
+    );
+  }
+  if (
+    publication?.capability !== 'ready'
+    || !publication.status
+    || !['unconfigured', 'configured'].includes(publication.status.state)
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_CAPABILITY_REQUIRED',
+      'The restricted server publishing capability must be ready before hostname publication.',
+    );
+  }
+  if (publication.exactDeploymentMatches !== true) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_EXACT_DEPLOYMENT_REQUIRED',
+      'The exact active runtime and immutable Release must be confirmed before hostname publication.',
+    );
+  }
+  if (publication.bootstrapAuthorityAccessible !== false) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_BOOTSTRAP_AUTHORITY_HELD',
+      'Temporary bootstrap authority removal must be explicitly proven before hostname publication.',
+    );
+  }
+  if (
+    publication.status.state === 'configured'
+    && publication.status.hostname !== preflight.hostname
+  ) {
+    throw publicationError(
+      'DEPLOYMENT_PUBLICATION_HOSTNAME_CONFLICT',
+      'The server is already configured for a different hostname.',
+    );
+  }
+  return Object.freeze({
+    version: 1,
+    hostname: preflight.hostname,
+    deploymentId: String(deployment.id || ''),
+    activeRelease: Object.freeze({ ...deployment.activeRelease }),
+    dnsObservation: Object.freeze({
+      checkedAt: String(preflight.dns.observation.checkedAt),
+      resolver: String(preflight.dns.observation.resolver || ''),
+      records: preflight.dns.observation.records,
+    }),
+    publicationState: String(publication.status.state),
+    alreadyApplied: publication.status.state === 'configured',
+    consequences: Object.freeze([
+      'apply-only-the-reviewed-hostname-through-the-restricted-publication-helper',
+      'replace-only-hivenues-owned-caddy-and-firewall-managed-files',
+      'open-qualified-http-and-https-publication-policy',
+      'restart-only-hivenues-caddy-and-firewall-services',
+      'allow-caddy-automatic-https-for-the-reviewed-hostname',
+      'persist-bounded-non-secret-publication-status',
+    ]),
+    held: Object.freeze([
+      'runtime-or-release-redeployment',
+      'provider-payment',
+      'arbitrary-root-or-shell-authority',
+      'unrelated-dns-records',
+      'unrelated-server-configuration',
+      'hive-writes',
+      'value-movement',
+      'customer-host-content-mutation',
+    ]),
+  });
+}
+
 function validateDnsEvidence(value, requirements) {
   const observation = value.dns.observation;
   if (['dns-instructions-ready', 'dns-pending'].includes(value.domainState)) {
@@ -621,7 +777,18 @@ function validateDnsEvidence(value, requirements) {
   ) {
     invalidPreflight('DNS observation contains records outside the exact requirement set.');
   }
-  const matches = dnsMatches(requirements, records);
+  const requirementKeys = new Set(
+    requirements.map((record) => record.type + ':' + record.name),
+  );
+  const conflicts = mergeDnsRecords(observation.conflictingRecords || []);
+  if (conflicts.some((record) => (
+    !DNS_TYPES.has(record.type)
+    || record.name !== value.hostname
+    || requirementKeys.has(record.type + ':' + record.name)
+  ))) {
+    invalidPreflight('DNS observation contains invalid conflicting address-family evidence.');
+  }
+  const matches = dnsMatches(requirements, records) && conflicts.length === 0;
   if (observation.matches !== matches) invalidPreflight('DNS match summary contradicts observed records.');
   if (value.domainState === 'dns-confirmed' && !matches) {
     invalidPreflight('DNS confirmed state is not supported by the observation.');
@@ -743,13 +910,16 @@ module.exports = {
   DOMAIN_STATES,
   TLS_STATES,
   PUBLIC_READBACK_STATES,
+  canonicalIpv6,
   createDomainPreflight,
   invalidatePublicReadBack,
   isPublicIpv4,
   isPublicIpv6,
   normalizeHostname,
   normalizeDnsRecord,
+  markTlsRequesting,
   prepareStage4LiveReview,
+  prepareStage4PublicationReview,
   recordDnsObservation,
   recordPublicReadBack,
   recordTlsObservation,

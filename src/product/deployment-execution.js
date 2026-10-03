@@ -19,6 +19,14 @@ const { loadRuntimeProvenance } = require('../deploy/public-runtime');
 const { createReferenceBootstrapPlan } = require('../deploy/bootstrap-plan');
 const { loadReleasePackage } = require('../deploy/release-store');
 const { SshRemoteDeploymentTarget } = require('../deploy/ssh-remote-deployment-target');
+const {
+  markTlsRequesting,
+  prepareStage4PublicationReview,
+  recordDnsObservation,
+  recordPublicReadBack,
+  recordTlsObservation,
+} = require('./deployment-publication');
+const { NodePublicationObserver } = require('./deployment-publication-observer');
 const { stableDigest } = require('./model');
 
 const MUTATION_STATES = new Set([
@@ -77,6 +85,8 @@ const PUBLICATION_MIGRATION_CONSEQUENCES = Object.freeze([
   'remove-the-exact-temporary-bootstrap-key-again',
   'reprove-unchanged-runtime-and-immutable-release',
 ]);
+
+const PUBLICATION_DNS_MAX_AGE_MS = 10 * 60 * 1000;
 
 const PUBLICATION_MIGRATION_HELD = Object.freeze([
   'runtime-redeploy-or-replacement',
@@ -321,6 +331,32 @@ function activeReadBackExpectation(record) {
   });
 }
 
+function publicationReviewIdentity(record) {
+  const facts = record?.targetPublicFacts || {};
+  return Object.freeze({
+    deploymentId: String(record?.id || ''),
+    state: String(record?.state || ''),
+    authorityRef: String(record?.authorityRef || ''),
+    target: Object.freeze({
+      host: String(facts.host || ''),
+      port: Number(facts.port || 22),
+      username: String(facts.username || ''),
+      bootstrapUsername: String(facts.bootstrapUsername || ''),
+      trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      hostKeyTrustState: String(facts.hostKeyTrustState || ''),
+    }),
+    activeRelease: record?.activeRelease ? Object.freeze({ ...record.activeRelease }) : null,
+    runtimeProfile: record?.runtimeProfile ? Object.freeze({ ...record.runtimeProfile }) : null,
+    publicEndpoint: record?.publicEndpoint
+      ? JSON.parse(JSON.stringify(record.publicEndpoint))
+      : null,
+  });
+}
+
+function publicationReviewStateDigest(record) {
+  return stableDigest(publicationReviewIdentity(record));
+}
+
 function publicationHelperArtifact() {
   const filePath = path.resolve(__dirname, '../deploy/publication-helper-runtime.js');
   const content = canonicalRuntimeFileBytes(
@@ -343,6 +379,7 @@ class InstalledRemoteDeploymentService {
     buildProvenance,
     runtimeBuilder = buildPublicRuntimeBundle,
     targetFactory = (options) => new SshRemoteDeploymentTarget(options),
+    publicationObserver = null,
     now = Date.now,
   } = {}) {
     if (!deploymentStore) throw new TypeError('Installed remote deployment requires a deployment store.');
@@ -361,6 +398,7 @@ class InstalledRemoteDeploymentService {
     this.runtimeBuilder = runtimeBuilder;
     this.targetFactory = targetFactory;
     this.now = now;
+    this.publicationObserver = publicationObserver || new NodePublicationObserver({ now });
   }
 
   artifacts(deploymentId) {
@@ -615,6 +653,278 @@ class InstalledRemoteDeploymentService {
         ? {}
         : { exactDeploymentMatches }),
     });
+  }
+
+  async checkDns(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (!record.publicEndpoint) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
+        'Prepare a domain plan before checking DNS.',
+      );
+    }
+    const checkedEndpoint = record.publicEndpoint;
+    const observation = await this.publicationObserver.observeDns(checkedEndpoint);
+    const endpoint = recordDnsObservation(checkedEndpoint, observation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      checkedEndpoint,
+      endpoint,
+    );
+    return endpoint;
+  }
+
+  async prepareHostnamePublicationReview(deploymentId) {
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (!record.publicEndpoint) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
+        'Prepare a domain plan before reviewing hostname publication.',
+      );
+    }
+    if (
+      record.publicEndpoint.domainState !== 'dns-confirmed'
+      || record.publicEndpoint.dns?.observation?.matches !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+        'The exact prepared DNS records must be confirmed before live hostname review.',
+      );
+    }
+    const checkedAt = Date.parse(String(record.publicEndpoint.dns.observation.checkedAt || ''));
+    const now = Number(this.now());
+    if (
+      !Number.isFinite(checkedAt)
+      || !Number.isFinite(now)
+      || checkedAt > now + 2 * 60 * 1000
+      || now - checkedAt > PUBLICATION_DNS_MAX_AGE_MS
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_STALE',
+        'Check DNS again before reviewing the live hostname publication.',
+      );
+    }
+    const stateDigest = publicationReviewStateDigest(record);
+    const publication = await this.inspectPublicationCapability(deploymentId);
+    const latest = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (publicationReviewStateDigest(latest) !== stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed while the publication review was being prepared. Review the current state again.',
+      );
+    }
+    const review = prepareStage4PublicationReview({
+      preflight: record.publicEndpoint,
+      deployment: record,
+      publication,
+    });
+    const facts = record.targetPublicFacts || {};
+    const core = {
+      stateDigest,
+      ...review,
+      target: Object.freeze({
+        host: String(facts.host || ''),
+        port: Number(facts.port || 22),
+        username: String(facts.username || ''),
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      }),
+      runtime: Object.freeze({ ...record.runtimeProfile }),
+      release: Object.freeze({
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      }),
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async publishHostname(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'publish-reviewed-hostname') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_CONFIRMATION_REQUIRED',
+        'Explicit hostname publication confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.prepareHostnamePublicationReview(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Hostname publication facts changed after review. Review the consequence again.',
+      );
+    }
+
+    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (publicationReviewStateDigest(record) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed after publication review. Review the current state again.',
+      );
+    }
+    const endpointBeforePublication = record.publicEndpoint;
+    const facts = record.targetPublicFacts || {};
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: String(facts.username),
+      },
+      bootstrapUsername: String(facts.bootstrapUsername || facts.username),
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint),
+      hostSlug: record.hostSlug,
+    });
+    if (
+      !target
+      || typeof target.applyPublication !== 'function'
+      || typeof target.publicationStatus !== 'function'
+      || typeof target.readBack !== 'function'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_APPLY_UNAVAILABLE',
+        'Restricted hostname publication is unavailable in this runtime.',
+      );
+    }
+
+    if (!review.alreadyApplied) {
+      const applied = await target.applyPublication(plan, review.hostname);
+      if (
+        applied.capability !== 'ready'
+        || applied.status?.state !== 'configured'
+        || applied.status?.hostname !== review.hostname
+      ) {
+        throw executionError(
+          'DEPLOYMENT_PUBLICATION_APPLY_FAILED',
+          'The restricted publication helper did not confirm the exact reviewed hostname.',
+        );
+      }
+    }
+
+    const exactReadBack = await target.readBack();
+    if (!readBackMatches(exactReadBack, {
+      runtime: review.runtime,
+      deployment: review.release,
+    })) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_READBACK_CHANGED',
+        'The active runtime or immutable Release changed during hostname publication.',
+      );
+    }
+    const confirmedPublication = await target.publicationStatus(plan);
+    if (
+      confirmedPublication.capability !== 'ready'
+      || confirmedPublication.status?.state !== 'configured'
+      || confirmedPublication.status?.hostname !== review.hostname
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_APPLY_FAILED',
+        'The server no longer confirms the exact reviewed hostname publication.',
+      );
+    }
+
+    const current = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (publicationReviewStateDigest(current) !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_REVIEW_STALE',
+        'Deployment or domain facts changed while hostname publication was in progress. Re-open the current publication state.',
+      );
+    }
+    const requesting = markTlsRequesting(endpointBeforePublication);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      current.id,
+      endpointBeforePublication,
+      requesting,
+    );
+    return Object.freeze({
+      deploymentId: current.id,
+      hostname: review.hostname,
+      publicationState: 'configured',
+      tlsState: requesting.tls.state,
+      alreadyApplied: review.alreadyApplied,
+    });
+  }
+
+  async verifyPublicHttps(deploymentId) {
+    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    if (!record.publicEndpoint || record.publicEndpoint.domainState !== 'dns-confirmed') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+        'Confirmed DNS is required before secure public verification.',
+      );
+    }
+
+    const dnsEndpoint = record.publicEndpoint;
+    const dnsObservation = await this.publicationObserver.observeDns(dnsEndpoint);
+    const refreshedDns = recordDnsObservation(dnsEndpoint, dnsObservation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      dnsEndpoint,
+      refreshedDns,
+    );
+    if (refreshedDns.domainState !== 'dns-confirmed') {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
+        'DNS no longer exactly matches the reviewed deployment destination.',
+      );
+    }
+    record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+
+    const publication = await this.inspectPublicationCapability(deploymentId);
+    if (
+      publication.capability !== 'ready'
+      || publication.status?.state !== 'configured'
+      || publication.status?.hostname !== record.publicEndpoint.hostname
+      || publication.bootstrapAuthorityAccessible === true
+      || publication.exactDeploymentMatches !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_PUBLICATION_CONFIGURED_REQUIRED',
+        'The exact hostname publication must be configured and the deployment re-proven before secure public verification.',
+      );
+    }
+
+    const checkedEndpoint = record.publicEndpoint;
+    const tlsObservation = await this.publicationObserver.observeTls(checkedEndpoint.hostname);
+    const withTls = recordTlsObservation(checkedEndpoint, tlsObservation);
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      checkedEndpoint,
+      withTls,
+    );
+    if (withTls.tls.state !== 'verified') {
+      return withTls;
+    }
+
+    const publicObservation = await this.publicationObserver.readPublicHealth(checkedEndpoint.hostname);
+    const expected = activeReadBackExpectation(record);
+    const completed = recordPublicReadBack(withTls, publicObservation, {
+      runtime: expected.runtime,
+      release: expected.deployment,
+    });
+    this.deploymentStore.setPublicEndpointIfUnchanged(
+      record.id,
+      withTls,
+      completed,
+    );
+    return completed;
   }
 
   async preparePublicationMigrationReview(deploymentId) {

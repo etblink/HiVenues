@@ -218,6 +218,23 @@
                           </div>
                         <% }) %>
                       </dl>
+
+                      <% if (deploymentPublicationExecutionAvailable) { %>
+                        <section class="cc-review-card" style="margin-top:1rem" data-domain-dns-check>
+                          <p class="cc-kicker">Guided DNS handoff</p>
+                          <h5>Change only the record above at your DNS provider, then let HiVenues check it.</h5>
+                          <p>
+                            HiVenues does not receive registrar credentials and does not edit DNS in this flow.
+                            The check below is read-only and must observe the exact prepared destination.
+                          </p>
+                          <form
+                            method="post"
+                            action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/domain/check"
+                          >
+                            <button class="cc-button" type="submit" data-check-domain-dns>Check DNS</button>
+                          </form>
+                        </section>
+                      <% } %>
                     <% } %>
 
                     <p data-domain-human-status>
@@ -229,6 +246,106 @@
                         DNS has not been checked yet.
                       <% } %>
                     </p>
+
+                    <% if (
+                      deploymentPublicationExecutionAvailable
+                      && deployment.publicEndpoint.domainState === 'dns-confirmed'
+                    ) { %>
+                      <form
+                        method="post"
+                        action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/domain/check"
+                        style="margin-top:.75rem"
+                        data-domain-dns-recheck
+                      >
+                        <button class="cc-button" type="submit">Recheck DNS</button>
+                      </form>
+                    <% } %>
+
+                    <% if (deployment.publicEndpoint.dns.observation) { %>
+                      <details class="cc-review-card" style="margin-top:1rem" data-domain-dns-observation>
+                        <summary>Last DNS observation</summary>
+                        <p>Checked: <code><%= deployment.publicEndpoint.dns.observation.checkedAt %></code></p>
+                        <p>Resolver: <code><%= deployment.publicEndpoint.dns.observation.resolver || 'system-dns' %></code></p>
+                        <% deployment.publicEndpoint.dns.observation.records.forEach((record) => { %>
+                          <p><code><%= record.type %> <%= record.name %> → <%= record.values.join(', ') %></code></p>
+                        <% }) %>
+                        <% if ((deployment.publicEndpoint.dns.observation.conflictingRecords || []).length) { %>
+                          <p><strong>Conflicting address-family records:</strong></p>
+                          <% deployment.publicEndpoint.dns.observation.conflictingRecords.forEach((record) => { %>
+                            <p><code><%= record.type %> <%= record.name %> → <%= record.values.join(', ') %></code></p>
+                          <% }) %>
+                        <% } %>
+                      </details>
+                    <% } %>
+
+                    <% if (
+                      deploymentPublicationExecutionAvailable
+                      && deployment.publicEndpoint.domainState === 'dns-confirmed'
+                      && ['ready-for-request', 'unconfigured', 'awaiting-dns'].includes(deployment.publicEndpoint.tls.state)
+                    ) { %>
+                      <section class="cc-consequence-card" style="margin-top:1rem" data-domain-publication-entry>
+                        <p class="cc-kicker">Secure publication</p>
+                        <h5>DNS is confirmed. Review the live server consequence before publishing.</h5>
+                        <p>
+                          This next review does not change the server. It re-proves the restricted publication
+                          capability and exact deployed Release before offering the bounded hostname action.
+                        </p>
+                        <a
+                          class="cc-button cc-button--ink"
+                          href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-review"
+                          data-review-live-publication
+                        >Review secure publication</a>
+                      </section>
+                    <% } %>
+
+                    <% if (
+                      deploymentPublicationExecutionAvailable
+                      && deployment.publicEndpoint.domainState === 'dns-confirmed'
+                      && ['requesting', 'verified', 'degraded'].includes(deployment.publicEndpoint.tls.state)
+                      && deployment.publicEndpoint.publicReadBack.state !== 'verified'
+                    ) { %>
+                      <section class="cc-review-card" style="margin-top:1rem" data-domain-public-verification>
+                        <p class="cc-kicker">HTTPS proof</p>
+                        <h5>Verify the certificate and exact public Release.</h5>
+                        <p>
+                          HiVenues will independently inspect TLS and then read the exact public health endpoint.
+                          A generic successful page is not enough.
+                        </p>
+                        <form
+                          method="post"
+                          action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-verify"
+                        >
+                          <button class="cc-button" type="submit" data-verify-public-https>
+                            Verify secure site
+                          </button>
+                        </form>
+                      </section>
+                    <% } %>
+
+                    <% if (deployment.publicEndpoint.tls.state === 'verified') { %>
+                      <p data-domain-tls-verified>
+                        TLS certificate: <strong>verified</strong>.
+                      </p>
+                    <% } %>
+
+                    <% if (deployment.publicEndpoint.publicReadBack.state === 'verified') { %>
+                      <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-verified>
+                        <p class="cc-kicker">Public proof complete</p>
+                        <h5>Live HTTPS exact Release confirmed.</h5>
+                        <p>
+                          <code>https://<%= deployment.publicEndpoint.hostname %>/__hivenues/health</code>
+                          returned the exact active runtime and immutable Release recorded by Studio.
+                        </p>
+                      </section>
+                    <% } else if (deployment.publicEndpoint.publicReadBack.state === 'mismatch') { %>
+                      <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-mismatch>
+                        <h5>Public site identity does not match the expected Release.</h5>
+                        <p>
+                          HiVenues will not mark publication complete. Mismatched fields:
+                          <code><%= deployment.publicEndpoint.publicReadBack.mismatchFields.join(', ') %></code>
+                        </p>
+                      </section>
+                    <% } %>
 
                     <% if (
                       deployment.providerKind === 'ssh-server'
@@ -254,7 +371,10 @@
                       </section>
                     <% } %>
 
-                    <% if (deployment.publicationReview) { %>
+                    <% if (
+                      deployment.publicationReview
+                      && deployment.publicEndpoint.domainState !== 'dns-confirmed'
+                    ) { %>
                       <details data-domain-consequence-review>
                         <summary>Review what a later live connection would do</summary>
                         <p>

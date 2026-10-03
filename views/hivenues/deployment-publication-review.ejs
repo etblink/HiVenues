@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('_head', { graph, pageTitle }) %>
+</head>
+<body class="cc-task-body">
+  <main class="cc-task" data-live-publication-review>
+    <nav class="cc-task-nav">
+      <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Back to Deployment</a>
+      <span class="cc-draft-status">Live hostname publication review</span>
+    </nav>
+
+    <p class="cc-kicker">Domain · explicit live consequence</p>
+    <h1>Review the exact hostname before HiVenues publishes it.</h1>
+    <p class="cc-task__dek">
+      DNS has already been observed at the exact prepared destination. This review re-proved the
+      restricted server publication capability, removed bootstrap authority, and exact active
+      runtime + immutable Release before any hostname mutation is offered.
+    </p>
+
+    <section class="cc-review-card" data-live-publication-dns-proof>
+      <p class="cc-kicker">Confirmed DNS</p>
+      <h2><%= review.hostname %></h2>
+      <p>Checked: <code><%= review.dnsObservation.checkedAt %></code></p>
+      <p>Resolver: <code><%= review.dnsObservation.resolver || 'system-dns' %></code></p>
+      <% review.dnsObservation.records.forEach((record) => { %>
+        <p><code><%= record.type %> <%= record.name %> → <%= record.values.join(', ') %></code></p>
+      <% }) %>
+    </section>
+
+    <section class="cc-review-card" data-live-publication-release-proof>
+      <p class="cc-kicker">Preserved deployment</p>
+      <p>
+        Server:
+        <code><%= review.target.username %>@<%= review.target.host %>:<%= review.target.port %></code>
+      </p>
+      <p>Trusted host fingerprint: <code><%= review.target.trustedHostKeyFingerprint %></code></p>
+      <p>Deployment: <code><%= review.deploymentId %></code></p>
+      <p>Release: <code><%= review.release.releaseId %></code></p>
+      <p>Release digest: <code><%= review.release.releaseDigest %></code></p>
+      <p>Package digest: <code><%= review.release.packageDigest %></code></p>
+      <p>Runtime source: <code><%= review.runtime.sourceSha %></code></p>
+      <p>Runtime tree: <code><%= review.runtime.sourceTree %></code></p>
+      <p>Runtime bundle: <code><%= review.runtime.bundleDigest %></code></p>
+    </section>
+
+    <section class="cc-consequence-card" data-live-publication-consequences>
+      <h2>What HiVenues will do</h2>
+      <ul>
+        <% review.consequences.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <section class="cc-review-card" data-live-publication-held>
+      <h2>What remains held</h2>
+      <ul>
+        <% review.held.forEach((item) => { %>
+          <li><code><%= item %></code></li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <% if (review.alreadyApplied) { %>
+      <section class="cc-review-card" data-live-publication-recovery>
+        <h2>The exact hostname is already applied.</h2>
+        <p>
+          This can occur if a previous browser request ended after the server committed the bounded
+          publication but before Studio persisted the local TLS-requesting state. Continuing below
+          will not reapply a different hostname; it will resume the same exact publication.
+        </p>
+      </section>
+    <% } %>
+
+    <details class="cc-review-card">
+      <summary>Technical review identity</summary>
+      <p>Publication state: <code><%= review.publicationState %></code></p>
+      <p>Review digest: <code><%= review.reviewDigest %></code></p>
+    </details>
+
+    <form
+      method="post"
+      action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-apply"
+      class="cc-consequence-card"
+      data-confirm-live-publication
+    >
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label>
+        <input
+          type="checkbox"
+          name="confirmation"
+          value="publish-reviewed-hostname"
+          required
+        >
+        I reviewed this exact hostname and confirmed DNS proof. Publish only this HiVenues-managed hostname.
+      </label>
+      <button class="cc-button cc-button--ink" type="submit">
+        Publish <%= review.hostname %> securely
+      </button>
+    </form>
+  </main>
+</body>
+</html>
