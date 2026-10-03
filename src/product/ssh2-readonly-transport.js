@@ -42,7 +42,7 @@ const READ_ONLY_INSPECTION_COMMAND = [
   'if systemctl is-active --quiet caddy.service 2>/dev/null; then printf "HIVENUES_SYSTEM_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_SYSTEM_CADDY_ACTIVE=0\\n"; fi',
   'if systemctl is-active --quiet hivenues-caddy.service 2>/dev/null; then printf "HIVENUES_HIVENUES_CADDY_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_CADDY_ACTIVE=0\\n"; fi',
   'if systemctl is-active --quiet hivenues-firewall.service 2>/dev/null; then printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=1\\n"; else printf "HIVENUES_HIVENUES_FIREWALL_ACTIVE=0\\n"; fi',
-].join('\\n');
+].join('\n');
 
 const DEFAULT_READY_TIMEOUT_MS = 10000;
 const MAX_INSPECTION_OUTPUT_BYTES = 32768;

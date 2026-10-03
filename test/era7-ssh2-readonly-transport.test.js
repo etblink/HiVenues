@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const {
@@ -151,6 +152,21 @@ test('Era 7 Stage 2B: inspection output parser accepts only complete bounded rea
     () => parseInspectionOutput('HIVENUES_OS=Debian\nHIVENUES_ARCH=x86_64\n'),
     (error) => error.code === 'DEPLOYMENT_INSPECTION_INVALID',
   );
+});
+
+test('Era 7 Stage 3C: generated read-only command uses real newlines and parses in a POSIX shell', (t) => {
+  assert.equal(READ_ONLY_INSPECTION_COMMAND.includes('\\\\n'), false);
+  assert.equal(READ_ONLY_INSPECTION_COMMAND.includes('\n'), true);
+
+  if (process.platform === 'win32') {
+    t.skip('POSIX shell syntax qualification runs on non-Windows CI.');
+    return;
+  }
+
+  const parsed = spawnSync('/bin/sh', ['-n', '-c', READ_ONLY_INSPECTION_COMMAND], {
+    encoding: 'utf8',
+  });
+  assert.equal(parsed.status, 0, parsed.stderr || parsed.stdout);
 });
 
 test('Era 7 Stage 3C: read-only command excludes IPv4 loopback range and proves sudo/root plus systemd-resolved ownership', () => {
