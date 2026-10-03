@@ -8,6 +8,7 @@ const test = require('node:test');
 
 const {
   InstalledRemoteDeploymentService,
+  materializeInstalledRuntimeBundle,
 } = require('../src/product/deployment-execution');
 const { createDeploymentPackageBuilder } = require('../src/product/deployment-package');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
@@ -332,7 +333,7 @@ test('Era 7 Stage 3C: exact read-back diagnostic is read-only and names the mism
 
   const diagnostic = await service.inspectReadBack(f.deploymentId);
 
-  assert.equal(calls.readBack, 1);
+  assert.equal(calls.readBack, 2);
   assert.equal(calls.mutation, 0);
   assert.equal(diagnostic.matches, false);
   assert.deepEqual(diagnostic.mismatches, ['runtime.sourceSha']);
@@ -360,5 +361,88 @@ test('Era 7 Stage 3C: exact read-back diagnostic distinguishes unavailable read-
   assert.equal(diagnostic.actual, null);
   assert.equal(diagnostic.matches, false);
   assert.deepEqual(diagnostic.mismatches, ['readback-unavailable']);
+});
+
+test('Era 7 Stage 3C: interrupted recovery proof finds cached predecessor runtime and restricted authority', async (t) => {
+  const f = fixture(t);
+  const runtimeBundlesRoot = path.join(f.root, 'runtime-bundles');
+  const predecessor = materializeInstalledRuntimeBundle({
+    runtimeBundlesRoot,
+    buildProvenance: {
+      sourceSha: 'c'.repeat(40),
+      sourceTree: 'd'.repeat(40),
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+  });
+  const reviewService = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot,
+    buildProvenance: f.buildProvenance,
+    targetFactory: () => ({ async readBack() { return null; } }),
+  });
+  const currentReview = reviewService.prepareReview(f.deploymentId);
+
+  let mutationCalls = 0;
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot,
+    buildProvenance: f.buildProvenance,
+    targetFactory: (options) => ({
+      async readBack() {
+        return {
+          status: 'healthy',
+          runtime: {
+            sourceSha: predecessor.provenance.sourceSha,
+            sourceTree: predecessor.provenance.sourceTree,
+            packageVersion: predecessor.provenance.packageVersion,
+            nodeVersion: predecessor.provenance.nodeVersion,
+            bundleDigest: predecessor.provenance.bundleDigest,
+          },
+          deployment: {
+            hostSlug: f.slug,
+            releaseId: currentReview.release.id,
+            releaseDigest: currentReview.release.digest,
+            packageDigest: currentReview.release.packageDigest,
+          },
+          bootstrap: {
+            authorityState: options.target.username === 'hivenues-deploy'
+              ? 'restricted-login-proven'
+              : 'bootstrap-admin',
+          },
+        };
+      },
+      async installRuntime() {
+        mutationCalls += 1;
+      },
+      async installRelease() {
+        mutationCalls += 1;
+      },
+      async activate() {
+        mutationCalls += 1;
+      },
+      async finalizeAuthorityNarrowing() {
+        mutationCalls += 1;
+      },
+    }),
+  });
+
+  const diagnostic = await service.inspectReadBack(f.deploymentId);
+
+  assert.equal(mutationCalls, 0);
+  assert.equal(diagnostic.matches, false);
+  assert.equal(diagnostic.recovery.cachedRuntimeMatch, true);
+  assert.equal(diagnostic.recovery.releaseMatches, true);
+  assert.equal(diagnostic.recovery.restrictedMatchesObserved, true);
+  assert.equal(diagnostic.recovery.restrictedAuthorityState, 'restricted-login-proven');
+  assert.equal(diagnostic.recovery.recoverable, true);
+  assert.equal(
+    diagnostic.recovery.cachedRuntime.provenance.bundleDigest,
+    predecessor.provenance.bundleDigest,
+  );
 });
 
