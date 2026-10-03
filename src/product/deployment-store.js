@@ -386,6 +386,35 @@ class FileDeploymentStore {
     });
   }
 
+  setPublicEndpointIfUnchanged(deploymentId, expectedEndpoint, endpoint) {
+    const expected = expectedEndpoint === null
+      ? null
+      : clone(requirePreflight(clone(expectedEndpoint)));
+    const value = endpoint === null
+      ? null
+      : clone(requirePreflight(clone(endpoint)));
+    return this.update(deploymentId, (record) => {
+      if (record.state === 'disconnected') {
+        throw deploymentError(
+          'DEPLOYMENT_DISCONNECTED',
+          'Disconnected deployment targets cannot change public endpoint state.',
+        );
+      }
+      const current = record.publicEndpoint === undefined ? null : record.publicEndpoint;
+      if (JSON.stringify(current) !== JSON.stringify(expected)) {
+        throw deploymentError(
+          'DEPLOYMENT_PUBLIC_ENDPOINT_STALE',
+          'Public endpoint evidence changed while the observation was in progress. Retry from the current state.',
+        );
+      }
+      record.publicEndpoint = value;
+      record.domainState = value ? value.domainState : 'domain-unconfigured';
+      record.tlsState = value ? value.tls.state : 'unconfigured';
+      if (value) assertVerifiedPublicIdentityMatchesDeployment(record);
+      return record;
+    });
+  }
+
   setAuthorityRef(deploymentId, authorityRef) {
     const value = String(authorityRef || '').trim();
     if (!/^authority-[A-Za-z0-9._-]+$/.test(value)) {
