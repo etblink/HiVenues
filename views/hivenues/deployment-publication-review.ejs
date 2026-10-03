@@ -30,6 +30,11 @@
 
     <section class="cc-review-card" data-live-publication-release-proof>
       <p class="cc-kicker">Preserved deployment</p>
+      <p>
+        Server:
+        <code><%= review.target.username %>@<%= review.target.host %>:<%= review.target.port %></code>
+      </p>
+      <p>Trusted host fingerprint: <code><%= review.target.trustedHostKeyFingerprint %></code></p>
       <p>Deployment: <code><%= review.deploymentId %></code></p>
       <p>Release: <code><%= review.release.releaseId %></code></p>
       <p>Release digest: <code><%= review.release.releaseDigest %></code></p>
