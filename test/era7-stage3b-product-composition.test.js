@@ -446,3 +446,164 @@ test('Era 7 Stage 3C: interrupted recovery proof finds cached predecessor runtim
   );
 });
 
+test('Era 7 Stage 3C: recovery finalization narrows authority and adopts proven runtime without redeploy', async (t) => {
+  const f = fixture(t);
+  const runtimeBundlesRoot = path.join(f.root, 'runtime-bundles');
+  const recoveredRuntime = materializeInstalledRuntimeBundle({
+    runtimeBundlesRoot,
+    buildProvenance: {
+      sourceSha: 'c'.repeat(40),
+      sourceTree: 'd'.repeat(40),
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+  });
+
+  f.deploymentStore.transition(f.deploymentId, 'deploying', {
+    reason: 'legacy-interrupted-first-deploy',
+    patch: { healthState: 'checking' },
+  });
+  f.deploymentStore.transition(f.deploymentId, 'degraded', {
+    reason: 'legacy-interrupted-first-deploy',
+    patch: { healthState: 'degraded' },
+  });
+
+  let authorityState = 'restricted-login-proven';
+  let finalizations = 0;
+  let forbiddenMutationCalls = 0;
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot,
+    buildProvenance: f.buildProvenance,
+    targetFactory: (options) => ({
+      async readBack() {
+        return {
+          status: 'healthy',
+          runtime: { ...recoveredRuntime.provenance },
+          deployment: {
+            hostSlug: f.slug,
+            releaseId: f.packageRecord.releaseId,
+            releaseDigest: f.packageRecord.releaseDigest,
+            packageDigest: f.packageRecord.packageDigest,
+          },
+          bootstrap: {
+            authorityState: options.target.username === 'hivenues-deploy'
+              ? authorityState
+              : 'bootstrap-admin',
+          },
+        };
+      },
+      async finalizeAuthorityNarrowing(plan) {
+        assert.equal(options.target.username, 'hivenues-deploy');
+        assert.equal(plan.deploymentUser, 'hivenues-deploy');
+        finalizations += 1;
+        authorityState = 'restricted-deployment-user';
+        return true;
+      },
+      async installRuntime() {
+        forbiddenMutationCalls += 1;
+        throw new Error('recovery finalization must not install runtime');
+      },
+      async installRelease() {
+        forbiddenMutationCalls += 1;
+        throw new Error('recovery finalization must not install Release');
+      },
+      async activate() {
+        forbiddenMutationCalls += 1;
+        throw new Error('recovery finalization must not activate services');
+      },
+    }),
+  });
+
+  const review = await service.prepareRecoveryFinalization(f.deploymentId);
+  assert.equal(review.authority.observed, 'restricted-login-proven');
+  assert.equal(review.authority.serverMutationRequired, true);
+  assert.equal(review.runtime.bundleDigest, recoveredRuntime.provenance.bundleDigest);
+
+  const result = await service.finalizeInterruptedRecovery(f.deploymentId, {
+    reviewDigest: review.reviewDigest,
+    confirmation: 'finalize-interrupted-recovery',
+  });
+
+  assert.equal(forbiddenMutationCalls, 0);
+  assert.equal(finalizations, 1);
+  assert.equal(result.state, 'healthy');
+  assert.equal(result.healthState, 'healthy');
+  assert.equal(result.activeRelease.id, f.packageRecord.releaseId);
+  assert.equal(result.activeRelease.packageDigest, f.packageRecord.packageDigest);
+  assert.equal(result.runtimeProfile.bundleDigest, recoveredRuntime.provenance.bundleDigest);
+  assert.equal(result.pendingRuntimeProfile, null);
+  assert.equal(result.targetPublicFacts.username, 'hivenues-deploy');
+  assert.equal(result.targetPublicFacts.bootstrapUsername, 'root');
+  assert.equal(
+    result.targetPublicFacts.bootstrapAuthorityState,
+    'restricted-deployment-user',
+  );
+});
+
+test('Era 7 Stage 3C: post-narrowing crash remains recoverable when provider account no longer authenticates', async (t) => {
+  const f = fixture(t);
+  const runtimeBundlesRoot = path.join(f.root, 'runtime-bundles');
+  const recoveredRuntime = materializeInstalledRuntimeBundle({
+    runtimeBundlesRoot,
+    buildProvenance: {
+      sourceSha: 'c'.repeat(40),
+      sourceTree: 'd'.repeat(40),
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+  });
+  f.deploymentStore.setPendingRuntimeProfile(
+    f.deploymentId,
+    recoveredRuntime.provenance,
+  );
+  f.deploymentStore.transition(f.deploymentId, 'deploying', {
+    reason: 'simulated-crash-after-authority-narrowing',
+    patch: { healthState: 'checking' },
+  });
+  f.deploymentStore.transition(f.deploymentId, 'degraded', {
+    reason: 'simulated-crash-after-authority-narrowing',
+    patch: { healthState: 'degraded' },
+  });
+
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: f.packageBuilder,
+    authorityStore: {},
+    runtimeBundlesRoot,
+    buildProvenance: f.buildProvenance,
+    targetFactory: (options) => ({
+      async readBack() {
+        if (options.target.username !== 'hivenues-deploy') return null;
+        return {
+          status: 'healthy',
+          runtime: { ...recoveredRuntime.provenance },
+          deployment: {
+            hostSlug: f.slug,
+            releaseId: f.packageRecord.releaseId,
+            releaseDigest: f.packageRecord.releaseDigest,
+            packageDigest: f.packageRecord.packageDigest,
+          },
+          bootstrap: {
+            authorityState: 'restricted-deployment-user',
+          },
+        };
+      },
+    }),
+  });
+
+  const diagnostic = await service.inspectReadBack(f.deploymentId);
+
+  assert.equal(diagnostic.actual, null);
+  assert.equal(diagnostic.recovery.restrictedAuthorityState, 'restricted-deployment-user');
+  assert.equal(diagnostic.recovery.providerConsistency, true);
+  assert.equal(diagnostic.recovery.cachedRuntimeMatch, true);
+  assert.equal(diagnostic.recovery.releaseMatches, true);
+  assert.equal(diagnostic.recovery.recoverable, true);
+
+  const review = await service.prepareRecoveryFinalization(f.deploymentId);
+  assert.equal(review.authority.serverMutationRequired, false);
+});
+
