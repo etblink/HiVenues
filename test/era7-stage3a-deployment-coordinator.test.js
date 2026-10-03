@@ -514,3 +514,71 @@ test('Era 7 Stage 3B: interrupted authority narrowing resumes after restart with
   );
   assert.equal(result.activeRelease.id, f.releaseA.id);
 });
+
+test('Era 7 Stage 3C: interrupted deploy persists pending runtime and rejects repair-build substitution', async (t) => {
+  const f = fixture(t);
+  let activationCalls = 0;
+  const failingTarget = {
+    async readBack() {
+      return null;
+    },
+    async installRuntime() {
+      return { provenance: f.runtime, path: '/opt/hivenues/runtime/a' };
+    },
+    async installRelease() {
+      return {
+        manifest: JSON.parse(
+          fs.readFileSync(path.join(f.packageA.packagePath, 'manifest.json'), 'utf8'),
+        ),
+        path: '/srv/hivenues/releases/a',
+      };
+    },
+    async activate() {
+      activationCalls += 1;
+      const error = new Error('synthetic interrupted deployment');
+      error.code = 'DEPLOYMENT_REMOTE_COMMAND_FAILED';
+      throw error;
+    },
+  };
+  const coordinator = new ExactReleaseDeploymentCoordinator({
+    store: f.deploymentStore,
+    target: failingTarget,
+  });
+
+  await assert.rejects(
+    () => coordinator.deploy(f.deploymentId, {
+      runtimeRoot: f.runtimeRoot,
+      releasePackageRoot: f.packageA.packagePath,
+    }),
+    /synthetic interrupted deployment/,
+  );
+
+  let record = f.deploymentStore.get(f.deploymentId);
+  assert.equal(record.state, 'degraded');
+  assert.equal(record.pendingRuntimeProfile.sourceSha, f.runtime.sourceSha);
+  assert.equal(record.pendingRuntimeProfile.sourceTree, f.runtime.sourceTree);
+  assert.equal(record.pendingRuntimeProfile.bundleDigest, f.runtime.bundleDigest);
+  assert.equal(activationCalls, 1);
+
+  const replacementRoot = path.join(f.root, 'replacement-runtime');
+  const replacement = buildPublicRuntimeBundle({
+    outputRoot: replacementRoot,
+    sourceSha: '7'.repeat(40),
+    sourceTree: '8'.repeat(40),
+    nodeVersion: process.version,
+  });
+
+  await assert.rejects(
+    () => coordinator.deploy(f.deploymentId, {
+      runtimeRoot: replacementRoot,
+      releasePackageRoot: f.packageA.packagePath,
+    }),
+    (error) => error.code === 'DEPLOYMENT_PENDING_RUNTIME_MISMATCH',
+  );
+
+  record = f.deploymentStore.get(f.deploymentId);
+  assert.equal(record.pendingRuntimeProfile.bundleDigest, f.runtime.bundleDigest);
+  assert.notEqual(record.pendingRuntimeProfile.bundleDigest, replacement.bundleDigest);
+  assert.equal(activationCalls, 1);
+});
+
