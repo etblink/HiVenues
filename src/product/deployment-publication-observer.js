@@ -120,6 +120,10 @@ class NodePublicationObserver {
     const conflictingRecords = [];
     for (const [name, types] of requirementTypesByName.entries()) {
       if (types.has('CNAME')) continue;
+
+      const cname = await this.resolveRequirement({ type: 'CNAME', name });
+      if (cname.values.length) conflictingRecords.push(cname);
+
       if (types.has('A') && !types.has('AAAA')) {
         const opposite = await this.resolveRequirement({ type: 'AAAA', name });
         if (opposite.values.length) conflictingRecords.push(opposite);
