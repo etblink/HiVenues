@@ -198,6 +198,7 @@ function fixture(t) {
   const remote = {
     release: RELEASE_B,
     authorityAccessible: true,
+    authorityError: null,
     rollbackCalls: 0,
     removeCalls: 0,
   };
@@ -230,6 +231,7 @@ function fixture(t) {
       return { release: remote.release };
     },
     async deploymentAuthorityAccessible() {
+      if (remote.authorityError) throw remote.authorityError;
       return remote.authorityAccessible;
     },
     async removeDeploymentAuthority(_plan, publicKey) {
@@ -521,4 +523,31 @@ test('Era 7 Stage 5A: disconnected lifecycle state and A/B history survive deplo
   assert.equal(record.previousRelease.id, RELEASE_B.id);
   assert.equal(record.publicEndpoint.publicReadBack.state, 'verified');
   assert.equal(record.history.at(-1).reason, 'deployment-authority-disconnected');
+});
+
+
+test('Era 7 Stage 5A corrective: disconnect recovery fails closed on SSH reachability loss and preserves local authority', async (t) => {
+  const f = fixture(t);
+  f.store.transition(f.deploymentId, 'degraded', {
+    reason: 'authority-disconnect-removal-started',
+    patch: {
+      targetPublicFacts: {
+        ...f.store.get(f.deploymentId).targetPublicFacts,
+        authorityDisconnectState: 'removal-started',
+        authorityDisconnectFingerprint: 'SHA256:' + 'K'.repeat(43),
+      },
+      healthState: 'unknown',
+      rollbackState: 'available',
+    },
+  });
+  const outage = new Error('SSH connection failed before authentication could be proven.');
+  outage.code = 'DEPLOYMENT_SSH_CONNECTION_FAILED';
+  f.remote.authorityError = outage;
+
+  await assert.rejects(
+    () => f.service.prepareDisconnectReview(f.deploymentId),
+    (error) => error.code === 'DEPLOYMENT_SSH_CONNECTION_FAILED',
+  );
+  assert.equal(f.authorityStore.state.present, true);
+  assert.equal(f.authorityStore.state.revokeCalls, 0);
 });
