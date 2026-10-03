@@ -103,6 +103,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_REVIEW_STALE'
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_FINAL_PROOF_FAILED'
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_PUBLIC_PROOF_FAILED'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED'
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS'
   ) return 409;
   return 400;
@@ -395,7 +396,10 @@ function createHiVenuesDeploymentRouter({
         error.code = 'DEPLOYMENT_PUBLICATION_DNS_UNAVAILABLE';
         throw error;
       }
-      await active.remoteDeployment.checkDns(deployment.id);
+      await active.remoteDeployment.checkDns(
+        deployment.id,
+        { allowReauthorizing: deployment.state === 'reauthorizing' },
+      );
     }),
   );
 
