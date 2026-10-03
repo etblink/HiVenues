@@ -61,6 +61,7 @@ const TRANSITIONS = Object.freeze({
 
 const FORBIDDEN_SECRET_KEYS = /(?:private.?key|password|secret|token|credential|mnemonic|recovery.?key)/i;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
+const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 
 function deploymentError(code, message) {
   const error = new Error(message);
@@ -107,6 +108,35 @@ function requireReleaseRef(release) {
     throw deploymentError('DEPLOYMENT_RELEASE_INVALID', 'Deployment Release reference is invalid.');
   }
   return Object.freeze({ id, digest });
+}
+
+function requireRuntimeProfile(runtime) {
+  const value = runtime && typeof runtime === 'object' ? runtime : {};
+  const sourceSha = String(value.sourceSha || '').trim().toLowerCase();
+  const sourceTree = String(value.sourceTree || '').trim().toLowerCase();
+  const packageVersion = String(value.packageVersion || '').trim();
+  const nodeVersion = String(value.nodeVersion || '').trim();
+  const bundleDigest = String(value.bundleDigest || '').trim().toLowerCase();
+  if (
+    !SHA1_PATTERN.test(sourceSha)
+    || !SHA1_PATTERN.test(sourceTree)
+    || !packageVersion
+    || !/^v\d+\.\d+\.\d+$/.test(nodeVersion)
+    || !DIGEST_PATTERN.test(bundleDigest)
+  ) {
+    throw deploymentError(
+      'DEPLOYMENT_RUNTIME_PROFILE_INVALID',
+      'Deployment runtime profile is invalid.',
+    );
+  }
+  return Object.freeze({
+    kind: 'hivenues-public-runtime',
+    sourceSha,
+    sourceTree,
+    packageVersion,
+    nodeVersion,
+    bundleDigest,
+  });
 }
 
 function writeAtomicJson(file, value) {
@@ -193,6 +223,7 @@ class FileDeploymentStore {
         activeRelease: null,
         previousRelease: null,
         runtimeProfile: null,
+        pendingRuntimeProfile: null,
         domainState: 'domain-unconfigured',
         tlsState: 'unconfigured',
         healthState: 'unknown',
@@ -254,6 +285,20 @@ class FileDeploymentStore {
     });
   }
 
+  setPendingRuntimeProfile(deploymentId, runtimeProfile) {
+    const value = runtimeProfile === null ? null : requireRuntimeProfile(runtimeProfile);
+    return this.update(deploymentId, (record) => {
+      if (record.state === 'disconnected') {
+        throw deploymentError(
+          'DEPLOYMENT_DISCONNECTED',
+          'Disconnected deployment targets cannot retain a pending runtime.',
+        );
+      }
+      record.pendingRuntimeProfile = value ? clone(value) : null;
+      return record;
+    });
+  }
+
   setAuthorityRef(deploymentId, authorityRef) {
     const value = String(authorityRef || '').trim();
     if (!/^authority-[A-Za-z0-9._-]+$/.test(value)) {
@@ -295,6 +340,7 @@ class FileDeploymentStore {
         'activeRelease',
         'previousRelease',
         'runtimeProfile',
+        'pendingRuntimeProfile',
         'domainState',
         'tlsState',
         'healthState',
@@ -425,4 +471,5 @@ module.exports = {
   FileDeploymentStore,
   assertNoSecrets,
   requireReleaseRef,
+  requireRuntimeProfile,
 };
