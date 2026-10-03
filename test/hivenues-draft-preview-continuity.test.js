@@ -85,3 +85,31 @@ test('all admitted public Directions keep preview Activity links inside preview 
     assert.doesNotMatch(preview.text, new RegExp(`href="/hivenues/${slug}/activities/${activitySlug}`));
   }
 });
+
+test('draft preview ICS preserves encoded activity slugs without falling back to released URLs', async () => {
+  const store = new HiVenuesStore();
+  const app = createHiVenuesApp({ store });
+  const slug = 'northline-hall';
+  const activityId = 'activity-northline-friday-001';
+  const encodedActivitySlug = 'friday night+assembly';
+  const before = store.snapshot(slug);
+  const result = store.commit(slug, before.revision, 'encoded-draft-preview-slug', (draft) => {
+    const activity = draft.activities.find((item) => item.id === activityId);
+    activity.slug = encodedActivitySlug;
+  }, [
+    `activities.${activityId}.slug`,
+  ], before.draftDigest);
+  assert.equal(result.ok, true);
+
+  const encoded = encodeURIComponent(encodedActivitySlug);
+  const previewCalendar = await request(app)
+    .get(`/hivenues/studio/${slug}/preview/activities/${encoded}/calendar.ics`)
+    .expect('Content-Type', /text\/calendar/)
+    .expect(200);
+
+  assert.match(
+    previewCalendar.text,
+    new RegExp(`URL:/hivenues/studio/${slug}/preview/activities/${encoded.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`),
+  );
+  assert.doesNotMatch(previewCalendar.text, new RegExp(`/hivenues/${slug}/activities/`));
+});
