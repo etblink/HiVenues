@@ -822,3 +822,85 @@ test('Era 7 Stage 4E corrective: conflicting opposite-family DNS recheck invalid
   assert.equal(endpoint.tls.observation, null);
   assert.equal(endpoint.publicReadBack.state, 'unverified');
 });
+
+
+test('Era 7 Stage 4E corrective: legacy expanded IPv6 requirements match canonical resolver answers', () => {
+  const legacy = JSON.parse(JSON.stringify(createDomainPreflight({
+    hostname: 'v6.example.com',
+    destinations: [{ kind: 'ipv6', value: '2606:4700::1111' }],
+  })));
+  legacy.dns.requirements[0].values[0] = '2606:4700:0000:0000:0000:0000:0000:1111';
+
+  const endpoint = recordDnsObservation(legacy, {
+    checkedAt: '2026-10-03T20:35:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'AAAA',
+      name: 'v6.example.com',
+      values: ['2606:4700::1111'],
+    }],
+  });
+
+  assert.equal(endpoint.domainState, 'dns-confirmed');
+  assert.equal(endpoint.dns.observation.matches, true);
+});
+
+test('Era 7 Stage 4E corrective: in-flight DNS result cannot overwrite a replaced domain plan', async (t) => {
+  const f = serviceFixture(t);
+  let resolveObservation;
+  f.observer.observeDns = () => new Promise((resolve) => {
+    resolveObservation = resolve;
+  });
+
+  const pending = f.service.checkDns(f.deploymentId);
+  f.store.setPublicEndpoint(f.deploymentId, createDomainPreflight({
+    hostname: 'new.example.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  }));
+  resolveObservation({
+    checkedAt: '2026-10-03T20:36:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+
+  await assert.rejects(
+    () => pending,
+    (error) => error.code === 'DEPLOYMENT_PUBLIC_ENDPOINT_STALE',
+  );
+  const current = f.store.get(f.deploymentId).publicEndpoint;
+  assert.equal(current.hostname, 'new.example.com');
+  assert.equal(current.domainState, 'dns-instructions-ready');
+});
+
+test('Era 7 Stage 4E corrective: in-flight DNS recheck cannot regress newer TLS-requesting state', async (t) => {
+  const f = serviceFixture(t);
+  await f.service.checkDns(f.deploymentId);
+  const confirmed = f.store.get(f.deploymentId).publicEndpoint;
+
+  let resolveObservation;
+  f.observer.observeDns = () => new Promise((resolve) => {
+    resolveObservation = resolve;
+  });
+  const pending = f.service.checkDns(f.deploymentId);
+
+  f.store.setPublicEndpoint(f.deploymentId, markTlsRequesting(confirmed));
+  resolveObservation({
+    checkedAt: '2026-10-03T20:37:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+
+  await assert.rejects(
+    () => pending,
+    (error) => error.code === 'DEPLOYMENT_PUBLIC_ENDPOINT_STALE',
+  );
+  assert.equal(f.store.get(f.deploymentId).publicEndpoint.tls.state, 'requesting');
+});
