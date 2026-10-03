@@ -68,8 +68,13 @@ function stagePath(kind, digest) {
   return '/var/tmp/hivenues-' + kind + '-' + digest.slice(0, 24);
 }
 
+function qualifiedNodePath(node) {
+  return node.installRoot + '/bin:/usr/bin:/bin';
+}
+
 function initialBootstrapCommand(plan, runtime, release, publicKey) {
   const node = plan.nodeDistribution;
+  const nodePath = qualifiedNodePath(node);
   const lines = [
     'set -eu',
     'printf "HIVENUES_MUTATION_STAGE=bootstrap-root\\n" >&2',
@@ -105,7 +110,8 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
     '  rm -f -- "$tmp"',
     'fi',
     'test "$(' + shellQuote(node.nodePath) + ' --version)" = ' + shellQuote(node.version),
-    'test "$(' + shellQuote(node.npmPath) + ' --version)" = ' + shellQuote(node.npmVersion),
+    'test "$(env PATH=' + shellQuote(nodePath) + ' ' + shellQuote(node.npmPath)
+      + ' --version)" = ' + shellQuote(node.npmVersion),
   ];
 
   lines.push('printf "HIVENUES_MUTATION_STAGE=runtime-dependencies\\n" >&2');
@@ -118,7 +124,8 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
   }
   lines.push(
     'chown -R hivenues-deploy:hivenues -- ' + shellQuote(runtime.path),
-    'runuser -u hivenues-deploy -- env HOME=/var/lib/hivenues-deploy '
+    'runuser -u hivenues-deploy -- env HOME=/var/lib/hivenues-deploy PATH='
+      + shellQuote(nodePath) + ' '
       + shellQuote(node.npmPath)
       + ' --prefix ' + shellQuote(runtime.path)
       + ' ci --omit=dev --ignore-scripts --no-audit --no-fund',
@@ -145,6 +152,7 @@ function initialBootstrapCommand(plan, runtime, release, publicKey) {
 }
 
 function steadyInstallCommand(plan, runtime, release) {
+  const nodePath = qualifiedNodePath(plan.nodeDistribution);
   const lines = [
     'set -eu',
     'printf "HIVENUES_MUTATION_STAGE=steady-install\\n" >&2',
@@ -159,7 +167,8 @@ function steadyInstallCommand(plan, runtime, release) {
   }
   lines.push(
     'cd -- ' + shellQuote(runtime.path),
-    'HOME=/var/lib/hivenues-deploy ' + shellQuote(plan.nodeDistribution.npmPath)
+    'HOME=/var/lib/hivenues-deploy PATH=' + shellQuote(nodePath) + ' '
+      + shellQuote(plan.nodeDistribution.npmPath)
       + ' ci --omit=dev --ignore-scripts --no-audit --no-fund',
   );
   if (release.stagingPath) {
@@ -594,6 +603,7 @@ module.exports = {
   SshRemoteDeploymentTarget,
   activationCommand,
   initialBootstrapCommand,
+  qualifiedNodePath,
   removeBootstrapKeyCommand,
   steadyInstallCommand,
   writeRootFile,
