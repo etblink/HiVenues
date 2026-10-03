@@ -25,7 +25,10 @@ function equalBuffer(left, right) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-async function createLoopbackSshServer(t) {
+async function createLoopbackSshServer(t, {
+  inspectionExitCode = 0,
+  inspectionStderr = '',
+} = {}) {
   const hostKeys = generateKeyPairSync('rsa', { bits: 2048 });
   const clientKeys = generateKeyPairSync('rsa', { bits: 2048 });
   const allowedPublic = parseKey(clientKeys.public);
@@ -69,6 +72,12 @@ async function createLoopbackSshServer(t) {
             return;
           }
           const stream = acceptExec();
+          if (inspectionStderr) stream.stderr.write(inspectionStderr);
+          if (inspectionExitCode !== 0) {
+            stream.exit(inspectionExitCode);
+            stream.end();
+            return;
+          }
           stream.write([
             'HIVENUES_OS=Debian GNU/Linux 13',
             'HIVENUES_ARCH=x86_64',
@@ -149,6 +158,8 @@ test('Era 7 Stage 3C: read-only command excludes IPv4 loopback range and proves 
   assert.match(READ_ONLY_INSPECTION_COMMAND, /BOOTSTRAP_ROOT_READY/);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /sudo -n \/usr\/bin\/id -u/);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /SYSTEMD_RESOLVED_LLMNR_ACTIVE/);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /HIVENUES_DIAG_STAGE=listener-discovery/);
+  assert.match(READ_ONLY_INSPECTION_COMMAND, /HIVENUES_DIAG_FAILURE=ss-unavailable/);
   assert.match(READ_ONLY_INSPECTION_COMMAND, /systemd-resolve/);
 });
 
@@ -202,6 +213,42 @@ test('Era 7 Stage 2B: loopback SSH observation and inspection enforce host trust
   assert.ok(fixture.evidence.authenticationAttempts >= 1);
   assert.equal(fixture.evidence.sessions, 1);
   assert.deepEqual(fixture.evidence.commands, [READ_ONLY_INSPECTION_COMMAND]);
+});
+
+test('Era 7 Stage 3C: nonzero remote inspection preserves only bounded HiVenues diagnostic markers', async (t) => {
+  const fixture = await createLoopbackSshServer(t, {
+    inspectionExitCode: 41,
+    inspectionStderr: [
+      'arbitrary remote text that must not be surfaced',
+      'HIVENUES_DIAG_STAGE=listener-discovery',
+      'HIVENUES_DIAG_FAILURE=ss-unavailable',
+      '',
+    ].join('\n'),
+  });
+  const transport = new Ssh2ReadOnlyVerificationTransport({
+    readyTimeoutMs: 5000,
+  });
+
+  await assert.rejects(
+    () => transport.inspect({
+      host: '127.0.0.1',
+      port: fixture.port,
+      username: 'root',
+      expectedHostKeyFingerprint: fixture.expectedHostFingerprint,
+      privateKey: fixture.privateKey,
+    }),
+    (error) => {
+      assert.equal(error.code, 'DEPLOYMENT_SSH_INSPECTION_FAILED');
+      assert.equal(error.remoteExitStatus, 41);
+      assert.equal(
+        error.inspectionDiagnostic,
+        'HIVENUES_DIAG_STAGE=listener-discovery | HIVENUES_DIAG_FAILURE=ss-unavailable',
+      );
+      assert.match(error.message, /status 41/);
+      assert.doesNotMatch(error.message, /arbitrary remote text/);
+      return true;
+    },
+  );
 });
 
 test('Era 7 Stage 2B: host fingerprint is OpenSSH SHA256 over the raw host-key blob', () => {
