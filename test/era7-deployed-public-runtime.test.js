@@ -190,6 +190,35 @@ test('Era 7 Stage 3A: deployed runtime refuses tampered runtime bundle before se
   );
 });
 
+test('Era 7 Stage 5A corrective: deployed runtime recomputes immutable package digest after manifest-compatible media tampering', (t) => {
+  const f = fixture(t);
+  const manifestPath = path.join(f.packageRecord.packagePath, 'manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  assert.ok(manifest.media.length > 0);
+
+  const media = manifest.media[0];
+  const mediaPath = path.join(f.packageRecord.packagePath, media.packagePath);
+  const original = fs.readFileSync(mediaPath);
+  const tampered = Buffer.from(original);
+  tampered[0] = tampered[0] ^ 0x01;
+  fs.writeFileSync(mediaPath, tampered);
+
+  media.sha256 = crypto.createHash('sha256').update(tampered).digest('hex');
+  media.bytes = tampered.length;
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+
+  assert.throws(
+    () => createDeployedPublicApp({
+      packagePath: f.packageRecord.packagePath,
+      runtimeStatePath: f.runtimeStatePath,
+      provenancePath: f.provenancePath,
+      manifestPath: f.manifestPath,
+      root: f.runtimeRoot,
+    }),
+    (error) => error.code === 'DEPLOYED_RELEASE_PACKAGE_DIGEST_MISMATCH',
+  );
+});
+
 test('Era 7 Stage 3A: deployed runtime refuses tampered Release before serving', (t) => {
   const f = fixture(t);
   const releasePath = path.join(f.packageRecord.packagePath, 'release.json');
