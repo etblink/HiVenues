@@ -112,3 +112,12 @@ migration-incomplete
 rather than treating the deployment as unrecoverable or ready. Studio keeps the bounded migration review available so the same idempotent candidate can be resumed and bootstrap-key cleanup can still be proven.
 
 If helper status fails and bootstrap authority is not available, HiVenues fails closed and requires the owner to restore the exact reviewed bootstrap public key again before migration recovery.
+
+
+## Post-cleanup recovery proof
+
+Readiness on a `ready / unconfigured` server also performs the normal exact runtime/Release read-back.
+
+If bootstrap authority is already absent and the exact deployment matches, Studio treats the one-time migration as complete and refuses to prepare another migration review. This covers an interruption after exact-key cleanup but before the previous UI request returned.
+
+If the publication capability exists but the runtime/Release read-back no longer matches, domain publication remains held.
