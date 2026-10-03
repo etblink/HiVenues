@@ -2228,7 +2228,8 @@ class InstalledRemoteDeploymentService {
   prepareReview(deploymentId) {
     const current = this.deploymentStore.get(deploymentId);
     if (
-      (current?.state === 'deploying' && current?.stateReason === 'rollback-started')
+      current?.state === 'reauthorizing'
+      || (current?.state === 'deploying' && current?.stateReason === 'rollback-started')
       || (
         current?.state === 'degraded'
         && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
