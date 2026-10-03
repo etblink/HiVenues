@@ -493,3 +493,32 @@ test('Era 7 Stage 5A: unexplained pre-existing authority failure is not mistaken
   );
   assert.equal(f.authorityStore.state.present, true);
 });
+
+
+test('Era 7 Stage 5A: disconnected lifecycle state and A/B history survive deployment-store restart', async (t) => {
+  const f = fixture(t);
+  const rollbackReview = await f.service.prepareRollbackReview(f.deploymentId);
+  await f.service.rollback(f.deploymentId, {
+    reviewDigest: rollbackReview.reviewDigest,
+    confirmation: 'rollback-to-previous-release',
+  });
+  reverifyPublicForActive(f);
+  const disconnectReview = await f.service.prepareDisconnectReview(f.deploymentId);
+  await f.service.disconnectAuthority(f.deploymentId, {
+    reviewDigest: disconnectReview.reviewDigest,
+    confirmation: 'disconnect-deployment-authority',
+  });
+
+  const restarted = new FileDeploymentStore({
+    statePath: path.join(f.root, 'deployment.json'),
+    now: () => Date.parse('2026-10-03T20:34:00.000Z'),
+  });
+  const record = restarted.get(f.deploymentId);
+
+  assert.equal(record.state, 'disconnected');
+  assert.equal(record.authorityRef, null);
+  assert.equal(record.activeRelease.id, RELEASE_A.id);
+  assert.equal(record.previousRelease.id, RELEASE_B.id);
+  assert.equal(record.publicEndpoint.publicReadBack.state, 'verified');
+  assert.equal(record.history.at(-1).reason, 'deployment-authority-disconnected');
+});
