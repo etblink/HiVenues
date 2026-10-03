@@ -4,7 +4,10 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { buildPublicRuntimeBundle } = require('../../scripts/era7/build-public-runtime-bundle');
+const {
+  buildPublicRuntimeBundle,
+  canonicalRuntimeFileBytes,
+} = require('../../scripts/era7/build-public-runtime-bundle');
 const {
   ExactReleaseDeploymentCoordinator,
   desiredReadBack,
@@ -320,7 +323,10 @@ function activeReadBackExpectation(record) {
 
 function publicationHelperArtifact() {
   const filePath = path.resolve(__dirname, '../deploy/publication-helper-runtime.js');
-  const content = fs.readFileSync(filePath);
+  const content = canonicalRuntimeFileBytes(
+    'src/deploy/publication-helper-runtime.js',
+    fs.readFileSync(filePath),
+  );
   return Object.freeze({
     filePath,
     content,
