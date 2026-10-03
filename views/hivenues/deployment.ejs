@@ -11,6 +11,7 @@
     <%= deploymentAuthorityAvailable ? 'data-deployment-stage2a' : '' %>
     <%= deploymentVerificationAvailable ? 'data-deployment-stage2b' : '' %>
     <%= deploymentMutationAvailable ? 'data-deployment-stage3b' : '' %>
+    <%= deploymentLifecycleAvailable ? 'data-deployment-stage5a' : '' %>
   >
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -701,9 +702,87 @@
                     </section>
                   <% } %>
 
-                  <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect">
-                    <button class="cc-button" type="submit" data-disconnect-deployment>Disconnect local target</button>
-                  </form>
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && deploymentLifecycleAvailable
+                    && deployment.previousRelease
+                    && deployment.publicEndpoint
+                    && deployment.publicEndpoint.publicReadBack.state === 'verified'
+                    && (
+                      ['rollback-available', 'healthy'].includes(deployment.state)
+                      || (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+                      || (deployment.state === 'degraded' && deployment.stateReason === 'rollback-failed')
+                    )
+                  ) { %>
+                    <section class="cc-consequence-card" data-real-rollback-entry>
+                      <p class="cc-kicker">Release rollback</p>
+                      <h4>
+                        <%= deployment.stateReason === 'rollback-failed'
+                          || deployment.stateReason === 'rollback-started'
+                          ? 'Review and recover the interrupted rollback'
+                          : 'A previous exact Release is available' %>
+                      </h4>
+                      <p>
+                        Current public Release:
+                        <code><%= deployment.activeRelease.id %></code>.
+                        Rollback candidate:
+                        <code><%= deployment.previousRelease.id %></code>.
+                        HiVenues will preserve the qualified runtime and must re-prove the public site afterward.
+                      </p>
+                      <a
+                        class="cc-button cc-button--ink"
+                        href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/rollback-review"
+                        data-review-real-rollback
+                      >Review exact rollback</a>
+                    </section>
+                  <% } %>
+
+                  <% if (
+                    deployment.providerKind === 'ssh-server'
+                    && deploymentLifecycleAvailable
+                    && deployment.activeRelease
+                    && deployment.publicEndpoint
+                    && (
+                      (
+                        ['healthy', 'rollback-available'].includes(deployment.state)
+                        && deployment.publicEndpoint.publicReadBack.state === 'verified'
+                      )
+                      || (
+                        deployment.state === 'degraded'
+                        && deployment.stateReason === 'authority-disconnect-remote-removed'
+                        && deployment.targetPublicFacts.authorityDisconnectState === 'remote-removed'
+                      )
+                    )
+                  ) { %>
+                    <section class="cc-review-card" data-real-disconnect-entry>
+                      <p class="cc-kicker">Deployment authority</p>
+                      <h4>
+                        <%= deployment.stateReason === 'authority-disconnect-remote-removed'
+                          ? 'Finish the interrupted authority disconnect'
+                          : 'Disconnect HiVenues management without taking the site down' %>
+                      </h4>
+                      <p>
+                        This is not a site deletion. The review removes only the exact HiVenues deployment key
+                        from the steady server account, proves that key can no longer authenticate, revokes the
+                        local protected private key, and preserves the running site plus local host/Release history.
+                      </p>
+                      <a
+                        class="cc-button"
+                        href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect-review"
+                        data-review-real-disconnect
+                      >Review authority disconnect</a>
+                    </section>
+                  <% } %>
+
+                  <% if (deployment.providerKind === 'synthetic-offline') { %>
+                    <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/disconnect">
+                      <button class="cc-button" type="submit" data-disconnect-deployment>Disconnect local target</button>
+                    </form>
+                  <% } else if (!deploymentLifecycleAvailable) { %>
+                    <p data-real-disconnect-held>
+                      Real deployment disconnect remains behind the installed lifecycle qualification gate.
+                    </p>
+                  <% } %>
                 </div>
               <% } %>
 
