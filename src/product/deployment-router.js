@@ -84,6 +84,16 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_PUBLICATION_TLS_STATE_INVALID'
     || error.code === 'DEPLOYMENT_PUBLIC_ENDPOINT_STALE'
     || error.code === 'DEPLOYMENT_PUBLICATION_READBACK_CHANGED'
+    || error.code === 'DEPLOYMENT_ROLLBACK_PUBLIC_PROOF_REQUIRED'
+    || error.code === 'DEPLOYMENT_ROLLBACK_READBACK_MISMATCH'
+    || error.code === 'DEPLOYMENT_ROLLBACK_PUBLICATION_REQUIRED'
+    || error.code === 'DEPLOYMENT_ROLLBACK_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_DISCONNECT_PUBLIC_PROOF_REQUIRED'
+    || error.code === 'DEPLOYMENT_DISCONNECT_READBACK_REQUIRED'
+    || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_AUTHORITY_REMAINS'
+    || error.code === 'DEPLOYMENT_DISCONNECT_RECOVERY_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_REQUIRED'
   ) return 409;
   return 400;
 }
@@ -278,6 +288,13 @@ function createHiVenuesDeploymentRouter({
         && typeof active.remoteDeployment.prepareHostnamePublicationReview === 'function'
         && typeof active.remoteDeployment.publishHostname === 'function'
         && typeof active.remoteDeployment.verifyPublicHttps === 'function'
+      ),
+      deploymentLifecycleAvailable: Boolean(
+        active?.remoteDeployment
+        && typeof active.remoteDeployment.prepareRollbackReview === 'function'
+        && typeof active.remoteDeployment.rollback === 'function'
+        && typeof active.remoteDeployment.prepareDisconnectReview === 'function'
+        && typeof active.remoteDeployment.disconnectAuthority === 'function'
       ),
       deployments,
       error,
@@ -699,6 +716,122 @@ function createHiVenuesDeploymentRouter({
     }
   }));
 
+  router.get('/studio/:slug/deploy/:deploymentId/rollback-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.prepareRollbackReview !== 'function'
+      ) {
+        const error = new Error('Exact real-server rollback review is unavailable.');
+        error.code = 'DEPLOYMENT_ROLLBACK_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = await active.remoteDeployment.prepareRollbackReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-rollback-review', {
+        pageTitle: `Rollback review — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(error, 'Rollback review could not be prepared.'),
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/rollback-exact', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.rollback !== 'function'
+      ) {
+        const error = new Error('Exact real-server rollback is unavailable.');
+        error.code = 'DEPLOYMENT_ROLLBACK_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.rollback(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+      return res.redirect(
+        303,
+        `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy`,
+      );
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(error, 'Exact rollback could not continue.'),
+      });
+    }
+  });
+
+  router.get('/studio/:slug/deploy/:deploymentId/disconnect-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      if (
+        !active.remoteDeployment
+        || typeof active.remoteDeployment.prepareDisconnectReview !== 'function'
+      ) {
+        const error = new Error('Deployment-authority disconnect review is unavailable.');
+        error.code = 'DEPLOYMENT_DISCONNECT_UNAVAILABLE';
+        throw error;
+      }
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      const review = await active.remoteDeployment.prepareDisconnectReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-disconnect-review', {
+        pageTitle: `Disconnect deployment authority — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(error, 'Deployment-authority disconnect review could not be prepared.'),
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/disconnect-authority', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.disconnectAuthority !== 'function'
+      ) {
+        const error = new Error('Deployment-authority disconnect is unavailable.');
+        error.code = 'DEPLOYMENT_DISCONNECT_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.disconnectAuthority(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+      return res.redirect(
+        303,
+        `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy`,
+      );
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(error, 'Deployment-authority disconnect could not continue.'),
+      });
+    }
+  });
+
   router.post('/studio/:slug/deploy/:deploymentId/connection', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
     if (deployment.providerKind !== 'ssh-server') {
@@ -840,10 +973,11 @@ function createHiVenuesDeploymentRouter({
       active.adapters.synthetic.disconnect(req.params.deploymentId);
       return;
     }
-    if (deployment.authorityRef && active.authorityStore) {
-      active.authorityStore.revoke(deployment.authorityRef);
-    }
-    active.deploymentStore.disconnect(req.params.deploymentId);
+    const error = new Error(
+      'Real server targets must use the reviewed deployment-authority disconnect flow.',
+    );
+    error.code = 'DEPLOYMENT_DISCONNECT_REVIEW_REQUIRED';
+    throw error;
   }));
 
   return router;
