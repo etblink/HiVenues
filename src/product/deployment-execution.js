@@ -1950,6 +1950,21 @@ class InstalledRemoteDeploymentService {
   }
 
   prepareReview(deploymentId) {
+    const current = this.deploymentStore.get(deploymentId);
+    if (
+      (current?.state === 'deploying' && current?.stateReason === 'rollback-started')
+      || (
+        current?.state === 'degraded'
+        && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
+          String(current?.stateReason || ''),
+        )
+      )
+    ) {
+      throw executionError(
+        'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS',
+        'Finish the current rollback or authority-disconnect lifecycle before reviewing another deployment.',
+      );
+    }
     const { record, runtime, releasePackage } = this.artifacts(deploymentId);
     const facts = record.targetPublicFacts;
     const core = {
