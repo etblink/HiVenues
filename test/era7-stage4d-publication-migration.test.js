@@ -476,3 +476,92 @@ test('Era 7 Stage 4D: ready capability UI warns when temporary bootstrap authori
   assert.match(response.text, /Temporary bootstrap access still needs to be removed/);
   assert.match(response.text, /data-finalize-publication-upgrade/);
 });
+
+
+test('Era 7 Stage 4D: partial helper/sudo state remains recoverable when bootstrap authority is still present', async (t) => {
+  const f = deploymentFixture(t);
+  const target = {
+    async publicationStatus() {
+      const error = new Error('synthetic partial publication install');
+      error.code = 'DEPLOYMENT_PUBLICATION_STATUS_FAILED';
+      throw error;
+    },
+    async bootstrapAuthorityAccessible() {
+      return true;
+    },
+  };
+  const service = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore,
+    packageBuilder: { build() { throw new Error('not used'); } },
+    authorityStore: authorityStore(),
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles-partial'),
+    buildProvenance: {
+      sourceSha: 'a'.repeat(40),
+      sourceTree: 'b'.repeat(40),
+      nodeVersion: 'v24.19.0',
+      packageVersion: '1.0.0',
+    },
+    targetFactory() {
+      return target;
+    },
+  });
+
+  const diagnostic = await service.inspectPublicationCapability(f.deploymentId);
+  assert.equal(diagnostic.capability, 'migration-incomplete');
+  assert.equal(diagnostic.reason, 'DEPLOYMENT_PUBLICATION_STATUS_FAILED');
+  assert.equal(diagnostic.bootstrapAuthorityAccessible, true);
+
+  const review = await service.preparePublicationMigrationReview(f.deploymentId);
+  assert.equal(review.current.publicationCapability, 'migration-incomplete');
+});
+
+test('Era 7 Stage 4D: partial migration UI keeps bounded resume path visible', async (t) => {
+  const f = deploymentFixture(t);
+  const hostStore = new ProvisioningFileHiVenuesStore({
+    statePath: path.join(f.root, 'workspace-partial.json'),
+    mediaRoot: path.join(f.root, 'media-partial'),
+  });
+  const services = {
+    deploymentStore: f.deploymentStore,
+    packageBuilder: {},
+    authorityStore: {},
+    adapters: {
+      synthetic: {
+        profile() {
+          return { kind: 'synthetic-offline', profile: 'synthetic-local', capabilities: [], externalEffects: false };
+        },
+      },
+    },
+    remoteDeployment: {
+      async inspectPublicationCapability() {
+        return {
+          deploymentId: f.deploymentId,
+          hostSlug: 'harbor-and-hearth',
+          capability: 'migration-incomplete',
+          reason: 'DEPLOYMENT_PUBLICATION_STATUS_FAILED',
+          bootstrapAuthorityAccessible: true,
+        };
+      },
+      async preparePublicationMigrationReview() {
+        return {};
+      },
+      async migratePublicationCapability() {
+        return {};
+      },
+    },
+  };
+  const app = createHiVenuesApp({
+    store: hostStore,
+    identityServices: false,
+    participationServices: false,
+    deploymentServices: services,
+  });
+
+  const response = await request(app)
+    .get('/hivenues/studio/harbor-and-hearth/deploy/' + f.deploymentId + '/publication-capability')
+    .expect(200);
+
+  assert.match(response.text, /data-publication-migration-incomplete/);
+  assert.match(response.text, /needs to be resumed/);
+  assert.match(response.text, /data-resume-publication-upgrade/);
+});
