@@ -10,7 +10,11 @@ const test = require('node:test');
 const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan');
 const { SshRemoteDeploymentTarget } = require('../src/deploy/ssh-remote-deployment-target');
 const { NodePublicationObserver } = require('../src/product/deployment-publication-observer');
-const { createDomainPreflight } = require('../src/product/deployment-publication');
+const {
+  createDomainPreflight,
+  prepareStage4PublicationReview,
+  recordDnsObservation,
+} = require('../src/product/deployment-publication');
 const { FileDeploymentStore } = require('../src/product/deployment-store');
 const { InstalledRemoteDeploymentService } = require('../src/product/deployment-execution');
 
@@ -536,4 +540,85 @@ test('Era 7 Stage 4E: HTTPS observer requests only the exact health URL with nor
   assert.equal(result.statusCode, 200);
   assert.equal(result.checkedAt, '2026-10-03T20:21:00.000Z');
   assert.equal(result.body.deployment.releaseId, RELEASE.id);
+});
+
+
+test('Era 7 Stage 4E: publication review requires explicit proof that bootstrap authority is gone', () => {
+  const preflight = recordDnsObservation(createDomainPreflight({
+    hostname: 'dev.fourthstreetbar.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  }), {
+    checkedAt: '2026-10-03T20:30:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+
+  assert.throws(
+    () => prepareStage4PublicationReview({
+      preflight,
+      deployment: {
+        id: 'deployment-stage4e',
+        state: 'healthy',
+        activeRelease: {
+          id: RELEASE.id,
+          digest: RELEASE.digest,
+          packageDigest: RELEASE.packageDigest,
+        },
+      },
+      publication: {
+        capability: 'ready',
+        status: {
+          state: 'unconfigured',
+          hostSlug: 'harbor-and-hearth',
+        },
+        exactDeploymentMatches: true,
+      },
+    }),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_BOOTSTRAP_AUTHORITY_HELD',
+  );
+});
+
+test('Era 7 Stage 4E: already-configured different hostname fails closed', () => {
+  const preflight = recordDnsObservation(createDomainPreflight({
+    hostname: 'dev.fourthstreetbar.com',
+    destinations: [{ kind: 'ipv4', value: '121.127.34.154' }],
+  }), {
+    checkedAt: '2026-10-03T20:31:00.000Z',
+    resolver: 'synthetic',
+    records: [{
+      type: 'A',
+      name: 'dev.fourthstreetbar.com',
+      values: ['121.127.34.154'],
+    }],
+  });
+
+  assert.throws(
+    () => prepareStage4PublicationReview({
+      preflight,
+      deployment: {
+        id: 'deployment-stage4e',
+        state: 'healthy',
+        activeRelease: {
+          id: RELEASE.id,
+          digest: RELEASE.digest,
+          packageDigest: RELEASE.packageDigest,
+        },
+      },
+      publication: {
+        capability: 'ready',
+        status: {
+          state: 'configured',
+          hostSlug: 'harbor-and-hearth',
+          hostname: 'other.example.com',
+        },
+        exactDeploymentMatches: true,
+        bootstrapAuthorityAccessible: false,
+      },
+    }),
+    (error) => error.code === 'DEPLOYMENT_PUBLICATION_HOSTNAME_CONFLICT',
+  );
 });
