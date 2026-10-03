@@ -351,7 +351,10 @@
                       </section>
                     <% } %>
 
-                    <% if (deployment.publicationReview) { %>
+                    <% if (
+                      deployment.publicationReview
+                      && deployment.publicEndpoint.domainState !== 'dns-confirmed'
+                    ) { %>
                       <details data-domain-consequence-review>
                         <summary>Review what a later live connection would do</summary>
                         <p>
