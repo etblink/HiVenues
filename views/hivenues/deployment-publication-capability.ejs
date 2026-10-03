@@ -36,6 +36,22 @@
           </p>
         </section>
 
+        <% if (publicationMigrationAvailable) { %>
+          <section class="cc-consequence-card" style="margin-top:1rem" data-publication-upgrade-entry>
+            <h2>Prepare the one-time development server upgrade</h2>
+            <p>
+              HiVenues can prepare a bounded migration review that preserves the current runtime and Release.
+              The actual server change remains separately confirmed and requires temporary restoration of the
+              exact deployment public key to the original bootstrap account.
+            </p>
+            <a
+              class="cc-button cc-button--ink"
+              href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-upgrade-review"
+              data-review-publication-upgrade
+            >Review one-time server upgrade</a>
+          </section>
+        <% } %>
+
         <details class="cc-review-card" style="margin-top:1rem">
           <summary>Technical detail</summary>
           <p>Capability: <code><%= diagnostic.capability %></code></p>
