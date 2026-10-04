@@ -544,7 +544,7 @@
                       <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-mismatch>
                         <h5>Public site identity does not match the expected Release.</h5>
                         <p>
-                          HiVenues will not mark publication complete. Mismatched fields:
+                          HiVenues will not mark the public site verified. Mismatched fields:
                           <code><%= deployment.publicEndpoint.publicReadBack.mismatchFields.join(', ') %></code>
                         </p>
                       </section>
@@ -561,7 +561,7 @@
                         data-publication-capability-check
                       >
                         <p class="cc-kicker">Server readiness</p>
-                        <h5>Check whether this server is ready to publish the domain securely.</h5>
+                        <h5>Check whether this server is ready to connect the domain securely.</h5>
                         <p>
                           This is a read-only check over the already trusted deployment connection.
                           It does not change DNS, Caddy, the firewall, TLS, the deployed Release, or server authority.
@@ -579,7 +579,7 @@
                       && deployment.publicEndpoint.domainState !== 'dns-confirmed'
                     ) { %>
                       <details data-domain-consequence-review>
-                        <summary>Review what a later live connection would do</summary>
+                        <summary>Review what connecting the domain would do</summary>
                         <p>
                           The following are planned consequences only. This Stage-4A screen does not execute them.
                         </p>
@@ -663,7 +663,7 @@
                   </p>
                   <p>
                     HiVenues will first perform a read-only proof of the exact preserved server, runtime, Release
-                    and publication state. The later reviewed consequence installs only this key for
+                    and domain/public verification state. The later reviewed consequence installs only this key for
                     <code>hivenues-deploy</code>, proves that login, removes the same temporary key from
                     <code><%= deployment.targetPublicFacts.bootstrapUsername %></code>, and re-proves the public site.
                   </p>
