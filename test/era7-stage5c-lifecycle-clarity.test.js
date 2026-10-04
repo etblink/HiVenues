@@ -462,7 +462,7 @@ test('Era 7 Stage 5C: established deployment review uses update language instead
   assert.match(html, /Use the existing restricted HiVenues deployment account/);
   assert.match(html, /Website Release is already installed on this server/);
   assert.doesNotMatch(html, /already the public content/);
-  assert.match(html, />\s*Update public-site runtime\s*<\/button>/);
+  assert.match(html, />\s*Update deployed-site runtime\s*<\/button>/);
   assert.match(html, /<summary>Exact technical details<\/summary>/);
   assert.match(html, /Raw consequence identifiers/);
   assert.doesNotMatch(html, /Bootstrap server and deploy this exact Release/);
