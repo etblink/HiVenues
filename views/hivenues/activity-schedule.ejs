@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -12,7 +13,7 @@
 
     <p class="cc-kicker">Activity · schedule</p>
     <h1>Reschedule <%= activity.title %>.</h1>
-    <p class="cc-task__dek">These are local times in <strong><%= graph.identity.timezone %></strong>. Saving changes only the working version; visitors keep seeing the released schedule until you explicitly release the website.</p>
+    <p class="cc-task__dek">These are local times in <strong><%= graph.identity.timezone %></strong>. Saving changes only Working. The latest Website Release stays unchanged until you create another Release, and an external public site stays unchanged until that Release is put online.</p>
 
     <% if (errors.length) { %>
       <section class="cc-conflict" role="alert" aria-live="polite">

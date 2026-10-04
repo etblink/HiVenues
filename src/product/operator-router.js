@@ -1,5 +1,6 @@
 'use strict';
 
+const { buildOperatorPresentation } = require('./operator-present');
 const crypto = require('node:crypto');
 const express = require('express');
 const { buildHiVenuesHostFromInput, localDateTimeToOffsetIso, slugify } = require('./admission');
@@ -97,11 +98,11 @@ function uniqueActivitySlug(graph, title) {
   return `${base}-${suffix}`;
 }
 
-function createHiVenuesOperatorRouter({ store = new HiVenuesStore() } = {}) {
+function createHiVenuesOperatorRouter({ store = new HiVenuesStore(), deploymentServices = null } = {}) {
   const router = express.Router();
 
   router.get('/', (req, res) => {
-    const hosts = store.list().map((slug) => buildViewModel(store.publicSnapshot(slug)));
+    const hosts = store.list().map((slug) => ({ ...buildViewModel(store.snapshot(slug)), operator: buildOperatorPresentation(store.snapshot(slug), deploymentServices) }));
     return res.render('hivenues/index', {
       pageTitle: 'HiVenues — HiVenues',
       hosts,

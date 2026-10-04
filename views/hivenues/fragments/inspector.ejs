@@ -24,7 +24,7 @@
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <label for="cc-tagline">Headline</label>
       <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
-      <p class="cc-inspector-help">Saving updates your working version. Your live site stays unchanged until you release it.</p>
+      <p class="cc-inspector-help">Save this headline to your draft. Publishing is a separate step.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save headline</button></div>
     </form>
   <% } %>
@@ -48,7 +48,7 @@
       <p class="cc-studio-inspector__eyebrow">Schedule</p>
       <p><strong><%= selectedActivity.humanTime %></strong><br><small><%= graph.identity.timezone %></small></p>
       <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/activity/<%= selectedActivity.id %>/schedule">Edit start & end time</a>
-      <p class="cc-inspector-help">Schedule edits stay in the working version until the next website release.</p>
+      <p class="cc-inspector-help">Schedule changes save to your draft. Publish when you’re ready.</p>
     </div>
 
     <form class="cc-inspector-form cc-inspector-form--status" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-post="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
@@ -63,18 +63,18 @@
       </select>
       <label for="cc-activity-status-note">Short note for visitors <span aria-hidden="true">·</span> optional</label>
       <textarea id="cc-activity-status-note" name="statusNote" maxlength="240" rows="2" style="min-height:64px"><%= selectedActivity.statusNote || '' %></textarea>
-      <p class="cc-inspector-help">Saving changes your working version only. Visitors see it after the next release.</p>
+      <p class="cc-inspector-help">This changes your draft. Publishing is a separate confirmation.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save status</button></div>
     </form>
 
     <div class="cc-live-note" data-live-activity-status>
-      <p class="cc-studio-inspector__eyebrow">On the live site</p>
+      <p class="cc-studio-inspector__eyebrow">In the latest Website Release</p>
       <% if (selectedActivity.live) { %>
         <p><strong><%= activityLifecycles[selectedActivity.live.lifecycle].label %></strong><% if (selectedActivity.live.statusNote) { %> · <%= selectedActivity.live.statusNote %><% } %></p>
         <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= selectedActivity.id %>">Change the live status now</a>
-        <p class="cc-inspector-help">For cancellations and last-minute changes. Publishes only this status, straight from the live site, without releasing your other edits.</p>
+        <p class="cc-inspector-help">For cancellations and last-minute changes. Creates only this urgent Website Release status change without including your other Working edits. External deployment is separate.</p>
       <% } else { %>
-        <p>Not on the live site yet. Release your working version to publish it.</p>
+        <p>Not in the latest Website Release yet. Create a Website Release from Working first.</p>
       <% } %>
     </div>
   <% } %>
@@ -170,7 +170,7 @@
         <strong>This changes HiVenues presentation, not Hive protocol.</strong><br>
         Hiding the action does not make downvotes impossible on Hive. People may still downvote this public content through another compatible Hive client, and HiVenues will continue to show canonical negative-vote state truthfully.
       </div>
-      <p class="cc-inspector-help">This becomes visitor-facing only after you release the working version.</p>
+      <p class="cc-inspector-help">Save this to your draft, then review it before publishing.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save participation setting</button></div>
     </form>
   <% } %>
@@ -188,7 +188,7 @@
         <strong>This is a separate money-recipient role.</strong><br>
         HiVenues will not assume that the account used for host identity, publishing or community administration should also receive value. No private key is stored here.
       </div>
-      <p class="cc-inspector-help">Saving changes your Working version only. The visitor-facing support capability will consume the released value recipient, never an unpublished Working-only value.</p>
+      <p class="cc-inspector-help">This recipient changes in your draft. Visitor support uses the recipient in the published website copy.</p>
       <p class="cc-inspector-help">Leave this blank to disable the value-recipient binding. This configuration alone does not move money or create a live support transfer.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save value recipient</button></div>
     </form>

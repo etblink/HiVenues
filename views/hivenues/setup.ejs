@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
@@ -11,7 +12,7 @@
     </nav>
     <p class="cc-kicker">Guided site shaping</p>
     <h1>Shape the public story and its composition.</h1>
-    <p class="cc-task__dek">The three text fields below are visitor-facing copy, not private design notes. Direction changes the structural composition around the same canonical draft. Nothing becomes visitor-facing until you explicitly release the website.</p>
+    <p class="cc-task__dek">The three text fields below are visitor-facing copy, not private design notes. Direction changes the structural composition around the same canonical Working version. Nothing enters a Website Release until you explicitly create one, and an external public site changes only after that Release is put online.</p>
 
     <div class="cc-setup-grid">
       <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/setup">

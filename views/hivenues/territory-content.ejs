@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
 <%
   const updates = isTerritoryV2 ? graph.stories.filter((story) => story.kind === 'update') : [];
   const longStories = isTerritoryV2 ? graph.stories.filter((story) => story.kind !== 'update') : [];

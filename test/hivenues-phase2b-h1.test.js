@@ -34,7 +34,7 @@ function listEjs(directory, out = []) {
 test('Workstream F + Era 4: HiVenues ships only bounded named client islands and no inline scripts', () => {
   const source = fs.readFileSync(ISLAND, 'utf8');
   const lines = source.split('\n').length - 1;
-  assert.ok(lines < 150, `island grew to ${lines} lines`);
+  assert.ok(lines < 180, `island grew to ${lines} lines`); // Stage 5D adds transient unsaved-form protection.
   assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB/);
   assert.match(source, /durableStateMirror: false/);
   // The only fetch is the pageshow reconcile against the current document URL.
@@ -180,7 +180,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
   assert.doesNotMatch(hiveOnboarding, /\/js\/hivenues-support\.js/);
 });
 
-test('Workstream F: every Studio edit response is one targeted swap plus exactly two OOB regions; E pages ship no script', async () => {
+test('Workstream F: every Studio edit response is one targeted swap plus three coherent OOB regions; E pages ship no script', async () => {
   const { app, store } = appFixture();
   const slug = 'harbor-and-hearth';
   const tokens = () => ({ expectedRevision: store.snapshot(slug).revision, expectedDraftDigest: store.snapshot(slug).draftDigest });
@@ -200,7 +200,7 @@ test('Workstream F: every Studio edit response is one targeted swap plus exactly
   for (const [route, body] of edits) {
     const response = await request(app).post(`/hivenues/studio/${slug}/${route}`).set('HX-Request', 'true').type('form').send({ ...tokens(), ...body }).expect(200);
     const oob = (response.text.match(/hx-swap-oob="/g) || []).length;
-    assert.equal(oob, 2, `${route}: ${oob} OOB regions`);
+    assert.equal(oob, 3, `${route}: ${oob} OOB regions`);
     assert.match(response.text, /id="candidate-inspector"/, route);
     assert.match(response.text, /id="draft-status"[^>]*hx-swap-oob="outerHTML"/, route);
     assert.match(response.text, /id="hivenuesanvas-slot" hx-swap-oob="innerHTML"/, route);

@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Website' }) %>
   <main
     class="cc-task"
     data-deployment-stage1
@@ -19,16 +20,28 @@
       <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
 
-    <p class="cc-kicker">Deployment · qualification boundary</p>
-    <h1>Prepare an exact Release and deployment target safely.</h1>
-    <p class="cc-task__dek">
-      Offline simulation remains available everywhere. Installed Windows HiVenues may also create a protected
-      deployment-only SSH authority for provider handoff. HiVenues verifies an explicitly trusted SSH target
-      without changing it first. In a qualified installed runtime, an exact immutable Release may then advance
-      to a separate deployment consequence review before any server mutation. After a healthy deployment,
-      Stage 4A can prepare a domain plan and exact DNS instructions locally. DNS changes, server host-routing,
-      TLS issuance and provider payment remain held until a later explicit review.
-    </p>
+    <p class="cc-kicker">Website connection tools</p>
+    <h1><%= deploymentMutationAvailable ? 'Connect and check your website.' : 'Local simulation tools.' %></h1>
+    <p class="cc-task__dek"><%= deploymentMutationAvailable ? 'Set up protected server access, connect an address, or inspect a website that needs attention. Your selected content stays preserved while you complete setup.' : 'This Studio cannot publish to the internet. Simulations below run locally and never establish public website proof.' %></p>
+    <a class="op-button" href="/hivenues/studio/<%= graph.identity.slug %>/website">Back to Website</a>
+
+    <section class="cc-review-card" data-deployment-lifecycle>
+      <p class="cc-kicker">Website lifecycle</p>
+      <h2>Working changes → Website Release → Put online → Connect domain → Verify public site</h2>
+      <p>
+        These are separate steps on purpose. Creating a Website Release does not silently update a server, and
+        deploying a Release does not silently change DNS or provider billing.
+      </p>
+    </section>
+
+    <details class="cc-review-card" style="margin-top:1rem" data-deployment-technical-boundary>
+      <summary>Technical deployment boundary</summary>
+      <p>
+        HiVenues uses a protected deployment-only SSH authority, exact immutable Release packages, pinned server
+        identity, deterministic runtime provenance and read-back proofs. Offline simulation and exact diagnostics
+        remain available for qualification and recovery, but they are not the ordinary lifecycle.
+      </p>
+    </details>
 
     <% if (error) { %>
       <section class="cc-review-card" data-deployment-error>
@@ -43,33 +56,49 @@
         <p>This runtime was not started with the Stage-1 deployment services.</p>
       </section>
     <% } else { %>
-      <section class="cc-review-card" data-deployment-profile>
-        <p class="cc-kicker">Target family</p>
-        <h2>Offline synthetic target</h2>
-        <p>This adapter exists only to qualify the product state machine before real infrastructure authority is admitted.</p>
-        <details>
-          <summary>Capabilities</summary>
-          <p><code><%= deploymentProfile.capabilities.join(', ') %></code></p>
-          <p>External effects: <strong><%= deploymentProfile.externalEffects ? 'enabled' : 'disabled' %></strong></p>
-        </details>
-        <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets">
-          <button class="cc-button cc-button--ink" type="submit" data-create-deployment-target>Add offline deployment target</button>
-        </form>
-      </section>
+      <%
+        const hasRealDeployment = deployments.some((item) => item.providerKind === 'ssh-server');
+      %>
 
-      <% if (deploymentAuthorityAvailable) { %>
+      <% if (deploymentAuthorityAvailable && !hasRealDeployment) { %>
         <section class="cc-review-card" data-deployment-authority-profile style="margin-top:1.2rem">
-          <p class="cc-kicker">Reference server handoff</p>
-          <h2>Prepare a protected SSH deployment identity</h2>
+          <p class="cc-kicker">First server</p>
+          <h2>Connect a server for this website</h2>
           <p>
-            HiVenues can generate a deployment-only key locally. The private key is protected by the
-            operating system and is not shown here. Only the public key is handed to the server provider.
+            HiVenues will create a deployment-only key and guide you through proving the server before any change
+            is allowed.
           </p>
           <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets/reference-ssh">
-            <button class="cc-button" type="submit" data-create-reference-ssh-target>Prepare server target</button>
+            <button class="cc-button cc-button--ink" type="submit" data-create-reference-ssh-target>Connect a server</button>
           </form>
         </section>
       <% } %>
+
+      <details class="cc-review-card" style="margin-top:1.2rem" data-deployment-advanced-targets>
+        <summary>Advanced and qualification targets</summary>
+        <section data-deployment-profile>
+          <p class="cc-kicker">Offline qualification</p>
+          <h2>Offline synthetic target</h2>
+          <p>This target exercises deployment behavior without external effects.</p>
+          <details>
+            <summary>Capabilities</summary>
+            <p><code><%= deploymentProfile.capabilities.join(', ') %></code></p>
+            <p>External effects: <strong><%= deploymentProfile.externalEffects ? 'enabled' : 'disabled' %></strong></p>
+          </details>
+          <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets">
+            <button class="cc-button" type="submit" data-create-deployment-target>Add offline qualification target</button>
+          </form>
+        </section>
+        <% if (deploymentAuthorityAvailable && hasRealDeployment) { %>
+          <section data-deployment-authority-profile style="margin-top:1rem">
+            <h3>Prepare another server target</h3>
+            <p>Create a separate deployment-only identity for an additional server.</p>
+            <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/deploy/targets/reference-ssh">
+              <button class="cc-button" type="submit" data-create-reference-ssh-target>Prepare another server</button>
+            </form>
+          </section>
+        <% } %>
+      </details>
 
       <% if (!releases.length) { %>
         <section class="cc-review-card" data-deployment-no-release style="margin-top:1.2rem">
@@ -80,51 +109,193 @@
       <% } %>
 
       <section style="margin-top:2rem">
-        <p class="cc-kicker">Local targets</p>
-        <h2>Deployment state</h2>
+        <p class="cc-kicker">Connections & simulations</p>
+        <h2>Website connection details</h2>
 
         <% if (!deployments.length) { %>
-          <p data-deployment-empty>No deployment targets yet.</p>
+          <p data-deployment-empty><%= deploymentMutationAvailable ? 'No server is connected yet. Connect a server to continue publishing.' : 'This Studio is local-only. The tools here can simulate a connection; they cannot put a website online.' %></p>
         <% } %>
 
         <div class="cc-release-list">
           <% deployments.forEach((deployment) => { %>
+            <% if (deployment.providerKind === 'synthetic-offline') { %><div class="op-note"><strong>Simulation only</strong> · No public website, real server or public proof.</div><% } else if (deployment.selectedRelease) { %><div class="op-note">Your selected website copy is preserved. <a href="/hivenues/studio/<%= graph.identity.slug %>/publish/<%= deployment.selectedRelease.id %>">Continue publishing this copy</a></div><% } %>
+            <%
+              const latestWebsiteRelease = (
+                releases.find((item) => item.id === liveReleaseId)
+                || releases.at(-1)
+                || null
+              );
+              const activeWebsiteRelease = deployment.activeRelease
+                ? releases.find((item) => item.id === deployment.activeRelease.id)
+                : null;
+              const selectedWebsiteRelease = deployment.selectedRelease
+                ? releases.find((item) => item.id === deployment.selectedRelease.id)
+                : null;
+              const publicVerified = deployment.publicEndpoint?.publicReadBack?.state === 'verified';
+              const latestDiffersFromPublic = Boolean(
+                latestWebsiteRelease
+                && deployment.activeRelease
+                && (
+                  latestWebsiteRelease.id !== deployment.activeRelease.id
+                  || latestWebsiteRelease.digest !== deployment.activeRelease.digest
+                )
+              );
+              const selectedDiffersFromPublic = Boolean(
+                deployment.selectedRelease
+                && deployment.activeRelease
+                && (
+                  deployment.selectedRelease.id !== deployment.activeRelease.id
+                  || deployment.selectedRelease.digest !== deployment.activeRelease.digest
+                )
+              );
+              let humanTitle = deployment.providerKind === 'synthetic-offline'
+                ? 'Offline qualification target'
+                : 'Server connection is being prepared';
+              let humanBody = deployment.providerKind === 'synthetic-offline'
+                ? 'This target does not affect a public website.'
+                : 'HiVenues has not yet confirmed a Website Release on this server.';
+              let humanNext = deployment.providerKind === 'synthetic-offline'
+                ? 'Use this only for qualification.'
+                : 'Follow the server setup action shown below.';
+
+              if (deployment.providerKind === 'ssh-server') {
+                if (deployment.state === 'disconnected') {
+                  humanTitle = 'Public site preserved; Studio management is disconnected';
+                  humanBody = 'The deployed site can keep running, but Studio cannot update or roll it back until management is reconnected.';
+                  humanNext = 'Reconnect management when you need to manage this server again.';
+                } else if (deployment.state === 'reauthorizing') {
+                  humanTitle = 'Reconnecting Studio management';
+                  humanBody = 'The public site stays in place while HiVenues restores only its bounded deployment authority.';
+                  humanNext = 'Finish the reviewed management reconnection shown below.';
+                } else if (deployment.state === 'deploying') {
+                  humanTitle = 'Public update is incomplete';
+                  humanBody = 'HiVenues has not accepted the previous public proof for this in-progress deployment. The preserved Release history remains available while the exact deployment is recovered.';
+                  humanNext = 'Review and resume the interrupted deployment shown below.';
+                } else if (deployment.state === 'degraded') {
+                  humanTitle = 'Deployment needs attention';
+                  humanBody = 'HiVenues stopped rather than guessing after a deployment or recovery proof failed.';
+                  humanNext = 'Use the recovery action shown below before making another public change.';
+                } else if (deployment.state === 'unreachable') {
+                  humanTitle = 'Server could not be reached';
+                  humanBody = 'The website state is preserved locally, but HiVenues could not complete its read-only server check.';
+                  humanNext = 'Retry the read-only server verification shown below.';
+                } else if (!deployment.activeRelease) {
+                  if (deployment.state === 'bootstrap-ready') {
+                    humanTitle = 'Server verified and ready';
+                    humanBody = 'HiVenues has verified this server without changing it.';
+                    humanNext = 'Choose a Website Release, prepare it, then review putting it online.';
+                  } else if (['host-key-review', 'verifying'].includes(deployment.state)) {
+                    humanTitle = 'Checking the server safely';
+                    humanBody = 'HiVenues is still proving the server identity and read-only baseline.';
+                    humanNext = 'Complete the trust or verification action shown below.';
+                  }
+                } else if (
+                  deployment.publicEndpoint?.publicReadBack?.state === 'mismatch'
+                  && ['healthy', 'rollback-available'].includes(deployment.state)
+                ) {
+                  humanTitle = 'Public site does not match this deployment';
+                  humanBody = 'HiVenues reached the public site, but the exact runtime or Website Release identity did not match this deployment record.';
+                  humanNext = 'Review the public verification mismatch shown below before making another public change.';
+                } else if (
+                  publicVerified
+                  && ['healthy', 'rollback-available'].includes(deployment.state)
+                ) {
+                  humanTitle = latestDiffersFromPublic
+                    ? 'Public site is verified; a newer Website Release is ready'
+                    : 'Public site is online and verified';
+                  humanBody = deployment.publicEndpoint?.hostname
+                    ? 'HiVenues confirmed the exact deployed Website Release at https://' + deployment.publicEndpoint.hostname + '/.'
+                    : 'HiVenues confirmed the exact Website Release served by this deployment.';
+                  humanNext = latestDiffersFromPublic
+                    ? (
+                        selectedWebsiteRelease?.id === latestWebsiteRelease?.id
+                          ? 'The newer Website Release is selected. Prepare and review it before updating the public site.'
+                          : 'Choose the newer Website Release below when you are ready to update the public site.'
+                      )
+                    : (
+                        selectedDiffersFromPublic
+                          ? 'A different Website Release is selected. Review it before updating the public site.'
+                          : 'No deployment action is required unless you create or select another Website Release.'
+                      );
+                } else if (deployment.publicEndpoint) {
+                  humanTitle = 'Website is deployed; public verification is not complete';
+                  humanBody = 'The server has an exact Website Release, but the domain/TLS/public read-back lifecycle still needs confirmation.';
+                  humanNext = 'Complete the domain or public verification action shown below.';
+                } else {
+                  humanTitle = 'Website Release is on the server';
+                  humanBody = 'HiVenues confirmed an exact Website Release on this server.';
+                  humanNext = 'Connect a domain when you are ready for a public address.';
+                }
+              }
+            %>
             <article class="cc-review-card" data-deployment-record="<%= deployment.id %>">
-              <div>
-                <p class="cc-kicker"><%= deployment.providerKind === 'synthetic-offline' ? 'Synthetic target' : 'Server target' %></p>
-                <h3><%= deployment.id %></h3>
+              <section data-deployment-human-status>
+                <p class="cc-kicker">Website status</p>
+                <h3><%= humanTitle %></h3>
+                <p><%= humanBody %></p>
+                <% if (latestWebsiteRelease) { %>
+                  <p data-latest-website-release>
+                    Latest Website Release:
+                    <strong>Version <%= latestWebsiteRelease.draftRevision %><%= latestWebsiteRelease.kind === 'urgent' ? ' + urgent update' : '' %></strong>
+                  </p>
+                <% } %>
+                <% if (activeWebsiteRelease) { %>
+                  <p data-public-website-release>
+                    <% if (
+                      publicVerified
+                      && ['healthy', 'rollback-available'].includes(deployment.state)
+                    ) { %>
+                      Public site is serving:
+                    <% } else if (['deploying', 'degraded', 'unreachable'].includes(deployment.state)) { %>
+                      Last confirmed deployed Website Release:
+                    <% } else { %>
+                      Website Release confirmed on server:
+                    <% } %>
+                    <strong>Version <%= activeWebsiteRelease.draftRevision %><%= activeWebsiteRelease.kind === 'urgent' ? ' + urgent update' : '' %></strong>
+                  </p>
+                <% } else if (deployment.activeRelease) { %>
+                  <p data-public-website-release>
+                    <% if (
+                      publicVerified
+                      && ['healthy', 'rollback-available'].includes(deployment.state)
+                    ) { %>
+                      Public site is serving:
+                    <% } else if (['deploying', 'degraded', 'unreachable'].includes(deployment.state)) { %>
+                      Last confirmed deployed Website Release:
+                    <% } else { %>
+                      Website Release confirmed on server:
+                    <% } %>
+                    <code><%= deployment.activeRelease.id %></code>
+                  </p>
+                <% } %>
+                <% if (selectedWebsiteRelease && selectedDiffersFromPublic) { %>
+                  <p>
+                    Selected for the next update:
+                    <strong>Version <%= selectedWebsiteRelease.draftRevision %><%= selectedWebsiteRelease.kind === 'urgent' ? ' + urgent update' : '' %></strong>
+                  </p>
+                <% } %>
+                <p><strong>Next:</strong> <%= humanNext %></p>
+                <% if (publicVerified && deployment.publicEndpoint?.hostname) { %>
+                  <a
+                    class="cc-button"
+                    href="https://<%= deployment.publicEndpoint.hostname %>/"
+                    target="_blank"
+                    rel="noopener"
+                    data-open-public-site
+                  >Open public site</a>
+                <% } %>
+              </section>
+
+              <details style="margin-top:1rem" data-deployment-technical-details>
+                <summary>Technical deployment details</summary>
+                <p>Deployment: <code><%= deployment.id %></code></p>
                 <p>
-                  State:
+                  Internal state:
                   <strong data-deployment-state><%= deployment.state %></strong>
                 </p>
                 <p>Provider: <%= deployment.providerKind %> · <%= deployment.providerProfile %></p>
                 <p>Provider state: <%= deployment.providerState %> · Payment state: <%= deployment.paymentState %></p>
                 <p>Health: <%= deployment.healthState %> · Rollback: <%= deployment.rollbackState %></p>
-
-                <% if (deployment.authorityPublic) { %>
-                  <section class="cc-consequence-card" data-deployment-authority-public>
-                    <h4>Deployment public key</h4>
-                    <p>
-                      This public key may be supplied to the server provider. The protected private key remains
-                      local to this HiVenues installation.
-                    </p>
-                    <label>
-                      Public SSH key
-                      <textarea
-                        rows="5"
-                        readonly
-                        data-deployment-public-key
-                      ><%= deployment.authorityPublic.publicKey %></textarea>
-                    </label>
-                    <p>Key fingerprint: <code data-deployment-public-key-fingerprint><%= deployment.authorityPublic.publicKeyFingerprint %></code></p>
-                    <button
-                      class="cc-button"
-                      type="button"
-                      data-copy-deployment-public-key
-                    >Copy public key</button>
-                    <span data-copy-deployment-public-key-status role="status" aria-live="polite"></span>
-                  </section>
-                <% } %>
 
                 <% if (deployment.providerKind === 'ssh-server' && Object.keys(deployment.targetPublicFacts || {}).length) { %>
                   <p data-deployment-server-facts>
@@ -156,7 +327,32 @@
                 <% if (deployment.previousRelease) { %>
                   <p>Rollback candidate: <code data-previous-release><%= deployment.previousRelease.id %></code></p>
                 <% } %>
-              </div>
+              </details>
+
+              <% if (deployment.authorityPublic) { %>
+                <section class="cc-consequence-card" style="margin-top:1rem" data-deployment-authority-public>
+                  <h4>Deployment public key</h4>
+                  <p>
+                    This public key may be supplied to the server provider. The protected private key remains
+                    local to this HiVenues installation.
+                  </p>
+                  <label>
+                    Public SSH key
+                    <textarea
+                      rows="5"
+                      readonly
+                      data-deployment-public-key
+                    ><%= deployment.authorityPublic.publicKey %></textarea>
+                  </label>
+                  <p>Key fingerprint: <code data-deployment-public-key-fingerprint><%= deployment.authorityPublic.publicKeyFingerprint %></code></p>
+                  <button
+                    class="cc-button"
+                    type="button"
+                    data-copy-deployment-public-key
+                  >Copy public key</button>
+                  <span data-copy-deployment-public-key-status role="status" aria-live="polite"></span>
+                </section>
+              <% } %>
 
               <% if (
                 deployment.providerKind === 'ssh-server'
@@ -286,17 +482,17 @@
                       && ['ready-for-request', 'unconfigured', 'awaiting-dns'].includes(deployment.publicEndpoint.tls.state)
                     ) { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-domain-publication-entry>
-                        <p class="cc-kicker">Secure publication</p>
-                        <h5>DNS is confirmed. Review the live server consequence before publishing.</h5>
+                        <p class="cc-kicker">Connect domain</p>
+                        <h5>DNS is confirmed. Review connecting this domain to the public site.</h5>
                         <p>
-                          This next review does not change the server. It re-proves the restricted publication
-                          capability and exact deployed Release before offering the bounded hostname action.
+                          This review is read-only. HiVenues first re-proves the exact deployed Website Release
+                          and the server's bounded domain capability before offering the final connection action.
                         </p>
                         <a
                           class="cc-button cc-button--ink"
                           href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-review"
                           data-review-live-publication
-                        >Review secure publication</a>
+                        >Review domain connection</a>
                       </section>
                     <% } %>
 
@@ -332,18 +528,22 @@
 
                     <% if (deployment.publicEndpoint.publicReadBack.state === 'verified') { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-verified>
-                        <p class="cc-kicker">Public proof complete</p>
-                        <h5>Live HTTPS exact Release confirmed.</h5>
-                        <p>
-                          <code>https://<%= deployment.publicEndpoint.hostname %>/__hivenues/health</code>
-                          returned the exact active runtime and immutable Release recorded by Studio.
-                        </p>
+                        <p class="cc-kicker">Public verification complete</p>
+                        <h5>Public site is serving the expected Website Release.</h5>
+                        <p>HiVenues independently confirmed the secure public site after deployment.</p>
+                        <details>
+                          <summary>Exact verification</summary>
+                          <p>
+                            <code>https://<%= deployment.publicEndpoint.hostname %>/__hivenues/health</code>
+                            returned the exact active runtime and immutable Release recorded by Studio.
+                          </p>
+                        </details>
                       </section>
                     <% } else if (deployment.publicEndpoint.publicReadBack.state === 'mismatch') { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-mismatch>
                         <h5>Public site identity does not match the expected Release.</h5>
                         <p>
-                          HiVenues will not mark publication complete. Mismatched fields:
+                          HiVenues will not mark the public site verified. Mismatched fields:
                           <code><%= deployment.publicEndpoint.publicReadBack.mismatchFields.join(', ') %></code>
                         </p>
                       </section>
@@ -360,7 +560,7 @@
                         data-publication-capability-check
                       >
                         <p class="cc-kicker">Server readiness</p>
-                        <h5>Check whether this server is ready to publish the domain securely.</h5>
+                        <h5>Check whether this server is ready to connect the domain securely.</h5>
                         <p>
                           This is a read-only check over the already trusted deployment connection.
                           It does not change DNS, Caddy, the firewall, TLS, the deployed Release, or server authority.
@@ -378,7 +578,7 @@
                       && deployment.publicEndpoint.domainState !== 'dns-confirmed'
                     ) { %>
                       <details data-domain-consequence-review>
-                        <summary>Review what a later live connection would do</summary>
+                        <summary>Review what connecting the domain would do</summary>
                         <p>
                           The following are planned consequences only. This Stage-4A screen does not execute them.
                         </p>
@@ -462,7 +662,7 @@
                   </p>
                   <p>
                     HiVenues will first perform a read-only proof of the exact preserved server, runtime, Release
-                    and publication state. The later reviewed consequence installs only this key for
+                    and domain/public verification state. The later reviewed consequence installs only this key for
                     <code>hivenues-deploy</code>, proves that login, removes the same temporary key from
                     <code><%= deployment.targetPublicFacts.bootstrapUsername %></code>, and re-proves the public site.
                   </p>
@@ -553,9 +753,9 @@
                       data-select-deployment-release
                     >
                       <label>
-                        Immutable Release
+                        Website Release to put online
                         <select name="releaseId" required>
-                          <option value="">Choose Release</option>
+                          <option value="">Choose Website Release</option>
                           <% releases.slice().reverse().forEach((item) => { %>
                             <option
                               value="<%= item.id %>"
@@ -566,7 +766,7 @@
                           <% }) %>
                         </select>
                       </label>
-                      <button class="cc-button" type="submit">Prepare exact Release package</button>
+                      <button class="cc-button" type="submit">Prepare this Website Release</button>
                     </form>
                   <% } %>
 
@@ -769,19 +969,24 @@
                     <section class="cc-consequence-card" data-deployment-consequence-review>
                       <strong>
                         <%= deployment.state === 'deploying'
-                          ? 'Interrupted deployment can be resumed safely'
-                          : 'Exact Release is ready for deployment consequence review' %>
+                          ? 'Interrupted public update can be resumed safely'
+                          : (deployment.activeRelease
+                            ? 'Website Release is ready for public update review'
+                            : 'Website Release is ready for first server setup review') %>
                       </strong>
                       <p>
-                        Review the trusted server identity, exact immutable Release, installed-runtime source
-                        provenance and bounded server changes before HiVenues is allowed to mutate the target.
+                        Review what will change before HiVenues updates the server. Exact server identity,
+                        immutable Release, runtime provenance and bounded consequence details remain available
+                        in the review.
                       </p>
                       <a
                         class="cc-button cc-button--ink"
                         href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/review"
                         data-review-exact-deployment
                       >
-                        <%= deployment.state === 'deploying' ? 'Review and resume exact deployment' : 'Review exact deployment' %>
+                        <%= deployment.state === 'deploying'
+                          ? 'Review and resume public update'
+                          : (deployment.activeRelease ? 'Review public update' : 'Review server setup') %>
                       </a>
                     </section>
                   <% } %>

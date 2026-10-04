@@ -1,0 +1,6 @@
+<div id="operator-state" class="op-state"<%- typeof oob !== 'undefined' && oob ? ' hx-swap-oob="outerHTML"' : '' %>>
+  <% if (typeof operator !== 'undefined' && operator) { %>
+    <span><%= operator.title %></span>
+    <a href="<%= operator.base %>/website">Website &amp; hosting</a>
+  <% } %>
+</div>

@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { buildOperatorPresentation } = require('./operator-present');
 const { requireHiveAccount } = require('../http/validation');
 const { activityLifecycles, disclosureFor, mechanicRegistry } = require('./model');
 const { buildViewModel, compositionRegistry, renderIcs } = require('./present');
@@ -100,7 +101,7 @@ function mutationFailure(req, res, result) {
 function mutationResponse(req, res, store, slug, result, selectedResource) {
   if (!result.ok) return mutationFailure(req, res, result);
   if (isHtmx(req)) {
-    return res.render('hivenues/fragments/studio-update', candidateLocals(result.snapshot, selectedResource));
+    return res.render('hivenues/fragments/studio-update', { ...candidateLocals(result.snapshot, selectedResource), operator: res.locals.presentOperator?.(result.snapshot) });
   }
   return res.redirect(303, `/hivenues/studio/${encodeURIComponent(slug)}`);
 }
@@ -118,6 +119,11 @@ function canonicalDraftMutation(store, slug, req, label, mutator, manualPaths) {
 
 function createHiVenuesRouter({ store = new HiVenuesStore() } = {}) {
   const router = express.Router();
+  router.use('/studio/:slug', (req, res, next) => {
+    if (!res.locals.presentOperator) res.locals.presentOperator = (snapshot) => buildOperatorPresentation(snapshot);
+    if (!res.locals.operator) res.locals.operator = res.locals.presentOperator(store.snapshot(req.params.slug));
+    next();
+  });
   router.use((req, res, next) => {
     res.set('X-HiVenues-Candidate-C', 'phase-2b');
     next();

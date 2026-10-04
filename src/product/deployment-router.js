@@ -260,6 +260,37 @@ function requireHostKeyAcceptance(body = {}) {
   return fingerprint;
 }
 
+function selectWebsiteRelease(active, store, hostSlug, deployment, releaseId) {
+    if (
+      deployment.state === 'reauthorizing'
+      || (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+      || (
+        deployment.state === 'degraded'
+        && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
+          String(deployment.stateReason || ''),
+        )
+      )
+    ) {
+      const error = new Error('Finish the current rollback or authority-disconnect lifecycle before selecting another Release.');
+      error.code = 'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS';
+      throw error;
+    }
+    releaseId = String(releaseId || '').trim();
+    const snapshot = store.snapshot(hostSlug);
+    const release = snapshot.releases.find((item) => item.id === releaseId);
+    if (!release) {
+      const error = new Error('Choose an immutable HiVenues Release that exists for this host.');
+      error.code = 'DEPLOYMENT_RELEASE_NOT_FOUND';
+      throw error;
+    }
+    active.deploymentStore.selectRelease(deployment.id, release);
+    const manifest = active.packageBuilder.build({
+      hostSlug,
+      releaseId,
+    });
+    active.deploymentStore.recordPackage(deployment.id, manifest);
+}
+
 function createHiVenuesDeploymentRouter({
   store,
   services = null,
@@ -970,34 +1001,7 @@ function createHiVenuesDeploymentRouter({
 
   router.post('/studio/:slug/deploy/:deploymentId/release', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
-    if (
-      deployment.state === 'reauthorizing'
-      || (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
-      || (
-        deployment.state === 'degraded'
-        && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
-          String(deployment.stateReason || ''),
-        )
-      )
-    ) {
-      const error = new Error('Finish the current rollback or authority-disconnect lifecycle before selecting another Release.');
-      error.code = 'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS';
-      throw error;
-    }
-    const releaseId = String(req.body.releaseId || '').trim();
-    const snapshot = store.snapshot(req.params.slug);
-    const release = snapshot.releases.find((item) => item.id === releaseId);
-    if (!release) {
-      const error = new Error('Choose an immutable HiVenues Release that exists for this host.');
-      error.code = 'DEPLOYMENT_RELEASE_NOT_FOUND';
-      throw error;
-    }
-    active.deploymentStore.selectRelease(deployment.id, release);
-    const manifest = active.packageBuilder.build({
-      hostSlug: req.params.slug,
-      releaseId,
-    });
-    active.deploymentStore.recordPackage(deployment.id, manifest);
+    selectWebsiteRelease(active, store, req.params.slug, deployment, req.body.releaseId);
   }));
 
   router.post('/studio/:slug/deploy/:deploymentId/domain/preflight', mutate((active, req) => {
@@ -1113,6 +1117,9 @@ function createHiVenuesDeploymentRouter({
 module.exports = {
   createHiVenuesDeploymentRouter,
   deploymentErrorMessage,
+  deploymentErrorStatus,
+  ownedDeployment,
+  selectWebsiteRelease,
   requireConnectionFacts,
   requireDeploymentConsequenceSubmission,
   requireDomainPreflightSubmission,

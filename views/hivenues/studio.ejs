@@ -5,44 +5,34 @@
 </head>
 <body class="cc-studio-body">
   <div class="cc-studio-shell">
-    <header class="cc-studio-topbar">
-      <div class="cc-studio-brand">
-        <a class="cc-studio-brand__mark" href="/hivenues" aria-label="HiVenues home">H</a>
-        <div>
-          <strong><%= graph.identity.displayName %></strong>
-          <small>HiVenues Studio</small>
-        </div>
-      </div>
-      <div class="cc-studio-actions">
-        <div class="cc-studio-state-cluster" aria-label="Working state">
-          <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span>
-          <span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Working</span>
-        </div>
-        <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
-        <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/release">Release</a>
-      </div>
-    </header>
+    <%- include('_operator-header', { activeDestination: 'Edit website' }) %>
+    <div class="op-statusline">
+      <div class="op-savebar"><span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span><span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Draft</span></div>
+      <%- include('_operator-state') %>
+    </div>
 
     <% if (typeof releasedNotice === 'string' && releasedNotice) { %>
       <div class="cc-studio-notice" role="status" data-released-notice>
-        <strong><%= releasedUrgent ? 'Live site updated.' : 'Website released.' %></strong>
-        <%= releasedUrgent ? 'The urgent status change is live. Your other working edits are still here, unpublished.' : 'Your working version is now what visitors see.' %>
-        <a class="cc-link" href="/hivenues/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open the live site</a>
+        <strong><%= releasedUrgent ? 'Urgent Website Release created.' : 'Website Release created.' %></strong>
+        <%= releasedUrgent
+          ? 'The status change is now part of the latest Website Release. Other Working edits remain unreleased. Any external deployment is unchanged until you update it.'
+          : 'Your Working version is now preserved as the latest Website Release. Any external deployment is unchanged until you put this Release online.' %>
+        <a class="cc-link" href="/hivenues/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open released website view</a>
       </div>
     <% } %>
 
     <section class="cc-first-draft-reveal" data-first-draft-reveal hidden aria-labelledby="cc-first-draft-title">
       <div class="cc-first-draft-reveal__card" role="dialog" aria-modal="true" aria-labelledby="cc-first-draft-title">
-        <p class="cc-first-draft-reveal__eyebrow">Your first working version</p>
+        <p class="cc-first-draft-reveal__eyebrow">Your first draft</p>
         <h1 id="cc-first-draft-title">Here is your place.</h1>
-        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is now one working host in HiVenues. This is the same place you will keep shaping below—not an exported template or a second website definition.</p>
+        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is ready to shape. Click the page to edit, or preview it as a visitor.</p>
         <div class="cc-first-draft-reveal__facts" aria-label="First draft state">
           <span><%= family.label %></span>
-          <span>Working version</span>
-          <span>Nothing is live yet</span>
+          <span>Saved on this computer</span>
+          <span>Not published yet</span>
         </div>
         <div class="cc-first-draft-reveal__actions">
-          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Open Studio</button>
+          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Start editing</button>
           <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">See visitor view</a>
         </div>
       </div>
@@ -92,24 +82,26 @@
         </details>
 
         <details>
-          <summary>Site</summary>
+          <summary>Design</summary>
           <div class="cc-studio-commandmenu">
             <span class="cc-studio-commandmenu__label">Creative direction</span>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/direction">Direction</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=look" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Look</button>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/brand">Look settings</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=voice" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Voice</button>
-            <span class="cc-studio-commandmenu__label">Participation & media</span>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
+            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
+          </div>
+        </details>
+        <details>
+          <summary>Settings</summary>
+          <div class="cc-studio-commandmenu">
+            <span class="cc-studio-commandmenu__label">Participation & accounts</span>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/hive" data-studio-hive-onboarding>Hive account</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=participation" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Participation</button>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=value-recipient" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Support & value</button>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Contact</button>
-            <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
-            <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
-            <a href="/hivenues/studio/<%= graph.identity.slug %>/release">History & release</a>
-            <% if (typeof hivenuesDeploymentAvailable !== 'undefined' && hivenuesDeploymentAvailable) { %>
-              <a href="/hivenues/studio/<%= graph.identity.slug %>/deploy" data-studio-deployment>Deployment</a>
-            <% } %>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/website">Website &amp; hosting</a>
           </div>
         </details>
       </nav>
@@ -118,13 +110,13 @@
         <div class="cc-studio-stage__toolbar">
           <div class="cc-studio-stage__identity">
             <strong><%= family.label %></strong>
-            <span>Working place</span>
+            <span>Your draft</span>
           </div>
           <div class="cc-studio-stage__review">
             <span class="cc-studio-stage__meta"><%= graph.facts.presence.label %></span>
             <div class="cc-studio-review-toggle" role="group" aria-label="Canvas review width">
-              <button type="button" data-review-width="wide" aria-pressed="true">Wide</button>
-              <button type="button" data-review-width="narrow" aria-pressed="false">Narrow review</button>
+              <button type="button" data-review-width="wide" aria-pressed="true">Desktop layout</button>
+              <button type="button" data-review-width="narrow" aria-pressed="false">Mobile layout</button>
             </div>
           </div>
         </div>

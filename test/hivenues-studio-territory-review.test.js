@@ -39,8 +39,8 @@ test('Studio exposes transient semantic page review without replacing the canvas
   assert.match(studio.text, /review\?surface=stories-index/);
   assert.match(studio.text, /review\?surface=gallery/);
   assert.match(studio.text, /review\?surface=people-index/);
-  assert.match(studio.text, />Wide</);
-  assert.match(studio.text, />Narrow review</);
+  assert.match(studio.text, />Desktop layout</);
+  assert.match(studio.text, />Mobile layout</);
   assert.doesNotMatch(studio.text, /cc-territory-review__frame/);
 
   const review = await request(app)

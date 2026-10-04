@@ -9,11 +9,12 @@
     ? publicRouteBase
     : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
   const routeBase = previewMode
-    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    ? (typeof previewRouteBase === 'string' ? previewRouteBase : `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`)
     : releasedRouteBase;
   const hostHref = routeBase || '/';
 %>
 <body class="cc-task-body" style="--cc-accent:<%= graph.presentation.accent %>">
+<% if (typeof draftPreview !== 'undefined' && draftPreview) { %><%- include('_preview-frame') %><% } %>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="<%= hostHref %>">Back to <%= graph.identity.displayName %></a>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><%- include('../../_head', { graph, pageTitle }) %></head>
 <body class="cc-public cc-hospitality cc-territory cc-territory--hospitality" style="--cc-accent:<%= graph.presentation.accent %>">
+<% if (typeof draftPreview !== 'undefined' && draftPreview) { %><%- include('../../_preview-frame') %><% } %>
 <header class="cc-territory-hospitality__mast"><a class="cc-hospitality-name" href="<%= territory.navigation.find((item) => item.role === 'home')?.path %>"><%- include('../../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a><p><%= graph.facts.presence.label %></p><nav aria-label="Primary"><% territory.navigation.forEach((item) => { %><a href="<%= item.path %>" <%= item.surfaceRole === surface.role ? 'aria-current="page"' : '' %>><%= item.label %></a><% }) %></nav></header>
 <main class="cc-territory-hospitality__page">
 <header class="cc-territory-hospitality__intro"><p class="cc-kicker"><%= surface.label %></p>

@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
   <%
     const liveSnapshot = release ? release.snapshot : null;
     const releaseChanges = [];
@@ -15,7 +16,7 @@
     const workingTerritory = territoryCounts(graph);
     const liveTerritory = territoryCounts(liveSnapshot);
     if (!liveSnapshot) {
-      releaseChanges.push('This will be the first live website version.');
+      releaseChanges.push('This will be the first Website Release.');
     } else {
       if (graph.identity.displayName !== liveSnapshot.identity.displayName) releaseChanges.push('Public name changed.');
       if (graph.facts.tagline !== liveSnapshot.facts.tagline) releaseChanges.push('Headline changed.');
@@ -49,9 +50,14 @@
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
       <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
-    <p class="cc-kicker">Review release</p>
-    <h1>Choose what becomes the live website.</h1>
-    <p class="cc-task__dek">Working Version <%= revision %> is what you are editing now. Publishing preserves that website version and makes it visitor-facing here. It does not broadcast to Hive, request a signature, move value, upload media to an external provider, deploy production, or touch DNS.</p>
+    <p class="cc-kicker">Review website Release</p>
+    <h1>Choose the next preserved website version.</h1>
+    <p class="cc-task__dek">
+      Working Version <%= revision %> is what you are editing now. Creating a Website Release freezes this
+      version as the next approved visitor-facing snapshot inside HiVenues. It does <strong>not</strong> update
+      an external server, domain, DNS or TLS. If this host is already online, putting the new Release online is
+      a separate Deployment step.
+    </p>
 
     <div class="cc-review-grid">
       <section class="cc-review-card">
@@ -65,8 +71,8 @@
         <% } %>
       </section>
       <section class="cc-review-card">
-        <p class="cc-kicker">Currently live</p>
-        <h2><%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No release' %></h2>
+        <p class="cc-kicker">Latest website Release</p>
+        <h2><%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No website Release yet' %></h2>
         <% if (release) { %>
           <p><strong><%= release.snapshot.facts.tagline %></strong></p>
           <p><%= release.snapshot.facts.summary %></p>
@@ -74,7 +80,7 @@
             <p><%= liveTerritory.stories %> Story / Update · <%= liveTerritory.people %> Profile · <%= liveTerritory.gallery %> Gallery item</p>
           <% } %>
         <% } else { %>
-          <p>Nothing is live yet.</p>
+          <p>No website Release exists yet. An external public deployment, if any, is tracked separately.</p>
         <% } %>
       </section>
     </div>
@@ -85,50 +91,66 @@
       <% if (releaseChanges.length) { %>
         <ul><% releaseChanges.forEach((change) => { %><li><%= change %></li><% }) %></ul>
       <% } else { %>
-        <p>No visitor-facing difference was detected from the current live website.</p>
+        <p>No visitor-facing difference was detected from the latest website Release.</p>
       <% } %>
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Open complete draft preview</a>
     </section>
 
     <section class="cc-consequence-card" style="margin-top:1.2rem">
-      <h2>Website consequence</h2>
-      <div class="cc-consequence-truth">Publish Working Version <%= revision %> as the next preserved live website version. Your later Studio edits will remain unpublished until another explicit Release.</div>
+      <h2>Website Release consequence</h2>
+      <div class="cc-consequence-truth">
+        Create an immutable Website Release from Working Version <%= revision %>. Your later Studio edits remain
+        in Working until another explicit Release. Any already-deployed public site remains unchanged until you
+        explicitly put this Release online from Deployment.
+      </div>
       <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/release" style="margin-top:1rem">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
         <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-        <button class="cc-button cc-button--ink" type="submit">Publish website release</button>
+        <button class="cc-button cc-button--ink" type="submit">Create website Release</button>
       </form>
       <details style="margin-top:1rem">
         <summary>Technical details</summary>
         <p>Working content digest <code><%= draftDigest %></code></p>
-        <% if (release) { %><p>Current live release <code><%= release.id %></code> · digest <code><%= release.digest %></code></p><% } %>
+        <% if (release) { %><p>Latest website Release <code><%= release.id %></code> · digest <code><%= release.digest %></code></p><% } %>
       </details>
     </section>
 
+    <section class="cc-review-card" style="margin-top:1.2rem" data-release-deployment-separation>
+      <p class="cc-kicker">Next lifecycle step</p>
+      <h2>Putting a Release online is separate.</h2>
+      <p>
+        A Website Release is the approved immutable website version. Deployment is the separate action that
+        places an exact Release on a server and verifies what the public Internet is serving.
+      </p>
+      <% if (typeof hivenuesDeploymentAvailable !== 'undefined' && hivenuesDeploymentAvailable) { %>
+        <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/deploy">Open Deployment</a>
+      <% } %>
+    </section>
+
     <section class="cc-review-card cc-review-card--urgent-entry" style="margin-top:1.2rem" aria-labelledby="cc-urgent-entry">
-      <p class="cc-kicker">Need to change the live site right now?</p>
+      <p class="cc-kicker">Need to change the latest Website Release right now?</p>
       <h2 id="cc-urgent-entry">Urgent update</h2>
-      <p>Cancel or update one activity’s status straight from the live site, without releasing the rest of your working version.</p>
+      <p>Cancel or update one activity’s status from the latest Website Release without releasing the rest of your Working version.</p>
       <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/urgent">Start an urgent update</a>
     </section>
 
     <section style="margin-top:3rem">
       <p class="cc-kicker">History</p>
       <h2>Earlier website versions</h2>
-      <p>Restoring an earlier version changes Studio only. The live website stays where it is until you explicitly publish again.</p>
+      <p>Restoring an earlier version changes Working only. The latest Website Release and any deployed public site stay unchanged until you explicitly create and deploy another Release.</p>
       <div class="cc-release-list">
         <% releases.slice().reverse().forEach((item) => { %>
           <article class="cc-release-row">
             <div>
-              <strong>Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> <%= item.id === liveReleaseId ? '· LIVE' : '' %></strong>
-              <% if (item.kind === 'urgent') { %><br><small>Urgent status change published from the live site, not from the working version.</small><% } %>
+              <strong>Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> <%= item.id === liveReleaseId ? '· LATEST RELEASE' : '' %></strong>
+              <% if (item.kind === 'urgent') { %><br><small>Urgent status change created from the latest Website Release, not from the Working version.</small><% } %>
               <br><small><%= item.snapshot.facts.tagline %> · <%= item.snapshot.presentation.compositionFamily %></small>
               <details>
                 <summary>Technical details</summary>
                 <p>Release <code><%= item.id %></code></p>
                 <p>Content digest <code><%= item.digest %></code></p>
                 <% if (item.kind === 'urgent') { %>
-                  <p>Based on live release <code><%= item.baseReleaseId %></code></p>
+                  <p>Based on website Release <code><%= item.baseReleaseId %></code></p>
                   <p>Changed <code><%= item.changedPaths.join(', ') %></code></p>
                 <% } %>
               </details>

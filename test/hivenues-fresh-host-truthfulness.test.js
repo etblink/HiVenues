@@ -73,12 +73,13 @@ test('fresh host stays working-only across restart until an explicit first Relea
   assert.equal(created.headers.location, '/hivenues/studio/truthful-bar?created=1');
 
   const studio = await request(app).get(created.headers.location).expect(200);
-  assert.match(studio.text, /Nothing is live yet/);
+  assert.match(studio.text, /Not published yet/);
   await request(app).get('/hivenues/studio/truthful-bar/preview').expect(200).expect(/Truthful Bar/);
   await request(app).get('/hivenues/truthful-bar').expect(404);
   await request(app).get('/hivenues/studio/truthful-bar/urgent').expect(409);
   const publicIndex = await request(app).get('/hivenues/').expect(200);
-  assert.doesNotMatch(publicIndex.text, /Truthful Bar/);
+  assert.match(publicIndex.text, /Truthful Bar/); // Operator home includes unpublished places.
+  assert.doesNotMatch(publicIndex.text, /Visit site/);
 
   const beforeRestart = store.snapshot('truthful-bar');
   assert.equal(beforeRestart.draft.activities.length, 0);

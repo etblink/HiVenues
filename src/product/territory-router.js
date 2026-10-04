@@ -8,11 +8,11 @@ function previewBase(graph) {
   return `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`;
 }
 
-function territoryLocals(snapshot, { draftPreview = false } = {}) {
+function territoryLocals(snapshot, { draftPreview = false, previewRouteBase = null } = {}) {
   const view = buildViewModel(snapshot);
   const graph = view.graph;
   const baseProjection = buildTerritoryProjection(graph);
-  const territory = draftPreview ? rebaseTerritoryProjection(baseProjection, previewBase(graph)) : baseProjection;
+  const territory = draftPreview ? rebaseTerritoryProjection(baseProjection, previewRouteBase || previewBase(graph)) : baseProjection;
   const people = graph.schemaVersion === 2 ? graph.people.map((profile) => ({ ...profile, media: profile.mediaId ? mediaFor(graph, profile.mediaId) : null })) : [];
   const peopleById = new Map(people.map((profile) => [profile.id, profile]));
   const stories = graph.schemaVersion === 2 ? graph.stories.map((story) => ({ ...story, media: story.mediaIds.map((id) => mediaFor(graph, id)).filter(Boolean), authors: story.authorProfileIds.map((id) => peopleById.get(id)).filter(Boolean) })) : [];
@@ -47,7 +47,7 @@ function resourceForSurface(view, surface) {
 
 function renderSurface(res, snapshot, role, resourceSlug, { draftPreview = false } = {}) {
   if (!snapshot) return res.sendStatus(404);
-  const view = territoryLocals(snapshot, { draftPreview });
+  const view = territoryLocals(snapshot, { draftPreview, previewRouteBase: res.locals.previewRouteBase });
   const surface = findTerritorySurface(view.territory, role, resourceSlug);
   if (!surface) return res.sendStatus(404);
   const template = templateForSurface(view.territory, surface);

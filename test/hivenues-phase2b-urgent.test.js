@@ -253,7 +253,7 @@ test('Studio review distinguishes changed, retained-live and unpublished-draft s
   assert.match(inspector.text, /name="lifecycle"/);
 
   const compose = await request(app).get(`/hivenues/studio/${SLUG}/urgent?activity=${ACTIVITY}`).expect(200);
-  assert.match(compose.text, /starts from what visitors see right now/);
+  assert.match(compose.text, /starts from the latest Website Release/i);
   assert.match(compose.text, /Friday Night Assembly · currently happening as planned/);
 
   const created = await request(app)
@@ -284,8 +284,8 @@ test('Studio review distinguishes changed, retained-live and unpublished-draft s
 
   const releasedId = store.publicSnapshot(SLUG).liveReleaseId;
   const studio = await request(app).get(`/hivenues/studio/${SLUG}?released=${releasedId}&urgent=1`).expect(200);
-  assert.match(studio.text, /Live site updated\./);
-  assert.match(studio.text, /Your other working edits are still here, unpublished\./);
+  assert.match(studio.text, /Urgent Website Release created\./);
+  assert.match(studio.text, /Other Working edits remain unreleased\./);
   assert.match(studio.text, /Unreleased headline — must stay in Studio\./);
   assert.match(studio.text, new RegExp(`data-revision="${draft.revision + 1}"`));
 
@@ -311,10 +311,10 @@ test('Studio review distinguishes changed, retained-live and unpublished-draft s
     .type('form')
     .send({ expectedLiveReleaseId: releasedId, ...tokens(store) })
     .expect(409)
-    .expect(/already gone live/);
+    .expect(/already been released/);
 
   const history = await request(app).get(`/hivenues/studio/${SLUG}/release`).expect(200);
-  assert.match(history.text, /Version 1 \+ urgent update · LIVE/);
+  assert.match(history.text, /Version 1 \+ urgent update · LATEST RELEASE/);
   assert.match(history.text, /Start an urgent update/);
   externalZero(store);
 });
@@ -323,7 +323,7 @@ test('urgent compose refuses draft-only activities and review fails closed when 
   const store = memoryStore();
   const app = appFor(store);
   const missing = await request(app).get(`/hivenues/studio/${SLUG}/urgent?activity=activity-not-live`).expect(200);
-  assert.doesNotMatch(missing.text, /not on the live site yet\./);
+  assert.doesNotMatch(missing.text, /not in the latest Website Release yet\./);
   await request(app).post(`/hivenues/studio/${SLUG}/urgent`).type('form').send({ activityId: 'activity-not-live', lifecycle: 'cancelled' }).expect(400);
 
   const created = await request(app).post(`/hivenues/studio/${SLUG}/urgent`).type('form').send({ activityId: ACTIVITY, lifecycle: 'cancelled' }).expect(303);
@@ -335,14 +335,14 @@ test('urgent compose refuses draft-only activities and review fails closed when 
   assert.equal(store.createRelease(SLUG, t1.expectedRevision, t1.expectedDraftDigest).ok, true);
 
   const review = await request(app).get(`/hivenues/studio/${SLUG}/urgent/${operationId}`).expect(200);
-  assert.match(review.text, /live site changed since this review was prepared/);
-  assert.doesNotMatch(review.text, /Publish urgent update/);
+  assert.match(review.text, /latest Website Release changed since this review was prepared/i);
+  assert.doesNotMatch(review.text, /Create urgent Website Release/);
   await request(app)
     .post(`/hivenues/studio/${SLUG}/urgent/${operationId}/publish`)
     .type('form')
     .send({ expectedLiveReleaseId: base, ...tokens(store) })
     .expect(409)
-    .expect(/live site changed while you were reviewing/);
+    .expect(/latest Website Release changed while you were reviewing/i);
   assert.equal(store.publicSnapshot(SLUG).draft.activities[0].lifecycle, 'scheduled');
 });
 

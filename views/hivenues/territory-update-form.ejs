@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
 <%
   const v = typeof values === 'object' && values ? values : {};
   const selectedMedia = new Set(Array.isArray(v.mediaIds) ? v.mediaIds : (v.mediaIds ? [v.mediaIds] : []));
@@ -18,7 +19,7 @@
     </nav>
     <p class="cc-kicker">Territory · Updates · <%= update ? 'Edit' : 'Write' %></p>
     <h1><%= update ? 'Edit this Update.' : 'Share a quick Update.' %></h1>
-    <p class="cc-task__dek">Updates are the short-form publishing layer: quick notes, notices, images or reactions without long-form ceremony. They remain provider-neutral and stay in Working until you explicitly Release.</p>
+    <p class="cc-task__dek">Updates are the short-form publishing layer: quick notes, notices, images or reactions without long-form ceremony. They remain provider-neutral and stay in Working until you create a Website Release. An external public site changes only after that Release is put online.</p>
 
     <% if (errors.length) { %><section class="cc-conflict" role="alert"><strong>Check this Update.</strong><ul><% errors.forEach((error) => { %><li><%= error.path %>: <%= error.message %></li><% }) %></ul></section><% } %>
 

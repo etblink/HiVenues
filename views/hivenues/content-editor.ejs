@@ -4,17 +4,18 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Content' }) %>
 <% const v = typeof values === 'object' && values ? values : {}; %>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status">Working Version <%= revision %></span>
+      <span class="cc-draft-status">Draft <%= revision %></span>
     </nav>
-    <p class="cc-kicker">Site · Content & visit</p>
-    <h1>Edit what visitors actually see.</h1>
-    <p class="cc-task__dek">These are the public facts and story fields established during setup. Saving changes only your working version; visitors keep seeing the current Release until you explicitly release again. The stable URL and host identity do not change when you rename the place.</p>
+    <p class="cc-kicker">Page content</p>
+    <h1>Story &amp; visit details</h1>
+    <p class="cc-task__dek">Introduce your place and help visitors find you. Save your changes to the draft, then publish when you’re ready.</p>
 
-    <% if (saved) { %><div class="cc-studio-notice" role="status"><strong>Saved to draft.</strong> Review the complete visitor page in Studio before releasing.</div><% } %>
+    <% if (saved) { %><div class="cc-studio-notice" role="status"><strong>Draft saved.</strong> Preview your website, then publish when you’re ready.</div><% } %>
     <% if (errors.length) { %>
       <section class="cc-conflict" role="alert">
         <strong>Check these public details.</strong>
@@ -47,8 +48,10 @@
         <div class="cc-field"><label for="cc-content-participation">Invitation / participation copy</label><textarea id="cc-content-participation" name="participation" maxlength="800" required><%= v.participation ?? graph.intent.participation %></textarea></div>
       </section>
 
+      <p id="cc-save-state" class="op-form-state" role="status">Saved draft · edits need Save</p>
       <button class="cc-button cc-button--ink" type="submit">Save public content to draft</button>
     </form>
   </main>
+<script src="/js/hivenues-studio.js" defer></script>
 </body>
 </html>
