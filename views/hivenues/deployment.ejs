@@ -191,6 +191,13 @@
                     humanNext = 'Complete the trust or verification action shown below.';
                   }
                 } else if (
+                  deployment.publicEndpoint?.publicReadBack?.state === 'mismatch'
+                  && ['healthy', 'rollback-available'].includes(deployment.state)
+                ) {
+                  humanTitle = 'Public site does not match this deployment';
+                  humanBody = 'HiVenues reached the public site, but the exact runtime or Website Release identity did not match this deployment record.';
+                  humanNext = 'Review the public verification mismatch shown below before making another public change.';
+                } else if (
                   publicVerified
                   && ['healthy', 'rollback-available'].includes(deployment.state)
                 ) {
