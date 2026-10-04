@@ -131,6 +131,10 @@ test('Era 7 Stage 5C: deployment page leads with the human lifecycle and moves r
   assert.match(html, /<summary>Technical deployment details<\/summary>/);
   assert.match(html, /Internal state:[\s\S]*rollback-available/);
   assert.match(html, /Advanced and qualification targets/);
+  assert.match(html, /Website Release to put online/);
+  assert.match(html, /Prepare this Website Release/);
+  assert.match(html, /Public site is serving the expected Website Release/);
+  assert.match(html, /<summary>Exact verification<\/summary>/);
 });
 
 test('Era 7 Stage 5C: verified public site still surfaces a newer Website Release that has not been deployed', async () => {
