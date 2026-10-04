@@ -15,7 +15,7 @@
     const workingTerritory = territoryCounts(graph);
     const liveTerritory = territoryCounts(liveSnapshot);
     if (!liveSnapshot) {
-      releaseChanges.push('This will be the first live website version.');
+      releaseChanges.push('This will be the first Website Release.');
     } else {
       if (graph.identity.displayName !== liveSnapshot.identity.displayName) releaseChanges.push('Public name changed.');
       if (graph.facts.tagline !== liveSnapshot.facts.tagline) releaseChanges.push('Headline changed.');
@@ -127,7 +127,7 @@
     </section>
 
     <section class="cc-review-card cc-review-card--urgent-entry" style="margin-top:1.2rem" aria-labelledby="cc-urgent-entry">
-      <p class="cc-kicker">Need to change the live site right now?</p>
+      <p class="cc-kicker">Need to change the latest Website Release right now?</p>
       <h2 id="cc-urgent-entry">Urgent update</h2>
       <p>Cancel or update one activity’s status from the latest Website Release without releasing the rest of your Working version.</p>
       <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/urgent">Start an urgent update</a>
@@ -142,7 +142,7 @@
           <article class="cc-release-row">
             <div>
               <strong>Version <%= item.draftRevision %><%= item.kind === 'urgent' ? ' + urgent update' : '' %> <%= item.id === liveReleaseId ? '· LATEST RELEASE' : '' %></strong>
-              <% if (item.kind === 'urgent') { %><br><small>Urgent status change published from the live site, not from the working version.</small><% } %>
+              <% if (item.kind === 'urgent') { %><br><small>Urgent status change created from the latest Website Release, not from the Working version.</small><% } %>
               <br><small><%= item.snapshot.facts.tagline %> · <%= item.snapshot.presentation.compositionFamily %></small>
               <details>
                 <summary>Technical details</summary>
