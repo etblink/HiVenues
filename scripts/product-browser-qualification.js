@@ -2402,6 +2402,7 @@ async function runDeploymentStage1Evidence(browser, axeSource, manifest) {
     );
     await capture(page, axeSource, manifest, 'era7-stage1-deployment-empty-desktop');
 
+    await page.locator('[data-deployment-advanced-targets] > summary').click();
     await page.locator('[data-create-deployment-target]').click();
     await page.locator('[data-deployment-record]').waitFor();
     const record = page.locator('[data-deployment-record]');

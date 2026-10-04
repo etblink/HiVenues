@@ -7,20 +7,24 @@
   <main class="cc-task cc-task--urgent">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status cc-draft-status--live">Live site · <%= release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}` %></span>
+      <span class="cc-draft-status cc-draft-status--live">Latest Website Release · <%= release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}` %></span>
     </nav>
     <p class="cc-kicker">Urgent update</p>
-    <h1>Change one thing on the live site now.</h1>
-    <p class="cc-task__dek">This starts from what visitors see right now, not from your working version. Only the status you choose here goes live. Everything else on the live site stays exactly as it is, and your unreleased edits stay in Studio, unpublished.</p>
+    <h1>Change one thing in the latest Website Release.</h1>
+    <p class="cc-task__dek">
+      This starts from the latest Website Release, not from your Working version. It creates a new urgent Website
+      Release containing only this status change. Other Working edits stay unreleased, and any external public
+      deployment stays unchanged until you explicitly update it.
+    </p>
 
     <% if (noChange) { %>
       <div class="cc-consequence-truth" role="status" data-no-change style="max-width:720px;margin-top:1.5rem">
-        <strong>Nothing would change.</strong> That status and note are already what visitors see, so there is no urgent update to publish. Choose a different status or note.
+        <strong>Nothing would change.</strong> That status and note are already in the latest Website Release, so there is no urgent Release to create. Choose a different status or note.
       </div>
     <% } %>
     <% if (notLiveYet) { %>
       <div class="cc-conflict" role="alert" style="max-width:720px;margin-top:1.5rem">
-        <strong>That activity is not on the live site yet.</strong> An urgent update can only change something visitors can already see. Release your working version to publish it, then change its status if you need to.
+        <strong>That activity is not in the latest Website Release yet.</strong> An urgent update can only change something already present in the latest Website Release. Create a whole Website Release first, then change its status if needed.
       </div>
     <% } %>
 
@@ -33,7 +37,7 @@
               <option value="<%= item.id %>" <%= item.id === activity.id ? 'selected' : '' %>><%= item.title %> · currently <%= activityLifecycles[item.lifecycle].label.toLowerCase() %></option>
             <% }) %>
           </select>
-          <p class="cc-inspector-help">Listed as it appears on the live site. If you renamed it in Studio without releasing, the live title is shown here on purpose.</p>
+          <p class="cc-inspector-help">Listed as it appears in the latest Website Release. If you renamed it in Working without creating a Release, the released title is shown here on purpose.</p>
         </div>
         <fieldset class="cc-field" style="border:0;padding:0;margin:0">
           <legend>New status</legend>
@@ -53,15 +57,15 @@
         </div>
         <div class="cc-consequence-truth">
           <strong>What happens next</strong><br>
-          You will review exactly what changes before anything goes live. Publishing creates a new immutable website version in this HiVenues reference. It does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, deploy production, or touch DNS.
+          You will review exactly what changes before a new immutable Website Release is created. This does not broadcast to Hive, request a signature, move value, upload media, mutate a provider, update an external deployment, or touch DNS.
         </div>
         <div class="cc-inspector-actions">
           <button class="cc-button cc-button--ink" type="submit">Review the change</button>
-          <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/release">Release the whole working version instead</a>
+          <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/release">Create the whole Website Release instead</a>
         </div>
       </form>
     <% } else { %>
-      <p class="cc-task__dek">There are no activities on the live site to update.</p>
+      <p class="cc-task__dek">There are no activities in the latest Website Release to update.</p>
     <% } %>
   </main>
 </body>
