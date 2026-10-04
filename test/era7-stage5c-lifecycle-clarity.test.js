@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const ejs = require('ejs');
@@ -41,6 +42,19 @@ test('Era 7 Stage 5C: Website Release review explicitly separates Release creati
   assert.match(response.text, /Deployment is the separate action/);
   assert.doesNotMatch(response.text, /<p class="cc-kicker">Currently live<\/p>/);
   assert.doesNotMatch(response.text, />Publish website release<\/button>/);
+});
+
+test('Era 7 Stage 5C: urgent review uses Website Release language instead of publish/live ambiguity', () => {
+  const source = fs.readFileSync(path.join(VIEWS, 'urgent-review.ejs'), 'utf8');
+
+  assert.match(source, /No Website Release was created/);
+  assert.match(source, /Stays in Working, not in this Release/);
+  assert.match(source, /do not enter this urgent Website Release/);
+  assert.match(source, /Website Release already created/);
+  assert.doesNotMatch(source, /Nothing was published/);
+  assert.doesNotMatch(source, /urgent update can be published once/);
+  assert.doesNotMatch(source, /cannot be published twice/);
+  assert.doesNotMatch(source, /do not go live with this update/);
 });
 
 test('Era 7 Stage 5C: deployment page leads with the human lifecycle and moves raw state behind technical disclosure', async () => {
