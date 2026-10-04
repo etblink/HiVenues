@@ -20,18 +20,18 @@
         : (isInitialServerSetup
           ? 'Set up this server and put the Website Release online.'
           : (sameWebsiteRelease
-            ? 'Update the public-site runtime without changing the Website Release.'
+            ? 'Update the deployed-site runtime without changing the Website Release.'
             : 'Put this Website Release online.'));
       const actionLead = isInitialServerSetup
         ? 'HiVenues will set up its bounded server runtime, install the exact Website Release, move ongoing management to the restricted deployment account, and verify the result.'
         : (sameWebsiteRelease
-          ? 'The Website Release is already the public content. This action updates the qualified HiVenues runtime on the established restricted deployment account and then re-verifies the exact Release.'
+          ? 'The Website Release is already installed on this server. This action updates the qualified HiVenues runtime on the established restricted deployment account and then re-verifies the exact Release.'
           : 'HiVenues will use the already-established restricted deployment account to place this exact Website Release online and verify the resulting runtime and Release.');
       const actionButton = deployment.state === 'deploying'
         ? 'Resume this deployment'
         : (isInitialServerSetup
           ? 'Set up server and put Release online'
-          : (sameWebsiteRelease ? 'Update public-site runtime' : 'Update public site'));
+          : (sameWebsiteRelease ? 'Update deployed-site runtime' : 'Update public site'));
     %>
     <nav class="cc-task-nav">
       <a
