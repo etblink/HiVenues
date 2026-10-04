@@ -373,7 +373,10 @@ test('Era 7 Stage 5C P2: known public read-back mismatch is surfaced as a failur
         observation: null,
       },
       tls: { state: 'verified' },
-      publicReadBack: { state: 'mismatch' },
+      publicReadBack: {
+        state: 'mismatch',
+        mismatchFields: ['deployment.releaseId'],
+      },
     },
     healthState: 'healthy',
     rollbackState: 'available',
