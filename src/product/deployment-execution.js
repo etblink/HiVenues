@@ -116,6 +116,26 @@ const DISCONNECT_CONSEQUENCES = Object.freeze([
   'preserve-the-running-site-hostgraph-and-immutable-release-history',
 ]);
 
+const REAUTHORIZATION_CONSEQUENCES = Object.freeze([
+  'install-only-the-fresh-reviewed-public-key-for-the-steady-deployment-account',
+  'prove-steady-deployment-account-login-with-the-fresh-authority',
+  'remove-the-same-temporary-key-from-the-original-bootstrap-account',
+  'prove-bootstrap-key-authentication-no-longer-works',
+  'reprove-exact-runtime-release-publication-and-public-https-identity',
+  'restore-management-on-the-same-preserved-deployment-record',
+]);
+
+const REAUTHORIZATION_HELD = Object.freeze([
+  'runtime-or-release-upload',
+  'runtime-or-release-activation',
+  'systemd-caddy-firewall-or-publication-reconfiguration',
+  'dns-mutation',
+  'tls-issuance',
+  'provider-payment',
+  'hive-writes',
+  'value-movement',
+]);
+
 const DISCONNECT_HELD = Object.freeze([
   'stop-or-delete-the-running-site',
   'runtime-or-release-change',
@@ -274,7 +294,9 @@ function sameReadBackArtifacts(left, right) {
   );
 }
 
-function requireRemoteRecord(record) {
+function requireRemoteRecord(record, {
+  allowReauthorizing = false,
+} = {}) {
   if (!record) {
     throw executionError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
   }
@@ -284,7 +306,10 @@ function requireRemoteRecord(record) {
       'Remote deployment consequence review requires a verified server target.',
     );
   }
-  if (!MUTATION_STATES.has(record.state)) {
+  if (
+    !MUTATION_STATES.has(record.state)
+    && !(allowReauthorizing && record.state === 'reauthorizing')
+  ) {
     throw executionError(
       'DEPLOYMENT_MUTATION_STATE_INVALID',
       'Server target is not ready for an exact Release deployment review.',
@@ -656,8 +681,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async inspectPublicationCapability(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async inspectPublicationCapability(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.activeRelease || !record.runtimeProfile) {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_ACTIVE_DEPLOYMENT_REQUIRED',
@@ -761,8 +791,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async checkDns(deploymentId) {
-    const record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async checkDns(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.publicEndpoint) {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DOMAIN_PLAN_REQUIRED',
@@ -968,8 +1003,13 @@ class InstalledRemoteDeploymentService {
     });
   }
 
-  async verifyPublicHttps(deploymentId) {
-    let record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+  async verifyPublicHttps(deploymentId, {
+    allowReauthorizing = false,
+  } = {}) {
+    let record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
     if (!record.publicEndpoint || record.publicEndpoint.domainState !== 'dns-confirmed') {
       throw executionError(
         'DEPLOYMENT_PUBLICATION_DNS_REQUIRED',
@@ -991,9 +1031,15 @@ class InstalledRemoteDeploymentService {
         'DNS no longer exactly matches the reviewed deployment destination.',
       );
     }
-    record = requireRemoteRecord(this.deploymentStore.get(deploymentId));
+    record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing },
+    );
 
-    const publication = await this.inspectPublicationCapability(deploymentId);
+    const publication = await this.inspectPublicationCapability(
+      deploymentId,
+      { allowReauthorizing },
+    );
     if (
       publication.capability !== 'ready'
       || publication.status?.state !== 'configured'
@@ -1031,6 +1077,307 @@ class InstalledRemoteDeploymentService {
       completed,
     );
     return completed;
+  }
+
+  beginReauthorization(deploymentId) {
+    const record = this.deploymentStore.get(deploymentId);
+    if (!record) {
+      throw executionError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
+    }
+    if (record.providerKind !== 'ssh-server' || record.state !== 'disconnected') {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID',
+        'Only a deliberately disconnected server deployment can begin management re-authorization.',
+      );
+    }
+    const facts = record.targetPublicFacts || {};
+    if (
+      record.authorityRef
+      || !record.activeRelease
+      || !record.runtimeProfile
+      || !record.publicEndpoint
+      || !String(facts.host || '').trim()
+      || !String(facts.bootstrapUsername || '').trim()
+      || !String(facts.trustedHostKeyFingerprint || '').trim()
+      || facts.hostKeyTrustState !== 'trusted'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Disconnected deployment re-authorization requires preserved exact server, runtime, Release, public endpoint and trusted host-key facts with no live local authority.',
+      );
+    }
+    if (!this.authorityStore || typeof this.authorityStore.createSshAuthority !== 'function') {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
+        'Protected local deployment authority is unavailable.',
+      );
+    }
+    const authority = this.authorityStore.createSshAuthority({
+      label: record.hostSlug + ' re-authorization',
+    });
+    try {
+      const updated = this.deploymentStore.beginReauthorization(record.id, authority.id);
+      return Object.freeze({
+        deployment: updated,
+        authority: this.authorityStore.publicRecord(authority.id),
+      });
+    } catch (error) {
+      try { this.authorityStore.revoke(authority.id); } catch {}
+      throw error;
+    }
+  }
+
+  async prepareReauthorizationReview(deploymentId) {
+    const record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
+    if (record.state !== 'reauthorizing' || !record.authorityRef) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID',
+        'Prepare a fresh management authority before reviewing server re-authorization.',
+      );
+    }
+    if (!record.activeRelease || !record.runtimeProfile || !record.publicEndpoint) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Re-authorization requires the preserved active Release, runtime and public deployment evidence.',
+      );
+    }
+    if (
+      record.publicEndpoint.domainState !== 'dns-confirmed'
+      || record.publicEndpoint.dns?.observation?.matches !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED',
+        'Recheck DNS and restore the exact prepared destination before reviewing management reconnection.',
+      );
+    }
+    const facts = record.targetPublicFacts || {};
+    const bootstrapUsername = String(facts.bootstrapUsername || '').trim();
+    const authority = this.authorityStore.publicRecord(record.authorityRef);
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername,
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: bootstrapUsername,
+      },
+      bootstrapUsername,
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      hostSlug: record.hostSlug,
+    });
+    if (
+      !target
+      || typeof target.inspectReauthorizationBaseline !== 'function'
+      || typeof target.reauthorizeExistingDeployment !== 'function'
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_UNAVAILABLE',
+        'Existing-server management re-authorization is unavailable in this runtime.',
+      );
+    }
+
+    const inspection = await target.inspectReauthorizationBaseline(plan);
+    const expected = activeReadBackExpectation(record);
+    if (!readBackArtifactsMatch(inspection.readBack, expected)) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_READBACK_MISMATCH',
+        'The preserved server no longer matches the exact disconnected runtime and Release.',
+      );
+    }
+    if (
+      inspection.publication?.capability !== 'ready'
+      || inspection.publication.status?.state !== 'configured'
+      || inspection.publication.status?.hostname !== record.publicEndpoint.hostname
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_PUBLICATION_MISMATCH',
+        'The preserved server publication state no longer matches the disconnected deployment.',
+      );
+    }
+
+    const remoteState = inspection.bootstrapAccessible
+      ? (inspection.steadyAccessible
+        ? 'steady-authority-present-bootstrap-temporary'
+        : 'bootstrap-temporary-only')
+      : 'steady-authority-already-restored';
+
+    const stateIdentity = {
+      deploymentId: record.id,
+      state: record.state,
+      authorityRef: record.authorityRef,
+      activeRelease: record.activeRelease,
+      previousRelease: record.previousRelease,
+      runtimeProfile: record.runtimeProfile,
+      targetPublicFacts: record.targetPublicFacts,
+      publicEndpoint: record.publicEndpoint,
+      authorityFingerprint: authority.publicKeyFingerprint,
+    };
+    const core = {
+      version: 1,
+      deploymentId: record.id,
+      hostSlug: record.hostSlug,
+      target: {
+        host: String(facts.host || ''),
+        port: Number(facts.port || 22),
+        bootstrapUsername,
+        deploymentUsername: plan.deploymentUser,
+        trustedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      },
+      authority: {
+        id: record.authorityRef,
+        publicKey: authority.publicKey,
+        publicKeyFingerprint: authority.publicKeyFingerprint,
+      },
+      runtime: Object.freeze({ ...record.runtimeProfile }),
+      release: Object.freeze({ ...record.activeRelease }),
+      previousRelease: record.previousRelease
+        ? Object.freeze({ ...record.previousRelease })
+        : null,
+      hostname: String(record.publicEndpoint.hostname || ''),
+      remoteState,
+      consequences: REAUTHORIZATION_CONSEQUENCES,
+      held: REAUTHORIZATION_HELD,
+      stateDigest: stableDigest(stateIdentity),
+    };
+    return Object.freeze({
+      ...core,
+      reviewDigest: stableDigest(core),
+    });
+  }
+
+  async reauthorizeDeployment(deploymentId, {
+    reviewDigest,
+    confirmation,
+  } = {}) {
+    if (confirmation !== 'reauthorize-deployment-management') {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_CONFIRMATION_REQUIRED',
+        'Explicit deployment-management re-authorization confirmation is required.',
+      );
+    }
+    const submitted = String(reviewDigest || '').trim().toLowerCase();
+    const review = await this.prepareReauthorizationReview(deploymentId);
+    if (!/^[a-f0-9]{64}$/.test(submitted) || submitted !== review.reviewDigest) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_REVIEW_STALE',
+        'Re-authorization facts changed after review. Review the current deployment again.',
+      );
+    }
+
+    let record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
+    const authority = this.authorityStore.publicRecord(record.authorityRef);
+    const currentStateDigest = stableDigest({
+      deploymentId: record.id,
+      state: record.state,
+      authorityRef: record.authorityRef,
+      activeRelease: record.activeRelease,
+      previousRelease: record.previousRelease,
+      runtimeProfile: record.runtimeProfile,
+      targetPublicFacts: record.targetPublicFacts,
+      publicEndpoint: record.publicEndpoint,
+      authorityFingerprint: authority.publicKeyFingerprint,
+    });
+    if (currentStateDigest !== review.stateDigest) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_REVIEW_STALE',
+        'Deployment state changed after re-authorization review.',
+      );
+    }
+
+    const facts = record.targetPublicFacts || {};
+    const bootstrapUsername = String(facts.bootstrapUsername || '').trim();
+    const plan = createReferenceBootstrapPlan({
+      runtimeProvenance: record.runtimeProfile,
+      releaseManifest: {
+        hostSlug: record.hostSlug,
+        releaseId: record.activeRelease.id,
+        releaseDigest: record.activeRelease.digest,
+        packageDigest: record.activeRelease.packageDigest,
+      },
+      bootstrapUsername,
+    });
+    const target = this.targetFactory({
+      authorityStore: this.authorityStore,
+      authorityId: record.authorityRef,
+      target: {
+        host: String(facts.host),
+        port: Number(facts.port || 22),
+        username: bootstrapUsername,
+      },
+      bootstrapUsername,
+      expectedHostKeyFingerprint: String(facts.trustedHostKeyFingerprint || ''),
+      hostSlug: record.hostSlug,
+    });
+
+    const result = await target.reauthorizeExistingDeployment(plan);
+    if (!readBackMatches(result.readBack, activeReadBackExpectation(record))) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_READBACK_MISMATCH',
+        'Re-authorized server did not preserve the exact active runtime and Release.',
+      );
+    }
+    if (
+      result.publication?.capability !== 'ready'
+      || result.publication.status?.state !== 'configured'
+      || result.publication.status?.hostname !== record.publicEndpoint.hostname
+      || result.bootstrapAuthorityAccessible !== false
+      || result.steadyAuthorityAccessible !== true
+    ) {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_FINAL_PROOF_FAILED',
+        'Re-authorization did not prove the exact steady authority and preserved publication state.',
+      );
+    }
+
+    await this.verifyPublicHttps(deploymentId, { allowReauthorizing: true });
+    record = requireRemoteRecord(
+      this.deploymentStore.get(deploymentId),
+      { allowReauthorizing: true },
+    );
+    if (record.publicEndpoint?.publicReadBack?.state !== 'verified') {
+      throw executionError(
+        'DEPLOYMENT_REAUTHORIZATION_PUBLIC_PROOF_FAILED',
+        'Public HTTPS exact-Release proof did not complete after re-authorization.',
+      );
+    }
+
+    const preservedFacts = { ...(record.targetPublicFacts || {}) };
+    delete preservedFacts.authorityDisconnectState;
+    delete preservedFacts.authorityDisconnectFingerprint;
+    delete preservedFacts.reauthorizationState;
+    const nextState = record.previousRelease ? 'rollback-available' : 'healthy';
+    const confirmedAt = new Date(this.now()).toISOString();
+    return this.deploymentStore.transition(record.id, nextState, {
+      reason: 'deployment-management-reauthorized',
+      patch: {
+        targetPublicFacts: {
+          ...preservedFacts,
+          username: plan.deploymentUser,
+          bootstrapUsername,
+          bootstrapAuthorityState: 'restricted-deployment-user',
+          reauthorizationState: 'complete',
+        },
+        healthState: 'healthy',
+        rollbackState: record.previousRelease ? 'available' : 'unavailable',
+        lastConfirmedAt: confirmedAt,
+      },
+    });
   }
 
   async prepareRollbackReview(deploymentId) {
@@ -1942,7 +2289,8 @@ class InstalledRemoteDeploymentService {
   prepareReview(deploymentId) {
     const current = this.deploymentStore.get(deploymentId);
     if (
-      (current?.state === 'deploying' && current?.stateReason === 'rollback-started')
+      current?.state === 'reauthorizing'
+      || (current?.state === 'deploying' && current?.stateReason === 'rollback-started')
       || (
         current?.state === 'degraded'
         && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
@@ -2052,6 +2400,8 @@ module.exports = {
   ROLLBACK_HELD,
   DISCONNECT_CONSEQUENCES,
   DISCONNECT_HELD,
+  REAUTHORIZATION_CONSEQUENCES,
+  REAUTHORIZATION_HELD,
   InstalledRemoteDeploymentService,
   findCachedRuntimeBundle,
   materializeInstalledRuntimeBundle,

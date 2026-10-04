@@ -486,6 +486,50 @@ function rollbackPreflightCommand(plan, runtimePath, releasePath, release) {
   ].join('\n') + '\n';
 }
 
+function restoreDeploymentAuthorityCommand(plan, publicKey) {
+  const key = requirePublicKey(publicKey);
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=deployment-authority-restore\\n" >&2',
+    'test "$(id -u)" = "0"',
+    'id -u ' + shellQuote(plan.deploymentUser) + ' >/dev/null',
+    'install -d -m 0700 -o ' + shellQuote(plan.deploymentUser)
+      + ' -g hivenues /var/lib/hivenues-deploy/.ssh',
+    'tmp="$(mktemp /var/lib/hivenues-deploy/.ssh/.authorized_keys.hivenues.XXXXXX)"',
+    'trap \'rm -f -- "$tmp"\' EXIT',
+    'printf "%s\\n" ' + shellQuote(key.full) + ' > "$tmp"',
+    'chown ' + shellQuote(plan.deploymentUser) + ':hivenues "$tmp"',
+    'chmod 0600 "$tmp"',
+    'mv -f -- "$tmp" /var/lib/hivenues-deploy/.ssh/authorized_keys',
+    'trap - EXIT',
+    authorityStateCommand(plan, 'restricted-login-pending').trimEnd(),
+  ].join('\n') + '\n';
+}
+
+function finalizeReauthorizationCommand(plan, publicKey) {
+  const key = requirePublicKey(publicKey);
+  const initial = plan.privilegeModel.initialRemoteAccount;
+  return [
+    'set -eu',
+    'printf "HIVENUES_MUTATION_STAGE=deployment-reauthorization-finalize\\n" >&2',
+    'test "$(id -u)" = "0"',
+    authorityStateCommand(plan, 'restricted-deployment-user').trimEnd(),
+    'home="$(getent passwd ' + shellQuote(initial) + ' | cut -d: -f6)"',
+    'test -n "$home"',
+    'auth="$home/.ssh/authorized_keys"',
+    'if [ -f "$auth" ]; then',
+    '  tmp="$(mktemp "$home/.ssh/.hivenues-reauthorize.XXXXXX")"',
+    '  awk -v key=' + shellQuote(key.identity)
+      + ' \'index($0, key) == 0 { print }\' "$auth" > "$tmp"',
+    '  chown --reference="$auth" "$tmp"',
+    '  chmod 0600 "$tmp"',
+    '  mv -f -- "$tmp" "$auth"',
+    'fi',
+    'if [ -f "$auth" ] && grep -F -- ' + shellQuote(key.identity)
+      + ' "$auth" >/dev/null 2>&1; then exit 73; fi',
+  ].join('\n') + '\n';
+}
+
 function removeDeploymentAuthorityCommand(plan, publicKey) {
   const key = String(publicKey || '').trim();
   if (!/^ssh-(?:rsa|ed25519|ecdsa-[^ ]+)\s+\S+(?:\s+.*)?$/.test(key)) {
@@ -1030,6 +1074,167 @@ class SshRemoteDeploymentTarget {
     });
   }
 
+  async inspectReauthorizationBaseline(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_PLAN_REQUIRED',
+        'Deployment re-authorization inspection requires an exact preserved deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    const bootstrapUsername = String(
+      this.initialUsername || plan.privilegeModel.initialRemoteAccount || '',
+    ).trim();
+    const deploymentUsername = String(plan.deploymentUser || '').trim();
+    if (!bootstrapUsername || !deploymentUsername || bootstrapUsername === deploymentUsername) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Deployment re-authorization requires distinct bootstrap and steady deployment accounts.',
+      );
+    }
+
+    const accessible = async (username) => {
+      try {
+        const result = await this.withSession(username, (session) => (
+          session.exec('true', { timeoutMs: 10000 })
+        ));
+        return Number(result?.code || 0) === 0;
+      } catch (error) {
+        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+        throw error;
+      }
+    };
+
+    const bootstrapAccessible = await accessible(bootstrapUsername);
+    const steadyAccessible = await accessible(deploymentUsername);
+    if (!bootstrapAccessible && !steadyAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
+        'Restore the exact fresh public key to the temporary bootstrap account before reviewing management re-authorization.',
+      );
+    }
+
+    this.connection.username = steadyAccessible ? deploymentUsername : bootstrapUsername;
+    const readBack = await this.readBack();
+    const publication = await this.publicationStatus(plan);
+    return Object.freeze({
+      bootstrapAccessible,
+      steadyAccessible,
+      readBack,
+      publication,
+    });
+  }
+
+  async reauthorizeExistingDeployment(plan = this.lastPlan) {
+    if (!plan) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_PLAN_REQUIRED',
+        'Deployment re-authorization requires an exact preserved deployment plan.',
+      );
+    }
+    this.lastPlan = plan;
+    const bootstrapUsername = String(
+      this.initialUsername || plan.privilegeModel.initialRemoteAccount || '',
+    ).trim();
+    const deploymentUsername = String(plan.deploymentUser || '').trim();
+    if (!bootstrapUsername || !deploymentUsername || bootstrapUsername === deploymentUsername) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Deployment re-authorization requires distinct bootstrap and steady deployment accounts.',
+      );
+    }
+
+    const accessible = async (username) => {
+      try {
+        const result = await this.withSession(username, (session) => (
+          session.exec('true', { timeoutMs: 10000 })
+        ));
+        return Number(result?.code || 0) === 0;
+      } catch (error) {
+        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+        throw error;
+      }
+    };
+
+    let bootstrapAccessible = await accessible(bootstrapUsername);
+    let steadyAccessible = await accessible(deploymentUsername);
+    if (!bootstrapAccessible && !steadyAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
+        'The fresh deployment authority is available on neither the temporary bootstrap account nor the steady deployment account.',
+      );
+    }
+
+    if (bootstrapAccessible) {
+      await this.withSession(bootstrapUsername, (session) => (
+        withMutationStage('deployment-authority-restore', () => (
+          execInitialRootScript(
+            session,
+            plan,
+            restoreDeploymentAuthorityCommand(plan, this.publicKey.full),
+            { timeoutMs: 20000 },
+          )
+        ))
+      ));
+      steadyAccessible = await accessible(deploymentUsername);
+      if (!steadyAccessible) {
+        throw targetError(
+          'DEPLOYMENT_REAUTHORIZATION_STEADY_LOGIN_FAILED',
+          'Fresh deployment authority was not accepted by the steady deployment account.',
+        );
+      }
+    }
+
+    this.connection.username = deploymentUsername;
+    const beforeFinalizeReadBack = await this.readBack();
+    const publication = await this.publicationStatus(plan);
+
+    if (bootstrapAccessible) {
+      await this.withSession(bootstrapUsername, (session) => (
+        withMutationStage('deployment-reauthorization-finalize', () => (
+          execInitialRootScript(
+            session,
+            plan,
+            finalizeReauthorizationCommand(plan, this.publicKey.full),
+            { timeoutMs: 20000 },
+          )
+        ))
+      ));
+      bootstrapAccessible = await accessible(bootstrapUsername);
+      if (bootstrapAccessible) {
+        throw targetError(
+          'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
+          'Temporary bootstrap authority remained available after re-authorization finalization.',
+        );
+      }
+    }
+
+    steadyAccessible = await accessible(deploymentUsername);
+    if (!steadyAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_STEADY_LOGIN_FAILED',
+        'Steady deployment authority was lost during re-authorization finalization.',
+      );
+    }
+
+    this.connection.username = deploymentUsername;
+    const readBack = await this.readBack();
+    if (readBack?.bootstrap?.authorityState !== 'restricted-deployment-user') {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_STATE_INVALID',
+        'Server authority state did not reach restricted deployment-user ownership.',
+      );
+    }
+
+    return Object.freeze({
+      beforeFinalizeReadBack,
+      readBack,
+      publication,
+      bootstrapAuthorityAccessible: false,
+      steadyAuthorityAccessible: true,
+    });
+  }
+
   async deploymentAuthorityAccessible() {
     try {
       const result = await this.withSession(this.connection.username, (session) => (
@@ -1197,6 +1402,8 @@ module.exports = {
   publicationMigrationRecoveryEvidenceCommand,
   rollbackPreflightCommand,
   removeDeploymentAuthorityCommand,
+  restoreDeploymentAuthorityCommand,
+  finalizeReauthorizationCommand,
   existingReleasePath,
   qualifiedNodePath,
   removeBootstrapKeyCommand,

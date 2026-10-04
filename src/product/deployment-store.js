@@ -42,6 +42,7 @@ const DEPLOYMENT_STATES = Object.freeze([
   'unreachable',
   'rollback-available',
   'disconnected',
+  'reauthorizing',
 ]);
 
 const TRANSITIONS = Object.freeze({
@@ -58,7 +59,8 @@ const TRANSITIONS = Object.freeze({
   degraded: new Set(['host-key-review', 'verifying', 'deploying', 'disconnected']),
   unreachable: new Set(['host-key-review', 'verifying', 'disconnected']),
   'rollback-available': new Set(['deploying', 'healthy', 'degraded', 'unreachable', 'disconnected']),
-  disconnected: new Set(),
+  disconnected: new Set(['reauthorizing']),
+  reauthorizing: new Set(['healthy', 'rollback-available', 'disconnected']),
 });
 
 const FORBIDDEN_SECRET_KEYS = /(?:private.?key|password|secret|token|credential|mnemonic|recovery.?key)/i;
@@ -312,8 +314,13 @@ class FileDeploymentStore {
   selectRelease(deploymentId, release) {
     const selected = requireReleaseRef(release);
     return this.update(deploymentId, (record) => {
-      if (record.state === 'disconnected') {
-        throw deploymentError('DEPLOYMENT_DISCONNECTED', 'Disconnected deployment targets cannot select a Release.');
+      if (['disconnected', 'reauthorizing'].includes(record.state)) {
+        throw deploymentError(
+          record.state === 'disconnected' ? 'DEPLOYMENT_DISCONNECTED' : 'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS',
+          record.state === 'disconnected'
+            ? 'Disconnected deployment targets cannot select a Release.'
+            : 'Finish deployment re-authorization before selecting another Release.',
+        );
       }
       record.selectedRelease = selected;
       record.package = null;
@@ -327,6 +334,12 @@ class FileDeploymentStore {
       throw deploymentError('DEPLOYMENT_PACKAGE_INVALID', 'Deployment package digest is invalid.');
     }
     return this.update(deploymentId, (record) => {
+      if (record.state === 'reauthorizing') {
+        throw deploymentError(
+          'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS',
+          'Finish deployment re-authorization before preparing another package.',
+        );
+      }
       if (!record.selectedRelease) {
         throw deploymentError('DEPLOYMENT_RELEASE_REQUIRED', 'Select an immutable Release before preparing a deployment package.');
       }
@@ -358,10 +371,12 @@ class FileDeploymentStore {
   setPendingRuntimeProfile(deploymentId, runtimeProfile) {
     const value = runtimeProfile === null ? null : requireRuntimeProfile(runtimeProfile);
     return this.update(deploymentId, (record) => {
-      if (record.state === 'disconnected') {
+      if (['disconnected', 'reauthorizing'].includes(record.state)) {
         throw deploymentError(
-          'DEPLOYMENT_DISCONNECTED',
-          'Disconnected deployment targets cannot retain a pending runtime.',
+          record.state === 'disconnected' ? 'DEPLOYMENT_DISCONNECTED' : 'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS',
+          record.state === 'disconnected'
+            ? 'Disconnected deployment targets cannot retain a pending runtime.'
+            : 'Re-authorizing deployment targets cannot retain a pending runtime.',
         );
       }
       record.pendingRuntimeProfile = value ? clone(value) : null;
@@ -412,6 +427,51 @@ class FileDeploymentStore {
       record.tlsState = value ? value.tls.state : 'unconfigured';
       if (value) assertVerifiedPublicIdentityMatchesDeployment(record);
       return record;
+    });
+  }
+
+  beginReauthorization(deploymentId, authorityRef) {
+    const value = String(authorityRef || '').trim();
+    if (!/^authority-[A-Za-z0-9._-]+$/.test(value)) {
+      throw deploymentError(
+        'DEPLOYMENT_AUTHORITY_REF_INVALID',
+        'Deployment authority reference is invalid.',
+      );
+    }
+    const record = this.get(deploymentId);
+    if (!record) {
+      throw deploymentError('DEPLOYMENT_NOT_FOUND', 'Deployment target was not found.');
+    }
+    if (record.state !== 'disconnected') {
+      throw deploymentError(
+        'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID',
+        'Only a deliberately disconnected deployment can begin management re-authorization.',
+      );
+    }
+    if (
+      record.providerKind !== 'ssh-server'
+      || !record.activeRelease
+      || !record.runtimeProfile
+      || !record.targetPublicFacts?.host
+      || !record.targetPublicFacts?.trustedHostKeyFingerprint
+      || !record.targetPublicFacts?.bootstrapUsername
+    ) {
+      throw deploymentError(
+        'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID',
+        'Re-authorization requires a preserved exact server, runtime, Release and bootstrap-account baseline.',
+      );
+    }
+    return this.transition(deploymentId, 'reauthorizing', {
+      reason: 'deployment-reauthorization-prepared',
+      patch: {
+        authorityRef: value,
+        healthState: 'unknown',
+        rollbackState: 'unavailable',
+        targetPublicFacts: {
+          ...record.targetPublicFacts,
+          reauthorizationState: 'prepared',
+        },
+      },
     });
   }
 

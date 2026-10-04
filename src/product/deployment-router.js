@@ -96,6 +96,15 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_DISCONNECT_REMOTE_STATE_AMBIGUOUS'
     || error.code === 'DEPLOYMENT_LIFECYCLE_OPERATION_IN_PROGRESS'
     || error.code === 'DEPLOYMENT_DISCONNECT_REVIEW_REQUIRED'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_STATE_INVALID'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_BASELINE_INVALID'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_READBACK_MISMATCH'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_PUBLICATION_MISMATCH'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_REVIEW_STALE'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_FINAL_PROOF_FAILED'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_PUBLIC_PROOF_FAILED'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS'
   ) return 409;
   return 400;
 }
@@ -298,6 +307,12 @@ function createHiVenuesDeploymentRouter({
         && typeof active.remoteDeployment.prepareDisconnectReview === 'function'
         && typeof active.remoteDeployment.disconnectAuthority === 'function'
       ),
+      deploymentReauthorizationAvailable: Boolean(
+        active?.remoteDeployment
+        && typeof active.remoteDeployment.beginReauthorization === 'function'
+        && typeof active.remoteDeployment.prepareReauthorizationReview === 'function'
+        && typeof active.remoteDeployment.reauthorizeDeployment === 'function'
+      ),
       deployments,
       error,
     });
@@ -381,7 +396,10 @@ function createHiVenuesDeploymentRouter({
         error.code = 'DEPLOYMENT_PUBLICATION_DNS_UNAVAILABLE';
         throw error;
       }
-      await active.remoteDeployment.checkDns(deployment.id);
+      await active.remoteDeployment.checkDns(
+        deployment.id,
+        { allowReauthorizing: deployment.state === 'reauthorizing' },
+      );
     }),
   );
 
@@ -718,6 +736,85 @@ function createHiVenuesDeploymentRouter({
     }
   }));
 
+  router.post('/studio/:slug/deploy/:deploymentId/reauthorization/prepare', mutate((active, req) => {
+    const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+    if (
+      deployment.providerKind !== 'ssh-server'
+      || !active.remoteDeployment
+      || typeof active.remoteDeployment.beginReauthorization !== 'function'
+    ) {
+      const error = new Error('Existing-server management re-authorization is unavailable.');
+      error.code = 'DEPLOYMENT_REAUTHORIZATION_UNAVAILABLE';
+      throw error;
+    }
+    active.remoteDeployment.beginReauthorization(deployment.id);
+  }));
+
+  router.get('/studio/:slug/deploy/:deploymentId/reauthorization-review', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.prepareReauthorizationReview !== 'function'
+      ) {
+        const error = new Error('Existing-server management re-authorization review is unavailable.');
+        error.code = 'DEPLOYMENT_REAUTHORIZATION_UNAVAILABLE';
+        throw error;
+      }
+      const review = await active.remoteDeployment.prepareReauthorizationReview(deployment.id);
+      const snapshot = store.snapshot(req.params.slug);
+      if (!snapshot) return res.sendStatus(404);
+      return res.render('hivenues/deployment-reauthorization-review', {
+        pageTitle: `Reconnect deployment management — ${snapshot.draft.identity.displayName}`,
+        ...buildViewModel(snapshot),
+        deployment,
+        review,
+      });
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Deployment management re-authorization review could not be prepared.',
+        ),
+      });
+    }
+  });
+
+  router.post('/studio/:slug/deploy/:deploymentId/reauthorize-authority', async (req, res) => {
+    try {
+      const active = requireServices(services);
+      const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
+      if (
+        deployment.providerKind !== 'ssh-server'
+        || !active.remoteDeployment
+        || typeof active.remoteDeployment.reauthorizeDeployment !== 'function'
+      ) {
+        const error = new Error('Existing-server management re-authorization is unavailable.');
+        error.code = 'DEPLOYMENT_REAUTHORIZATION_UNAVAILABLE';
+        throw error;
+      }
+      await active.remoteDeployment.reauthorizeDeployment(
+        deployment.id,
+        requireDeploymentConsequenceSubmission(req.body),
+      );
+      return res.redirect(
+        303,
+        `/hivenues/studio/${encodeURIComponent(req.params.slug)}/deploy`,
+      );
+    } catch (error) {
+      return render(req, res, {
+        status: deploymentErrorStatus(error),
+        error: deploymentErrorMessage(
+          error,
+          'Deployment management re-authorization could not continue.',
+        ),
+      });
+    }
+  });
+
   router.get('/studio/:slug/deploy/:deploymentId/rollback-review', async (req, res) => {
     try {
       const active = requireServices(services);
@@ -860,7 +957,8 @@ function createHiVenuesDeploymentRouter({
   router.post('/studio/:slug/deploy/:deploymentId/release', mutate((active, req) => {
     const deployment = ownedDeployment(active, req.params.slug, req.params.deploymentId);
     if (
-      (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
+      deployment.state === 'reauthorizing'
+      || (deployment.state === 'deploying' && deployment.stateReason === 'rollback-started')
       || (
         deployment.state === 'degraded'
         && ['rollback-failed', 'authority-disconnect-removal-started'].includes(
