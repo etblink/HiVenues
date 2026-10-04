@@ -320,6 +320,91 @@ test('Era 7 Stage 5C P1: interrupted deployment is never presented as publicly v
   assert.doesNotMatch(html, /No deployment action is required/);
 });
 
+test('Era 7 Stage 5C P2: known public read-back mismatch is surfaced as a failure', async () => {
+  const { view } = model();
+  const release = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
+  const deployment = {
+    version: 1,
+    id: 'deployment-stage5c-public-mismatch',
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: [],
+    state: 'rollback-available',
+    stateReason: 'exact-release-readback-match',
+    providerState: 'ready',
+    paymentState: 'not-requested',
+    targetPublicFacts: {
+      host: '203.0.113.13',
+      port: 22,
+      username: 'hivenues-deploy',
+      bootstrapUsername: 'debian',
+    },
+    authorityRef: 'authority-stage5c-public-mismatch',
+    authorityPublic: null,
+    selectedRelease: { id: release.id, digest: release.digest },
+    package: {
+      schemaVersion: 1,
+      releaseId: release.id,
+      releaseDigest: release.digest,
+      packageDigest: 'a'.repeat(64),
+    },
+    activeRelease: {
+      id: release.id,
+      digest: release.digest,
+      packageDigest: 'a'.repeat(64),
+      deployedAt: '2026-10-04T01:00:00.000Z',
+    },
+    previousRelease: null,
+    runtimeProfile: {
+      kind: 'hivenues-public-runtime',
+      sourceSha: '1'.repeat(40),
+      sourceTree: '2'.repeat(40),
+      packageVersion: '1.0.0',
+      nodeVersion: 'v24.19.0',
+      bundleDigest: '3'.repeat(64),
+    },
+    pendingRuntimeProfile: null,
+    publicEndpoint: {
+      hostname: 'dev.example.test',
+      domainState: 'dns-confirmed',
+      dns: {
+        requirements: [{ type: 'A', name: 'dev.example.test', values: ['203.0.113.13'] }],
+        observation: null,
+      },
+      tls: { state: 'verified' },
+      publicReadBack: { state: 'mismatch' },
+    },
+    healthState: 'healthy',
+    rollbackState: 'available',
+    history: [],
+  };
+
+  const html = await renderView('deployment', {
+    pageTitle: 'Deployment — Harbor & Hearth',
+    ...view,
+    deploymentAvailable: true,
+    deploymentProfile: { capabilities: ['DEPLOY_RELEASE'], externalEffects: false },
+    deploymentAuthorityAvailable: false,
+    deploymentVerificationAvailable: false,
+    deploymentMutationAvailable: false,
+    deploymentPublicationInspectionAvailable: false,
+    deploymentPublicationExecutionAvailable: false,
+    deploymentLifecycleAvailable: false,
+    deploymentReauthorizationAvailable: false,
+    deployments: [deployment],
+    error: '',
+  });
+
+  assert.match(html, /Public site does not match this deployment/);
+  assert.match(html, /exact runtime or Website Release identity did not match/);
+  assert.match(html, /Review the public verification mismatch shown below/);
+  assert.match(html, /Website Release confirmed on server:/);
+  assert.doesNotMatch(html, /Public site is online and verified/);
+  assert.doesNotMatch(html, /Public site is serving:/);
+  assert.doesNotMatch(html, /data-open-public-site/);
+});
+
 test('Era 7 Stage 5C: established deployment review uses update language instead of first-bootstrap language', async () => {
   const { view } = model();
   const release = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
