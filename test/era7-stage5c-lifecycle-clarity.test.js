@@ -125,7 +125,7 @@ test('Era 7 Stage 5C: deployment page leads with the human lifecycle and moves r
   assert.match(html, /Working changes → Website Release → Put online → Connect domain → Verify public site/);
   assert.match(html, /data-deployment-human-status/);
   assert.match(html, /Public site is online and verified/);
-  assert.match(html, /Website Release online:/);
+  assert.match(html, /Public site is serving:/);
   assert.match(html, /data-open-public-site/);
   assert.match(html, /data-deployment-technical-details/);
   assert.match(html, /<summary>Technical deployment details<\/summary>/);
@@ -314,6 +314,8 @@ test('Era 7 Stage 5C P1: interrupted deployment is never presented as publicly v
 
   assert.match(html, /Public update is incomplete/);
   assert.match(html, /Review and resume the interrupted deployment/);
+  assert.match(html, /Last confirmed deployed Website Release:/);
+  assert.doesNotMatch(html, /Public site is serving:/);
   assert.doesNotMatch(html, /Public site is online and verified/);
   assert.doesNotMatch(html, /No deployment action is required/);
 });
