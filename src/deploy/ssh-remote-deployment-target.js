@@ -1498,6 +1498,8 @@ module.exports = {
   removeDeploymentAuthorityCommand,
   restoreDeploymentAuthorityCommand,
   finalizeReauthorizationCommand,
+  retryPreAuthConnection,
+  reviewedReauthorizationAccess,
   existingReleasePath,
   qualifiedNodePath,
   removeBootstrapKeyCommand,
