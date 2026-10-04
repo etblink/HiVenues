@@ -29,6 +29,65 @@ async function withMutationStage(stage, action) {
   }
 }
 
+const REAUTHORIZATION_PREAUTH_RETRY_DELAYS_MS = Object.freeze([250, 750]);
+
+async function retryPreAuthConnection(action, {
+  stage = 'reauthorization-ssh',
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  delays = REAUTHORIZATION_PREAUTH_RETRY_DELAYS_MS,
+} = {}) {
+  if (typeof action !== 'function') {
+    throw new TypeError('Pre-authentication retry requires an action.');
+  }
+  if (typeof sleep !== 'function') {
+    throw new TypeError('Pre-authentication retry requires a sleep function.');
+  }
+  const waits = Array.isArray(delays) ? [...delays] : [];
+  let attempts = 0;
+  while (true) {
+    attempts += 1;
+    try {
+      return await action(attempts);
+    } catch (error) {
+      if (error?.code !== 'DEPLOYMENT_SSH_CONNECTION_FAILED') throw error;
+      if (attempts > waits.length) {
+        if (error && typeof error === 'object') {
+          error.reauthorizationStage = stage;
+          error.retryAttempts = attempts;
+        }
+        throw error;
+      }
+      await sleep(Number(waits[attempts - 1]) || 0);
+    }
+  }
+}
+
+function reviewedReauthorizationAccess(remoteState) {
+  const state = String(remoteState || '');
+  if (state === 'bootstrap-temporary-only') {
+    return Object.freeze({
+      bootstrapAccessible: true,
+      steadyAccessible: false,
+    });
+  }
+  if (state === 'steady-authority-present-bootstrap-temporary') {
+    return Object.freeze({
+      bootstrapAccessible: true,
+      steadyAccessible: true,
+    });
+  }
+  if (state === 'steady-authority-already-restored') {
+    return Object.freeze({
+      bootstrapAccessible: false,
+      steadyAccessible: true,
+    });
+  }
+  throw targetError(
+    'DEPLOYMENT_REAUTHORIZATION_REMOTE_STATE_INVALID',
+    'Reviewed deployment re-authorization state is invalid.',
+  );
+}
+
 function readRuntime(root) {
   const absolute = path.resolve(root);
   return loadRuntimeProvenance(
@@ -563,6 +622,7 @@ class SshRemoteDeploymentTarget {
     hostSlug,
     bootstrapUsername = '',
     transport = new Ssh2PinnedMutationTransport(),
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   } = {}) {
     if (!authorityStore || typeof authorityStore.withPrivateKey !== 'function') {
       throw new TypeError('Remote deployment target requires an authority store.');
@@ -574,6 +634,9 @@ class SshRemoteDeploymentTarget {
     if (!hostSlug) throw new TypeError('Remote deployment target requires hostSlug.');
     if (!transport || typeof transport.withSession !== 'function') {
       throw new TypeError('Remote deployment target requires an SSH mutation transport.');
+    }
+    if (typeof sleep !== 'function') {
+      throw new TypeError('Remote deployment target requires a sleep function.');
     }
 
     this.authorityStore = authorityStore;
@@ -587,6 +650,7 @@ class SshRemoteDeploymentTarget {
     this.expectedHostKeyFingerprint = String(expectedHostKeyFingerprint || '');
     this.hostSlug = String(hostSlug);
     this.transport = transport;
+    this.sleep = sleep;
     this.publicKey = requirePublicKey(authorityStore.publicRecord(authorityId).publicKey);
     this.narrowingPending = false;
     this.lastPlan = null;
@@ -604,6 +668,27 @@ class SshRemoteDeploymentTarget {
         privateKey,
       }, action)
     ));
+  }
+
+  async withReauthorizationConnectionRetry(stage, action) {
+    return retryPreAuthConnection(action, {
+      stage,
+      sleep: this.sleep,
+    });
+  }
+
+  async reauthorizationAuthorityAccessible(username, stage) {
+    return this.withReauthorizationConnectionRetry(stage, async () => {
+      try {
+        const result = await this.withSession(username, (session) => (
+          session.exec('true', { timeoutMs: 10000 })
+        ));
+        return Number(result?.code || 0) === 0;
+      } catch (error) {
+        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+        throw error;
+      }
+    });
   }
 
   async stageTree(kind, localRoot, digest, finalPath) {
