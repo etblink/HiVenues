@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Website' }) %>
   <main
     class="cc-task"
     data-deployment-stage1
@@ -19,13 +20,10 @@
       <span class="cc-draft-status">Working Version <%= revision %></span>
     </nav>
 
-    <p class="cc-kicker">Put website online</p>
-    <h1>Put an approved Website Release on the public Internet.</h1>
-    <p class="cc-task__dek">
-      Deployment starts from a Website Release—not from unfinished Working changes. Choose the Release you want
-      online, review the exact server consequence, connect a domain, and let HiVenues verify what the public site
-      is actually serving.
-    </p>
+    <p class="cc-kicker">Website connection tools</p>
+    <h1><%= deploymentMutationAvailable ? 'Connect and check your website.' : 'Local simulation tools.' %></h1>
+    <p class="cc-task__dek"><%= deploymentMutationAvailable ? 'Set up protected server access, connect an address, or inspect a website that needs attention. Your selected content stays preserved while you complete setup.' : 'This Studio cannot publish to the internet. Simulations below run locally and never establish public website proof.' %></p>
+    <a class="op-button" href="/hivenues/studio/<%= graph.identity.slug %>/website">Back to Website</a>
 
     <section class="cc-review-card" data-deployment-lifecycle>
       <p class="cc-kicker">Website lifecycle</p>
@@ -111,15 +109,16 @@
       <% } %>
 
       <section style="margin-top:2rem">
-        <p class="cc-kicker">Public website</p>
-        <h2>Where this Website Release is online</h2>
+        <p class="cc-kicker">Connections & simulations</p>
+        <h2>Website connection details</h2>
 
         <% if (!deployments.length) { %>
-          <p data-deployment-empty>No server is connected yet. Connect a server above when you are ready to put a Website Release online.</p>
+          <p data-deployment-empty><%= deploymentMutationAvailable ? 'No server is connected yet. Connect a server to continue publishing.' : 'This Studio is local-only. The tools here can simulate a connection; they cannot put a website online.' %></p>
         <% } %>
 
         <div class="cc-release-list">
           <% deployments.forEach((deployment) => { %>
+            <% if (deployment.providerKind === 'synthetic-offline') { %><div class="op-note"><strong>Simulation only</strong> · No public website, real server or public proof.</div><% } else if (deployment.selectedRelease) { %><div class="op-note">Your selected website copy is preserved. <a href="/hivenues/studio/<%= graph.identity.slug %>/publish/<%= deployment.selectedRelease.id %>">Continue publishing this copy</a></div><% } %>
             <%
               const latestWebsiteRelease = (
                 releases.find((item) => item.id === liveReleaseId)

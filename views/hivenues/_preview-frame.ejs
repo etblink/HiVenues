@@ -1,0 +1,3 @@
+<% if (typeof draftPreview !== 'undefined' && draftPreview) { %>
+<aside class="op-preview-frame" aria-label="<%= typeof previewCopy !== 'undefined' ? 'Saved copy preview' : 'Draft preview' %>"><strong><%= typeof previewCopy !== 'undefined' ? `Saved copy · draft ${previewCopy.draftRevision}` : 'Draft preview' %></strong><span>Only visible here</span><% if (typeof previewCopy !== 'undefined') { %><a href="/hivenues/studio/<%= graph.identity.slug %>/publish/<%= previewCopy.id %>">Back to saved copy</a><% } else { %><a href="/hivenues/studio/<%= graph.identity.slug %>">Back to editing</a><% } %></aside>
+<% } %>

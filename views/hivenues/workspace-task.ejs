@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('_head', { graph, pageTitle }) %></head>
+<body class="op-body">
+<%- include('_operator-header', { activeDestination: screen === 'history' ? 'History' : 'Website', actionSuppressed: !['website', 'history'].includes(screen), previewHref: copy ? `${operator.base}/publish/${copy.id}/preview` : undefined }) %>
+<main class="op-main" id="main">
+  <% if (error) { %><div class="op-alert" role="alert"><h2>This needs another look</h2><p><%= error %></p></div><% } %>
+  <% const copyPath = copy ? `${operator.base}/publish/${encodeURIComponent(copy.id)}` : ''; %>
+  <% if (operator.canPublish && ['content-review', 'destination', 'consequence', 'address-review', 'result'].includes(screen)) { %>
+    <ol class="op-steps" aria-label="Publishing progress">
+      <li <%- screen === 'content-review' ? 'aria-current="step"' : '' %>>1. Review content</li>
+      <li <%- ['destination', 'consequence', 'address-review'].includes(screen) ? 'aria-current="step"' : '' %>>2. Confirm website</li>
+      <li <%- screen === 'result' ? 'aria-current="step"' : '' %>>3. Check result</li>
+    </ol>
+  <% } %>
+  <% if (screen === 'website') { %>
+    <p class="op-eyebrow">Website</p><h1><%= operator.title %></h1>
+    <% if (!operator.canPublish) { %>
+      <p class="op-lead">Create, edit and preview here. This Studio cannot publish to the internet.</p>
+      <section class="op-panel"><h2>Your work is saved on this computer</h2><p>You can review and save an exact website copy now. Publishing needs the installed HiVenues Studio with protected server access.</p><a class="op-button op-button--primary" href="<%= operator.base %>/publish">Review and save a copy</a><a class="op-button" href="<%= operator.base %>">Keep editing</a></section>
+    <% } else if (!operator.targets.length) { %>
+      <p class="op-lead">Choose what visitors will see, then connect the website that will show it.</p><a class="op-button op-button--primary" href="<%= operator.base %>/publish">Publish website</a>
+    <% } %>
+    <% operator.targets.forEach((destination) => { %>
+      <section class="op-panel"><p class="op-eyebrow"><%= destination.name %></p><h2><%= destination.title %></h2>
+        <% if (destination.checkedAt) { %><p>Last checked <time><%= destination.checkedAt %></time>. This is the result of that check.</p><% } %>
+        <% if (destination.managementDisconnected) { %><p>HiVenues management is disconnected. The last website check does not grant permission to change it.</p><% } %>
+        <% if (destination.url) { %><a class="op-button" href="<%= destination.url %>" target="_blank" rel="noopener">Open website ↗</a><% } %>
+        <a class="op-button" href="<%= operator.base %>/deploy">Website connection & checks</a>
+      </section>
+    <% }) %>
+    <% if (operator.latest) { %><section class="op-panel"><p class="op-eyebrow">Saved for publishing</p><h2>Copy from draft <%= operator.latest.draftRevision %></h2><p><%= operator.latest.snapshot.facts.tagline %></p><p>Saving this copy did not update a public website.</p><a class="op-button" href="<%= operator.base %>/publish/<%= operator.latest.id %>">Continue with this copy</a></section><% } %>
+    <details class="op-details"><summary>Studio capability & development tools</summary><p><%= operator.canPublish ? 'Protected website services are available. Each destination still requires its own checks and confirmation.' : 'Public publishing is unavailable in this local runtime. No public success can be established by a simulation.' %></p><% if (operator.simulations.length) { %><p><%= operator.simulations.length %> local simulation(s). These are not public websites.</p><% } %><a href="<%= operator.base %>/deploy">Open connection tools and labelled simulations</a></details>
+  <% } else if (screen === 'content-review') { %>
+    <p class="op-eyebrow"><%= operator.canPublish ? operator.primaryLabel : 'Save a website copy' %></p><h1>Ready for visitors?</h1>
+    <p class="op-lead"><%= operator.canPublish ? 'Review this draft, then save the exact copy you want to publish. You’ll confirm its destination separately.' : 'Review this draft and keep an exact copy. Later edits will stay in your draft.' %></p>
+    <% if (!operator.canPublish) { %><div class="op-note"><strong>This Studio is local-only.</strong> You can save this copy here; publishing to the internet is unavailable.</div><% } %>
+    <%- include('_copy-summary', { copyGraph: graph, copyLabel: `Current draft · ${revision}` }) %>
+    <a class="op-button" href="<%= operator.base %>/preview">Preview the complete draft</a>
+    <form class="op-panel" method="post" action="<%= operator.base %>/publish" data-content-approval>
+      <h2><%= operator.draft.matchingCopy ? 'This exact content is already saved' : 'Keep an exact copy of this content' %></h2>
+      <p><%= operator.draft.matchingCopy ? 'Continue with the existing copy. Later edits stay in your draft.' : 'This copy will stay unchanged when you make later edits. Your public website stays as it is until you confirm an update.' %></p>
+      <input type="hidden" name="expectedRevision" value="<%= revision %>"><input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
+      <label class="op-check"><input type="checkbox" name="confirmation" value="approve-exact-content" required> I’ve reviewed this content and want to use this exact copy.</label>
+      <button class="op-button op-button--primary" type="submit"><%= operator.draft.matchingCopy ? 'Use this saved copy' : 'Save this copy & continue' %></button>
+    </form>
+    <details class="op-details"><summary>Exact content identity</summary><p>Draft <%= revision %> · <code><%= draftDigest %></code></p></details>
+  <% } else if (screen === 'destination') { %>
+    <p class="op-eyebrow">Content saved</p><h1><%= operator.canPublish ? 'Where should this website appear?' : 'Your website copy is saved' %></h1>
+    <p class="op-lead"><%= operator.canPublish ? 'Choose one destination to review its exact changes. Nothing public changes until you confirm.' : 'This Studio is local-only. Your copy is preserved on this computer. Publishing to the internet is unavailable here.' %></p>
+    <%- include('_copy-summary', { copyGraph: copy.snapshot, copyLabel: `Saved copy · draft ${copy.draftRevision}` }) %>
+    <a class="op-button" href="<%= copyPath %>/preview">Preview this saved copy</a>
+    <% if (draftDigest !== copy.digest) { %><div class="op-note">Your draft now differs from this saved copy. Continuing uses the content shown here. <a href="<%= operator.base %>/publish">Review the current draft instead</a></div><% } %>
+    <% if (operator.canPublish) { %>
+      <% operator.targets.forEach((destination) => { %><form class="op-panel" method="post" action="<%= copyPath %>/to/<%= destination.id %>"><p class="op-eyebrow"><%= destination.title %></p><h2><%= destination.name %></h2><p><%= destination.verified ? 'Compare this copy with the last verified website, then review the update.' : 'The public website is not currently verified. Review the destination before any change.' %></p><% if (destination.installedCopy?.id === copy.id && destination.installedCopy?.digest === copy.digest) { %><a class="op-button op-button--primary" href="<%= copyPath %>/to/<%= destination.id %>/result">Continue to the public check</a><button class="op-button" type="submit">Review website software update</button><% } else { %><button class="op-button op-button--primary" type="submit">Review this destination</button><% } %></form><% }) %>
+      <% if (!operator.targets.length) { %><section class="op-panel"><h2>Connect your website</h2><p>Your copy is saved. Server identity and protected access must be checked before publishing is available.</p><a class="op-button" href="<%= operator.base %>/deploy">Connect a website</a><p>After setup, return to Website → Continue with this copy.</p></section><% } %>
+    <% } %>
+    <a class="op-button" href="<%= operator.base %>">Keep editing</a><a class="op-button" href="<%= operator.base %>/history">Saved copies</a>
+    <details class="op-details"><summary>Exact saved content</summary><p>Saved <time><%= copy.createdAt %></time></p><code><%= copy.id %> · <%= copy.digest %></code><pre><%= JSON.stringify(copy.snapshot, null, 2) %></pre></details>
+  <% } else if (screen === 'consequence') { %>
+    <% const initial = !target.activeRelease; const sameContent = target.activeRelease?.id === copy.id && target.activeRelease?.digest === copy.digest; %>
+    <p class="op-eyebrow">Confirm this destination</p><h1><%= initial ? 'Set up this website' : sameContent ? 'Update website software' : 'Update this website' %></h1>
+    <p class="op-lead"><%= presentation.name %></p>
+    <%- include('_copy-summary', { copyGraph: copy.snapshot, copyLabel: `Approved content · draft ${copy.draftRevision}` }) %>
+    <section class="op-panel"><h2><%= presentation.baseline ? 'Changes from the last verified website' : 'Public website comparison unavailable' %></h2>
+      <% if (!presentation.baseline) { %><p>HiVenues cannot confirm what visitors currently see. The full saved copy will be installed.</p><% } %>
+      <% if (!changes.length) { %><p>The content matches the last verified website. This action may update its supporting software.</p><% } %>
+      <ul class="op-changes"><% changes.forEach((change) => { %><li><strong><%= change.label %></strong><% if (change.before) { %><del><%= change.before %></del><% } %><span><%= change.after %></span></li><% }) %></ul>
+    </section>
+    <section class="op-panel"><h2>What you’re confirming</h2><ul><li><%= initial ? 'Set up the HiVenues service on this checked server and install the exact saved copy.' : 'Install this exact saved copy and the qualified HiVenues software on this server.' %></li><li>Restart the dedicated website service as needed, then check what the server is running.</li><% if (initial) { %><li>Move ongoing management to the restricted HiVenues account.</li><% } %></ul><p>This action does not configure a domain or DNS. A separate public-address check is needed before HiVenues can confirm what visitors see.</p></section>
+    <details class="op-details"><summary>Exact technical review</summary><p>Server <code><%= review.target.currentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></p><p>Trusted fingerprint <code><%= review.target.trustedHostKeyFingerprint %></code></p><p>Content <code><%= review.release.id %> · <%= review.release.digest %></code></p><p>Package <code><%= review.release.packageDigest %></code></p><pre><%= JSON.stringify({ runtime: review.runtime, consequences: review.consequences, held: review.held, reviewDigest: review.reviewDigest }, null, 2) %></pre></details>
+    <form class="op-panel" method="post" action="<%= copyPath %>/to/<%= target.id %>/execute" data-website-execution>
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label class="op-check"><input type="checkbox" name="confirmation" value="deploy-exact-release" required> I confirm these changes to <%= presentation.name %> using this exact saved copy.</label>
+      <button class="op-button op-button--primary" type="submit"><%= initial ? 'Set up website on this server' : sameContent ? 'Update website software' : 'Update website' %></button>
+      <p class="op-progress" role="status" hidden>Updating this website. Waiting for the server’s result…</p>
+    </form>
+  <% } else if (screen === 'address-review') { %>
+    <p class="op-eyebrow">Confirm public address</p><h1>Publish at <%= review.hostname %></h1>
+    <p class="op-lead">This address has been checked against your server. Confirm the website routing and secure connection separately from its saved content.</p>
+    <section class="op-panel"><h2>What changes</h2><p>HiVenues will configure only <strong><%= review.hostname %></strong> on this server and request its secure HTTPS connection. DNS records and provider billing stay unchanged.</p><p>The server’s exact saved website copy stays the same. A public check follows before success is confirmed.</p></section>
+    <details class="op-details"><summary>Exact address, authority and content review</summary><pre><%= JSON.stringify(review, null, 2) %></pre></details>
+    <form class="op-panel" method="post" action="<%= copyPath %>/to/<%= target.id %>/address" data-website-execution>
+      <input type="hidden" name="reviewDigest" value="<%= review.reviewDigest %>">
+      <label class="op-check"><input type="checkbox" name="confirmation" value="publish-reviewed-hostname" required> I confirm publishing this saved copy at <%= review.hostname %>.</label>
+      <button class="op-button op-button--primary" type="submit">Publish at this address</button><p class="op-progress" role="status" hidden>Connecting this exact address. Waiting for the server’s result…</p>
+    </form>
+  <% } else if (screen === 'result') { %>
+    <% const installedExact = target.activeRelease?.id === copy.id && target.activeRelease?.digest === copy.digest && ['healthy', 'rollback-available'].includes(target.state); const exactResult = presentation.verified && target.activeRelease?.id === copy.id && target.activeRelease?.digest === copy.digest; %>
+    <p class="op-eyebrow"><%= presentation.name %></p><h1><%= exactResult ? 'Website verified' : presentation.verified ? 'A different copy was verified' : presentation.title %></h1>
+    <p class="op-lead"><%= exactResult ? 'The public address returned this exact website copy and its expected software.' : installedExact ? 'The server confirmed this exact website copy. Its public address still needs verification.' : 'This publishing attempt is not confirmed. Check the website before continuing.' %></p>
+    <% if (presentation.checkedAt) { %><p>Last public check: <time><%= presentation.checkedAt %></time></p><% } %>
+    <% if (presentation.verified && !exactResult) { %><div class="op-note">The verified website shows a different saved copy. This publishing attempt is not confirmed.</div><% } %>
+    <% if (presentation.url) { %><a class="op-button op-button--primary" href="<%= presentation.url %>" target="_blank" rel="noopener">Open website ↗</a><% } %>
+    <% if (target.publicEndpoint?.domainState === 'dns-confirmed' && !exactResult) { %><a class="op-button" href="<%= copyPath %>/to/<%= target.id %>/address">Review public address connection</a><% } %>
+    <% if (target.publicEndpoint) { %><form method="post" action="<%= copyPath %>/to/<%= target.id %>/check"><button class="op-button" type="submit">Check public website</button></form><% } else { %><section class="op-panel"><h2>Connect the public address</h2><p>The server and public address have separate checks. Your website is not confirmed as public yet.</p><a class="op-button" href="<%= operator.base %>/deploy">Continue address setup</a></section><% } %>
+    <a class="op-button" href="<%= operator.base %>/website">Website overview</a><a class="op-button" href="<%= operator.base %>">Return to editing</a>
+  <% } else if (screen === 'history') { %>
+    <p class="op-eyebrow">History</p><h1>Your saved website copies</h1><p class="op-lead">Each copy stays unchanged. Restoring a draft and rolling back an actual website are separate actions.</p>
+    <% if (!releases.length) { %><p>No saved copies yet.</p><% } %>
+    <% releases.slice().reverse().forEach((item) => { %><article class="op-history-row"><div><h2>Copy from draft <%= item.draftRevision %><%= item.kind === 'urgent' ? ' · focused status update' : '' %></h2><p><%= item.snapshot.facts.tagline %></p><time><%= item.createdAt %></time></div><a class="op-button" href="<%= operator.base %>/publish/<%= item.id %>">Use this copy</a></article><% }) %>
+    <details class="op-details"><summary>Draft restoration & website recovery</summary><p>Draft restoration only changes what you edit. Website rollback is limited to eligible installed copies and requires its own exact review.</p><a class="op-button" href="<%= operator.base %>/release">Existing draft restoration tools</a><a class="op-button" href="<%= operator.base %>/deploy">Existing website recovery tools</a></details>
+  <% } else if (screen === 'problem') { %>
+    <h1>Check before continuing</h1><p class="op-lead">Your saved content is preserved. A failed or interrupted request does not prove that the website stayed unchanged.</p>
+    <% if (copy) { %><a class="op-button" href="<%= copyPath %>">Review this copy and destination again</a><% } %><a class="op-button" href="<%= operator.base %>/deploy">Check website connection & recovery</a><a class="op-button" href="<%= operator.base %>/website">Website overview</a>
+  <% } %>
+</main>
+<script src="/js/hivenues-studio.js" defer></script>
+</body></html>

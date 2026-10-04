@@ -74,7 +74,7 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
     if (!activity) return res.sendStatus(404);
-    const draftRouteBase = `/hivenues/studio/${encodeURIComponent(snapshot.draft.identity.slug)}/preview`;
+    const draftRouteBase = res.locals.previewRouteBase || `/hivenues/studio/${encodeURIComponent(snapshot.draft.identity.slug)}/preview`;
     const calendar = renderIcs(snapshot.draft, activity, {
       publicRouteBase: draftRouteBase,
     });

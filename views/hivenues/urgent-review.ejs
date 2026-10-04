@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
   <main class="cc-task cc-task--urgent" data-urgent-operation="<%= operation.id %>" data-urgent-state="<%= operation.state %>">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>

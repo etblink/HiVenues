@@ -8,6 +8,7 @@ const { createHiVenuesCommunityRouter } = require('./community-router');
 const { createHiVenuesDeploymentRouter } = require('./deployment-router');
 const { createHiVenuesSocialReadRouter } = require('./social-read-router');
 const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./local-media');
+const { createWorkspaceRouter } = require('./workspace-router');
 const { createHiVenuesOperatorRouter } = require('./operator-router');
 const { createHiVenuesPreviewRouter } = require('./preview-router');
 const { buildViewModel } = require('./present');
@@ -283,6 +284,7 @@ function createHiVenuesApp({
   app.use('/hivenues', createRecoveryRouter({ store }));
   // Preview routes intentionally run before the ordinary operator/public router.
   // They render only the working snapshot and never route through publicSnapshot.
+  app.use('/hivenues', createWorkspaceRouter({ store, services: deploymentServices }));
   app.use('/hivenues', createHiVenuesPreviewRouter({ store }));
   // Era 3 social discovery is strictly read-side. It consumes the existing
   // HiveReadService contract and never acquires signing or broadcast authority.
@@ -302,7 +304,7 @@ function createHiVenuesApp({
     store,
     services: deploymentServices,
   }));
-  app.use('/hivenues', createHiVenuesOperatorRouter({ store }));
+  app.use('/hivenues', createHiVenuesOperatorRouter({ store, deploymentServices }));
   app.use('/htmx', express.static(path.dirname(require.resolve('htmx.org'))));
   app.use(express.static(path.join(root, 'public')));
   return app;

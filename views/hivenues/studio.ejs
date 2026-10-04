@@ -5,23 +5,9 @@
 </head>
 <body class="cc-studio-body">
   <div class="cc-studio-shell">
-    <header class="cc-studio-topbar">
-      <div class="cc-studio-brand">
-        <a class="cc-studio-brand__mark" href="/hivenues" aria-label="HiVenues home">H</a>
-        <div>
-          <strong><%= graph.identity.displayName %></strong>
-          <small>HiVenues Studio</small>
-        </div>
-      </div>
-      <div class="cc-studio-actions">
-        <div class="cc-studio-state-cluster" aria-label="Working state">
-          <span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span>
-          <span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Working</span>
-        </div>
-        <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
-        <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/release">Website Release</a>
-      </div>
-    </header>
+    <%- include('_operator-header', { activeDestination: 'Edit website' }) %>
+    <div class="op-savebar"><span id="cc-save-state" class="cc-save-state" aria-live="polite">Saved</span><span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Draft</span></div>
+    <%- include('_operator-state') %>
 
     <% if (typeof releasedNotice === 'string' && releasedNotice) { %>
       <div class="cc-studio-notice" role="status" data-released-notice>
@@ -35,16 +21,16 @@
 
     <section class="cc-first-draft-reveal" data-first-draft-reveal hidden aria-labelledby="cc-first-draft-title">
       <div class="cc-first-draft-reveal__card" role="dialog" aria-modal="true" aria-labelledby="cc-first-draft-title">
-        <p class="cc-first-draft-reveal__eyebrow">Your first working version</p>
+        <p class="cc-first-draft-reveal__eyebrow">Your first draft</p>
         <h1 id="cc-first-draft-title">Here is your place.</h1>
-        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is now one working host in HiVenues. This is the same place you will keep shaping below—not an exported template or a second website definition.</p>
+        <p class="cc-first-draft-reveal__lead"><strong><%= graph.identity.displayName %></strong> is ready to shape. Click the page to edit, or preview it as a visitor.</p>
         <div class="cc-first-draft-reveal__facts" aria-label="First draft state">
           <span><%= family.label %></span>
-          <span>Working version</span>
-          <span>No Website Release yet</span>
+          <span>Saved on this computer</span>
+          <span>Not published yet</span>
         </div>
         <div class="cc-first-draft-reveal__actions">
-          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Open Studio</button>
+          <button class="cc-button cc-button--ink" type="button" data-dismiss-first-draft>Start editing</button>
           <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">See visitor view</a>
         </div>
       </div>
@@ -94,7 +80,7 @@
         </details>
 
         <details>
-          <summary>Site</summary>
+          <summary>Design & settings</summary>
           <div class="cc-studio-commandmenu">
             <span class="cc-studio-commandmenu__label">Creative direction</span>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/direction">Direction</a>
@@ -108,10 +94,8 @@
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Contact</button>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
-            <a href="/hivenues/studio/<%= graph.identity.slug %>/release">Website Releases & history</a>
-            <% if (typeof hivenuesDeploymentAvailable !== 'undefined' && hivenuesDeploymentAvailable) { %>
-              <a href="/hivenues/studio/<%= graph.identity.slug %>/deploy" data-studio-deployment>Put website online</a>
-            <% } %>
+
+
           </div>
         </details>
       </nav>
@@ -120,7 +104,7 @@
         <div class="cc-studio-stage__toolbar">
           <div class="cc-studio-stage__identity">
             <strong><%= family.label %></strong>
-            <span>Working place</span>
+            <span>Your draft</span>
           </div>
           <div class="cc-studio-stage__review">
             <span class="cc-studio-stage__meta"><%= graph.facts.presence.label %></span>

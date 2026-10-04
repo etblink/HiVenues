@@ -1,0 +1,7 @@
+<div id="operator-state" class="op-state"<%- typeof oob !== 'undefined' && oob ? ' hx-swap-oob="outerHTML"' : '' %>>
+  <% if (typeof operator !== 'undefined' && operator) { %>
+    <span><%= operator.title %></span>
+    <span><%= operator.draft.differsFromLatest ? 'Draft changes saved here' : 'Draft matches a saved copy' %></span>
+    <a href="<%= operator.base %>/website">Website details</a>
+  <% } %>
+</div>

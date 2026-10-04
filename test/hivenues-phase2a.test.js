@@ -224,10 +224,10 @@ test('Studio is server-rendered, current-revision aware and uses one transient-o
   assert.match(studio.text, /class="cc-studio-stage" aria-label="Your place"/);
   assert.match(studio.text, /id="candidate-inspector"[^>]*data-open="false"/);
   assert.match(studio.text, /href="\/hivenues\/studio\/northline-hall\/preview"/);
-  assert.match(studio.text, /href="\/hivenues\/studio\/northline-hall\/release"/);
+  assert.match(studio.text, /href="\/hivenues\/studio\/northline-hall\/publish"/);
   assert.match(studio.text, /Page/);
   assert.match(studio.text, /Activities/);
-  assert.match(studio.text, /Site/);
+  assert.match(studio.text, /Design & settings/);
   assert.doesNotMatch(studio.text, /id="cc-full-preview-frame"|Complete visitor page|Site preview · Poster room/);
 
   const inspector = await request(app)

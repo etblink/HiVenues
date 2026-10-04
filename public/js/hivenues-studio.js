@@ -9,6 +9,7 @@
       'preserve server-owned save, stale-conflict, focal, and reconcile behavior',
       'present the transient first-draft handoff over the same canonical host',
       'switch the same canonical canvas between wide and narrow review geometry',
+      'show transient submission feedback while the server owns publishing results',
     ]),
   });
 
@@ -124,6 +125,13 @@
     sync(); presentReveal();
   }
 
+  document.querySelectorAll('[data-website-execution]').forEach((form) => {
+    form.addEventListener('submit', () => {
+      form.querySelector('button[type="submit"]').disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      form.querySelector('[role="status"]').hidden = false;
+    });
+  });
   initCreator();
   initStudio();
   window.HiVenuesStudio = inventory;

@@ -4,6 +4,7 @@
   <%- include('_head', { graph: current.graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website', graph: current.graph }) %>
   <main class="cc-task">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= current.graph.identity.slug %>/direction">Cancel proposal</a>

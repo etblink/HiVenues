@@ -11,7 +11,7 @@
     ? publicRouteBase
     : `/hivenues/${encodeURIComponent(graph.identity.slug)}`;
   const routeBase = previewMode
-    ? `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`
+    ? (typeof previewRouteBase === 'string' ? previewRouteBase : `/hivenues/studio/${encodeURIComponent(graph.identity.slug)}/preview`)
     : releasedRouteBase;
   const hostHref = routeBase || '/';
   const communityAvailable = typeof publicCapabilities === 'undefined' || publicCapabilities.community !== false;
@@ -20,6 +20,7 @@
   const calendarHref = (activity) => `${activityHref(activity)}/calendar.ics`;
 %>
 <body class="cc-public cc-hospitality <%= hasRealHero ? 'cc-public--real-media' : 'cc-public--bootstrap-media' %> <%= sparseHost ? 'cc-public--sparse' : '' %>" style="--cc-accent:<%= graph.presentation.accent %>">
+<% if (typeof draftPreview !== 'undefined' && draftPreview) { %><%- include('../_preview-frame') %><% } %>
   <header class="cc-hospitality-nav">
     <a class="cc-hospitality-name" href="<%= hostHref %>"><%- include('../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <p><%= graph.facts.presence.label %></p>

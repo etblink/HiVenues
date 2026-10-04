@@ -4,6 +4,7 @@
   <%- include('../../_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-public cc-poster cc-territory cc-territory--poster" style="--cc-accent:<%= graph.presentation.accent %>">
+<% if (typeof draftPreview !== 'undefined' && draftPreview) { %><%- include('../../_preview-frame') %><% } %>
   <header class="cc-territory-poster__mast">
     <a class="cc-wordmark" href="<%= territory.navigation.find((item) => item.role === 'home')?.path %>"><%- include('../../_logo', { logoMedia }) %><span><%= graph.identity.displayName %></span></a>
     <nav aria-label="Primary"><% territory.navigation.forEach((item) => { %><a href="<%= item.path %>" <%= item.surfaceRole === surface.role ? 'aria-current="page"' : '' %>><%= item.label %></a><% }) %></nav>

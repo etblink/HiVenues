@@ -293,7 +293,7 @@ test('Era 7 Stage 1: Studio exercises only the synthetic local deployment lifecy
   const studio = await request(app)
     .get('/hivenues/studio/harbor-and-hearth')
     .expect(200);
-  assert.match(studio.text, /data-studio-deployment/);
+  assert.match(studio.text, /Website details/);
 
   let response = await request(app)
     .get('/hivenues/studio/harbor-and-hearth/deploy')

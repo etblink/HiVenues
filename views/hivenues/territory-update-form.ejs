@@ -4,6 +4,7 @@
   <%- include('_head', { graph, pageTitle }) %>
 </head>
 <body class="cc-task-body">
+<%- include('_operator-header', { activeDestination: 'Edit website' }) %>
 <%
   const v = typeof values === 'object' && values ? values : {};
   const selectedMedia = new Set(Array.isArray(v.mediaIds) ? v.mediaIds : (v.mediaIds ? [v.mediaIds] : []));

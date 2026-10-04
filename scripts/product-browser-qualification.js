@@ -1856,14 +1856,14 @@ async function runValueRecipientStudioEvidence(
   try {
     await page.setViewportSize(DESKTOP);
     await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
-    await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
+    await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Design & settings' }).locator('summary').click();
     await page.getByRole('button', { name: 'Support & value' }).click();
     const inspector = page.locator('#candidate-inspector');
     await inspector.getByText('Choose who receives direct support.').waitFor();
     assert.equal(await inspector.locator('input[name="valueRecipient"]').inputValue(), 'northline-pay');
     assert.match(await inspector.textContent(), /separate money-recipient role/i);
     assert.match(await inspector.textContent(), /No private key is stored here/i);
-    assert.match(await inspector.textContent(), /Working version only/i);
+    assert.match(await inspector.textContent(), /changes in your draft/i);
     await capture(page, axeSource, manifest, 'poster-studio-value-recipient-desktop');
 
     const liveBefore = store.publicSnapshot('northline-hall').draftDigest;
@@ -1916,7 +1916,7 @@ async function runVotePolicyStudioEvidence(
     for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
       await page.setViewportSize(viewport);
       await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
-      await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Site' }).locator('summary').click();
+      await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Design & settings' }).locator('summary').click();
       await page.locator('button[hx-get*="resource=participation"]').click();
       const inspector = page.locator('#candidate-inspector');
       await inspector.getByText('Choose whether this site shows a downvote action.').waitFor();
@@ -2389,8 +2389,8 @@ async function runDeploymentStage1Evidence(browser, axeSource, manifest) {
   try {
     await page.goto(origin + '/hivenues/studio/' + slug, { waitUntil: 'networkidle' });
     assert.equal(
-      await page.locator('[data-studio-deployment]').getAttribute('href'),
-      '/hivenues/studio/' + slug + '/deploy',
+      await page.getByRole('link', { name: 'Website details', exact: true }).getAttribute('href'),
+      '/hivenues/studio/' + slug + '/website',
     );
 
     await page.goto(origin + '/hivenues/studio/' + slug + '/deploy', { waitUntil: 'networkidle' });
@@ -2943,6 +2943,58 @@ function publicReleaseInvariant(snapshot) {
   };
 }
 
+async function runStage5DWorkspaceEvidence(browser, axeSource, manifest) {
+  const { fixture, exactFakeTargetFactory } = require('../test/helpers/stage5d-offline-fixture');
+  const { InstalledRemoteDeploymentService } = require('../src/product/deployment-execution');
+  const cleanup = [];
+  const f = fixture({ after: (fn) => cleanup.push(fn) });
+  const captureTarget = {};
+  const remoteDeployment = new InstalledRemoteDeploymentService({
+    deploymentStore: f.deploymentStore, packageBuilder: f.packageBuilder, authorityStore: {},
+    runtimeBundlesRoot: path.join(f.root, 'runtime-bundles'), buildProvenance: f.buildProvenance,
+    targetFactory: exactFakeTargetFactory(captureTarget),
+  });
+  const app = createHiVenuesApp({ store: f.hostStore, identityServices: false, participationServices: false,
+    deploymentServices: { deploymentStore: f.deploymentStore, packageBuilder: f.packageBuilder, remoteDeployment } });
+  const server = await startHiVenuesServer(app, { port: 0 });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const context = await browser.newContext({ viewport: DESKTOP });
+  await context.route('**/*', (route) => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
+  const page = await context.newPage();
+  await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+    const label = document.createElement('aside');
+    label.textContent = 'OFFLINE QUALIFICATION · simulated server · no public proof';
+    label.style.cssText = 'background:#802f14;color:white;padding:12px;text-align:center;font:bold 14px Arial';
+    document.body.prepend(label);
+  }));
+  try {
+    for (const [name, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE], ['mobile320', { width: 320, height: 800 }]]) {
+      await page.setViewportSize(viewport);
+      await page.goto(origin + `/hivenues/studio/${f.slug}`);
+      assert.equal(await page.getByRole('navigation', { name: 'Your place workspace' }).getByRole('link').count(), 4);
+      await page.getByRole('link', { name: 'Preview', exact: true }).waitFor();
+      await capture(page, axeSource, manifest, 'stage5d-workspace-' + name);
+    }
+    await page.setViewportSize(DESKTOP);
+    await page.getByRole('link', { name: 'Publish website', exact: true }).click();
+    await capture(page, axeSource, manifest, 'stage5d-content-approval');
+    await page.getByRole('checkbox').check();
+    await page.getByRole('button', { name: 'Use this saved copy' }).click();
+    assert.equal(captureTarget.options, undefined);
+    await capture(page, axeSource, manifest, 'stage5d-destination');
+    await page.getByRole('button', { name: 'Review this destination' }).click();
+    assert.equal(captureTarget.options, undefined);
+    await capture(page, axeSource, manifest, 'stage5d-exact-confirmation');
+    await page.getByRole('checkbox').check();
+    await page.getByRole('button', { name: 'Set up website on this server', exact: true }).click();
+    await page.getByRole('heading', { name: 'Public check pending', exact: true }).waitFor();
+    assert.equal(f.deploymentStore.get(f.deploymentId).activeRelease.id, f.released.id);
+    await capture(page, axeSource, manifest, 'stage5d-public-check-pending');
+  } finally {
+    await context.close(); await stopServer(server); cleanup.forEach((fn) => fn());
+  }
+}
+
 async function main() {
   fs.rmSync(OUTPUT_ROOT, { recursive: true, force: true });
   fs.mkdirSync(OUTPUT_ROOT, { recursive: true });
@@ -2991,6 +3043,7 @@ async function main() {
     screenshots: [],
     audits: [],
     scenarios: [
+      'stage5d-workspace-and-exact-publishing-offline',
       'three-direction-not-identified',
       'progressive-account-onboarding',
       'studio-progressive-account-onboarding',
@@ -3187,6 +3240,7 @@ async function main() {
     await runDeploymentStage2AAuthorityEvidence(browser, axeSource, manifest);
     await runDeploymentStage2BVerificationEvidence(browser, axeSource, manifest);
     await runDeploymentStage3BCompositionEvidence(browser, axeSource, manifest);
+    await runStage5DWorkspaceEvidence(browser, axeSource, manifest);
   } finally {
     await browser.close();
     await stopServer(server);

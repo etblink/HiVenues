@@ -256,7 +256,7 @@ test('dogfood remediation: Studio exposes canvas-first draft authoring, dedicate
 
   const studio = await request(app).get(`/hivenues/studio/${slug}`).expect(200);
   assert.match(studio.text, /Poster room/);
-  assert.match(studio.text, /Working place/);
+  assert.match(studio.text, /Your draft/);
   assert.match(studio.text, /Shape your place/);
   assert.match(studio.text, /Story & visit details/);
   assert.match(studio.text, /\+ Add activity/);
