@@ -19,22 +19,22 @@
 
     <% if (failure) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
-        <p class="cc-studio-inspector__eyebrow">Nothing was published</p>
+        <p class="cc-studio-inspector__eyebrow">No Website Release was created</p>
         <% if (failure.reason === 'STALE_LIVE_RELEASE') { %>
           <h2>The latest Website Release changed while you were reviewing.</h2>
           <p>This review was prepared from an earlier Website Release. Nothing was overwritten. Start the urgent update again from the current Website Release.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a>
         <% } else if (failure.reason === 'URGENT_ALREADY_RELEASED') { %>
           <h2>This urgent update has already been released.</h2>
-          <p>An urgent update can be published once. The latest Website Release already contains it.</p>
+          <p>This urgent update can create only one Website Release. The latest Website Release already contains it.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
         <% } else if (failure.reason === 'URGENT_NO_CHANGE') { %>
           <h2>Nothing would change in the latest Website Release.</h2>
-          <p>The latest Website Release already shows this status and note, so there is no urgent update to publish.</p>
+          <p>The latest Website Release already shows this status and note, so there is no urgent Website Release to create.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Choose a different change</a>
         <% } else if (failure.reason === 'URGENT_PROVENANCE_MISMATCH' || failure.reason === 'URGENT_CLOSURE_OPEN') { %>
           <h2>This review could not be verified against the latest Website Release.</h2>
-          <p>The prepared review no longer re-derives exactly from the latest Website Release. Nothing was published. Start again so it is rebuilt from the latest Website Release.</p>
+          <p>The prepared review no longer re-derives exactly from the latest Website Release. No Website Release was created. Start again so it is rebuilt from the latest Website Release.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a>
         <% } else { %>
           <h2>A newer working version exists.</h2>
@@ -44,11 +44,11 @@
       </div>
     <% } else if (operation.state === 'released') { %>
       <div class="cc-consequence-truth" style="max-width:760px;margin-top:1.5rem">
-        <strong>Already released.</strong> This urgent update was published as <code><%= operation.releaseId %></code>. It cannot be published twice.
+        <strong>Website Release already created.</strong> This urgent update created Website Release <code><%= operation.releaseId %></code>. It cannot create another Release.
       </div>
     <% } else if (!provenanceVerified) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
-        <strong>This review could not be verified against the latest Website Release.</strong> Nothing was published. Start again so the review is rebuilt from the latest Website Release.
+        <strong>This review could not be verified against the latest Website Release.</strong> No Website Release was created. Start again so the review is rebuilt from the latest Website Release.
         <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a></div>
       </div>
     <% } else if (!baseIsLive) { %>
@@ -94,7 +94,7 @@
     </div>
 
     <section class="cc-review-card cc-review-card--unpublished" style="margin-top:1.2rem" aria-labelledby="cc-urgent-unpublished">
-      <p class="cc-kicker">Stays in Studio, not published</p>
+      <p class="cc-kicker">Stays in Working, not in this Release</p>
       <h2 id="cc-urgent-unpublished"><%= unpublishedRows.length ? `${unpublishedRows.length} unreleased edit${unpublishedRows.length === 1 ? '' : 's'} in your working version` : 'Your working version has no other unreleased edits' %></h2>
       <% if (unpublishedRows.length) { %>
         <ul class="cc-preserved-list" data-urgent-unpublished>
@@ -102,12 +102,12 @@
             <li data-path="<%= row.path %>"><%= row.group %> · <%= row.item %><%= row.field ? ` · ${row.field}` : '' %></li>
           <% }) %>
         </ul>
-        <p class="cc-inspector-help">These remain exactly as you left them in Studio (working version <%= revision %>) and do not go live with this update.</p>
+        <p class="cc-inspector-help">These remain exactly as you left them in Studio (working version <%= revision %>) and do not enter this urgent Website Release.</p>
       <% } %>
       <% if (draftAlsoEditsTarget) { %>
-        <p class="cc-inspector-help"><strong>Note:</strong> your working version also changes this activity’s status. The urgent status will be carried into the working version so the next whole-site release does not undo it; you can change it again in Studio afterwards.</p>
+        <p class="cc-inspector-help"><strong>Note:</strong> your working version also changes this activity’s status. The urgent status will be carried into the working version so the next whole-site Website Release does not undo it; you can change it again in Studio afterwards.</p>
       <% } else { %>
-        <p class="cc-inspector-help">The new status is also carried into your working version as its own step, so the next whole-site release does not quietly undo it.</p>
+        <p class="cc-inspector-help">The new status is also carried into your working version as its own step, so the next whole-site Website Release does not quietly undo it.</p>
       <% } %>
     </section>
 
