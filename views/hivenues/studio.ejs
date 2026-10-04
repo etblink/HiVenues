@@ -19,15 +19,17 @@
           <span id="draft-status" class="cc-draft-status" data-revision="<%= revision %>">Working</span>
         </div>
         <a class="cc-button cc-button--quiet" href="/hivenues/studio/<%= graph.identity.slug %>/preview" target="_blank" rel="noopener">Preview</a>
-        <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/release">Release</a>
+        <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/release">Website Release</a>
       </div>
     </header>
 
     <% if (typeof releasedNotice === 'string' && releasedNotice) { %>
       <div class="cc-studio-notice" role="status" data-released-notice>
-        <strong><%= releasedUrgent ? 'Live site updated.' : 'Website released.' %></strong>
-        <%= releasedUrgent ? 'The urgent status change is live. Your other working edits are still here, unpublished.' : 'Your working version is now what visitors see.' %>
-        <a class="cc-link" href="/hivenues/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open the live site</a>
+        <strong><%= releasedUrgent ? 'Urgent Website Release created.' : 'Website Release created.' %></strong>
+        <%= releasedUrgent
+          ? 'The status change is now part of the latest Website Release. Other Working edits remain unreleased. Any external deployment is unchanged until you update it.'
+          : 'Your Working version is now preserved as the latest Website Release. Any external deployment is unchanged until you put this Release online.' %>
+        <a class="cc-link" href="/hivenues/<%= graph.identity.slug %>" target="_blank" rel="noopener">Open released website view</a>
       </div>
     <% } %>
 
@@ -106,9 +108,9 @@
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=connect" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Contact</button>
             <a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Media library</a>
             <button type="button" hx-get="/hivenues/studio/<%= graph.identity.slug %>/inspect?resource=media:<%= heroMedia.id %>" hx-target="#candidate-inspector" hx-swap="outerHTML" data-open-inspector>Hero media</button>
-            <a href="/hivenues/studio/<%= graph.identity.slug %>/release">History & release</a>
+            <a href="/hivenues/studio/<%= graph.identity.slug %>/release">Website Releases & history</a>
             <% if (typeof hivenuesDeploymentAvailable !== 'undefined' && hivenuesDeploymentAvailable) { %>
-              <a href="/hivenues/studio/<%= graph.identity.slug %>/deploy" data-studio-deployment>Deployment</a>
+              <a href="/hivenues/studio/<%= graph.identity.slug %>/deploy" data-studio-deployment>Put website online</a>
             <% } %>
           </div>
         </details>
