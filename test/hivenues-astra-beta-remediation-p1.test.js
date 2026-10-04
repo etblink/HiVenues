@@ -57,7 +57,7 @@ test('Astra beta P1: Release review summarizes meaningful changes and History us
   assert.match(review.text, /Release impact/);
   assert.match(review.text, /Headline changed/);
   assert.match(review.text, /Public summary changed/);
-  assert.match(review.text, /Restoring an earlier version changes Studio only/);
+  assert.match(review.text, /Restoring an earlier version changes Working only/);
   assert.match(review.text, /Review restore/);
 
   let state = store.snapshot(slug);
