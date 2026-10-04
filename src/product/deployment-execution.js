@@ -1325,7 +1325,9 @@ class InstalledRemoteDeploymentService {
       hostSlug: record.hostSlug,
     });
 
-    const result = await target.reauthorizeExistingDeployment(plan);
+    const result = await target.reauthorizeExistingDeployment(plan, {
+      reviewedRemoteState: review.remoteState,
+    });
     if (!readBackMatches(result.readBack, activeReadBackExpectation(record))) {
       throw executionError(
         'DEPLOYMENT_REAUTHORIZATION_READBACK_MISMATCH',

@@ -25,6 +25,19 @@ function deploymentErrorMessage(error, fallback = 'Deployment verification could
   if (!error) return fallback;
   const base = error.message || fallback;
   if (
+    error.code === 'DEPLOYMENT_SSH_CONNECTION_FAILED'
+    && /^[A-Za-z0-9._:-]+$/.test(String(error.reauthorizationStage || ''))
+  ) {
+    const attempts = Number.isInteger(error.retryAttempts)
+      ? ' after ' + String(error.retryAttempts) + ' bounded attempts'
+      : '';
+    return base
+      + ' Stage: '
+      + String(error.reauthorizationStage)
+      + attempts
+      + '. [DEPLOYMENT_SSH_CONNECTION_FAILED]';
+  }
+  if (
     error.code !== 'DEPLOYMENT_REMOTE_COMMAND_FAILED'
     && error.code !== 'DEPLOYMENT_SFTP_UPLOAD_FAILED'
   ) {
@@ -105,6 +118,7 @@ function deploymentErrorStatus(error) {
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_PUBLIC_PROOF_FAILED'
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_DNS_REQUIRED'
     || error.code === 'DEPLOYMENT_REAUTHORIZATION_IN_PROGRESS'
+    || error.code === 'DEPLOYMENT_REAUTHORIZATION_REMOTE_STATE_INVALID'
   ) return 409;
   return 400;
 }

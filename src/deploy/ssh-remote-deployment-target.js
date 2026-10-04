@@ -29,6 +29,65 @@ async function withMutationStage(stage, action) {
   }
 }
 
+const REAUTHORIZATION_PREAUTH_RETRY_DELAYS_MS = Object.freeze([250, 750]);
+
+async function retryPreAuthConnection(action, {
+  stage = 'reauthorization-ssh',
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  delays = REAUTHORIZATION_PREAUTH_RETRY_DELAYS_MS,
+} = {}) {
+  if (typeof action !== 'function') {
+    throw new TypeError('Pre-authentication retry requires an action.');
+  }
+  if (typeof sleep !== 'function') {
+    throw new TypeError('Pre-authentication retry requires a sleep function.');
+  }
+  const waits = Array.isArray(delays) ? [...delays] : [];
+  let attempts = 0;
+  while (true) {
+    attempts += 1;
+    try {
+      return await action(attempts);
+    } catch (error) {
+      if (error?.code !== 'DEPLOYMENT_SSH_CONNECTION_FAILED') throw error;
+      if (attempts > waits.length) {
+        if (error && typeof error === 'object') {
+          error.reauthorizationStage = stage;
+          error.retryAttempts = attempts;
+        }
+        throw error;
+      }
+      await sleep(Number(waits[attempts - 1]) || 0);
+    }
+  }
+}
+
+function reviewedReauthorizationAccess(remoteState) {
+  const state = String(remoteState || '');
+  if (state === 'bootstrap-temporary-only') {
+    return Object.freeze({
+      bootstrapAccessible: true,
+      steadyAccessible: false,
+    });
+  }
+  if (state === 'steady-authority-present-bootstrap-temporary') {
+    return Object.freeze({
+      bootstrapAccessible: true,
+      steadyAccessible: true,
+    });
+  }
+  if (state === 'steady-authority-already-restored') {
+    return Object.freeze({
+      bootstrapAccessible: false,
+      steadyAccessible: true,
+    });
+  }
+  throw targetError(
+    'DEPLOYMENT_REAUTHORIZATION_REMOTE_STATE_INVALID',
+    'Reviewed deployment re-authorization state is invalid.',
+  );
+}
+
 function readRuntime(root) {
   const absolute = path.resolve(root);
   return loadRuntimeProvenance(
@@ -563,6 +622,7 @@ class SshRemoteDeploymentTarget {
     hostSlug,
     bootstrapUsername = '',
     transport = new Ssh2PinnedMutationTransport(),
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   } = {}) {
     if (!authorityStore || typeof authorityStore.withPrivateKey !== 'function') {
       throw new TypeError('Remote deployment target requires an authority store.');
@@ -574,6 +634,9 @@ class SshRemoteDeploymentTarget {
     if (!hostSlug) throw new TypeError('Remote deployment target requires hostSlug.');
     if (!transport || typeof transport.withSession !== 'function') {
       throw new TypeError('Remote deployment target requires an SSH mutation transport.');
+    }
+    if (typeof sleep !== 'function') {
+      throw new TypeError('Remote deployment target requires a sleep function.');
     }
 
     this.authorityStore = authorityStore;
@@ -587,6 +650,7 @@ class SshRemoteDeploymentTarget {
     this.expectedHostKeyFingerprint = String(expectedHostKeyFingerprint || '');
     this.hostSlug = String(hostSlug);
     this.transport = transport;
+    this.sleep = sleep;
     this.publicKey = requirePublicKey(authorityStore.publicRecord(authorityId).publicKey);
     this.narrowingPending = false;
     this.lastPlan = null;
@@ -604,6 +668,27 @@ class SshRemoteDeploymentTarget {
         privateKey,
       }, action)
     ));
+  }
+
+  async withReauthorizationConnectionRetry(stage, action) {
+    return retryPreAuthConnection(action, {
+      stage,
+      sleep: this.sleep,
+    });
+  }
+
+  async reauthorizationAuthorityAccessible(username, stage) {
+    return this.withReauthorizationConnectionRetry(stage, async () => {
+      try {
+        const result = await this.withSession(username, (session) => (
+          session.exec('true', { timeoutMs: 10000 })
+        ));
+        return Number(result?.code || 0) === 0;
+      } catch (error) {
+        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
+        throw error;
+      }
+    });
   }
 
   async stageTree(kind, localRoot, digest, finalPath) {
@@ -1093,20 +1178,14 @@ class SshRemoteDeploymentTarget {
       );
     }
 
-    const accessible = async (username) => {
-      try {
-        const result = await this.withSession(username, (session) => (
-          session.exec('true', { timeoutMs: 10000 })
-        ));
-        return Number(result?.code || 0) === 0;
-      } catch (error) {
-        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
-        throw error;
-      }
-    };
-
-    const bootstrapAccessible = await accessible(bootstrapUsername);
-    const steadyAccessible = await accessible(deploymentUsername);
+    const bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
+      bootstrapUsername,
+      'review-bootstrap-authority-proof',
+    );
+    const steadyAccessible = await this.reauthorizationAuthorityAccessible(
+      deploymentUsername,
+      'review-steady-authority-proof',
+    );
     if (!bootstrapAccessible && !steadyAccessible) {
       throw targetError(
         'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
@@ -1115,8 +1194,14 @@ class SshRemoteDeploymentTarget {
     }
 
     this.connection.username = steadyAccessible ? deploymentUsername : bootstrapUsername;
-    const readBack = await this.readBack();
-    const publication = await this.publicationStatus(plan);
+    const readBack = await this.withReauthorizationConnectionRetry(
+      'review-exact-readback',
+      () => this.readBack(),
+    );
+    const publication = await this.withReauthorizationConnectionRetry(
+      'review-publication-status',
+      () => this.publicationStatus(plan),
+    );
     return Object.freeze({
       bootstrapAccessible,
       steadyAccessible,
@@ -1125,7 +1210,9 @@ class SshRemoteDeploymentTarget {
     });
   }
 
-  async reauthorizeExistingDeployment(plan = this.lastPlan) {
+  async reauthorizeExistingDeployment(plan = this.lastPlan, {
+    reviewedRemoteState,
+  } = {}) {
     if (!plan) {
       throw targetError(
         'DEPLOYMENT_REAUTHORIZATION_PLAN_REQUIRED',
@@ -1144,39 +1231,28 @@ class SshRemoteDeploymentTarget {
       );
     }
 
-    const accessible = async (username) => {
-      try {
-        const result = await this.withSession(username, (session) => (
-          session.exec('true', { timeoutMs: 10000 })
-        ));
-        return Number(result?.code || 0) === 0;
-      } catch (error) {
-        if (error?.code === 'DEPLOYMENT_SSH_AUTH_FAILED') return false;
-        throw error;
-      }
-    };
+    const reviewedAccess = reviewedReauthorizationAccess(reviewedRemoteState);
+    let bootstrapAccessible = reviewedAccess.bootstrapAccessible;
+    let steadyAccessible = reviewedAccess.steadyAccessible;
 
-    let bootstrapAccessible = await accessible(bootstrapUsername);
-    let steadyAccessible = await accessible(deploymentUsername);
-    if (!bootstrapAccessible && !steadyAccessible) {
-      throw targetError(
-        'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_UNAVAILABLE',
-        'The fresh deployment authority is available on neither the temporary bootstrap account nor the steady deployment account.',
+    if (bootstrapAccessible && !steadyAccessible) {
+      await this.withReauthorizationConnectionRetry(
+        'install-steady-authority',
+        () => this.withSession(bootstrapUsername, (session) => (
+          withMutationStage('deployment-authority-restore', () => (
+            execInitialRootScript(
+              session,
+              plan,
+              restoreDeploymentAuthorityCommand(plan, this.publicKey.full),
+              { timeoutMs: 20000 },
+            )
+          ))
+        )),
       );
-    }
-
-    if (bootstrapAccessible) {
-      await this.withSession(bootstrapUsername, (session) => (
-        withMutationStage('deployment-authority-restore', () => (
-          execInitialRootScript(
-            session,
-            plan,
-            restoreDeploymentAuthorityCommand(plan, this.publicKey.full),
-            { timeoutMs: 20000 },
-          )
-        ))
-      ));
-      steadyAccessible = await accessible(deploymentUsername);
+      steadyAccessible = await this.reauthorizationAuthorityAccessible(
+        deploymentUsername,
+        'prove-steady-authority-after-install',
+      );
       if (!steadyAccessible) {
         throw targetError(
           'DEPLOYMENT_REAUTHORIZATION_STEADY_LOGIN_FAILED',
@@ -1186,30 +1262,53 @@ class SshRemoteDeploymentTarget {
     }
 
     this.connection.username = deploymentUsername;
-    const beforeFinalizeReadBack = await this.readBack();
-    const publication = await this.publicationStatus(plan);
+    const beforeFinalizeReadBack = await this.withReauthorizationConnectionRetry(
+      'prove-steady-readback-before-finalize',
+      () => this.readBack(),
+    );
+    const publication = await this.withReauthorizationConnectionRetry(
+      'prove-publication-before-finalize',
+      () => this.publicationStatus(plan),
+    );
 
-    if (bootstrapAccessible) {
-      await this.withSession(bootstrapUsername, (session) => (
-        withMutationStage('deployment-reauthorization-finalize', () => (
-          execInitialRootScript(
-            session,
-            plan,
-            finalizeReauthorizationCommand(plan, this.publicKey.full),
-            { timeoutMs: 20000 },
-          )
-        ))
-      ));
-      bootstrapAccessible = await accessible(bootstrapUsername);
-      if (bootstrapAccessible) {
-        throw targetError(
-          'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
-          'Temporary bootstrap authority remained available after re-authorization finalization.',
-        );
-      }
+    if (!bootstrapAccessible) {
+      bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
+        bootstrapUsername,
+        'reprove-bootstrap-authority-before-finalize',
+      );
     }
 
-    steadyAccessible = await accessible(deploymentUsername);
+    if (bootstrapAccessible) {
+      await this.withReauthorizationConnectionRetry(
+        'remove-temporary-bootstrap-authority',
+        () => this.withSession(bootstrapUsername, (session) => (
+          withMutationStage('deployment-reauthorization-finalize', () => (
+            execInitialRootScript(
+              session,
+              plan,
+              finalizeReauthorizationCommand(plan, this.publicKey.full),
+              { timeoutMs: 20000 },
+            )
+          ))
+        )),
+      );
+    }
+
+    bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
+      bootstrapUsername,
+      'prove-bootstrap-authority-absent-before-completion',
+    );
+    if (bootstrapAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
+        'Temporary bootstrap authority remained available after re-authorization finalization.',
+      );
+    }
+
+    steadyAccessible = await this.reauthorizationAuthorityAccessible(
+      deploymentUsername,
+      'prove-steady-authority-after-finalize',
+    );
     if (!steadyAccessible) {
       throw targetError(
         'DEPLOYMENT_REAUTHORIZATION_STEADY_LOGIN_FAILED',
@@ -1218,7 +1317,10 @@ class SshRemoteDeploymentTarget {
     }
 
     this.connection.username = deploymentUsername;
-    const readBack = await this.readBack();
+    const readBack = await this.withReauthorizationConnectionRetry(
+      'prove-final-steady-readback',
+      () => this.readBack(),
+    );
     if (readBack?.bootstrap?.authorityState !== 'restricted-deployment-user') {
       throw targetError(
         'DEPLOYMENT_REAUTHORIZATION_AUTHORITY_STATE_INVALID',
@@ -1404,6 +1506,8 @@ module.exports = {
   removeDeploymentAuthorityCommand,
   restoreDeploymentAuthorityCommand,
   finalizeReauthorizationCommand,
+  retryPreAuthConnection,
+  reviewedReauthorizationAccess,
   existingReleasePath,
   qualifiedNodePath,
   removeBootstrapKeyCommand,
