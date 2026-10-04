@@ -1271,6 +1271,13 @@ class SshRemoteDeploymentTarget {
       () => this.publicationStatus(plan),
     );
 
+    if (!bootstrapAccessible) {
+      bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
+        bootstrapUsername,
+        'reprove-bootstrap-authority-before-finalize',
+      );
+    }
+
     if (bootstrapAccessible) {
       await this.withReauthorizationConnectionRetry(
         'remove-temporary-bootstrap-authority',
@@ -1285,16 +1292,17 @@ class SshRemoteDeploymentTarget {
           ))
         )),
       );
-      bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
-        bootstrapUsername,
-        'prove-bootstrap-authority-removed',
+    }
+
+    bootstrapAccessible = await this.reauthorizationAuthorityAccessible(
+      bootstrapUsername,
+      'prove-bootstrap-authority-absent-before-completion',
+    );
+    if (bootstrapAccessible) {
+      throw targetError(
+        'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
+        'Temporary bootstrap authority remained available after re-authorization finalization.',
       );
-      if (bootstrapAccessible) {
-        throw targetError(
-          'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
-          'Temporary bootstrap authority remained available after re-authorization finalization.',
-        );
-      }
     }
 
     steadyAccessible = await this.reauthorizationAuthorityAccessible(
