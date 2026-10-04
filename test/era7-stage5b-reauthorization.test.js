@@ -743,3 +743,125 @@ test('Era 7 Stage 5B corrective: exact reviewed bootstrap state executes without
   ));
   assert(preFinalizeSteadyProof);
 });
+
+
+test('Era 7 Stage 5B P1 corrective: reviewed steady-only state re-proves bootstrap access and removes a reintroduced temporary key', async () => {
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: RUNTIME,
+    releaseManifest: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE_A.id,
+      releaseDigest: RELEASE_A.digest,
+      packageDigest: RELEASE_A.packageDigest,
+    },
+    bootstrapUsername: 'debian',
+  });
+
+  let finalized = false;
+  const proofStages = [];
+  const target = Object.create(SshRemoteDeploymentTarget.prototype);
+  target.initialUsername = 'debian';
+  target.connection = { username: 'debian' };
+  target.publicKey = { full: PUBLIC_KEY };
+  target.lastPlan = plan;
+  target.withReauthorizationConnectionRetry = async (_stage, action) => action();
+  target.reauthorizationAuthorityAccessible = async (username, stage) => {
+    proofStages.push({ username, stage });
+    if (username === 'debian') return !finalized;
+    if (username === 'hivenues-deploy') return true;
+    return false;
+  };
+  target.withSession = async (username, action) => action({
+    async exec(command, options = {}) {
+      if (username === 'debian' && command === 'sudo -n /bin/sh -s') {
+        const stdin = String(options.stdin || '');
+        assert.match(stdin, /deployment-reauthorization-finalize/);
+        finalized = true;
+        return { stdout: '', stderr: '', exitCode: 0 };
+      }
+      throw new Error('unexpected command in P1 corrective test');
+    },
+  });
+  target.readBack = async () => exactReadBack('restricted-deployment-user');
+  target.publicationStatus = async () => ({
+    capability: 'ready',
+    status: {
+      version: 1,
+      capability: 'ready',
+      state: 'configured',
+      hostSlug: 'harbor-and-hearth',
+      hostname: 'dev.fourthstreetbar.com',
+    },
+  });
+
+  const result = await target.reauthorizeExistingDeployment(plan, {
+    reviewedRemoteState: 'steady-authority-already-restored',
+  });
+
+  assert.equal(finalized, true);
+  assert.equal(result.bootstrapAuthorityAccessible, false);
+  assert.equal(result.steadyAuthorityAccessible, true);
+  assert.equal(
+    proofStages.some((item) => (
+      item.username === 'debian'
+      && item.stage === 'reprove-bootstrap-authority-before-finalize'
+    )),
+    true,
+  );
+  assert.equal(
+    proofStages.some((item) => (
+      item.username === 'debian'
+      && item.stage === 'prove-bootstrap-authority-absent-before-completion'
+    )),
+    true,
+  );
+});
+
+test('Era 7 Stage 5B P1 corrective: completion fails closed if bootstrap authority remains after finalization', async () => {
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: RUNTIME,
+    releaseManifest: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE_A.id,
+      releaseDigest: RELEASE_A.digest,
+      packageDigest: RELEASE_A.packageDigest,
+    },
+    bootstrapUsername: 'debian',
+  });
+
+  const target = Object.create(SshRemoteDeploymentTarget.prototype);
+  target.initialUsername = 'debian';
+  target.connection = { username: 'debian' };
+  target.publicKey = { full: PUBLIC_KEY };
+  target.lastPlan = plan;
+  target.withReauthorizationConnectionRetry = async (_stage, action) => action();
+  target.reauthorizationAuthorityAccessible = async (username) => (
+    username === 'debian' || username === 'hivenues-deploy'
+  );
+  target.withSession = async (_username, action) => action({
+    async exec(command) {
+      if (command === 'sudo -n /bin/sh -s') {
+        return { stdout: '', stderr: '', exitCode: 0 };
+      }
+      throw new Error('unexpected command in bootstrap-remains test');
+    },
+  });
+  target.readBack = async () => exactReadBack('restricted-deployment-user');
+  target.publicationStatus = async () => ({
+    capability: 'ready',
+    status: {
+      version: 1,
+      capability: 'ready',
+      state: 'configured',
+      hostSlug: 'harbor-and-hearth',
+      hostname: 'dev.fourthstreetbar.com',
+    },
+  });
+
+  await assert.rejects(
+    () => target.reauthorizeExistingDeployment(plan, {
+      reviewedRemoteState: 'steady-authority-already-restored',
+    }),
+    (error) => error.code === 'DEPLOYMENT_REAUTHORIZATION_BOOTSTRAP_REMAINS',
+  );
+});
