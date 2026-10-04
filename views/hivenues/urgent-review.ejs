@@ -7,31 +7,35 @@
   <main class="cc-task cc-task--urgent" data-urgent-operation="<%= operation.id %>" data-urgent-state="<%= operation.state %>">
     <nav class="cc-task-nav">
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
-      <span class="cc-draft-status cc-draft-status--live">Live site · <%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No release' %></span>
+      <span class="cc-draft-status cc-draft-status--live">Latest Website Release · <%= release ? (release.kind === 'urgent' ? `Version ${release.draftRevision} + urgent update` : `Version ${release.draftRevision}`) : 'No Release' %></span>
     </nav>
     <p class="cc-kicker">Urgent update · review</p>
-    <h1><%= operation.change.lifecycle === 'cancelled' ? 'Cancel it on the live site.' : operation.change.lifecycle === 'completed' ? 'Mark it as already happened.' : 'Put it back on.' %></h1>
-    <p class="cc-task__dek">Starting point: the live site as visitors see it now. One thing changes. Everything it depends on stays live and unchanged. Your unreleased Studio edits stay unpublished.</p>
+    <h1><%= operation.change.lifecycle === 'cancelled' ? 'Create a cancellation Website Release.' : operation.change.lifecycle === 'completed' ? 'Mark it as already happened.' : 'Put it back on.' %></h1>
+    <p class="cc-task__dek">
+      Starting point: the latest Website Release. One thing changes; everything it depends on stays unchanged.
+      Your other Working edits remain unreleased, and an external public deployment remains unchanged until you
+      explicitly update it.
+    </p>
 
     <% if (failure) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
         <p class="cc-studio-inspector__eyebrow">Nothing was published</p>
         <% if (failure.reason === 'STALE_LIVE_RELEASE') { %>
-          <h2>The live site changed while you were reviewing.</h2>
-          <p>This review was prepared from an earlier live version. Nothing was overwritten. Start the urgent update again from the current live site.</p>
-          <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the live site</a>
+          <h2>The latest Website Release changed while you were reviewing.</h2>
+          <p>This review was prepared from an earlier Website Release. Nothing was overwritten. Start the urgent update again from the current Website Release.</p>
+          <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a>
         <% } else if (failure.reason === 'URGENT_ALREADY_RELEASED') { %>
-          <h2>This urgent update has already gone live.</h2>
-          <p>An urgent update can be published once. The live site already reflects it.</p>
+          <h2>This urgent update has already been released.</h2>
+          <p>An urgent update can be published once. The latest Website Release already contains it.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
         <% } else if (failure.reason === 'URGENT_NO_CHANGE') { %>
-          <h2>Nothing would change on the live site.</h2>
-          <p>The live site already shows this status and note, so there is no urgent update to publish.</p>
+          <h2>Nothing would change in the latest Website Release.</h2>
+          <p>The latest Website Release already shows this status and note, so there is no urgent update to publish.</p>
           <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Choose a different change</a>
         <% } else if (failure.reason === 'URGENT_PROVENANCE_MISMATCH' || failure.reason === 'URGENT_CLOSURE_OPEN') { %>
-          <h2>This review could not be verified against the live site.</h2>
-          <p>The prepared review no longer re-derives exactly from the live site. Nothing was published. Start again so it is rebuilt from what visitors see now.</p>
-          <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the live site</a>
+          <h2>This review could not be verified against the latest Website Release.</h2>
+          <p>The prepared review no longer re-derives exactly from the latest Website Release. Nothing was published. Start again so it is rebuilt from the latest Website Release.</p>
+          <a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a>
         <% } else { %>
           <h2>A newer working version exists.</h2>
           <p>Your working version changed elsewhere since this page opened. Nothing was overwritten. Reload to review against the current working version <%= failure.actualRevision %>.</p>
@@ -40,17 +44,17 @@
       </div>
     <% } else if (operation.state === 'released') { %>
       <div class="cc-consequence-truth" style="max-width:760px;margin-top:1.5rem">
-        <strong>Already live.</strong> This urgent update was published as <code><%= operation.releaseId %></code>. It cannot be published twice.
+        <strong>Already released.</strong> This urgent update was published as <code><%= operation.releaseId %></code>. It cannot be published twice.
       </div>
     <% } else if (!provenanceVerified) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
-        <strong>This review could not be verified against the live site.</strong> Nothing was published. Start again so the review is rebuilt from what visitors see now.
-        <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the live site</a></div>
+        <strong>This review could not be verified against the latest Website Release.</strong> Nothing was published. Start again so the review is rebuilt from the latest Website Release.
+        <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a></div>
       </div>
     <% } else if (!baseIsLive) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
-        <strong>The live site changed since this review was prepared.</strong> Start again so the review matches what visitors see now.
-        <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the live site</a></div>
+        <strong>The live site changed since this review was prepared.</strong> Start again so the review matches the latest Website Release.
+        <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a></div>
       </div>
     <% } %>
 
@@ -59,7 +63,7 @@
         <p class="cc-kicker">What changes</p>
         <h2 id="cc-urgent-changes"><%= liveActivity ? liveActivity.title : operation.change.activityId %></h2>
         <table class="cc-diff-table" data-urgent-changed>
-          <thead><tr><th scope="col">Detail</th><th scope="col">Live now</th><th scope="col">After update</th></tr></thead>
+          <thead><tr><th scope="col">Detail</th><th scope="col">Latest Release</th><th scope="col">After urgent Release</th></tr></thead>
           <tbody>
             <% changedRows.forEach((row) => { %>
               <tr data-path="<%= row.path %>"><th scope="row"><%= row.field %></th><td><%= row.before %></td><td><strong><%= row.after %></strong></td></tr>
@@ -70,7 +74,7 @@
       </section>
 
       <section class="cc-review-card" aria-labelledby="cc-urgent-retained">
-        <p class="cc-kicker">Stays live, unchanged</p>
+        <p class="cc-kicker">Stays in the Website Release, unchanged</p>
         <h2 id="cc-urgent-retained">Everything this depends on</h2>
         <ul class="cc-preserved-list" data-urgent-retained>
           <% retainedRows.forEach((row) => { %>
@@ -110,12 +114,12 @@
     <% if (operation.state === 'review' && baseIsLive && provenanceVerified && !failure) { %>
       <section class="cc-consequence-card" style="margin-top:1.2rem">
         <h2>Website consequence</h2>
-        <div class="cc-consequence-truth">Create one immutable website release from the live site plus this status change, and make it visitor-facing in this HiVenues reference. No Hive, signing, payment, media-provider, deployment, or DNS action will be triggered.</div>
+        <div class="cc-consequence-truth">Create one immutable urgent Website Release from the latest Website Release plus this status change. No Hive, signing, payment, media-provider, external deployment, or DNS action will be triggered.</div>
         <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/urgent/<%= operation.id %>/publish" style="margin-top:1rem">
           <input type="hidden" name="expectedLiveReleaseId" value="<%= operation.baseReleaseId %>">
           <input type="hidden" name="expectedRevision" value="<%= revision %>">
           <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
-          <button class="cc-button cc-button--ink" type="submit">Publish urgent update</button>
+          <button class="cc-button cc-button--ink" type="submit">Create urgent Website Release</button>
         </form>
       </section>
     <% } %>
