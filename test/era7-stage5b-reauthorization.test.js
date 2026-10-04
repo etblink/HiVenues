@@ -663,16 +663,16 @@ test('Era 7 Stage 5B corrective: exact reviewed bootstrap state executes without
           if (command === 'true') return { stdout: '', stderr: '', exitCode: 0 };
           if (command.includes('HIVENUES_PUBLICATION_CAPABILITY')) {
             return {
-              stdout: 'HIVENUES_PUBLICATION_CAPABILITY=ready\\n' + publication + '\\n',
+              stdout: 'HIVENUES_PUBLICATION_CAPABILITY=ready\n' + publication + '\n',
               stderr: '',
               exitCode: 0,
             };
           }
           if (command.includes('/__hivenues/health')) {
             return {
-              stdout: health + '\\n'
+              stdout: health + '\n'
                 + (finalized ? 'restricted-deployment-user' : 'restricted-login-pending')
-                + '\\n',
+                + '\n',
               stderr: '',
               exitCode: 0,
             };
