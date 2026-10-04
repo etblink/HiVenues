@@ -316,7 +316,7 @@ test('Era 7 Stage 4E composition: independent TLS plus exact public read-back co
 
   assert.match(response.text, /data-domain-tls-verified/);
   assert.match(response.text, /data-public-readback-verified/);
-  assert.match(response.text, /Live HTTPS exact Release confirmed/);
+  assert.match(response.text, /Public site is serving the expected Website Release/);
   assert.match(response.text, /https:\/\/dev\.fourthstreetbar\.com\/__hivenues\/health/);
   assert.deepEqual(f.store.diagnostics().external, {
     hiveRpcAttempts: 0,
