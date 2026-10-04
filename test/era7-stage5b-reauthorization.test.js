@@ -8,6 +8,7 @@ const test = require('node:test');
 
 const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan');
 const {
+  SshRemoteDeploymentTarget,
   finalizeReauthorizationCommand,
   restoreDeploymentAuthorityCommand,
   retryPreAuthConnection,
@@ -599,4 +600,146 @@ test('Era 7 Stage 5B corrective: authentication rejection and post-auth mutation
     );
     assert.equal(attempts, 1);
   }
+});
+
+
+test('Era 7 Stage 5B corrective: exact reviewed bootstrap state executes without redundant pre-mutation probes and retries a pre-auth drop', async () => {
+  const attempts = [];
+  let firstBootstrapDrop = true;
+  let finalized = false;
+  const health = JSON.stringify({
+    version: 1,
+    status: 'healthy',
+    runtime: {
+      sourceSha: RUNTIME.sourceSha,
+      sourceTree: RUNTIME.sourceTree,
+      packageVersion: RUNTIME.packageVersion,
+      nodeVersion: RUNTIME.nodeVersion,
+      bundleDigest: RUNTIME.bundleDigest,
+      platform: 'linux-x64',
+    },
+    deployment: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE_A.id,
+      releaseDigest: RELEASE_A.digest,
+      packageDigest: RELEASE_A.packageDigest,
+    },
+  });
+  const publication = JSON.stringify({
+    version: 1,
+    capability: 'ready',
+    state: 'configured',
+    hostSlug: 'harbor-and-hearth',
+    hostname: 'dev.fourthstreetbar.com',
+  });
+
+  const authorityStore = {
+    publicRecord() {
+      return { publicKey: PUBLIC_KEY };
+    },
+    async withPrivateKey(_id, action) {
+      return action(Buffer.alloc(256, 7));
+    },
+  };
+
+  const transport = {
+    async withSession({ target }, action) {
+      attempts.push({ username: target.username, commands: [] });
+      const current = attempts.at(-1);
+      if (target.username === 'debian' && firstBootstrapDrop) {
+        firstBootstrapDrop = false;
+        const error = new Error('transient pre-auth drop');
+        error.code = 'DEPLOYMENT_SSH_CONNECTION_FAILED';
+        throw error;
+      }
+      if (target.username === 'debian' && finalized) {
+        const error = new Error('auth rejected');
+        error.code = 'DEPLOYMENT_SSH_AUTH_FAILED';
+        throw error;
+      }
+      const session = {
+        async exec(command, options = {}) {
+          current.commands.push(command);
+          if (command === 'true') return { stdout: '', stderr: '', exitCode: 0 };
+          if (command.includes('HIVENUES_PUBLICATION_CAPABILITY')) {
+            return {
+              stdout: 'HIVENUES_PUBLICATION_CAPABILITY=ready\\n' + publication + '\\n',
+              stderr: '',
+              exitCode: 0,
+            };
+          }
+          if (command.includes('/__hivenues/health')) {
+            return {
+              stdout: health + '\\n'
+                + (finalized ? 'restricted-deployment-user' : 'restricted-login-pending')
+                + '\\n',
+              stderr: '',
+              exitCode: 0,
+            };
+          }
+          const stdin = String(options.stdin || '');
+          if (command === 'sudo -n /bin/sh -s') {
+            if (stdin.includes('HIVENUES_MUTATION_STAGE=deployment-reauthorization-finalize')) {
+              finalized = true;
+            }
+            return { stdout: '', stderr: '', exitCode: 0 };
+          }
+          throw new Error('unexpected test command: ' + command);
+        },
+      };
+      return action(session);
+    },
+  };
+
+  const plan = createReferenceBootstrapPlan({
+    runtimeProvenance: RUNTIME,
+    releaseManifest: {
+      hostSlug: 'harbor-and-hearth',
+      releaseId: RELEASE_A.id,
+      releaseDigest: RELEASE_A.digest,
+      packageDigest: RELEASE_A.packageDigest,
+    },
+    bootstrapUsername: 'debian',
+  });
+
+  const target = new SshRemoteDeploymentTarget({
+    authorityStore,
+    authorityId: 'authority-stage5b-live-corrective',
+    target: {
+      host: '121.127.34.154',
+      port: 22,
+      username: 'debian',
+    },
+    bootstrapUsername: 'debian',
+    expectedHostKeyFingerprint: 'SHA256:' + 'Z'.repeat(43),
+    hostSlug: 'harbor-and-hearth',
+    transport,
+    sleep: async () => {},
+  });
+
+  const result = await target.reauthorizeExistingDeployment(plan, {
+    reviewedRemoteState: 'bootstrap-temporary-only',
+  });
+
+  assert.equal(result.bootstrapAuthorityAccessible, false);
+  assert.equal(result.steadyAuthorityAccessible, true);
+  assert.equal(result.readBack.bootstrap.authorityState, 'restricted-deployment-user');
+
+  assert.equal(attempts[0].username, 'debian');
+  assert.equal(attempts[0].commands.length, 0);
+  assert.equal(attempts[1].username, 'debian');
+  assert.equal(
+    attempts[1].commands.some((command) => command === 'true'),
+    false,
+  );
+  assert.equal(
+    attempts[1].commands.some((command) => command === 'sudo -n /bin/sh -s'),
+    true,
+  );
+
+  const preFinalizeSteadyProof = attempts.find((attempt) => (
+    attempt.username === 'hivenues-deploy'
+    && attempt.commands.includes('true')
+  ));
+  assert(preFinalizeSteadyProof);
 });
