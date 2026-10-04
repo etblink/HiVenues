@@ -133,6 +133,98 @@ test('Era 7 Stage 5C: deployment page leads with the human lifecycle and moves r
   assert.match(html, /Advanced and qualification targets/);
 });
 
+test('Era 7 Stage 5C: verified public site still surfaces a newer Website Release that has not been deployed', async () => {
+  const { view } = model();
+  const releaseA = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
+  const releaseB = {
+    ...structuredClone(releaseA),
+    id: 'release-stage5c-newer',
+    digest: '9'.repeat(64),
+    draftRevision: releaseA.draftRevision + 1,
+  };
+  const releases = [...view.releases, releaseB];
+  const deployment = {
+    version: 1,
+    id: 'deployment-stage5c-newer-release',
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: [],
+    state: 'rollback-available',
+    stateReason: 'exact-release-readback-match',
+    providerState: 'ready',
+    paymentState: 'not-requested',
+    targetPublicFacts: {
+      host: '203.0.113.12',
+      port: 22,
+      username: 'hivenues-deploy',
+      bootstrapUsername: 'debian',
+    },
+    authorityRef: 'authority-stage5c-newer-release',
+    authorityPublic: null,
+    selectedRelease: { id: releaseA.id, digest: releaseA.digest },
+    package: {
+      schemaVersion: 1,
+      releaseId: releaseA.id,
+      releaseDigest: releaseA.digest,
+      packageDigest: 'a'.repeat(64),
+    },
+    activeRelease: {
+      id: releaseA.id,
+      digest: releaseA.digest,
+      packageDigest: 'a'.repeat(64),
+      deployedAt: '2026-10-04T01:00:00.000Z',
+    },
+    previousRelease: null,
+    runtimeProfile: {
+      kind: 'hivenues-public-runtime',
+      sourceSha: '1'.repeat(40),
+      sourceTree: '2'.repeat(40),
+      packageVersion: '1.0.0',
+      nodeVersion: 'v24.19.0',
+      bundleDigest: '3'.repeat(64),
+    },
+    pendingRuntimeProfile: null,
+    publicEndpoint: {
+      hostname: 'dev.example.test',
+      domainState: 'dns-confirmed',
+      dns: {
+        requirements: [{ type: 'A', name: 'dev.example.test', values: ['203.0.113.12'] }],
+        observation: null,
+      },
+      tls: { state: 'verified' },
+      publicReadBack: { state: 'verified' },
+    },
+    healthState: 'healthy',
+    rollbackState: 'available',
+    history: [],
+  };
+
+  const html = await renderView('deployment', {
+    pageTitle: 'Deployment — Harbor & Hearth',
+    ...view,
+    releases,
+    liveReleaseId: releaseB.id,
+    deploymentAvailable: true,
+    deploymentProfile: { capabilities: ['DEPLOY_RELEASE'], externalEffects: false },
+    deploymentAuthorityAvailable: false,
+    deploymentVerificationAvailable: false,
+    deploymentMutationAvailable: false,
+    deploymentPublicationInspectionAvailable: false,
+    deploymentPublicationExecutionAvailable: false,
+    deploymentLifecycleAvailable: false,
+    deploymentReauthorizationAvailable: false,
+    deployments: [deployment],
+    error: '',
+  });
+
+  assert.match(html, /Public site is verified; a newer Website Release is ready/);
+  assert.match(html, new RegExp('data-latest-website-release[\\s\\S]*Version ' + releaseB.draftRevision));
+  assert.match(html, new RegExp('data-public-website-release[\\s\\S]*Version ' + releaseA.draftRevision));
+  assert.match(html, /Choose the newer Website Release below/);
+  assert.doesNotMatch(html, /No deployment action is required/);
+});
+
 test('Era 7 Stage 5C P1: interrupted deployment is never presented as publicly verified from stale proof', async () => {
   const { view } = model();
   const release = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
