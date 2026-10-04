@@ -24,7 +24,7 @@
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
       <label for="cc-tagline">Headline</label>
       <textarea id="cc-tagline" name="tagline" maxlength="180" required><%= graph.facts.tagline %></textarea>
-      <p class="cc-inspector-help">Saving updates your working version. Your live site stays unchanged until you release it.</p>
+      <p class="cc-inspector-help">Saving updates your Working version. The latest Website Release stays unchanged until you create another Release, and any external deployment stays unchanged until you update it.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save headline</button></div>
     </form>
   <% } %>
@@ -68,13 +68,13 @@
     </form>
 
     <div class="cc-live-note" data-live-activity-status>
-      <p class="cc-studio-inspector__eyebrow">On the live site</p>
+      <p class="cc-studio-inspector__eyebrow">In the latest Website Release</p>
       <% if (selectedActivity.live) { %>
         <p><strong><%= activityLifecycles[selectedActivity.live.lifecycle].label %></strong><% if (selectedActivity.live.statusNote) { %> · <%= selectedActivity.live.statusNote %><% } %></p>
         <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= selectedActivity.id %>">Change the live status now</a>
-        <p class="cc-inspector-help">For cancellations and last-minute changes. Publishes only this status, straight from the live site, without releasing your other edits.</p>
+        <p class="cc-inspector-help">For cancellations and last-minute changes. Creates only this urgent Website Release status change without including your other Working edits. External deployment is separate.</p>
       <% } else { %>
-        <p>Not on the live site yet. Release your working version to publish it.</p>
+        <p>Not in the latest Website Release yet. Create a Website Release from Working first.</p>
       <% } %>
     </div>
   <% } %>
