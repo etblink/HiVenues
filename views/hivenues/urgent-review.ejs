@@ -53,7 +53,7 @@
       </div>
     <% } else if (!baseIsLive) { %>
       <div class="cc-conflict" role="alert" style="max-width:760px;margin-top:1.5rem">
-        <strong>The live site changed since this review was prepared.</strong> Start again so the review matches the latest Website Release.
+        <strong>The latest Website Release changed since this review was prepared.</strong> Start again so the review matches the current Website Release.
         <div style="margin-top:.8rem"><a class="cc-button cc-button--ink" href="/hivenues/studio/<%= graph.identity.slug %>/urgent?activity=<%= operation.change.activityId %>">Start again from the latest Release</a></div>
       </div>
     <% } %>
