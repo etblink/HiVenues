@@ -12,7 +12,10 @@
 
     <p class="cc-kicker">History · restore</p>
     <h1>Use Version <%= selectedRelease.draftRevision %> as your working version?</h1>
-    <p class="cc-task__dek">This does <strong>not</strong> roll the live website back. It copies the selected historical website version into Studio as a new working version. You can review or edit it, and nothing changes for visitors until you explicitly publish another website release.</p>
+    <p class="cc-task__dek">
+      This does <strong>not</strong> change the latest Website Release or any deployed public site. It copies the
+      selected historical version into Studio as a new Working version so you can review or edit it first.
+    </p>
 
     <div class="cc-review-grid">
       <section class="cc-review-card">
@@ -32,9 +35,9 @@
     </div>
 
     <section class="cc-consequence-card" style="margin-top:1.2rem">
-      <h2>Live site stays where it is</h2>
-      <p><%= release ? `Visitors keep seeing Version ${release.draftRevision}${release.kind === 'urgent' ? ' with its urgent update' : ''}.` : 'There is no live website version yet.' %></p>
-      <p>Restoring changes Studio only. Publishing is always a separate decision.</p>
+      <h2>Released and deployed websites stay where they are</h2>
+      <p><%= release ? `The latest Website Release remains Version ${release.draftRevision}${release.kind === 'urgent' ? ' with its urgent update' : ''}.` : 'There is no Website Release yet.' %></p>
+      <p>Restoring changes Working only. Creating another Website Release is separate, and putting that Release online is a separate Deployment decision after that.</p>
       <form method="post" action="/hivenues/studio/<%= graph.identity.slug %>/releases/<%= selectedRelease.id %>/restore" style="margin-top:1rem">
         <input type="hidden" name="expectedRevision" value="<%= revision %>">
         <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
