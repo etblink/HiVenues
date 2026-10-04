@@ -44,6 +44,18 @@ test('Era 7 Stage 5C: Website Release review explicitly separates Release creati
   assert.doesNotMatch(response.text, />Publish website release<\/button>/);
 });
 
+test('Era 7 Stage 5C: domain flow uses connect and verify language instead of generic publication language', () => {
+  const source = fs.readFileSync(path.join(VIEWS, 'deployment.ejs'), 'utf8');
+
+  assert.match(source, /will not mark the public site verified/);
+  assert.match(source, /ready to connect the domain securely/);
+  assert.match(source, /Review what connecting the domain would do/);
+  assert.match(source, /domain\/public verification state/);
+  assert.doesNotMatch(source, /mark publication complete/);
+  assert.doesNotMatch(source, /ready to publish the domain securely/);
+  assert.doesNotMatch(source, /Review what a later live connection would do/);
+});
+
 test('Era 7 Stage 5C: urgent review uses Website Release language instead of publish/live ambiguity', () => {
   const source = fs.readFileSync(path.join(VIEWS, 'urgent-review.ejs'), 'utf8');
 
