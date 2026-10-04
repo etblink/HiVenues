@@ -48,7 +48,7 @@
       <p class="cc-studio-inspector__eyebrow">Schedule</p>
       <p><strong><%= selectedActivity.humanTime %></strong><br><small><%= graph.identity.timezone %></small></p>
       <a class="cc-button" href="/hivenues/studio/<%= graph.identity.slug %>/activity/<%= selectedActivity.id %>/schedule">Edit start & end time</a>
-      <p class="cc-inspector-help">Schedule edits stay in the working version until the next website release.</p>
+      <p class="cc-inspector-help">Schedule edits stay in Working until the next Website Release. An external public site changes only after that Release is put online.</p>
     </div>
 
     <form class="cc-inspector-form cc-inspector-form--status" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-post="/hivenues/studio/<%= graph.identity.slug %>/activity-status" hx-target="#candidate-inspector" hx-swap="outerHTML" style="margin-top:1.4rem">
@@ -63,7 +63,7 @@
       </select>
       <label for="cc-activity-status-note">Short note for visitors <span aria-hidden="true">·</span> optional</label>
       <textarea id="cc-activity-status-note" name="statusNote" maxlength="240" rows="2" style="min-height:64px"><%= selectedActivity.statusNote || '' %></textarea>
-      <p class="cc-inspector-help">Saving changes your working version only. Visitors see it after the next release.</p>
+      <p class="cc-inspector-help">Saving changes your Working version only. It becomes part of the next Website Release; an external public site changes only after that Release is put online.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save status</button></div>
     </form>
 
@@ -170,7 +170,7 @@
         <strong>This changes HiVenues presentation, not Hive protocol.</strong><br>
         Hiding the action does not make downvotes impossible on Hive. People may still downvote this public content through another compatible Hive client, and HiVenues will continue to show canonical negative-vote state truthfully.
       </div>
-      <p class="cc-inspector-help">This becomes visitor-facing only after you release the working version.</p>
+      <p class="cc-inspector-help">This becomes part of the visitor-facing Website Release only after you create another Release. An external public site is updated separately.</p>
       <div class="cc-inspector-actions"><button class="cc-button cc-button--ink" type="submit">Save participation setting</button></div>
     </form>
   <% } %>
