@@ -46,3 +46,22 @@ test('Era 7 Stage 3C: malformed remote stderr cannot inject a diagnostic stage',
       + '(status 2). [DEPLOYMENT_REMOTE_COMMAND_FAILED]',
   );
 });
+
+
+test('Era 7 Stage 5B corrective: repeated pre-auth failure exposes only bounded reconnection stage diagnostics', () => {
+  const error = new Error('SSH connection failed before authentication could be proven.');
+  error.code = 'DEPLOYMENT_SSH_CONNECTION_FAILED';
+  error.reauthorizationStage = 'install-steady-authority';
+  error.retryAttempts = 3;
+  error.remoteStderr = 'secret-like-value=must-not-surface';
+
+  const message = deploymentErrorMessage(error);
+
+  assert.equal(
+    message,
+    'SSH connection failed before authentication could be proven. '
+      + 'Stage: install-steady-authority after 3 bounded attempts. '
+      + '[DEPLOYMENT_SSH_CONNECTION_FAILED]',
+  );
+  assert.doesNotMatch(message, /secret-like-value/);
+});
