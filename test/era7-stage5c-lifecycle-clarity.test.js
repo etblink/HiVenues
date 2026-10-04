@@ -133,6 +133,95 @@ test('Era 7 Stage 5C: deployment page leads with the human lifecycle and moves r
   assert.match(html, /Advanced and qualification targets/);
 });
 
+test('Era 7 Stage 5C P1: interrupted deployment is never presented as publicly verified from stale proof', async () => {
+  const { view } = model();
+  const release = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
+  const deployment = {
+    version: 1,
+    id: 'deployment-stage5c-interrupted',
+    hostSlug: 'harbor-and-hearth',
+    providerKind: 'ssh-server',
+    providerProfile: 'privex-reference',
+    capabilities: [],
+    state: 'deploying',
+    stateReason: 'exact-release-deployment-started',
+    providerState: 'ready',
+    paymentState: 'not-requested',
+    targetPublicFacts: {
+      host: '203.0.113.11',
+      port: 22,
+      username: 'hivenues-deploy',
+      bootstrapUsername: 'debian',
+    },
+    authorityRef: 'authority-stage5c-interrupted',
+    authorityPublic: null,
+    selectedRelease: { id: release.id, digest: release.digest },
+    package: {
+      schemaVersion: 1,
+      releaseId: release.id,
+      releaseDigest: release.digest,
+      packageDigest: 'b'.repeat(64),
+    },
+    activeRelease: {
+      id: release.id,
+      digest: release.digest,
+      packageDigest: 'a'.repeat(64),
+      deployedAt: '2026-10-04T01:00:00.000Z',
+    },
+    previousRelease: null,
+    runtimeProfile: {
+      kind: 'hivenues-public-runtime',
+      sourceSha: '1'.repeat(40),
+      sourceTree: '2'.repeat(40),
+      packageVersion: '1.0.0',
+      nodeVersion: 'v24.19.0',
+      bundleDigest: '3'.repeat(64),
+    },
+    pendingRuntimeProfile: {
+      kind: 'hivenues-public-runtime',
+      sourceSha: '4'.repeat(40),
+      sourceTree: '5'.repeat(40),
+      packageVersion: '1.0.0',
+      nodeVersion: 'v24.19.0',
+      bundleDigest: '6'.repeat(64),
+    },
+    publicEndpoint: {
+      hostname: 'dev.example.test',
+      domainState: 'dns-confirmed',
+      dns: {
+        requirements: [{ type: 'A', name: 'dev.example.test', values: ['203.0.113.11'] }],
+        observation: null,
+      },
+      tls: { state: 'verified' },
+      publicReadBack: { state: 'verified' },
+    },
+    healthState: 'checking',
+    rollbackState: 'unavailable',
+    history: [],
+  };
+
+  const html = await renderView('deployment', {
+    pageTitle: 'Deployment — Harbor & Hearth',
+    ...view,
+    deploymentAvailable: true,
+    deploymentProfile: { capabilities: ['DEPLOY_RELEASE'], externalEffects: false },
+    deploymentAuthorityAvailable: false,
+    deploymentVerificationAvailable: false,
+    deploymentMutationAvailable: true,
+    deploymentPublicationInspectionAvailable: false,
+    deploymentPublicationExecutionAvailable: false,
+    deploymentLifecycleAvailable: false,
+    deploymentReauthorizationAvailable: false,
+    deployments: [deployment],
+    error: '',
+  });
+
+  assert.match(html, /Public update is incomplete/);
+  assert.match(html, /Review and resume the interrupted deployment/);
+  assert.doesNotMatch(html, /Public site is online and verified/);
+  assert.doesNotMatch(html, /No deployment action is required/);
+});
+
 test('Era 7 Stage 5C: established deployment review uses update language instead of first-bootstrap language', async () => {
   const { view } = model();
   const release = view.releases.find((item) => item.id === view.liveReleaseId) || view.releases[0];
