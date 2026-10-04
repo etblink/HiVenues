@@ -5,68 +5,113 @@
 </head>
 <body class="cc-task-body">
   <main class="cc-task" data-deployment-exact-review>
+    <%
+      const isInitialServerSetup = (
+        review.target.currentUsername === review.target.bootstrapUsername
+        && !deployment.activeRelease
+      );
+      const sameWebsiteRelease = Boolean(
+        deployment.activeRelease
+        && deployment.activeRelease.id === review.release.id
+        && deployment.activeRelease.digest === review.release.digest
+      );
+      const actionHeading = deployment.state === 'deploying'
+        ? 'Resume this interrupted deployment safely.'
+        : (isInitialServerSetup
+          ? 'Set up this server and put the Website Release online.'
+          : (sameWebsiteRelease
+            ? 'Update the public-site runtime without changing the Website Release.'
+            : 'Put this Website Release online.'));
+      const actionLead = isInitialServerSetup
+        ? 'HiVenues will set up its bounded server runtime, install the exact Website Release, move ongoing management to the restricted deployment account, and verify the result.'
+        : (sameWebsiteRelease
+          ? 'The Website Release is already the public content. This action updates the qualified HiVenues runtime on the established restricted deployment account and then re-verifies the exact Release.'
+          : 'HiVenues will use the already-established restricted deployment account to place this exact Website Release online and verify the resulting runtime and Release.');
+      const actionButton = deployment.state === 'deploying'
+        ? 'Resume this deployment'
+        : (isInitialServerSetup
+          ? 'Set up server and put Release online'
+          : (sameWebsiteRelease ? 'Update public-site runtime' : 'Update public site'));
+    %>
     <nav class="cc-task-nav">
       <a
         class="cc-link"
         href="/hivenues/studio/<%= graph.identity.slug %>/deploy"
       >Back to Deployment</a>
-      <span class="cc-draft-status">Immutable Release consequence</span>
+      <span class="cc-draft-status">Public website review</span>
     </nav>
 
-    <p class="cc-kicker">Deployment · explicit external consequence</p>
-    <h1>Review the exact server mutation before it happens.</h1>
-    <p class="cc-task__dek">
-      This action will connect to the already verified server with the protected deployment-only SSH authority,
-      upload the exact qualified public runtime and immutable Release, configure only the bounded HiVenues
-      services, prove the restricted deployment login, remove the exact HiVenues key from the bootstrap account,
-      and verify exact health/provenance read-back.
-    </p>
-
-    <section class="cc-consequence-card" data-deployment-review-target>
-      <p class="cc-kicker">Verified target</p>
-      <h2><code><%= review.target.currentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></h2>
-      <p>
-        Trusted SSH fingerprint:
-        <code data-review-host-fingerprint><%= review.target.trustedHostKeyFingerprint %></code>
-      </p>
-      <p>
-        Verified target:
-        <code><%= review.target.verifiedOs %></code>
-        ·
-        <code><%= review.target.verifiedArchitecture %></code>
-      </p>
-      <% if (review.target.bootstrapUsername !== review.target.currentUsername) { %>
-        <p>
-          Original bootstrap account retained only for exact-key cleanup:
-          <code><%= review.target.bootstrapUsername %></code>
-        </p>
-      <% } %>
-    </section>
-
-    <section class="cc-review-card" data-deployment-review-release>
-      <p class="cc-kicker">Exact immutable Release</p>
-      <h2><code data-review-release-id><%= review.release.id %></code></h2>
-      <p>Release digest: <code><%= review.release.digest %></code></p>
-      <p>Package digest: <code data-review-package-digest><%= review.release.packageDigest %></code></p>
-    </section>
-
-    <section class="cc-review-card" data-deployment-review-runtime>
-      <p class="cc-kicker">Qualified public runtime</p>
-      <h2>Installed Studio provenance → deterministic deployment runtime</h2>
-      <p>Source commit: <code data-review-source-sha><%= review.runtime.sourceSha %></code></p>
-      <p>Source tree: <code data-review-source-tree><%= review.runtime.sourceTree %></code></p>
-      <p>Runtime bundle: <code data-review-runtime-digest><%= review.runtime.bundleDigest %></code></p>
-      <p>Node: <code><%= review.runtime.nodeVersion %></code> · Package: <code><%= review.runtime.packageVersion %></code></p>
-    </section>
+    <p class="cc-kicker">Put website online · consequence review</p>
+    <h1><%= actionHeading %></h1>
+    <p class="cc-task__dek"><%= actionLead %></p>
 
     <section class="cc-consequence-card" data-deployment-review-consequences>
-      <h2>What HiVenues will do</h2>
+      <p class="cc-kicker">What changes</p>
+      <h2><%= sameWebsiteRelease ? 'Runtime maintenance; website content stays the same' : 'This Website Release will be put online' %></h2>
       <ul>
-        <% review.consequences.forEach((item) => { %>
-          <li><code><%= item %></code></li>
-        <% }) %>
+        <% if (isInitialServerSetup) { %>
+          <li>Set up the bounded HiVenues runtime on this verified server.</li>
+          <li>Install this exact Website Release.</li>
+          <li>Move ongoing management to the restricted deployment account.</li>
+          <li>Read back and verify the exact runtime and Website Release.</li>
+        <% } else { %>
+          <li>Use the existing restricted HiVenues deployment account.</li>
+          <li><%= sameWebsiteRelease ? 'Install the qualified runtime while keeping the current Website Release.' : 'Install this exact Website Release with the qualified runtime.' %></li>
+          <li>Restart only the dedicated HiVenues site service as required.</li>
+          <li>Read back and verify the exact runtime and Website Release.</li>
+        <% } %>
       </ul>
     </section>
+
+    <details class="cc-review-card" style="margin-top:1rem" data-deployment-review-technical>
+      <summary>Exact technical details</summary>
+
+      <section data-deployment-review-target>
+        <p class="cc-kicker">Verified target</p>
+        <h2><code><%= review.target.currentUsername %>@<%= review.target.host %>:<%= review.target.port %></code></h2>
+        <p>
+          Trusted SSH fingerprint:
+          <code data-review-host-fingerprint><%= review.target.trustedHostKeyFingerprint %></code>
+        </p>
+        <p>
+          Verified target:
+          <code><%= review.target.verifiedOs %></code>
+          ·
+          <code><%= review.target.verifiedArchitecture %></code>
+        </p>
+        <% if (review.target.bootstrapUsername !== review.target.currentUsername) { %>
+          <p>
+            Original setup account:
+            <code><%= review.target.bootstrapUsername %></code>
+          </p>
+        <% } %>
+      </section>
+
+      <section data-deployment-review-release>
+        <p class="cc-kicker">Exact immutable Release</p>
+        <h2><code data-review-release-id><%= review.release.id %></code></h2>
+        <p>Release digest: <code><%= review.release.digest %></code></p>
+        <p>Package digest: <code data-review-package-digest><%= review.release.packageDigest %></code></p>
+      </section>
+
+      <section data-deployment-review-runtime>
+        <p class="cc-kicker">Qualified public runtime</p>
+        <h2>Installed Studio provenance → deterministic deployment runtime</h2>
+        <p>Source commit: <code data-review-source-sha><%= review.runtime.sourceSha %></code></p>
+        <p>Source tree: <code data-review-source-tree><%= review.runtime.sourceTree %></code></p>
+        <p>Runtime bundle: <code data-review-runtime-digest><%= review.runtime.bundleDigest %></code></p>
+        <p>Node: <code><%= review.runtime.nodeVersion %></code> · Package: <code><%= review.runtime.packageVersion %></code></p>
+      </section>
+
+      <section data-deployment-review-raw-consequences>
+        <p class="cc-kicker">Raw consequence identifiers</p>
+        <ul>
+          <% review.consequences.forEach((item) => { %>
+            <li><code><%= item %></code></li>
+          <% }) %>
+        </ul>
+      </section>
+    </details>
 
     <section class="cc-review-card" data-deployment-review-held>
       <h2>What this action will not do</h2>
@@ -92,12 +137,10 @@
           value="deploy-exact-release"
           required
         >
-        I reviewed this exact target, Release, runtime provenance and bounded server consequence.
+        I reviewed what this action changes, what it leaves unchanged, and the exact technical details available above.
       </label>
       <button class="cc-button cc-button--ink" type="submit" data-confirm-exact-deployment>
-        <%= deployment.state === 'deploying'
-          ? 'Resume and finish this exact deployment'
-          : 'Bootstrap server and deploy this exact Release' %>
+        <%= actionButton %>
       </button>
     </form>
   </main>
