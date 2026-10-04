@@ -10,6 +10,8 @@ const { createReferenceBootstrapPlan } = require('../src/deploy/bootstrap-plan')
 const {
   finalizeReauthorizationCommand,
   restoreDeploymentAuthorityCommand,
+  retryPreAuthConnection,
+  reviewedReauthorizationAccess,
 } = require('../src/deploy/ssh-remote-deployment-target');
 const {
   createDomainPreflight,
@@ -206,6 +208,7 @@ function fixture(t, {
   const remote = {
     inspectCalls: 0,
     reauthorizeCalls: 0,
+    reauthorizeOptions: [],
     inspection: inspection || {
       bootstrapAccessible: true,
       steadyAccessible: false,
@@ -244,8 +247,9 @@ function fixture(t, {
       remote.inspectCalls += 1;
       return remote.inspection;
     },
-    async reauthorizeExistingDeployment() {
+    async reauthorizeExistingDeployment(_plan, options) {
       remote.reauthorizeCalls += 1;
+      remote.reauthorizeOptions.push(options);
       return remote.result;
     },
   };
@@ -394,6 +398,9 @@ test('Era 7 Stage 5B: reviewed re-authorization preserves A/B history and return
   });
 
   assert.equal(f.remote.reauthorizeCalls, 1);
+  assert.deepEqual(f.remote.reauthorizeOptions, [{
+    reviewedRemoteState: 'bootstrap-temporary-only',
+  }]);
   assert.equal(f.publicProofCalls(), 1);
   assert.equal(result.state, 'rollback-available');
   assert.equal(result.healthState, 'healthy');
@@ -509,4 +516,87 @@ test('Era 7 Stage 5B: reauthorizing state and fresh authority survive store rest
   assert.equal(record.activeRelease.id, RELEASE_A.id);
   assert.equal(record.previousRelease.id, RELEASE_B.id);
   assert.equal(record.publicEndpoint.publicReadBack.state, 'verified');
+});
+
+
+test('Era 7 Stage 5B corrective: reviewed remote states map to exact access facts', () => {
+  assert.deepEqual(
+    reviewedReauthorizationAccess('bootstrap-temporary-only'),
+    { bootstrapAccessible: true, steadyAccessible: false },
+  );
+  assert.deepEqual(
+    reviewedReauthorizationAccess('steady-authority-present-bootstrap-temporary'),
+    { bootstrapAccessible: true, steadyAccessible: true },
+  );
+  assert.deepEqual(
+    reviewedReauthorizationAccess('steady-authority-already-restored'),
+    { bootstrapAccessible: false, steadyAccessible: true },
+  );
+  assert.throws(
+    () => reviewedReauthorizationAccess('unknown-state'),
+    (error) => error.code === 'DEPLOYMENT_REAUTHORIZATION_REMOTE_STATE_INVALID',
+  );
+});
+
+test('Era 7 Stage 5B corrective: transient pre-auth connection failures retry without treating outage as auth rejection', async () => {
+  const attempts = [];
+  const sleeps = [];
+  const result = await retryPreAuthConnection(async (attempt) => {
+    attempts.push(attempt);
+    if (attempt < 3) {
+      const error = new Error('pre-auth connection dropped');
+      error.code = 'DEPLOYMENT_SSH_CONNECTION_FAILED';
+      throw error;
+    }
+    return 'connected';
+  }, {
+    stage: 'install-steady-authority',
+    sleep: async (ms) => sleeps.push(ms),
+  });
+
+  assert.equal(result, 'connected');
+  assert.deepEqual(attempts, [1, 2, 3]);
+  assert.deepEqual(sleeps, [250, 750]);
+});
+
+test('Era 7 Stage 5B corrective: repeated pre-auth failure stays fail-closed with stage diagnostics', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () => retryPreAuthConnection(async () => {
+      attempts += 1;
+      const error = new Error('still unavailable');
+      error.code = 'DEPLOYMENT_SSH_CONNECTION_FAILED';
+      throw error;
+    }, {
+      stage: 'prove-steady-authority-after-install',
+      sleep: async () => {},
+    }),
+    (error) => (
+      error.code === 'DEPLOYMENT_SSH_CONNECTION_FAILED'
+      && error.reauthorizationStage === 'prove-steady-authority-after-install'
+      && error.retryAttempts === 3
+    ),
+  );
+  assert.equal(attempts, 3);
+});
+
+test('Era 7 Stage 5B corrective: authentication rejection and post-auth mutation errors are never retried', async () => {
+  for (const code of ['DEPLOYMENT_SSH_AUTH_FAILED', 'DEPLOYMENT_REMOTE_COMMAND_FAILED']) {
+    let attempts = 0;
+    await assert.rejects(
+      () => retryPreAuthConnection(async () => {
+        attempts += 1;
+        const error = new Error(code);
+        error.code = code;
+        throw error;
+      }, {
+        stage: 'bounded-test',
+        sleep: async () => {
+          throw new Error('sleep must not run');
+        },
+      }),
+      (error) => error.code === code,
+    );
+    assert.equal(attempts, 1);
+  }
 });
