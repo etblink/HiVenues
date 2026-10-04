@@ -455,17 +455,17 @@
                       && ['ready-for-request', 'unconfigured', 'awaiting-dns'].includes(deployment.publicEndpoint.tls.state)
                     ) { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-domain-publication-entry>
-                        <p class="cc-kicker">Secure publication</p>
-                        <h5>DNS is confirmed. Review the live server consequence before publishing.</h5>
+                        <p class="cc-kicker">Connect domain</p>
+                        <h5>DNS is confirmed. Review connecting this domain to the public site.</h5>
                         <p>
-                          This next review does not change the server. It re-proves the restricted publication
-                          capability and exact deployed Release before offering the bounded hostname action.
+                          This review is read-only. HiVenues first re-proves the exact deployed Website Release
+                          and the server's bounded domain capability before offering the final connection action.
                         </p>
                         <a
                           class="cc-button cc-button--ink"
                           href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/publication-review"
                           data-review-live-publication
-                        >Review secure publication</a>
+                        >Review domain connection</a>
                       </section>
                     <% } %>
 
@@ -501,12 +501,16 @@
 
                     <% if (deployment.publicEndpoint.publicReadBack.state === 'verified') { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-verified>
-                        <p class="cc-kicker">Public proof complete</p>
-                        <h5>Live HTTPS exact Release confirmed.</h5>
-                        <p>
-                          <code>https://<%= deployment.publicEndpoint.hostname %>/__hivenues/health</code>
-                          returned the exact active runtime and immutable Release recorded by Studio.
-                        </p>
+                        <p class="cc-kicker">Public verification complete</p>
+                        <h5>Public site is serving the expected Website Release.</h5>
+                        <p>HiVenues independently confirmed the secure public site after deployment.</p>
+                        <details>
+                          <summary>Exact verification</summary>
+                          <p>
+                            <code>https://<%= deployment.publicEndpoint.hostname %>/__hivenues/health</code>
+                            returned the exact active runtime and immutable Release recorded by Studio.
+                          </p>
+                        </details>
                       </section>
                     <% } else if (deployment.publicEndpoint.publicReadBack.state === 'mismatch') { %>
                       <section class="cc-consequence-card" style="margin-top:1rem" data-public-readback-mismatch>
@@ -722,9 +726,9 @@
                       data-select-deployment-release
                     >
                       <label>
-                        Immutable Release
+                        Website Release to put online
                         <select name="releaseId" required>
-                          <option value="">Choose Release</option>
+                          <option value="">Choose Website Release</option>
                           <% releases.slice().reverse().forEach((item) => { %>
                             <option
                               value="<%= item.id %>"
@@ -735,7 +739,7 @@
                           <% }) %>
                         </select>
                       </label>
-                      <button class="cc-button" type="submit">Prepare exact Release package</button>
+                      <button class="cc-button" type="submit">Prepare this Website Release</button>
                     </form>
                   <% } %>
 
@@ -938,19 +942,24 @@
                     <section class="cc-consequence-card" data-deployment-consequence-review>
                       <strong>
                         <%= deployment.state === 'deploying'
-                          ? 'Interrupted deployment can be resumed safely'
-                          : 'Exact Release is ready for deployment consequence review' %>
+                          ? 'Interrupted public update can be resumed safely'
+                          : (deployment.activeRelease
+                            ? 'Website Release is ready for public update review'
+                            : 'Website Release is ready for first server setup review') %>
                       </strong>
                       <p>
-                        Review the trusted server identity, exact immutable Release, installed-runtime source
-                        provenance and bounded server changes before HiVenues is allowed to mutate the target.
+                        Review what will change before HiVenues updates the server. Exact server identity,
+                        immutable Release, runtime provenance and bounded consequence details remain available
+                        in the review.
                       </p>
                       <a
                         class="cc-button cc-button--ink"
                         href="/hivenues/studio/<%= graph.identity.slug %>/deploy/<%= deployment.id %>/review"
                         data-review-exact-deployment
                       >
-                        <%= deployment.state === 'deploying' ? 'Review and resume exact deployment' : 'Review exact deployment' %>
+                        <%= deployment.state === 'deploying'
+                          ? 'Review and resume public update'
+                          : (deployment.activeRelease ? 'Review public update' : 'Review server setup') %>
                       </a>
                     </section>
                   <% } %>
