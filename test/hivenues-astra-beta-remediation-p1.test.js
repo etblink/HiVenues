@@ -68,8 +68,8 @@ test('Astra beta P1: Release review summarizes meaningful changes and History us
   const restorePage = await request(app)
     .get(`/hivenues/studio/${slug}/releases/${firstLive.liveReleaseId}/restore`)
     .expect(200);
-  assert.match(restorePage.text, /does <strong>not<\/strong> roll the live website back/i);
-  assert.match(restorePage.text, /Publishing is always a separate decision/);
+  assert.match(restorePage.text, /does <strong>not<\/strong> change the latest Website Release or any deployed public site/i);
+  assert.match(restorePage.text, /Creating another Website Release is separate/);
 
   await request(app)
     .post(`/hivenues/studio/${slug}/releases/${firstLive.liveReleaseId}/restore`)
