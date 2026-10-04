@@ -98,7 +98,7 @@ test('release review truthfully enumerates unpublished Territory v2 changes', as
 
   await post(app, `/hivenues/studio/${slug}/release`, snapshot);
   const postRelease = await request(app).get(`/hivenues/studio/${slug}/release`).expect(200);
-  assert.match(postRelease.text, /No visitor-facing difference was detected from the current live website\./);
+  assert.match(postRelease.text, /No visitor-facing difference was detected from the latest website Release\./);
   assert.deepEqual(store.diagnostics().external, {
     hiveRpcAttempts: 0,
     hiveWrites: 0,
