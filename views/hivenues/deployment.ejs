@@ -235,11 +235,32 @@
                 <% } %>
                 <% if (activeWebsiteRelease) { %>
                   <p data-public-website-release>
-                    Public site is serving:
+                    <% if (
+                      publicVerified
+                      && ['healthy', 'rollback-available'].includes(deployment.state)
+                    ) { %>
+                      Public site is serving:
+                    <% } else if (['deploying', 'degraded', 'unreachable'].includes(deployment.state)) { %>
+                      Last confirmed deployed Website Release:
+                    <% } else { %>
+                      Website Release confirmed on server:
+                    <% } %>
                     <strong>Version <%= activeWebsiteRelease.draftRevision %><%= activeWebsiteRelease.kind === 'urgent' ? ' + urgent update' : '' %></strong>
                   </p>
                 <% } else if (deployment.activeRelease) { %>
-                  <p data-public-website-release>Public site is serving: <code><%= deployment.activeRelease.id %></code></p>
+                  <p data-public-website-release>
+                    <% if (
+                      publicVerified
+                      && ['healthy', 'rollback-available'].includes(deployment.state)
+                    ) { %>
+                      Public site is serving:
+                    <% } else if (['deploying', 'degraded', 'unreachable'].includes(deployment.state)) { %>
+                      Last confirmed deployed Website Release:
+                    <% } else { %>
+                      Website Release confirmed on server:
+                    <% } %>
+                    <code><%= deployment.activeRelease.id %></code>
+                  </p>
                 <% } %>
                 <% if (selectedWebsiteRelease && selectedDiffersFromPublic) { %>
                   <p>
