@@ -24,8 +24,8 @@ function appFixture() {
 test('Studio exposes one discoverable, non-durable wide/narrow canvas review control', async () => {
   const response = await request(appFixture()).get('/hivenues/studio/harbor-and-hearth').expect(200);
   assert.match(response.text, /data-review-stage data-review-mode="wide"/);
-  assert.match(response.text, /data-review-width="wide" aria-pressed="true">Wide/);
-  assert.match(response.text, /data-review-width="narrow" aria-pressed="false">Narrow review/);
+  assert.match(response.text, /data-review-width="wide" aria-pressed="true">Desktop layout/);
+  assert.match(response.text, /data-review-width="narrow" aria-pressed="false">Mobile layout/);
   assert.match(response.text, /data-review-device/);
   assert.doesNotMatch(response.text, /cc-full-preview-frame|<iframe/i);
 });

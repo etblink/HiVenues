@@ -11,9 +11,9 @@
       <a class="cc-link" href="/hivenues/studio/<%= graph.identity.slug %>">Back to Studio</a>
       <span class="cc-draft-status">Draft <%= revision %></span>
     </nav>
-    <p class="cc-kicker">Content</p>
-    <h1>The details that make your place.</h1>
-    <p class="cc-task__dek">Edit your story and visit details. Changes save to your draft; publish when you’re ready.</p>
+    <p class="cc-kicker">Page content</p>
+    <h1>Story &amp; visit details</h1>
+    <p class="cc-task__dek">Introduce your place and help visitors find you. Save your changes to the draft, then publish when you’re ready.</p>
 
     <% if (saved) { %><div class="cc-studio-notice" role="status"><strong>Draft saved.</strong> Preview your website, then publish when you’re ready.</div><% } %>
     <% if (errors.length) { %>
@@ -23,7 +23,6 @@
       </section>
     <% } %>
 
-    <nav class="op-content-links" aria-label="Content sections"><a href="/hivenues/studio/<%= graph.identity.slug %>/activity/new">Add activity</a><a href="/hivenues/studio/<%= graph.identity.slug %>/offer/new">Add offer</a><a href="/hivenues/studio/<%= graph.identity.slug %>/territory-content">Stories, people & gallery</a><a href="/hivenues/studio/<%= graph.identity.slug %>/media-library">Images</a></nav>
     <form class="cc-setup-form" method="post" action="/hivenues/studio/<%= graph.identity.slug %>/content">
       <input type="hidden" name="expectedRevision" value="<%= revision %>">
       <input type="hidden" name="expectedDraftDigest" value="<%= draftDigest %>">
@@ -49,8 +48,10 @@
         <div class="cc-field"><label for="cc-content-participation">Invitation / participation copy</label><textarea id="cc-content-participation" name="participation" maxlength="800" required><%= v.participation ?? graph.intent.participation %></textarea></div>
       </section>
 
+      <p id="cc-save-state" class="op-form-state" role="status">Saved draft · edits need Save</p>
       <button class="cc-button cc-button--ink" type="submit">Save public content to draft</button>
     </form>
   </main>
+<script src="/js/hivenues-studio.js" defer></script>
 </body>
 </html>

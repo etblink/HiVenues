@@ -227,7 +227,7 @@ test('Studio is server-rendered, current-revision aware and uses one transient-o
   assert.match(studio.text, /href="\/hivenues\/studio\/northline-hall\/publish"/);
   assert.match(studio.text, /Page/);
   assert.match(studio.text, /Activities/);
-  assert.match(studio.text, /Design & settings/);
+  assert.match(studio.text, />Design</);
   assert.doesNotMatch(studio.text, /id="cc-full-preview-frame"|Complete visitor page|Site preview · Poster room/);
 
   const inspector = await request(app)
@@ -239,6 +239,6 @@ test('Studio is server-rendered, current-revision aware and uses one transient-o
   const clientPath = path.join(__dirname, '..', 'public', 'js', 'hivenues-studio.js');
   const client = fs.readFileSync(clientPath, 'utf8');
   assert.match(client, /durableStateMirror:\s*false/);
-  assert.ok(client.split(/\r?\n/).length < 150);
+  assert.ok(client.split(/\r?\n/).length < 180); // Includes bounded unsaved-form protection; no durable state mirror.
   assertExternalZero(store);
 });

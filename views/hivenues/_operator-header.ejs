@@ -1,15 +1,19 @@
 <% if (typeof operator !== 'undefined' && operator) { %>
 <header class="op-header">
   <a class="op-home" href="/hivenues" aria-label="Your places">H<span>HiVenues</span></a>
-  <strong class="op-place"><%= graph.identity.displayName %></strong>
+  <details class="op-site-menu">
+    <summary aria-label="Site menu"><strong><%= graph.identity.displayName %></strong><span aria-hidden="true">⌄</span></summary>
+    <nav aria-label="Site menu">
+      <a href="<%= operator.base %>">Edit website</a>
+      <a href="<%= operator.base %>/website">Website &amp; hosting</a>
+      <a href="<%= operator.base %>/history">History</a>
+      <a href="/hivenues">Your places</a>
+    </nav>
+  </details>
+  <span class="op-context"><%= typeof activeDestination !== 'undefined' ? ({ 'Edit website': 'Editor', Content: 'Story & visit details', Website: 'Website & hosting' }[activeDestination] || activeDestination) : 'Editor' %></span>
   <div class="op-header-actions">
     <a class="op-button op-button--quiet" href="<%= typeof previewHref === 'string' ? previewHref : operator.base + '/preview' %>"><%= typeof previewHref === 'string' ? 'Preview this copy' : 'Preview' %></a>
     <% if (typeof actionSuppressed === 'undefined' || !actionSuppressed) { %><a class="op-button op-button--primary" href="<%= operator.base %>/publish"><%= operator.primaryLabel %></a><% } %>
   </div>
 </header>
-<nav class="op-nav" aria-label="Your place workspace">
-  <% [['', 'Edit website'], ['/content', 'Content'], ['/website', 'Website'], ['/history', 'History']].forEach(([suffix, label]) => { %>
-    <a href="<%= operator.base + suffix %>" <%- typeof activeDestination !== 'undefined' && activeDestination === label ? 'aria-current="page"' : '' %>><%= label %></a>
-  <% }) %>
-</nav>
 <% } %>

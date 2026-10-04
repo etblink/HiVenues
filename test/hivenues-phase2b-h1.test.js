@@ -34,7 +34,7 @@ function listEjs(directory, out = []) {
 test('Workstream F + Era 4: HiVenues ships only bounded named client islands and no inline scripts', () => {
   const source = fs.readFileSync(ISLAND, 'utf8');
   const lines = source.split('\n').length - 1;
-  assert.ok(lines < 150, `island grew to ${lines} lines`);
+  assert.ok(lines < 180, `island grew to ${lines} lines`); // Stage 5D adds transient unsaved-form protection.
   assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB/);
   assert.match(source, /durableStateMirror: false/);
   // The only fetch is the pageshow reconcile against the current document URL.

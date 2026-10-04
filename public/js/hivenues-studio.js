@@ -10,6 +10,7 @@
       'present the transient first-draft handoff over the same canonical host',
       'switch the same canonical canvas between wide and narrow review geometry',
       'show transient submission feedback while the server owns publishing results',
+      'warn about unsaved form edits without storing a second copy of host data',
     ]),
   });
 
@@ -75,6 +76,35 @@
     const panel = () => document.querySelector('#candidate-inspector');
     const reveal = () => document.querySelector('[data-first-draft-reveal]');
     const state = () => document.querySelector('#cc-save-state');
+    const dirtyForms = new Set();
+    const isDirty = () => [...dirtyForms].some(form => form.isConnected);
+    const editableForm = (element) => element.closest('.cc-inspector-form, .cc-setup-form');
+    function markDirty(event) {
+      const form = editableForm(event.target);
+      if (!form || !form.querySelector('[name="expectedDraftDigest"]')) return;
+      dirtyForms.add(form);
+      if (state()) state().textContent = 'Unsaved changes';
+    }
+    document.addEventListener('input', markDirty);
+    document.addEventListener('change', markDirty);
+    window.addEventListener('beforeunload', event => {
+      if (!isDirty()) return;
+      event.preventDefault(); event.returnValue = '';
+    });
+    // The inspector can contain several independent forms. Saving one must not
+    // silently discard unsaved fields in another when its HTML is replaced.
+    document.body.addEventListener('htmx:confirm', event => {
+      const source = event.detail.elt;
+      if (!source || !isDirty()) return;
+      const ownForm = source.closest('.cc-inspector-form');
+      const replacesInspector = event.detail.target?.id === 'candidate-inspector';
+      if (!replacesInspector || ![...dirtyForms].some(form => form.isConnected && form !== ownForm)) return;
+      if (!window.confirm('Discard unsaved changes and continue?')) event.preventDefault();
+    });
+    document.addEventListener('submit', event => {
+      const form = editableForm(event.target);
+      if (form && !form.hasAttribute('hx-post')) dirtyForms.delete(form);
+    });
     const sync = () => document.body.classList.toggle('cc-context-open', panel()?.dataset.open === 'true');
     function open() { const node = panel(); if (!node) return; node.dataset.open = 'true'; sync(); }
     function close() { const node = panel(); if (!node) return; node.dataset.open = 'false'; sync(); }
@@ -105,15 +135,19 @@
     });
     document.addEventListener('keydown', (event) => { if (event.key !== 'Escape') return; if (reveal() && !reveal().hidden) dismissReveal(); else if (panel()?.dataset.open === 'true') close(); });
     document.addEventListener('input', (event) => { if (event.target.matches('[data-focal-axis]')) focal(event.target); });
-    document.body.addEventListener('htmx:beforeRequest', (event) => { if (!event.detail.elt.closest('.cc-inspector-form')) return; if (state()) state().textContent = 'Saving…'; });
+    document.body.addEventListener('htmx:beforeRequest', (event) => { if (!event.detail.elt.closest('.cc-inspector-form')) return; if (panel()) panel().inert = true; if (state()) state().textContent = 'Saving…'; });
     document.body.addEventListener('htmx:beforeSwap', (event) => {
       if (event.detail.target?.id !== 'candidate-inspector') return;
       const status = event.detail.xhr?.status;
       if (status === 409) { if (state()) state().textContent = 'Not saved'; event.detail.shouldSwap = true; event.detail.isError = false; return; }
-      if (status >= 200 && status < 300 && state()) state().textContent = 'Saved';
+      if (status >= 200 && status < 300) { dirtyForms.clear(); if (state()) state().textContent = 'Saved'; }
     });
     document.body.addEventListener('htmx:afterSwap', (event) => { if (event.detail.target?.id !== 'candidate-inspector') return; if (panel()?.dataset.open === 'true') { open(); focusPanel(); } else sync(); });
-    document.body.addEventListener('htmx:afterRequest', (event) => { if (event.detail.elt.closest('.cc-inspector-form') && event.detail.xhr?.status === 409 && state()) state().textContent = 'Not saved'; });
+    document.body.addEventListener('htmx:afterRequest', (event) => {
+      if (panel()) panel().inert = false;
+      if (!event.detail.elt.closest('.cc-inspector-form')) return;
+      if (event.detail.failed && state()) state().textContent = 'Not saved';
+    });
     window.addEventListener('pageshow', async () => {
       const rendered = document.querySelector('#draft-status')?.dataset.revision; if (!rendered) return;
       try {

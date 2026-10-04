@@ -2,7 +2,7 @@
 <html lang="en">
 <head><%- include('_head', { graph, pageTitle }) %></head>
 <body class="op-body">
-<%- include('_operator-header', { activeDestination: screen === 'history' ? 'History' : 'Website', actionSuppressed: !['website', 'history'].includes(screen), previewHref: copy ? `${operator.base}/publish/${copy.id}/preview` : undefined }) %>
+<%- include('_operator-header', { activeDestination: screen === 'history' ? 'History' : screen === 'website' ? 'Website' : operator.canPublish ? 'Publishing' : 'Save a copy', actionSuppressed: !['website', 'history'].includes(screen), previewHref: copy ? `${operator.base}/publish/${copy.id}/preview` : undefined }) %>
 <main class="op-main" id="main">
   <% if (error) { %><div class="op-alert" role="alert"><h2>This needs another look</h2><p><%= error %></p></div><% } %>
   <% const copyPath = copy ? `${operator.base}/publish/${encodeURIComponent(copy.id)}` : ''; %>
@@ -14,7 +14,7 @@
     </ol>
   <% } %>
   <% if (screen === 'website') { %>
-    <p class="op-eyebrow">Website</p><h1><%= operator.title %></h1>
+    <p class="op-eyebrow">Website &amp; hosting</p><h1><%= operator.title %></h1>
     <% if (!operator.canPublish) { %>
       <p class="op-lead">Create, edit and preview here. This Studio cannot publish to the internet.</p>
       <section class="op-panel"><h2>Your work is saved on this computer</h2><p>You can review and save an exact website copy now. Publishing needs the installed HiVenues Studio with protected server access.</p><a class="op-button op-button--primary" href="<%= operator.base %>/publish">Review and save a copy</a><a class="op-button" href="<%= operator.base %>">Keep editing</a></section>

@@ -1856,7 +1856,7 @@ async function runValueRecipientStudioEvidence(
   try {
     await page.setViewportSize(DESKTOP);
     await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
-    await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Design & settings' }).locator('summary').click();
+    await page.locator('.cc-studio-commandbar summary').filter({ hasText: /^Settings$/ }).click();
     await page.getByRole('button', { name: 'Support & value' }).click();
     const inspector = page.locator('#candidate-inspector');
     await inspector.getByText('Choose who receives direct support.').waitFor();
@@ -1916,7 +1916,7 @@ async function runVotePolicyStudioEvidence(
     for (const [viewportName, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE]]) {
       await page.setViewportSize(viewport);
       await page.goto(origin + '/hivenues/studio/northline-hall', { waitUntil: 'networkidle' });
-      await page.locator('.cc-studio-commandbar details').filter({ hasText: 'Design & settings' }).locator('summary').click();
+      await page.locator('.cc-studio-commandbar summary').filter({ hasText: /^Settings$/ }).click();
       await page.locator('button[hx-get*="resource=participation"]').click();
       const inspector = page.locator('#candidate-inspector');
       await inspector.getByText('Choose whether this site shows a downvote action.').waitFor();
@@ -2389,7 +2389,7 @@ async function runDeploymentStage1Evidence(browser, axeSource, manifest) {
   try {
     await page.goto(origin + '/hivenues/studio/' + slug, { waitUntil: 'networkidle' });
     assert.equal(
-      await page.getByRole('link', { name: 'Website details', exact: true }).getAttribute('href'),
+      await page.getByRole('link', { name: 'Website & hosting', exact: true }).getAttribute('href'),
       '/hivenues/studio/' + slug + '/website',
     );
 
@@ -2971,11 +2971,37 @@ async function runStage5DWorkspaceEvidence(browser, axeSource, manifest) {
     for (const [name, viewport] of [['desktop', DESKTOP], ['mobile390', MOBILE], ['mobile320', { width: 320, height: 800 }]]) {
       await page.setViewportSize(viewport);
       await page.goto(origin + `/hivenues/studio/${f.slug}`);
-      assert.equal(await page.getByRole('navigation', { name: 'Your place workspace' }).getByRole('link').count(), 4);
+      assert.equal(await page.locator('.op-nav').count(), 0);
+      await page.locator('.op-site-menu summary').click();
+      await page.getByRole('navigation', { name: 'Site menu' }).getByRole('link', { name: 'History', exact: true }).waitFor();
+      await page.locator('.op-site-menu summary').click();
       await page.getByRole('link', { name: 'Preview', exact: true }).waitFor();
       await capture(page, axeSource, manifest, 'stage5d-workspace-' + name);
     }
     await page.setViewportSize(DESKTOP);
+    const unchangedDigest = f.hostStore.snapshot(f.slug).draftDigest;
+    await page.getByRole('button', { name: 'Edit first impression', exact: true }).click();
+    const headline = page.getByRole('textbox', { name: 'Headline', exact: true });
+    const originalHeadline = await headline.inputValue();
+    await headline.fill('Unsaved browser qualification text');
+    assert.equal(await page.locator('#cc-save-state').textContent(), 'Unsaved changes');
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.getByRole('button', { name: 'Adjust image focus', exact: true }).click();
+    assert.equal(await headline.inputValue(), 'Unsaved browser qualification text');
+    assert.equal(f.hostStore.snapshot(f.slug).draftDigest, unchangedDigest);
+    await capture(page, axeSource, manifest, 'stage5d-unsaved-edit-preserved');
+    await headline.fill(originalHeadline);
+    const saveUrl = origin + `/hivenues/studio/${f.slug}/tagline`;
+    await page.route(saveUrl, route => route.fulfill({ status: 503, body: 'Offline qualification: save unavailable' }));
+    await page.getByRole('button', { name: 'Save headline', exact: true }).click();
+    await page.getByText('Not saved', { exact: true }).waitFor();
+    assert.equal(await headline.inputValue(), originalHeadline);
+    assert.equal(f.hostStore.snapshot(f.slug).draftDigest, unchangedDigest);
+    await page.unroute(saveUrl);
+    await page.getByRole('button', { name: 'Save headline', exact: true }).click();
+    await page.getByText('Saved', { exact: true }).waitFor();
+    assert.equal(f.hostStore.snapshot(f.slug).draftDigest, unchangedDigest);
+    await page.getByRole('button', { name: 'Close editor', exact: true }).click();
     await page.getByRole('link', { name: 'Publish website', exact: true }).click();
     await capture(page, axeSource, manifest, 'stage5d-content-approval');
     await page.getByRole('checkbox').check();

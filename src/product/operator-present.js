@@ -87,7 +87,7 @@ function buildOperatorPresentation(snapshot, services = null) {
     draft: { revision: snapshot.revision, digest: snapshot.draftDigest, matchingCopy, differsFromLatest: latest?.digest !== snapshot.draftDigest },
     latest, targets, simulations: all.filter((target) => target.simulated), canPublish,
     title: !canPublish ? 'This Studio is local-only' : targets.length === 1 ? targets[0].title : targets.length ? 'Choose a website destination' : 'Not published yet',
-    primaryLabel: !canPublish ? 'Review website' : targets.some((target) => target.installedCopy) ? 'Update website' : 'Publish website',
+    primaryLabel: !canPublish ? 'Save a copy' : targets.some((target) => target.installedCopy) ? 'Update website' : 'Publish website',
   };
 }
 
