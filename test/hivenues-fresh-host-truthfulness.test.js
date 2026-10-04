@@ -73,7 +73,7 @@ test('fresh host stays working-only across restart until an explicit first Relea
   assert.equal(created.headers.location, '/hivenues/studio/truthful-bar?created=1');
 
   const studio = await request(app).get(created.headers.location).expect(200);
-  assert.match(studio.text, /Nothing is live yet/);
+  assert.match(studio.text, /No Website Release yet/);
   await request(app).get('/hivenues/studio/truthful-bar/preview').expect(200).expect(/Truthful Bar/);
   await request(app).get('/hivenues/truthful-bar').expect(404);
   await request(app).get('/hivenues/studio/truthful-bar/urgent').expect(409);
