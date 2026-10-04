@@ -155,6 +155,10 @@
                   humanTitle = 'Reconnecting Studio management';
                   humanBody = 'The public site stays in place while HiVenues restores only its bounded deployment authority.';
                   humanNext = 'Finish the reviewed management reconnection shown below.';
+                } else if (deployment.state === 'deploying') {
+                  humanTitle = 'Public update is incomplete';
+                  humanBody = 'HiVenues has not accepted the previous public proof for this in-progress deployment. The preserved Release history remains available while the exact deployment is recovered.';
+                  humanNext = 'Review and resume the interrupted deployment shown below.';
                 } else if (deployment.state === 'degraded') {
                   humanTitle = 'Deployment needs attention';
                   humanBody = 'HiVenues stopped rather than guessing after a deployment or recovery proof failed.';
@@ -173,7 +177,10 @@
                     humanBody = 'HiVenues is still proving the server identity and read-only baseline.';
                     humanNext = 'Complete the trust or verification action shown below.';
                   }
-                } else if (publicVerified) {
+                } else if (
+                  publicVerified
+                  && ['healthy', 'rollback-available'].includes(deployment.state)
+                ) {
                   humanTitle = 'Public site is online and verified';
                   humanBody = deployment.publicEndpoint?.hostname
                     ? 'HiVenues confirmed the exact deployed Website Release at https://' + deployment.publicEndpoint.hostname + '/.'
