@@ -45,23 +45,26 @@ function resourceForSurface(view, surface) {
   return null;
 }
 
-function renderSurface(res, snapshot, role, resourceSlug, { draftPreview = false } = {}) {
-  if (!snapshot) return res.sendStatus(404);
-  const view = territoryLocals(snapshot, { draftPreview, previewRouteBase: res.locals.previewRouteBase });
+function surfacePage(snapshot, role, resourceSlug, { draftPreview = false, previewRouteBase = null } = {}) {
+  if (!snapshot) return null;
+  const view = territoryLocals(snapshot, { draftPreview, previewRouteBase });
   const surface = findTerritorySurface(view.territory, role, resourceSlug);
-  if (!surface) return res.sendStatus(404);
+  if (!surface) return null;
   const template = templateForSurface(view.territory, surface);
-  if (!template) return res.sendStatus(404);
+  if (!template) return null;
   const resource = resourceForSurface(view, surface);
-  if (surface.kind === 'detail' && !resource) return res.sendStatus(404);
-  return res.render(template, {
-    ...view,
-    surface,
-    resource,
+  if (surface.kind === 'detail' && !resource) return null;
+  return { template, locals: {
+    ...view, surface, resource,
     story: surface.role === 'story-detail' ? resource : null,
     profile: surface.role === 'profile-detail' ? resource : null,
-    pageTitle: `${pageTitleFor(view, surface, resource)}${draftPreview ? ' — draft preview' : ''}`,
-  });
+    pageTitle: pageTitleFor(view, surface, resource) + (draftPreview ? ' — draft preview' : ''),
+  } };
+}
+
+function renderSurface(res, snapshot, role, resourceSlug, { draftPreview = false } = {}) {
+  const page = surfacePage(snapshot, role, resourceSlug, { draftPreview, previewRouteBase: res.locals.previewRouteBase });
+  return page ? res.render(page.template, page.locals) : res.sendStatus(404);
 }
 
 function installTerritoryRoutes(router, { store, draftPreview }) {
@@ -92,4 +95,4 @@ function createHiVenuesPublicTerritoryRouter({ store } = {}) {
   return router;
 }
 
-module.exports = { createHiVenuesPreviewTerritoryRouter, createHiVenuesPublicTerritoryRouter, renderSurface, territoryLocals };
+module.exports = { createHiVenuesPreviewTerritoryRouter, createHiVenuesPublicTerritoryRouter, renderSurface, surfacePage, territoryLocals };

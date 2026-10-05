@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= pageTitle %></title>
+  <link rel="stylesheet" href="/css/hivenues-authoring-proof.css">
+  <script src="/js/hivenues-authoring-proof.js" defer></script>
+</head>
+<body>
+  <header>
+    <a href="<%= base %>">Back to existing Studio</a>
+    <h1>Document fidelity proof</h1>
+    <p><strong><%= snapshot.draft.identity.displayName %></strong> · Local development entry · Read only · Nothing is published here</p>
+  </header>
+  <main>
+    <form method="get">
+      <label>Document to load <select name="surface"><% pages.forEach((item) => { %><option value="<%= item.key %>" <%= item.key === surface.key ? 'selected' : '' %>><%= item.label %> · <%= item.role %></option><% }) %></select></label>
+      <label>Document viewport <select name="viewport"><% Object.entries(viewports).forEach(([key, size]) => { %><option value="<%= key %>" <%= key === viewportKey ? 'selected' : '' %>><%= size.label %></option><% }) %></select></label>
+      <label>Consumer <select name="mode"><option value="studio" <%= mode === 'studio' ? 'selected' : '' %>>Faithful Studio document</option><option value="preview" <%= mode === 'preview' ? 'selected' : '' %>>Preview document</option></select></label>
+      <button type="submit">Show document</button>
+    </form>
+    <p id="proof-help">This entry proves rendering only. Editing is not enabled. Contact links, downloads and visitor actions are unavailable. Use the page selector to compare routes. Press Escape inside the document to return to its controls.</p>
+    <button id="enter-document" type="button">Focus website document</button>
+    <p id="document-status" role="status">Loading the pinned draft…</p>
+    <div id="proof-viewport">
+      <iframe id="proof-document" src="<%= framePath %>" width="<%= viewport.width %>" height="<%= viewport.height %>"
+        title="<%= mode === 'studio' ? 'Faithful Studio document' : 'Preview document' %> — <%= surface.label %> — <%= snapshot.draft.identity.displayName %>"
+        sandbox="allow-same-origin" referrerpolicy="no-referrer" aria-describedby="proof-help"></iframe>
+    </div>
+    <a id="after-document" href="<%= base %>">Leave document proof</a>
+    <details><summary>Compared draft identity</summary><p>Revision <%= snapshot.revision %></p><code><%= snapshot.draftDigest %></code></details>
+    <noscript><p>The document remains read-only. Use Tab to move through its links and back to the controls outside it.</p></noscript>
+  </main>
+</body>
+</html>

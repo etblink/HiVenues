@@ -43,6 +43,7 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
 
   const publicJs = fs.readdirSync(path.join(ROOT, 'public', 'js')).filter((file) => file.startsWith('hivenues'));
   assert.deepEqual(publicJs, [
+    'hivenues-authoring-proof.js',
     'hivenues-content.js',
     'hivenues-deployment.js',
     'hivenues-identity.js',
@@ -62,9 +63,12 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
     for (const tag of scripts) {
       assert.match(
         tag,
-        /\/htmx\/htmx\.min\.js|\/js\/hivenues-studio\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-deployment\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js|\/js\/hivenues-support\.js/,
+        /\/htmx\/htmx\.min\.js|\/js\/hivenues-studio\.js|\/js\/hivenues-authoring-proof\.js|\/js\/keychain-adapter\.js|\/js\/hivenues-identity\.js|\/js\/hivenues-participation\.js|\/js\/hivenues-content\.js|\/js\/hivenues-deployment\.js|\/js\/hivenues-vote\.js|\/js\/hivenues-reward-claim\.js|\/js\/hivenues-support\.js/,
         `${relative}: ${tag}`,
       );
+      if (/hivenues-authoring-proof/.test(tag)) {
+        assert.equal(relative, 'views/hivenues/authoring-proof.ejs', 'proof client escaped its opt-in development shell');
+      }
       if (/hivenues-identity/.test(tag)) {
         assert.match(
           relative,
@@ -123,6 +127,10 @@ test('Workstream F + Era 4: HiVenues ships only bounded named client islands and
       }
     }
   }
+
+  const proof = fs.readFileSync(path.join(ROOT, 'public', 'js', 'hivenues-authoring-proof.js'), 'utf8');
+  assert.ok(proof.split('\n').length - 1 < 60, 'proof focus island exceeded its documented budget');
+  assert.doesNotMatch(proof, /localStorage|sessionStorage|indexedDB|fetch\(|XMLHttpRequest|contentEditable/);
 
   for (const family of ['poster', 'editorial', 'hospitality']) {
     const hub = fs.readFileSync(
