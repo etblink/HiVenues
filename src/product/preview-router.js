@@ -1,13 +1,10 @@
 'use strict';
 
 const express = require('express');
-const { disclosureFor, mechanicRegistry } = require('./model');
-const { buildViewModel, renderIcs } = require('./present');
-const { createHiVenuesPreviewTerritoryRouter, createHiVenuesPublicTerritoryRouter, territoryLocals } = require('./territory-router');
+const { renderIcs } = require('./present');
+const { createHiVenuesPublicTerritoryRouter, territoryLocals } = require('./territory-router');
 
-function previewLocals(snapshot) {
-  return { ...buildViewModel(snapshot), draftPreview: true, studio: false };
-}
+const { renderDraftPage } = require('./draft-document');
 
 function previewActivityPath(slug, activitySlug) {
   return `/hivenues/studio/${encodeURIComponent(slug)}/preview/activities/${encodeURIComponent(activitySlug)}`;
@@ -19,7 +16,7 @@ function topLevelReviewSurface(view, key) {
   return view.territory.navigation.some((entry) => entry.surfaceRole === surface.role) ? surface : null;
 }
 
-function createHiVenuesPreviewRouter({ store } = {}) {
+function createHiVenuesPreviewRouter({ store, allowDocumentMode = false } = {}) {
   if (!store) throw new TypeError('HiVenues preview router requires a store.');
   const router = express.Router();
 
@@ -53,23 +50,27 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     });
   });
 
-  router.get('/studio/:slug/preview', (req, res) => {
-    const snapshot = store.snapshot(req.params.slug);
-    if (!snapshot) return res.sendStatus(404);
-    const view = previewLocals(snapshot);
-    return res.render(view.family.publicTemplate, { pageTitle: `${view.graph.identity.displayName} — draft preview`, ...view });
-  });
-
-  router.get('/studio/:slug/preview/activities/:activitySlug', (req, res) => {
-    const snapshot = store.snapshot(req.params.slug);
-    if (!snapshot) return res.sendStatus(404);
-    const view = previewLocals(snapshot);
-    const activity = view.activities.find((item) => item.slug === req.params.activitySlug);
-    if (!activity) return res.sendStatus(404);
-    return res.render(view.family.activityTemplate, { pageTitle: `${activity.title} — ${view.graph.identity.displayName} — draft preview`, ...view, activity });
-  });
+  const render = (role, param = null) => (req, res) => {
+    const documentOnly = req.query.document === '1';
+    if ('document' in req.query && (!allowDocumentMode || !documentOnly)) return res.sendStatus(404);
+    return renderDraftPage(req, res, store.snapshot(req.params.slug), {
+      role, resourceSlug: param ? req.params[param] : null, documentOnly,
+    });
+  };
+  router.get('/studio/:slug/preview', render('home'));
+  router.get('/studio/:slug/preview/activities/:activitySlug', render('activity-detail', 'activitySlug'));
+  router.get('/studio/:slug/preview/activities', render('activities-index'));
+  router.get('/studio/:slug/preview/offers', render('offers'));
+  router.get('/studio/:slug/preview/stories', render('stories-index'));
+  router.get('/studio/:slug/preview/stories/:storySlug', render('story-detail', 'storySlug'));
+  router.get('/studio/:slug/preview/gallery', render('gallery'));
+  router.get('/studio/:slug/preview/people', render('people-index'));
+  router.get('/studio/:slug/preview/people/:profileSlug', render('profile-detail', 'profileSlug'));
+  router.get('/studio/:slug/preview/about', render('about-visit'));
+  router.get('/studio/:slug/preview/consequence/:mechanicId', render('consequence', 'mechanicId'));
 
   router.get('/studio/:slug/preview/activities/:activitySlug/calendar.ics', (req, res) => {
+    if ('document' in req.query) return res.sendStatus(404);
     const snapshot = store.snapshot(req.params.slug);
     if (!snapshot) return res.sendStatus(404);
     const activity = snapshot.draft.activities.find((item) => item.slug === req.params.activitySlug);
@@ -84,25 +85,7 @@ function createHiVenuesPreviewRouter({ store } = {}) {
     return res.send(calendar);
   });
 
-  router.get('/studio/:slug/preview/consequence/:mechanicId', (req, res) => {
-    const snapshot = store.snapshot(req.params.slug);
-    const mechanic = mechanicRegistry[req.params.mechanicId];
-    if (!snapshot || !mechanic) return res.sendStatus(404);
-    return res.render('hivenues/consequence', {
-      pageTitle: `${snapshot.draft.voice.terms[mechanic.id] || mechanic.id} — ${snapshot.draft.identity.displayName} — draft preview`,
-      ...previewLocals(snapshot),
-      mechanic,
-      term: snapshot.draft.voice.terms[mechanic.id] || mechanic.id,
-      disclosure: disclosureFor(mechanic.id, snapshot.draft),
-    });
-  });
-
-  // #285 convergence seam: this top-level router already runs before the legacy
-  // operator/public router in the qualified runtime. New semantic surfaces share
-  // one implementation while their snapshot source stays explicit: Preview reads
-  // Working, public territory routes read only the live Release. Existing qualified
-  // home/activity/consequence routes above remain untouched.
-  router.use(createHiVenuesPreviewTerritoryRouter({ store }));
+  // Public territory continues to read only immutable live Release snapshots.
   router.use(createHiVenuesPublicTerritoryRouter({ store }));
 
   return router;

@@ -18,4 +18,4 @@
 <link rel="stylesheet" href="/css/hivenues-accent-a11y.css">
 <link rel="stylesheet" href="/css/hivenues-community.css">
 
-<% if ((typeof operator !== 'undefined' && operator) || (typeof draftPreview !== 'undefined' && draftPreview)) { %><link rel="stylesheet" href="/css/hivenues-operator.css"><% } %>
+<% if (!(typeof privateDraftDocument !== 'undefined' && privateDraftDocument) && ((typeof operator !== 'undefined' && operator) || (typeof draftPreview !== 'undefined' && draftPreview))) { %><link rel="stylesheet" href="/css/hivenues-operator.css"><% } %>

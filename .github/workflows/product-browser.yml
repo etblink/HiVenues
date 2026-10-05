@@ -12,6 +12,8 @@ on:
       - 'scripts/hivenues-public-runtime.js'
       - 'LICENSE'
       - 'scripts/product-browser-qualification.js'
+      - 'scripts/authoring-document-qualification.js'
+      - 'test/helpers/authoring-proof-fixtures.js'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/product-browser.yml'
@@ -28,6 +30,8 @@ on:
       - 'scripts/hivenues-public-runtime.js'
       - 'LICENSE'
       - 'scripts/product-browser-qualification.js'
+      - 'scripts/authoring-document-qualification.js'
+      - 'test/helpers/authoring-proof-fixtures.js'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/product-browser.yml'
@@ -75,6 +79,11 @@ jobs:
 
       - name: Run product browser qualification
         run: npm run test:browser
+
+      - name: Prove private document fidelity
+        env:
+          HIVENUES_AUTHORING_PROOF_OUTPUT: artifacts/product-browser/authoring-document
+        run: npm run test:authoring-document
 
       - name: Upload browser evidence
         if: always()

@@ -11,6 +11,7 @@ const { MAX_IMAGE_BYTES, MAX_MULTIPART_BYTES, parseMultipartForm } = require('./
 const { createWorkspaceRouter } = require('./workspace-router');
 const { createHiVenuesOperatorRouter } = require('./operator-router');
 const { createHiVenuesPreviewRouter } = require('./preview-router');
+const { createAuthoringProofRouter } = require('./authoring-proof-router');
 const { buildViewModel } = require('./present');
 const { ProvisioningFileHiVenuesStore } = require('./provisioning-file-store');
 const {
@@ -77,8 +78,10 @@ function createHiVenuesApp({
   participationPreflightTtlMs,
   contentPermlinkFactory,
   deploymentServices = null,
+  authoringProof = false,
 } = {}) {
   if (!store) throw new TypeError('HiVenues dogfood app requires a store.');
+  if (authoringProof && publicIngress) throw new Error('Authoring proof is available only in the local development runtime.');
   if (publicIngress && String(accessSecret).length < 32) {
     throw new Error('HIVENUES_DOGFOOD_ACCESS_SECRET must contain at least 32 characters in public-ingress mode.');
   }
@@ -285,7 +288,8 @@ function createHiVenuesApp({
   // Preview routes intentionally run before the ordinary operator/public router.
   // They render only the working snapshot and never route through publicSnapshot.
   app.use('/hivenues', createWorkspaceRouter({ store, services: deploymentServices }));
-  app.use('/hivenues', createHiVenuesPreviewRouter({ store }));
+  if (authoringProof) app.use('/hivenues', createAuthoringProofRouter({ store }));
+  app.use('/hivenues', createHiVenuesPreviewRouter({ store, allowDocumentMode: authoringProof }));
   // Era 3 social discovery is strictly read-side. It consumes the existing
   // HiveReadService contract and never acquires signing or broadcast authority.
   app.use('/hivenues', createHiVenuesSocialReadRouter({

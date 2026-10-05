@@ -18,6 +18,7 @@ function usage() {
     '',
     `  --state PATH  Durable local HiVenues state file (default ${path.relative(process.cwd(), DEFAULT_STATE_PATH)}).`,
     '  --port PORT   Local loopback port (default 4173).',
+    '  HIVENUES_AUTHORING_PROOF=1 enables the read-only Slice-0 development entry.',
     '',
     'This launcher is for ordinary local product development. It binds only to 127.0.0.1 and performs no Hive writes, deployment, DNS, provider, payment, or other external effects.',
   ].join('\n');
@@ -81,6 +82,7 @@ async function main() {
     hiveReadService,
     identityOrigin: `http://${LOCAL_HOST}:${options.port}`,
     deploymentServices,
+    authoringProof: process.env.HIVENUES_AUTHORING_PROOF === '1',
   });
   const server = await startHiVenuesServer(app, { port: options.port });
   const port = server.address().port;
